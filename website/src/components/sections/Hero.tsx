@@ -29,6 +29,8 @@ export default function Hero() {
           dpr={1}
           pageLoadAnimation
           brightness={0.7}
+          fps={30}
+          resolutionScale={0.5}
         />
       </div>
       {/* Keep the type readable over the shader. */}

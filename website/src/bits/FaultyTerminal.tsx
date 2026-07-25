@@ -22,6 +22,13 @@ export interface FaultyTerminalProps extends React.HTMLAttributes<HTMLDivElement
   dpr?: number;
   pageLoadAnimation?: boolean;
   brightness?: number;
+  /** Frame-rate cap — the noise field moves slowly, 30fps looks identical
+   *  to 60fps but halves the GPU load. */
+  fps?: number;
+  /** Internal render resolution as a fraction of the container size. The
+   *  canvas is stretched back with CSS; soft noise scales without visible
+   *  loss. 0.5 renders a quarter of the pixels. */
+  resolutionScale?: number;
 }
 
 const vertexShader = `
@@ -260,6 +267,8 @@ export default function FaultyTerminal({
   dpr = Math.min(window.devicePixelRatio || 1, 2),
   pageLoadAnimation = true,
   brightness = 1,
+  fps = 30,
+  resolutionScale = 1,
   className,
   style,
   ...rest
@@ -273,6 +282,8 @@ export default function FaultyTerminal({
   const rafRef = useRef<number>(0);
   const loadAnimationStartRef = useRef<number>(0);
   const timeOffsetRef = useRef<number>(Math.random() * 100);
+  const inViewRef = useRef(true);
+  const lastFrameRef = useRef(0);
 
   const tintVec = useMemo(() => hexToRgb(tint), [tint]);
 
@@ -334,7 +345,14 @@ export default function FaultyTerminal({
 
     function resize() {
       if (!ctn || !renderer) return;
-      renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
+      renderer.setSize(
+        Math.max(1, Math.round(ctn.offsetWidth * resolutionScale)),
+        Math.max(1, Math.round(ctn.offsetHeight * resolutionScale))
+      );
+      // ogl sizes the canvas element to the (scaled) buffer — stretch it back
+      // over the whole container so the reduced resolution is invisible.
+      gl.canvas.style.width = '100%';
+      gl.canvas.style.height = '100%';
       program.uniforms.iResolution.value = new Color(
         gl.canvas.width,
         gl.canvas.height,
@@ -346,8 +364,25 @@ export default function FaultyTerminal({
     resizeObserver.observe(ctn);
     resize();
 
+    // Stop drawing entirely once the canvas scrolls out of view — the shader
+    // is expensive and must not keep taxing the GPU below the fold.
+    const inViewObserver = new IntersectionObserver(
+      ([entry]) => {
+        inViewRef.current = entry.isIntersecting;
+      },
+      { rootMargin: '120px' }
+    );
+    inViewObserver.observe(ctn);
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const frameInterval = fps > 0 ? 1000 / fps : 0;
+
     const update = (t: number) => {
       rafRef.current = requestAnimationFrame(update);
+
+      if (!inViewRef.current) return;
+      if (t - lastFrameRef.current < frameInterval) return;
+      lastFrameRef.current = t;
 
       if (pageLoadAnimation && loadAnimationStartRef.current === 0) {
         loadAnimationStartRef.current = t;
@@ -382,7 +417,15 @@ export default function FaultyTerminal({
 
       renderer.render({ scene: mesh });
     };
-    rafRef.current = requestAnimationFrame(update);
+
+    if (reducedMotion) {
+      // One static frame — no animation loop at all.
+      program.uniforms.iTime.value = 8;
+      program.uniforms.uPageLoadProgress.value = 1;
+      renderer.render({ scene: mesh });
+    } else {
+      rafRef.current = requestAnimationFrame(update);
+    }
     ctn.appendChild(gl.canvas);
 
     if (mouseReact) ctn.addEventListener('mousemove', handleMouseMove);
@@ -390,6 +433,7 @@ export default function FaultyTerminal({
     return () => {
       cancelAnimationFrame(rafRef.current);
       resizeObserver.disconnect();
+      inViewObserver.disconnect();
       if (mouseReact) ctn.removeEventListener('mousemove', handleMouseMove);
       if (gl.canvas.parentElement === ctn) ctn.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
@@ -415,6 +459,8 @@ export default function FaultyTerminal({
     mouseStrength,
     pageLoadAnimation,
     brightness,
+    fps,
+    resolutionScale,
     handleMouseMove
   ]);
 
