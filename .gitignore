@@ -1,0 +1,11 @@
+# Build artifacts
+kaioken.exe
+kaioken.exe.old
+
+# Session and state (local-only)
+.kaioken/sessions/
+.kaioken/config.yaml
+
+# OS files
+Thumbs.db
+.DS_Store
