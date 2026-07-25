@@ -8,6 +8,11 @@ cli/kaioken_new.exe
 .kaioken/sessions/
 .kaioken/config.yaml
 
+# Agent tooling (local-only)
+.qoder/
+.claude/
+.ainow/
+
 # Website
 website/node_modules/
 website/dist/
