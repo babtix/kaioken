@@ -66,14 +66,14 @@ export default function SiteFooter() {
                         href={link.to}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-mono text-[13px] text-muted-foreground transition-colors hover:text-kai-orange"
+                        className="block py-1 font-mono text-[13px] text-muted-foreground transition-colors hover:text-kai-orange"
                       >
                         {link.label}
                       </a>
                     ) : (
                       <Link
                         to={link.to}
-                        className="font-mono text-[13px] text-muted-foreground transition-colors hover:text-kai-orange"
+                        className="block py-1 font-mono text-[13px] text-muted-foreground transition-colors hover:text-kai-orange"
                       >
                         {link.label}
                       </Link>

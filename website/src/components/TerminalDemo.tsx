@@ -101,7 +101,7 @@ export default function TerminalDemo() {
       meta="repo: ai_now_know"
       scanlines
       className="panel-glow"
-      bodyClassName="min-h-[22rem] text-[12.5px] sm:text-[13px]"
+      bodyClassName="min-h-[22rem] text-[11px] sm:text-[13px]"
     >
       {/* The animation is decoration; screen readers get the finished transcript. */}
       <div aria-live="off">

@@ -20,11 +20,15 @@ function Shot({
   alt,
   caption,
   points,
+  width,
+  height,
 }: {
   src: string
   alt: string
   caption: string
   points: string[]
+  width: number
+  height: number
 }) {
   return (
     <figure className="group">
@@ -37,8 +41,11 @@ function Shot({
         <img
           src={src}
           alt={alt}
+          width={width}
+          height={height}
           loading="lazy"
-          className="w-full transition-transform duration-500 group-hover:scale-[1.015]"
+          decoding="async"
+          className="h-auto w-full transition-transform duration-500 group-hover:scale-[1.015]"
         />
         <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-sm border border-border bg-background/85 px-2 py-1 font-mono text-[10.5px] text-muted-foreground opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
           <Maximize2 className="size-3" />
@@ -147,6 +154,8 @@ export default function Showcase() {
             src="/shots/wiki_index.png"
             alt="The generated wiki's table of contents, with a section sidebar and an on-this-page outline"
             caption="Table of contents"
+            width={1500}
+            height={949}
             points={[
               "Left: every planned section with its document count. Right: an on-this-page outline generated from the headings.",
               "Search is full-text across all chapters — press / to focus it.",
@@ -157,6 +166,8 @@ export default function Showcase() {
             src="/shots/wiki_doc.png"
             alt="A generated architecture chapter showing a rendered mermaid sequence diagram"
             caption="A chapter, with diagrams"
+            width={1920}
+            height={889}
             points={[
               "Mermaid is rendered, not shown as code. Invalid diagrams are demoted to plain code blocks rather than shipping as an error box.",
               "Headings name real files, because every claim is checked against the code index.",

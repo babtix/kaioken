@@ -142,6 +142,10 @@
     scroll-behavior: smooth;
     /* the docs header is sticky — keep anchor targets clear of it */
     scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* no grey flash when tapping links on phones */
+    -webkit-tap-highlight-color: transparent;
   }
   ::selection {
     background-color: color-mix(in oklab, var(--kai-orange) 35%, transparent);

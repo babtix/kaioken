@@ -1,37 +1,43 @@
 import { ArrowRight } from "lucide-react"
+import * as React from "react"
 import GithubMark from "@/components/GithubMark"
 import AsciiArt from "@/components/AsciiArt"
-import FaultyTerminal from "@/bits/FaultyTerminal"
 import TerminalDemo from "@/components/TerminalDemo"
 import { Badge } from "@/components/ui/badge"
 import LinkButton from "@/components/LinkButton"
 import { ASCII_LOGO, GITHUB_URL, PROVIDERS } from "@/data/content"
+
+// The shader pulls in the whole ogl WebGL library — load it after the first
+// paint so phones parse the landing page itself before the effect starts.
+const FaultyTerminal = React.lazy(() => import("@/bits/FaultyTerminal"))
 
 export default function Hero() {
   return (
     <section className="relative isolate overflow-hidden pt-14">
       {/* React Bits FaultyTerminal, tinted to the TUI's orange (ANSI 208). */}
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.55]">
-        <FaultyTerminal
-          scale={1.6}
-          gridMul={[2, 1]}
-          digitSize={1.4}
-          timeScale={0.35}
-          scanlineIntensity={0.55}
-          glitchAmount={1}
-          flickerAmount={0.7}
-          noiseAmp={1}
-          chromaticAberration={0}
-          curvature={0.08}
-          tint="#ff8700"
-          mouseReact
-          mouseStrength={0.35}
-          dpr={1}
-          pageLoadAnimation
-          brightness={0.7}
-          fps={30}
-          resolutionScale={0.5}
-        />
+        <React.Suspense fallback={null}>
+          <FaultyTerminal
+            scale={1.6}
+            gridMul={[2, 1]}
+            digitSize={1.4}
+            timeScale={0.35}
+            scanlineIntensity={0.55}
+            glitchAmount={1}
+            flickerAmount={0.7}
+            noiseAmp={1}
+            chromaticAberration={0}
+            curvature={0.08}
+            tint="#ff8700"
+            mouseReact
+            mouseStrength={0.35}
+            dpr={1}
+            pageLoadAnimation
+            brightness={0.7}
+            fps={30}
+            resolutionScale={0.5}
+          />
+        </React.Suspense>
       </div>
       {/* Keep the type readable over the shader. */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background/50 via-background/75 to-background" />
