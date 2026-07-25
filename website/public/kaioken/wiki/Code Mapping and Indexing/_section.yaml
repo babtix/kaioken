@@ -1,0 +1,13 @@
+generated_at: "2026-07-25T18:08:56Z"
+model: nvidia/nemotron-3-super-120b-a12b
+section:
+    id: codemap
+    title: Code Mapping and Indexing
+    goal: Explain how the system parses source code to build symbol indexes, code skeletons, and file maps for use in the knowledge engine and agent's context awareness.
+    files:
+        - internal/codemap/codemap.go
+        - internal/codemap/index.go
+        - internal/codemap/bundle.go
+        - internal/codemap/parse_go.go
+        - internal/codemap/parse_lines.go
+summary: This section explains how kaioken parses source code to build symbol indexes, code skeletons, and file maps for use in the knowledge engine and agent's context awareness. It covers the parsing of individual files into FileMaps containing symbols, the construction of a repository-wide Index, the generation of skeletons for condensed code views, and the bundling of relevant code snippets for LLM context within token budgets.

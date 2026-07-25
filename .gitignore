@@ -1,11 +1,16 @@
 # Build artifacts
-kaioken.exe
-kaioken.exe.old
-kaioken.exe~
+cli/kaioken.exe
+cli/kaioken.exe.old
+cli/kaioken.exe~
+cli/kaioken_new.exe
 
 # Session and state (local-only)
 .kaioken/sessions/
 .kaioken/config.yaml
+
+# Website
+website/node_modules/
+website/dist/
 
 # OS files
 Thumbs.db

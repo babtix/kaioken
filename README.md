@@ -1,5 +1,15 @@
 # kaioken — a terminal AI coding assistant + knowledge engine
 
+## Repository layout
+
+```
+├── cli/        the Go source (single binary)
+└── website/    the React landing + docs site (Vite + Tailwind)
+```
+
+- **cli/** — build with `cd cli && go build -o kaioken.exe ./cmd/kaioken`
+- **website/** — run with `cd website && npm install && npm run dev`
+
 `kaioken` is a single Go binary with two faces:
 
 1. **A chat agent** — talk to any model from your provider's live catalog. It
@@ -283,6 +293,7 @@ the run starts.
 
 ```powershell
 # build (Go >= 1.24)
+cd cli
 go build -o kaioken.exe ./cmd/kaioken
 
 # set your OpenRouter key (get one at openrouter.ai/keys)

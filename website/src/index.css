@@ -1,0 +1,247 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Kaioken palette — lifted from the TUI's lipgloss ANSI codes so the site
+   and the terminal are literally the same colours.
+   cli/internal/tui/tui.go · palette.go · logo.go
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* core ramp */
+  --kai-red: #ff0000;      /* 196 · logo, danger              */
+  --kai-orange: #ff8700;   /* 208 · primary, gutter, headings */
+  --kai-amber: #ffaf00;    /* 214 · warn, approval, keycaps   */
+  --kai-tan: #d7af87;      /* 180 · tool calls                */
+
+  /* sparing accents — used deliberately, never decoratively */
+  --kai-blue: #87d7ff;     /* 117 · user input, commands      */
+  --kai-green: #00d787;    /* 42  · ok, diff +, examples      */
+  --kai-sage: #87af87;     /* 108 · tool results              */
+  --kai-rose: #ff5f5f;     /* 203 · errors, diff −            */
+
+  /* greys */
+  --kai-black: #080808;    /* 232 */
+  --kai-ink: #121212;
+  --kai-panel: #1c1c1c;    /* 234 */
+  --kai-line: #303030;     /* 236 */
+  --kai-dim: #585858;      /* 240 */
+  --kai-muted: #808080;    /* 244 */
+  --kai-text: #d0d0d0;     /* 252 */
+  --kai-white: #eeeeee;
+
+  /* shadcn tokens */
+  --background: var(--kai-black);
+  --foreground: var(--kai-text);
+  --card: var(--kai-ink);
+  --card-foreground: var(--kai-text);
+  --popover: var(--kai-panel);
+  --popover-foreground: var(--kai-text);
+  --primary: var(--kai-orange);
+  --primary-foreground: #180c00;
+  --secondary: var(--kai-panel);
+  --secondary-foreground: var(--kai-text);
+  --muted: var(--kai-panel);
+  --muted-foreground: var(--kai-muted);
+  --accent: #241708;
+  --accent-foreground: var(--kai-amber);
+  --destructive: var(--kai-rose);
+  --border: #ffffff14;
+  --input: #ffffff1f;
+  --ring: var(--kai-orange);
+
+  --chart-1: var(--kai-orange);
+  --chart-2: var(--kai-amber);
+  --chart-3: var(--kai-tan);
+  --chart-4: var(--kai-blue);
+  --chart-5: var(--kai-green);
+
+  /* square-ish: terminals do not have rounded corners */
+  --radius: 0.25rem;
+
+  --sidebar: var(--kai-ink);
+  --sidebar-foreground: var(--kai-text);
+  --sidebar-primary: var(--kai-orange);
+  --sidebar-primary-foreground: #180c00;
+  --sidebar-accent: #241708;
+  --sidebar-accent-foreground: var(--kai-amber);
+  --sidebar-border: #ffffff14;
+  --sidebar-ring: var(--kai-orange);
+}
+
+@theme inline {
+  --font-heading: var(--font-mono);
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Code", monospace;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-kai-red: var(--kai-red);
+  --color-kai-orange: var(--kai-orange);
+  --color-kai-amber: var(--kai-amber);
+  --color-kai-tan: var(--kai-tan);
+  --color-kai-blue: var(--kai-blue);
+  --color-kai-green: var(--kai-green);
+  --color-kai-sage: var(--kai-sage);
+  --color-kai-rose: var(--kai-rose);
+  --color-kai-line: var(--kai-line);
+  --color-kai-dim: var(--kai-dim);
+  --color-kai-panel: var(--kai-panel);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-mono antialiased;
+  }
+  html {
+    scroll-behavior: smooth;
+    /* the docs header is sticky — keep anchor targets clear of it */
+    scroll-padding-top: 6rem;
+  }
+  ::selection {
+    background-color: color-mix(in oklab, var(--kai-orange) 35%, transparent);
+    color: var(--kai-white);
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--kai-black);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--kai-line);
+    border: 2px solid var(--kai-black);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--kai-dim);
+  }
+}
+
+/* ── terminal texture ──────────────────────────────────────────────────── */
+
+/* CRT scanlines. Sits above content as a pointer-transparent overlay. */
+.crt-scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    #00000059 2px 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* The faint character grid a terminal emulator leaves behind. */
+.term-grid {
+  background-image:
+    linear-gradient(to right, #ffffff08 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff08 1px, transparent 1px);
+  background-size: 3ch 1.5rem;
+}
+
+.glow-orange {
+  text-shadow: 0 0 18px color-mix(in oklab, var(--kai-orange) 55%, transparent);
+}
+.glow-red {
+  text-shadow: 0 0 22px color-mix(in oklab, var(--kai-red) 50%, transparent);
+}
+
+/* Phosphor bleed around a focused panel. */
+.panel-glow {
+  box-shadow:
+    0 0 0 1px #ffffff0f,
+    0 0 40px -12px color-mix(in oklab, var(--kai-orange) 45%, transparent);
+}
+
+/* ── animations ────────────────────────────────────────────────────────── */
+
+@keyframes caret-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.animate-caret {
+  animation: caret-blink 1.05s step-end infinite;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise {
+  animation: rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Slow horizontal sweep for the hero's top rule. */
+@keyframes rule-sweep {
+  0% { background-position: -60% 0; }
+  100% { background-position: 160% 0; }
+}
+.rule-sweep {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--kai-orange) 45%,
+    var(--kai-amber) 50%,
+    var(--kai-orange) 55%,
+    transparent 100%
+  );
+  background-size: 55% 100%;
+  background-repeat: no-repeat;
+  animation: rule-sweep 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-caret,
+  .animate-rise,
+  .rule-sweep {
+    animation: none;
+  }
+}
