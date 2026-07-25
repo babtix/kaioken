@@ -1,6 +1,7 @@
 # Build artifacts
 kaioken.exe
 kaioken.exe.old
+kaioken.exe~
 
 # Session and state (local-only)
 .kaioken/sessions/
