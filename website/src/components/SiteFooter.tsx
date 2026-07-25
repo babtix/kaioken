@@ -85,7 +85,19 @@ export default function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+        {/* builder credit — the name in the same gradient art as the logo */}
+        <div className="mt-12 border-t border-border pt-8 text-center">
+          <p className="font-mono text-[10px] tracking-[0.35em] text-kai-dim uppercase">
+            built by
+          </p>
+          <AsciiArt
+            art={BUILDER_ART}
+            label={BUILDER_NAME}
+            className="mt-3 text-[4px] sm:text-[8px] md:text-[10px] lg:text-[13px]"
+          />
+        </div>
+
+        <div className="mt-8 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-[11px] text-kai-dim">
             <span className="text-kai-green">$</span> built for terminals · MIT
           </p>
@@ -98,18 +110,6 @@ export default function SiteFooter() {
             <GithubMark className="size-3.5" />
             github.com/babtix/kaioken
           </a>
-        </div>
-
-        {/* builder credit — the name in the same gradient art as the logo */}
-        <div className="mt-10 border-t border-border pt-8 text-center">
-          <p className="font-mono text-[10px] tracking-[0.35em] text-kai-dim uppercase">
-            built by
-          </p>
-          <AsciiArt
-            art={BUILDER_ART}
-            label={BUILDER_NAME}
-            className="mt-3 text-[6px] sm:text-[8px] md:text-[10px]"
-          />
         </div>
       </div>
     </footer>
