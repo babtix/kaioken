@@ -17,6 +17,14 @@ cli/kaioken_new.exe
 website/node_modules/
 website/dist/
 
+# Desktop app
+desktop/node_modules/
+desktop/dist/
+desktop/src-tauri/target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/gen/
+desktop/src-tauri/target/release/bundle/
+
 # OS files
 Thumbs.db
 .DS_Store

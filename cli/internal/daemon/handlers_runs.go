@@ -1,0 +1,376 @@
+package daemon
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"path/filepath"
+
+	"kaioken/internal/config"
+	"kaioken/internal/generate"
+	"kaioken/internal/plan"
+	"kaioken/internal/skills"
+	"kaioken/internal/wiki"
+)
+
+// --- T035: Run endpoints ---
+
+// POST /v1/workspaces/{id}/runs
+func (s *Server) handleStartRun(w http.ResponseWriter, r *http.Request) {
+	ws := s.workspaceFromRequest(w, r)
+	if ws == nil {
+		return
+	}
+	var body struct {
+		Kind   string         `json:"kind"`
+		Params map[string]any `json:"params"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Kind == "" {
+		writeError(w, http.StatusBadRequest, codeBadRequest, "kind is required", "")
+		return
+	}
+	if body.Params == nil {
+		body.Params = map[string]any{}
+	}
+
+	// Conflict check: same kind already active.
+	if s.runs.ActiveKind(ws.ID, body.Kind) {
+		writeError(w, http.StatusConflict, codeRunConflict,
+			fmt.Sprintf("a %s run is already active on this workspace", body.Kind), "")
+		return
+	}
+
+	// API key check for LLM-backed runs.
+	if needsKey(body.Kind) {
+		if _, err := ws.Client(); err != nil {
+			writeError(w, http.StatusConflict, codeNoAPIKey, err.Error(), "")
+			return
+		}
+	}
+
+	fn, err := s.runFn(ws, body.Kind, body.Params)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, codeBadRequest, err.Error(), "")
+		return
+	}
+
+	run := s.runs.Start(ws, body.Kind, body.Params, fn)
+	writeJSON(w, http.StatusAccepted, run)
+}
+
+// GET /v1/workspaces/{id}/runs
+func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
+	ws := s.workspaceFromRequest(w, r)
+	if ws == nil {
+		return
+	}
+	activeOnly := r.URL.Query().Get("active") == "true"
+	limit := 20
+	fmt.Sscanf(r.URL.Query().Get("limit"), "%d", &limit)
+	runs := s.runs.List(ws.ID, activeOnly, limit)
+	writeJSON(w, http.StatusOK, map[string]any{"runs": runs})
+}
+
+// GET /v1/runs/{run_id}
+func (s *Server) handleGetRun(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("run_id")
+	run, ok := s.runs.Get(id)
+	if !ok {
+		writeError(w, http.StatusNotFound, codeNotFound, "run not found", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, run)
+}
+
+// POST /v1/runs/{run_id}/cancel
+func (s *Server) handleCancelRun(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("run_id")
+	if err := s.runs.Cancel(id); err != nil {
+		writeError(w, http.StatusConflict, codeRunNotCancellable, err.Error(), "")
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
+
+// --- T038: Estimate endpoint ---
+
+// GET /v1/workspaces/{id}/estimate
+func (s *Server) handleEstimate(w http.ResponseWriter, r *http.Request) {
+	ws := s.workspaceFromRequest(w, r)
+	if ws == nil {
+		return
+	}
+	kind := r.URL.Query().Get("kind")
+	if kind == "" {
+		kind = "wiki"
+	}
+	multiplier := 3
+	fmt.Sscanf(r.URL.Query().Get("multiplier"), "%d", &multiplier)
+
+	repo := filepath.FromSlash(ws.Path)
+	cfg := ws.Config()
+	if cfg == nil {
+		cfg = defaultCfg()
+	}
+	res, err := ws.ScanCached(false)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
+		return
+	}
+
+	if kind != "wiki" {
+		writeError(w, http.StatusBadRequest, codeBadRequest, "estimate only supports kind=wiki", "")
+		return
+	}
+
+	est := wiki.EstimateRun(repo, cfg, res, multiplier)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"kind":          "wiki",
+		"multiplier":    multiplier,
+		"calls":         est.Calls,
+		"prompt_tokens": est.PromptTokens,
+		"output_tokens": est.OutputTokens,
+		"total_tokens":  est.PromptTokens + est.OutputTokens,
+		"heavy":         est.Calls > 50,
+		"passes":        est.Passes,
+		"text":          est.String(),
+	})
+}
+
+// --- T036 + T037: Engine wiring ---
+
+// runFn builds the goroutine body for each run kind.
+func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(ctx context.Context, r *RunRecord) error, error) {
+	repo := filepath.FromSlash(ws.Path)
+
+	switch kind {
+	case "scan":
+		return func(ctx context.Context, r *RunRecord) error {
+			res, err := ws.ScanCached(true)
+			if err != nil {
+				return err
+			}
+			r.SetProgress("scan", "scanning", 1, 1)
+			r.finishSummary = map[string]any{"files": len(res.Files), "bytes": res.TotalSize}
+			return nil
+		}, nil
+
+	case "plan":
+		return func(ctx context.Context, r *RunRecord) error {
+			client, err := ws.Client()
+			if err != nil {
+				return err
+			}
+			cfg := ws.Config()
+			res, err := ws.ScanCached(false)
+			if err != nil {
+				return err
+			}
+			r.SetProgress("plan", "planning modules", 0, 0)
+			p, err := plan.Generate(ctx, client, cfg, res)
+			if err != nil {
+				return err
+			}
+			if err := p.Save(repo); err != nil {
+				return err
+			}
+			flat := p.Flatten()
+			r.finishSummary = map[string]any{"modules": len(flat), "coverage_pct": 0}
+			return nil
+		}, nil
+
+	case "generate":
+		return func(ctx context.Context, r *RunRecord) error {
+			client, err := ws.Client()
+			if err != nil {
+				return err
+			}
+			cfg := ws.Config()
+			p, err := plan.Load(repo)
+			if err != nil {
+				return err
+			}
+			res, err := ws.ScanCached(false)
+			if err != nil {
+				return err
+			}
+			opts := generate.Options{
+				Force: boolParam(params, "force"),
+				Only:  stringSliceParam(params, "only"),
+				OnStart: func(id string) {
+					r.SetProgress("generate", id, 0, 0)
+					s.hub.RunLog(ws.ID, r.ID, "info", "generating "+id)
+				},
+				OnDone: func(id string, err error, skipped bool) {
+					if err != nil {
+						s.hub.RunLog(ws.ID, r.ID, "error", id+": "+err.Error())
+					} else if !skipped {
+						s.hub.RunArtifact(ws.ID, r.ID, ".kaioken/knowledge/"+id, 0, "card")
+					}
+				},
+			}
+			r.SetProgress("generate", "generating cards", 0, 0)
+			err = generate.Run(ctx, repo, cfg, client, p, res, opts)
+			r.finishSummary = map[string]any{"generated": 0, "skipped": 0, "failed": 0}
+			return err
+		}, nil
+
+	case "wiki":
+		return func(ctx context.Context, r *RunRecord) error {
+			client, err := ws.Client()
+			if err != nil {
+				return err
+			}
+			cfg := ws.Config()
+			res, err := ws.ScanCached(false)
+			if err != nil {
+				return err
+			}
+			multiplier := intParam(params, "multiplier", 3)
+			force := boolParam(params, "force")
+			pg := s.wikiProgress(ws, r)
+			r.SetProgress("wiki", "starting", 0, 0)
+			err = wiki.Run(ctx, repo, cfg, client, res, multiplier, force, pg)
+			stamp := wiki.LoadStamp(repo)
+			r.finishSummary = map[string]any{
+				"sections": 0, "documents": 0, "failed": stamp.Failed,
+			}
+			return err
+		}, nil
+
+	case "wiki_retry":
+		return func(ctx context.Context, r *RunRecord) error {
+			client, err := ws.Client()
+			if err != nil {
+				return err
+			}
+			cfg := ws.Config()
+			res, err := ws.ScanCached(false)
+			if err != nil {
+				return err
+			}
+			pg := s.wikiProgress(ws, r)
+			r.SetProgress("wiki_retry", "retrying failed sections", 0, 0)
+			n, err := wiki.Retry(ctx, repo, cfg, client, res, pg)
+			r.finishSummary = map[string]any{"retried": n}
+			return err
+		}, nil
+
+	case "update":
+		return func(ctx context.Context, r *RunRecord) error {
+			client, err := ws.Client()
+			if err != nil {
+				return err
+			}
+			cfg := ws.Config()
+			res, err := ws.ScanCached(false)
+			if err != nil {
+				return err
+			}
+			base := stringParam(params, "base")
+			pg := s.wikiProgress(ws, r)
+			r.SetProgress("update", "computing diff", 0, 0)
+			rep, err := wiki.Update(ctx, repo, cfg, client, res, base, pg)
+			if err != nil {
+				return err
+			}
+			r.finishSummary = map[string]any{
+				"changed_files": len(rep.Changes),
+				"updated_docs":  len(rep.Updated),
+				"unassigned":    rep.Unassigned,
+				"base":          rep.Base,
+			}
+			return nil
+		}, nil
+
+	case "skills":
+		return func(ctx context.Context, r *RunRecord) error {
+			client, err := ws.Client()
+			if err != nil {
+				return err
+			}
+			cfg := ws.Config()
+			res, err := ws.ScanCached(false)
+			if err != nil {
+				return err
+			}
+			opts := skills.Options{
+				Force: boolParam(params, "force"),
+				Only:  stringSliceParam(params, "only"),
+			}
+			pg := skills.Progress{
+				Info:    func(t string) { s.hub.RunLog(ws.ID, r.ID, "info", t) },
+				Started: func(w string) { r.SetProgress("skills", w, 0, 0) },
+				Wrote:   func(p string, lines int) { s.hub.RunArtifact(ws.ID, r.ID, p, lines, "skill") },
+				Failed:  func(w string, err error) { s.hub.RunLog(ws.ID, r.ID, "error", w+": "+err.Error()) },
+			}
+			r.SetProgress("skills", "building skills", 0, 0)
+			written, err := skills.Run(ctx, repo, cfg, client, res, opts, pg)
+			r.finishSummary = map[string]any{"written": len(written)}
+			return err
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unknown run kind %q", kind)
+	}
+}
+
+// wikiProgress builds the wiki.Progress adapter that publishes through the hub.
+func (s *Server) wikiProgress(ws *Workspace, r *RunRecord) wiki.Progress {
+	return wiki.Progress{
+		Info:    func(t string) { s.hub.RunLog(ws.ID, r.ID, "info", t) },
+		Started: func(w string) { r.SetProgress("sections", w, 0, 0) },
+		Wrote: func(p string, lines int) {
+			r.AddArtifact(p, lines, "wiki_doc")
+			s.hub.RunArtifact(ws.ID, r.ID, p, lines, "wiki_doc")
+		},
+		Failed: func(w string, err error) { s.hub.RunLog(ws.ID, r.ID, "error", w+": "+err.Error()) },
+	}
+}
+
+// --- helpers ---
+
+func needsKey(kind string) bool {
+	switch kind {
+	case "scan":
+		return false
+	default:
+		return true
+	}
+}
+
+func defaultCfg() *config.Config {
+	return config.Default()
+}
+
+func boolParam(m map[string]any, key string) bool {
+	v, _ := m[key].(bool)
+	return v
+}
+
+func intParam(m map[string]any, key string, def int) int {
+	if v, ok := m[key].(float64); ok {
+		return int(v)
+	}
+	return def
+}
+
+func stringParam(m map[string]any, key string) string {
+	v, _ := m[key].(string)
+	return v
+}
+
+func stringSliceParam(m map[string]any, key string) []string {
+	raw, ok := m[key].([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(raw))
+	for _, v := range raw {
+		if s, ok := v.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}

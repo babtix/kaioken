@@ -97,3 +97,9 @@ func parseProvenance(doc string) []string {
 	}
 	return out
 }
+
+// ReadProvenance is the exported form of parseProvenance for the daemon's
+// document endpoint. Returns nil when the document has no provenance footer.
+func ReadProvenance(markdown string) []string {
+	return parseProvenance(markdown)
+}

@@ -367,7 +367,7 @@ catalog and it is instructed to open a matching one before starting work.
 
 ## Roadmap (not yet built)
 
-- Desktop version (Wails wrapper around the same engine — `serve` is the seed)
+- Desktop app (Tauri v2 + React 19 + Go daemon sidecar — `desktop/`)
 - Conversation-memory extraction and card self-iteration
 - Diff-driven updates for knowledge **cards** (today `update` covers the wiki)
 - Export targets (`--export qoder`, `--export claude-md`)

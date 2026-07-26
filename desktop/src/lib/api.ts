@@ -1,0 +1,139 @@
+import { authHeaders, base } from "./daemon"
+import type { ErrorEnvelope, Estimate, Health, ModuleStatus, RunRecord, ScanResult, SessionFull, SessionMeta, Usage, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
+
+// Parses the §2.1 error envelope; carries enough for a component to branch
+// on err.code (e.g. "no_api_key") instead of printing a stack trace.
+export class ApiError extends Error {
+  readonly status: number
+  readonly code: string
+  readonly detail?: string
+
+  private constructor(status: number, code: string, message: string, detail?: string) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+    this.code = code
+    this.detail = detail
+  }
+
+  static async from(res: Response): Promise<ApiError> {
+    let code = "bad_request"
+    let message = `request failed with status ${res.status}`
+    let detail: string | undefined
+    try {
+      const body = (await res.json()) as ErrorEnvelope
+      if (body?.error) {
+        code = body.error.code ?? code
+        message = body.error.message ?? message
+        detail = body.error.detail
+      }
+    } catch {
+      // Non-JSON body (or an empty one) — keep the generic message.
+    }
+    return new ApiError(res.status, code, message, detail)
+  }
+}
+
+async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(base() + path, {
+    method,
+    headers: authHeaders(),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  if (!res.ok) throw await ApiError.from(res)
+  return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
+}
+
+// One exported function per endpoint, named after it, fully typed. No
+// generic request(path) escape hatch — that is how contracts rot.
+export const api = {
+  health: () => req<Health>("GET", "/health"),
+
+  // Workspaces (T014)
+  listWorkspaces: () => req<WorkspaceList>("GET", "/workspaces"),
+  openWorkspace: (path: string) => req<Workspace>("POST", "/workspaces", { path }),
+  getWorkspace: (id: string) => req<Workspace>("GET", `/workspaces/${id}`),
+  deleteWorkspace: (id: string, forget = false) =>
+    req<void>("DELETE", `/workspaces/${id}${forget ? "?forget=true" : ""}`),
+  initWorkspace: (id: string, model?: string) =>
+    req<Workspace>("POST", `/workspaces/${id}/init`, model ? { model } : {}),
+
+  // Workspace sub-resources (T015–T016)
+  scan: (id: string, refresh = false) =>
+    req<ScanResult>("GET", `/workspaces/${id}/scan${refresh ? "?refresh=true" : ""}`),
+  status: (id: string) => req<{ modules: ModuleStatus[] }>("GET", `/workspaces/${id}/status`),
+  git: (id: string) => req<Workspace["git"]>("GET", `/workspaces/${id}/git`),
+  hook: (id: string, action: "install" | "remove") =>
+    req<{ installed: boolean; path?: string }>("POST", `/workspaces/${id}/hook`, { action }),
+  getConfig: (id: string) => req<WorkspaceConfig>("GET", `/workspaces/${id}/config`),
+  putConfig: (id: string, cfg: Partial<WorkspaceConfig>) =>
+    req<WorkspaceConfig>("PUT", `/workspaces/${id}/config`, cfg),
+
+  // Chat (T025–T028)
+  listSessions: (wsId: string) => req<{ sessions: SessionMeta[] }>("GET", `/workspaces/${wsId}/sessions`),
+  createSession: (wsId: string, model?: string) =>
+    req<SessionMeta>("POST", `/workspaces/${wsId}/sessions`, model ? { model } : {}),
+  getSession: (wsId: string, sid: string) => req<SessionFull>("GET", `/workspaces/${wsId}/sessions/${sid}`),
+  deleteSession: (wsId: string, sid: string) => req<void>("DELETE", `/workspaces/${wsId}/sessions/${sid}`),
+  sendMessage: (wsId: string, sid: string, content: string, opts?: { auto_approve?: boolean; allow_run?: boolean; max_steps?: number }) =>
+    req<{ run_id: string; session_id: string }>("POST", `/workspaces/${wsId}/sessions/${sid}/messages`, { content, ...opts }),
+  resolveApproval: (approvalId: string, decision: "approve" | "deny" | "approve_all") =>
+    req<void>("POST", `/approvals/${approvalId}`, { decision }),
+  undo: (wsId: string) => req<{ path: string; restored: boolean; deleted: boolean; depth: number }>("POST", `/workspaces/${wsId}/undo`),
+  usage: (wsId: string) => req<Usage>("GET", `/workspaces/${wsId}/usage`),
+  compactSession: (wsId: string, sid: string) =>
+    req<{ before_messages: number; after_messages: number; saved_tokens_estimate: number }>(
+      "POST",
+      `/workspaces/${wsId}/sessions/${sid}/compact`
+    ),
+
+  // Runs (T035–T038)
+  startRun: (wsId: string, kind: string, params?: Record<string, unknown>) =>
+    req<RunRecord>("POST", `/workspaces/${wsId}/runs`, { kind, params: params ?? {} }),
+  listRuns: (wsId: string, active = false) =>
+    req<{ runs: RunRecord[] }>("GET", `/workspaces/${wsId}/runs${active ? "?active=true" : ""}`),
+  getRun: (runId: string) => req<RunRecord>("GET", `/runs/${runId}`),
+  cancelRun: (runId: string) => req<void>("POST", `/runs/${runId}/cancel`),
+  estimate: (wsId: string, kind = "wiki", multiplier = 3) =>
+    req<Estimate>("GET", `/workspaces/${wsId}/estimate?kind=${kind}&multiplier=${multiplier}`),
+
+  // Wiki/docs (T044–T052)
+  wikiTree: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/wiki/tree`),
+  wikiDoc: (wsId: string, path: string) => req<any>("GET", `/workspaces/${wsId}/wiki/doc?path=${encodeURIComponent(path)}`),
+  wikiSearch: (wsId: string, q: string) => req<any>("GET", `/workspaces/${wsId}/wiki/search?q=${encodeURIComponent(q)}`),
+  wikiPlan: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/wiki/plan`),
+  putWikiPlan: (wsId: string, yaml: string) => req<any>("PUT", `/workspaces/${wsId}/wiki/plan`, { yaml }),
+  wikiBrief: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/wiki/brief`),
+  putWikiBrief: (wsId: string, markdown: string) => req<any>("PUT", `/workspaces/${wsId}/wiki/brief`, { markdown }),
+
+  // Cards/modules/skills (T054–T056)
+  cards: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/cards`),
+  card: (wsId: string, module: string, card: string) =>
+    req<{ markdown: string; path: string; modified: string }>(
+      "GET",
+      `/workspaces/${wsId}/cards/${encodeURIComponent(module)}/${encodeURIComponent(card)}`
+    ),
+  modules: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/modules`),
+  putModules: (wsId: string, yaml: string) => req<any>("PUT", `/workspaces/${wsId}/modules`, { yaml }),
+  skills: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/skills`),
+  getSkill: (wsId: string, name: string) =>
+    req<{ name: string; description: string; sources: string[]; markdown: string; path: string }>(
+      "GET",
+      `/workspaces/${wsId}/skills/${encodeURIComponent(name)}`
+    ),
+  putSkill: (wsId: string, name: string, body: { description: string; sources: string[]; markdown: string }) =>
+    req<{ name: string; description: string; sources: string[]; markdown: string; path: string }>(
+      "PUT",
+      `/workspaces/${wsId}/skills/${encodeURIComponent(name)}`,
+      body
+    ),
+
+  // Settings (T061–T062)
+  settings: () => req<any>("GET", "/settings"),
+  putSettings: (body: any) => req<any>("PUT", "/settings", body),
+  putKey: (provider: string, key: string) => req<void>("PUT", `/settings/keys/${provider}`, { key }),
+  deleteKey: (provider: string) => req<void>("DELETE", `/settings/keys/${provider}`),
+  testKey: (provider: string) => req<any>("POST", `/settings/keys/${provider}/test`),
+  models: (provider: string, filter?: string) =>
+    req<any>("GET", `/models?provider=${provider}${filter ? `&filter=${encodeURIComponent(filter)}` : ""}`),
+}

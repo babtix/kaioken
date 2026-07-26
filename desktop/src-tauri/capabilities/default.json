@@ -1,0 +1,24 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Kaioken Desktop main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-set-title",
+    "dialog:allow-open",
+    "opener:allow-open-path",
+    "opener:allow-open-url",
+    "os:allow-platform",
+    "process:allow-exit",
+    "process:allow-restart",
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        { "name": "binaries/kaioken-daemon", "sidecar": true,
+          "args": ["daemon", "--port", { "validator": "^\\d+$" }, "--token-stdin"] }
+      ]
+    }
+  ]
+}

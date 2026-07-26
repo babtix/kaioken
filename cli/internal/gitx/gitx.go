@@ -59,6 +59,26 @@ func Short(sha string) string {
 	return sha
 }
 
+// Branch returns the current branch name (or HEAD for detached states).
+func Branch(repo string) (string, error) {
+	return run(context.Background(), repo, "rev-parse", "--abbrev-ref", "HEAD")
+}
+
+// DirtyCount returns the number of modified/staged/untracked paths.
+func DirtyCount(repo string) int {
+	out, err := run(context.Background(), repo, "status", "--porcelain")
+	if err != nil || out == "" {
+		return 0
+	}
+	count := 0
+	for _, line := range strings.Split(out, "\n") {
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+	return count
+}
+
 // Resolve turns a revision expression (a SHA, "HEAD~5", a tag) into a commit
 // SHA, and errors if it does not name a commit in this repo.
 func Resolve(ctx context.Context, repo, rev string) (string, error) {

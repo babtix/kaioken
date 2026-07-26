@@ -4,7 +4,9 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	"kaioken/internal/config"
+	"kaioken/internal/daemon"
 	"kaioken/internal/generate"
 	"kaioken/internal/gitx"
 	"kaioken/internal/llm"
@@ -45,6 +48,7 @@ Commands:
              repo (positional: "list", or a skill name; -force to rewrite)
   serve      Browse the generated wiki in a browser (-port, default 7777)
   hook       Manage the post-commit auto-update hook (install|remove|status)
+  daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
   logo       Print the KAIOKEN wordmark
   version    Print the version
 
@@ -53,8 +57,10 @@ Common flags (after the command):
   -model <id>     Override the model from config.yaml
   -module <id>    Restrict generate to one module id (repeatable via comma list)
   -base <rev>     Baseline commit for update (default: the recorded baseline)
-  -port <n>       Port for serve (default: 7777)
+  -port <n>       Port for serve and daemon (serve default: 7777; daemon default: ephemeral)
   -force          Regenerate even when sources are unchanged
+  -token <hex>    Bearer token for daemon (manual/testing use)
+  -token-stdin    Read the daemon's bearer token from stdin's first line
 
 Environment:
   OPENROUTER_API_KEY   (or the active provider's key env) — for plan/generate/models
@@ -97,6 +103,8 @@ func main() {
 		err = cmdServe(ctx, args)
 	case "hook":
 		err = cmdHook(args)
+	case "daemon":
+		err = cmdDaemon(ctx, args)
 	case "status":
 		err = cmdStatus(args)
 	case "models":
@@ -128,6 +136,8 @@ type flags struct {
 	port       int
 	force      bool
 	positional string
+	token      string
+	tokenStdin bool
 }
 
 func parseFlags(argv []string) flags {
@@ -161,6 +171,13 @@ func parseFlags(argv []string) flags {
 			}
 		case "-force", "--force":
 			f.force = true
+		case "-token", "--token":
+			if i+1 < len(argv) {
+				i++
+				f.token = argv[i]
+			}
+		case "-token-stdin", "--token-stdin":
+			f.tokenStdin = true
 		default:
 			f.positional = argv[i]
 		}
@@ -553,6 +570,32 @@ func cmdServe(ctx context.Context, f flags) error {
 		fmt.Printf("serving %s/wiki at %s\n", config.Dir, url)
 		fmt.Println("ctrl+c to stop")
 	})
+}
+
+// cmdDaemon serves the engine over a loopback HTTP API for the desktop app.
+// It is not intended for direct human use: the port is ephemeral and every
+// request needs the bearer token supplied at startup.
+func cmdDaemon(ctx context.Context, f flags) error {
+	token := f.token
+	parentPID := 0
+	if f.tokenStdin {
+		// The same pipe doubles as the parent death-watch: reading it to EOF
+		// after the token line means the parent (Rust) has exited.
+		line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("reading token from stdin: %w", err)
+		}
+		token = strings.TrimSpace(line)
+		parentPID = os.Getppid()
+	}
+	if token == "" {
+		return errors.New("daemon requires -token or -token-stdin")
+	}
+	addr := "127.0.0.1:0"
+	if f.port != 0 {
+		addr = fmt.Sprintf("127.0.0.1:%d", f.port)
+	}
+	return daemon.Run(ctx, daemon.Options{Addr: addr, Token: token, ParentPID: parentPID})
 }
 
 func splitComma(s string) []string {
