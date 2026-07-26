@@ -44,7 +44,7 @@ The command runs detached (`&`) with output suppressed to avoid delaying commits
 ```
 `git hook execution delays or output interference.
 
-`internal/gitx/hook.go:56-63`
+`cli/internal/gitx/hook.go:56-63`
 ```go
 func PostCommitInstalled(repo string) bool {
 	path, err := HookPath(repo)
@@ -56,7 +56,7 @@ func PostCommitInstalled(repo string) bool {
 }
 ```
 
-`internal/gitx/hook.go:67-106`
+`cli/internal/gitx/hook.go:67-106`
 ```go
 func InstallPostCommit(repo, exe string) (path string, err error) {
 	if !IsRepo(repo) {
@@ -109,7 +109,7 @@ The `PostCommitInstalled` function checks whether kaioken's hook block exists in
 
 This function returns `false` for any error (including missing file) or when the marker is absent.
 
-`internal/gitx/hook.go:56-63`
+`cli/internal/gitx/hook.go:56-63`
 ```go
 func PostCommitInstalled(repo string) bool {
 	path, err := HookPath(repo)
@@ -136,7 +136,7 @@ The `RemovePostCommit` function removes kaioken's block from the post-commit hoo
 
 This approach ensures non-kaioken hook content remains intact.
 
-`internal/gitx/hook.go:110-133`
+`cli/internal/gitx/hook.go:110-133`
 ```go
 func RemovePostCommit(repo string) (removed bool, err error) {
 	path, err := HookPath(repo)
@@ -173,7 +173,7 @@ Several helper functions support the hook lifecycle:
 1. Running `git rev-parse --absolute-git-dir` to find the `.git` directory (handling worktrees correctly)
 2. Appending `/hooks/post-commit` to that path
 
-`internal/gitx/hook.go:24-30`
+`cli/internal/gitx/hook.go:24-30`
 ```go
 func HookPath(repo string) (string, error) {
 	out, err := run(context.Background(), repo, "rev-parse", "--absolute-git-dir")
@@ -191,7 +191,7 @@ func HookPath(repo string) (string, error) {
 - The update command with properly quoted executable and repository paths
 - End marker
 
-`internal/gitx/hook.go:36-44`
+`cli/internal/gitx/hook.go:36-44`
 ```go
 func hookBlock(exe, repo string) string {
 	return strings.Join([]string{
@@ -212,7 +212,7 @@ func hookBlock(exe, repo string) string {
 
 This approach works because sh performs no escape processing inside single quotes.
 
-`internal/gitx/hook.go:48-53`
+`cli/internal/gitx/hook.go:48-53`
 ```go
 func shellQuote(p string) string {
 	p = filepath.ToSlash(p)
@@ -234,7 +234,7 @@ func shellQuote(p string) string {
 
 This preserves surrounding hook content while managing kaioken's block.
 
-`internal/gitx/hook.go:137-154`
+`cli/internal/gitx/hook.go:137-154`
 ```go
 func replaceBlock(body, replacement string) string {
 	start := strings.Index(body, hookStart)
@@ -291,8 +291,8 @@ sequenceDiagram
 ```
 
 ## Referenced Files
-- internal/gitx/hook.go
+- cli/internal/gitx/hook.go
 
-This chapter covers all declarations in `internal/gitx/hook.go` as defined in the structure block. No other files are in scope for this documentation.
+This chapter covers all declarations in `cli/internal/gitx/hook.go` as defined in the structure block. No other files are in scope for this documentation.
 
 <!-- kaioken:files internal/gitx/hook.go -->

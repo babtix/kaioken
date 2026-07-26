@@ -149,7 +149,9 @@ func compactArgs(args string) string {
 	if err := json.Unmarshal([]byte(args), &m); err != nil {
 		return truncate(strings.ReplaceAll(args, "\n", " "), 80)
 	}
-	for _, k := range []string{"path", "command", "query"} {
+	// Mirrors internal/tui's compactArgs ordering: most identifying key first,
+	// then the task tool's label and the knowledge page name.
+	for _, k := range []string{"path", "command", "query", "description", "doc"} {
 		if v, ok := m[k].(string); ok {
 			return truncate(v, 80)
 		}

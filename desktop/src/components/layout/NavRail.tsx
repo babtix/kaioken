@@ -1,54 +1,94 @@
 import { NavLink } from "react-router-dom"
-import { BookOpen, Layers, FolderOpen, MessageSquare, Settings, Zap } from "lucide-react"
+import { BookOpen, FolderOpen, Layers, MessageSquare, Settings, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useWorkspaceStore } from "@/store/workspace"
+import { useRunsStore } from "@/store/runs"
 
 const NAV_ITEMS = [
-  { to: "/chat", icon: MessageSquare, label: "Chat" },
-  { to: "/wiki", icon: BookOpen, label: "Wiki" },
-  { to: "/activity", icon: Zap, label: "Activity" },
-  { to: "/cards", icon: Layers, label: "Cards" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/chat", icon: MessageSquare, label: "Chat", key: "1" },
+  { to: "/wiki", icon: BookOpen, label: "Wiki", key: "2" },
+  { to: "/activity", icon: Zap, label: "Activity", key: "3" },
+  { to: "/cards", icon: Layers, label: "Cards", key: "4" },
+  { to: "/settings", icon: Settings, label: "Settings", key: "5" },
 ] as const
 
 export default function NavRail() {
   const active = useWorkspaceStore((s) => s.active)
+  const runs = useRunsStore((s) => s.runs)
+  const activeRuns = runs.filter((r) => r.state === "running" || r.state === "queued").length
 
   return (
-    <nav className="flex w-12 flex-col items-center gap-1 border-r border-border bg-card py-3">
-      {/* Home / workspace picker */}
-      <NavLink
-        to="/"
-        className={({ isActive }) =>
-          cn(
-            "flex size-9 items-center justify-center rounded-md text-kai-dim transition-colors hover:text-kai-text",
-            isActive && "bg-accent text-kai-orange"
-          )
-        }
-        title="Workspaces"
-      >
-        <FolderOpen size={18} />
-      </NavLink>
+    <nav className="flex w-[68px] shrink-0 flex-col items-center gap-1 border-r border-border bg-card py-2">
+      <RailLink to="/" icon={FolderOpen} label="Repos" hint="Workspaces" />
 
-      <div className="my-1 h-px w-6 bg-border" />
+      <div className="my-1 h-px w-8 bg-border" />
 
-      {/* Feature nav — disabled when no workspace is open */}
-      {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-        <NavLink
-          key={to}
-          to={to}
-          className={({ isActive }) =>
-            cn(
-              "flex size-9 items-center justify-center rounded-md text-kai-dim transition-colors",
-              active ? "hover:text-kai-text" : "pointer-events-none opacity-30",
-              isActive && "bg-accent text-kai-orange"
-            )
-          }
-          title={label}
-        >
-          <Icon size={18} />
-        </NavLink>
+      {NAV_ITEMS.map((item) => (
+        <RailLink
+          key={item.to}
+          to={item.to}
+          icon={item.icon}
+          label={item.label}
+          hint={`${item.label} · Ctrl+${item.key}`}
+          disabled={!active}
+          badge={item.to === "/activity" && activeRuns > 0 ? activeRuns : undefined}
+        />
       ))}
     </nav>
+  )
+}
+
+function RailLink({
+  to,
+  icon: Icon,
+  label,
+  hint,
+  disabled,
+  badge,
+}: {
+  to: string
+  icon: typeof FolderOpen
+  label: string
+  hint: string
+  disabled?: boolean
+  badge?: number
+}) {
+  return (
+    <NavLink
+      to={to}
+      title={hint}
+      className={({ isActive }) =>
+        cn(
+          "group relative flex w-14 flex-col items-center gap-0.5 rounded-md py-1.5",
+          "transition-colors outline-none focus-visible:ring-2 focus-visible:ring-kai-orange/50",
+          disabled
+            ? "pointer-events-none opacity-25"
+            : isActive
+              ? "bg-accent text-kai-orange"
+              : "text-kai-dim hover:bg-panel/60 hover:text-kai-text"
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {/* Active indicator bar, flush against the rail's left edge. */}
+          {isActive && (
+            <span
+              className="absolute -left-2 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r bg-kai-orange"
+              aria-hidden
+            />
+          )}
+          <span className="relative">
+            <Icon size={17} />
+            {badge !== undefined && (
+              <span className="absolute -right-1.5 -top-1 flex size-3.5 items-center justify-center rounded-full bg-kai-orange font-mono text-[8px] font-bold text-black">
+                {badge}
+              </span>
+            )}
+          </span>
+          <span className="font-mono text-[9px] leading-none">{label}</span>
+        </>
+      )}
+    </NavLink>
   )
 }

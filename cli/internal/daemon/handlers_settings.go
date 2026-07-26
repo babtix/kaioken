@@ -15,12 +15,13 @@ import (
 // --- T061: Settings endpoints ---
 
 type providerJSON struct {
-	Name      string `json:"name"`
-	BaseURL   string `json:"base_url"`
-	KeyEnv    string `json:"key_env"`
-	HasKey    bool   `json:"has_key"`
-	KeySource string `json:"key_source"` // config | env | none
-	Hint      string `json:"hint,omitempty"`
+	Name            string `json:"name"`
+	BaseURL         string `json:"base_url"`
+	KeyEnv          string `json:"key_env"`
+	HasKey          bool   `json:"has_key"`
+	KeySource       string `json:"key_source"` // config | env | none
+	Hint            string `json:"hint,omitempty"`
+	RequiresBaseURL bool   `json:"requires_base_url,omitempty"`
 }
 
 // GET /v1/settings
@@ -28,7 +29,10 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 	g := config.LoadGlobal()
 	providers := make([]providerJSON, 0, len(llm.Providers))
 	for name, p := range llm.Providers {
-		pj := providerJSON{Name: name, BaseURL: p.BaseURL, KeyEnv: p.KeyEnv, KeySource: "none"}
+		pj := providerJSON{
+			Name: name, BaseURL: p.BaseURL, KeyEnv: p.KeyEnv, KeySource: "none",
+			RequiresBaseURL: p.RequiresBaseURL,
+		}
 		key := g.Keys[name]
 		if key != "" {
 			pj.HasKey = true

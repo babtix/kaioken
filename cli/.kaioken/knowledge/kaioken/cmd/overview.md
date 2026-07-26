@@ -1,0 +1,1 @@
+The kaioken/cmd module provides the main command-line entry point for the kaioken application. It parses command-line arguments and flags, then dispatches to subcommand handlers for tasks like repository scanning, module planning, knowledge card generation, wiki operations, and serving the generated documentation.

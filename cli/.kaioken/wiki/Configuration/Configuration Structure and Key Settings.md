@@ -11,7 +11,7 @@ Kaioken uses a two-layer configuration system: global user settings and per-repo
 
 ## Global Configuration
 
-The `Global` struct (in `internal/config/global.go`) holds user-specific settings that persist across repositories and sessions. It is stored at `$HOME/.config/kaioken/config.yaml` (or customized via `KAIOKEN_HOME`) and contains sensitive data like API keys that should never be committed to a repository.
+The `Global` struct (in `cli/internal/config/global.go`) holds user-specific settings that persist across repositories and sessions. It is stored at `$HOME/.kaioken/config.yaml` (or customized via `KAIOKEN_HOME`) and contains sensitive data like API keys that should never be committed to a repository.
 
 ### Global Struct Fields
 
@@ -29,14 +29,14 @@ The `Global` struct (in `internal/config/global.go`) holds user-specific setting
 
 ## Per-Repository Configuration
 
-The `Config` struct (in `internal/config/config.go`) defines settings for a specific repository, stored at `.kaioken/config.yaml` inside the repository root. This file is intended to be committed to version control (excluding the global keys).
+The `Config` struct (in `cli/internal/config/config.go`) defines settings for a specific repository, stored at `.kaioken/config.yaml` inside the repository root. This file is intended to be committed to version control (excluding the global keys).
 
 ### Config Struct Fields
 
 | Field | Type | YAML Tag | Description |
 |-------|------|----------|-------------|
 | `Version` | int | `version` | Configuration schema version (currently fixed at 1). |
-| `Model` | string | `model` | Model ID for LLM requests (e.g., `"anthropic/claude-sonnet-4.5"`). Overrides global default. |
+| `Model` | string | `model` | Model ID for LLM requests (e.g., `"nvidia/nemotron-3-ultra-550b-a55b:free"`). Overrides global default. |
 | `Provider` | string | `provider` | LLM provider name (must match an entry in `llm.Providers`, e.g., `"openrouter"`). Overrides global default. |
 | `BaseURL` | string | `base_url` | Optional override for the provider's API endpoint (useful for self-hosted or OpenAI-compatible gateways). |
 | `Concurrency` | int | `concurrency` | Desired number of modules to process in parallel. May be clamped for free-tier models (see `EffectiveConcurrency`). |
@@ -54,79 +54,11 @@ The `Config` struct (in `internal/config/config.go`) defines settings for a spec
 
 ### Default Excludes
 
-The `DefaultExcludes` variable (in `internal/config/config.go`) contains path patterns always skipped during scanning, regardless of repository configuration. This prevents scanning generated files, dependencies, and IDE directories:
+The `DefaultExcludes` variable (in `cli/internal/config/config.go`) contains path patterns always skipped during scanning, regardless of repository configuration. This prevents scanning generated files, dependencies, and IDE directories:
 
 ```go
 var DefaultExcludes = []string{
 	".git", Dir, ".ainow", ".qoder", "node_modules", "dist", "build", "out",
-	".venv", "venv", "__pycache__", ".ruff_cache", ".pytest_cache",
-	".mypy_cache", ".next", ".nuxt", "target", "vendor", "coverage",
-	".idea", ".vscode", ".DS_Store",
-}
-```
-*Note: `Dir` is `.kaioken` (the knowledge directory), preventing recursive scanning of generated wiki and cards.*
-
-## Configuration Loading and Saving
-
-### Global Configuration Flow
-1. `LoadGlobal()` reads from `GlobalPath()` (respecting `KAIOKEN_HOME`).
-2. On missing/invalid file, returns an empty `Global` struct with initialized `Keys` map.
-3. `(g *Global) Save()` writes to the same path with 0o600 permissions after ensuring the directory exists.
-
-### Per-Repository Configuration Flow
-1. `Load(repo string)`:
-   - Reads `.kaioken/config.yaml` from the repo root.
-   - On missing file, returns error prompting `kaioken init`.
-   - On invalid YAML, returns parse error.
-   - Applies defaults from `Default()` then enforces:
-     - `Concurrency` ≥ 1
-     - `MaxModuleTokens` ≥ 4000
-2. `(c *Config) Save(repo string)`:
-   - Creates `.kaioken` directory if needed (0o755).
-   - Writes config with header comment explaining `notes` usage.
-   - Uses 0o644 permissions (safe for version control).
-
-## Behavior Toggles and Helper Functions
-
-### Free Model Concurrency Limiting
-Free-tier models (identified by `:free` suffix) enforce stricter parallelism limits to avoid rate limits:
-
-```go
-const FreeModelConcurrency = 2
-
-func IsFreeModel(model string) bool {
-	return strings.HasSuffix(strings.ToLower(strings.TrimSpace(model)), ":free")
-}
-
-func (c *Config) EffectiveConcurrency(model string) (limit int, clamped bool) {
-	n := c.Concurrency
-	if n < 1 {
-		n = 1
-	}
-	if IsFreeModel(model) && n > FreeModelConcurrency {
-		return FreeModelConcurrency, true
-	}
-	return n, false
-}
-```
-- **Usage**: Called by LLM provider implementations to determine actual parallelism.
-- **Behavior**: If `Concurrency` > 2 for a free model, returns 2 and sets `clamped=true` (callers can log this clamping).
-- **Example**: With `Concurrency: 4` and model `nvidia/nemotron-3-ultra-550b-a55b:free`, effective concurrency is 2.
-
-### Token Budgeting
-- `MaxModuleTokens`: Controls input context size per module during knowledge generation. Higher values increase cost and latency but provide more context.
-- `MaxTokens`: Controls output length. Critical for cost management: providers reserve credit for the full `MaxTokens` before execution, so unset values with large-context models can be prohibitively expensive even for short replies.
-
-### Scope Behavior
-- During scanning (`scan.Repo`), files are included if:
-  1. Not excluded by `.gitignore`
-  2. Not in `DefaultExcludes`
-  3. Not in `Config.Scope.Exclude`
-  4. Either `Config.Scope.Include` is empty OR the file path has a prefix in `Config.Scope.Include`
-- `Include` takes precedence when non-empty: only paths matching its prefixes are considered (after applying exclusions).
-
-## Referenced Files
-- `internal/config/global.go`
-- `internal/config/config.go`
+	".venv", "venv", "__pycache__
 
 <!-- kaioken:files internal/config/config.go,internal/config/global.go -->

@@ -55,7 +55,7 @@ func TestKnowledgeCatalogSurfacesSkills(t *testing.T) {
 		t.Errorf("skill description not surfaced: %q", entries[0].Label)
 	}
 
-	prompt := SystemPrompt(root, true)
+	prompt := SystemPrompt(PromptInput{Root: root, Mode: ModeBuild, AllowRun: true})
 	if !strings.Contains(prompt, "add-a-tui-command") {
 		t.Error("system prompt should advertise the skill")
 	}
@@ -115,11 +115,11 @@ func TestKnowledgeCatalogListsCardsAndWiki(t *testing.T) {
 
 func TestSystemPromptAdvertisesKnowledge(t *testing.T) {
 	root := t.TempDir()
-	if p := SystemPrompt(root, true); strings.Contains(p, "Generated documentation is available") {
+	if p := SystemPrompt(PromptInput{Root: root, Mode: ModeBuild, AllowRun: true}); strings.Contains(p, "Generated documentation is available") {
 		t.Error("a repo with no docs must not advertise any")
 	}
 	seedDocs(t, root)
-	p := SystemPrompt(root, true)
+	p := SystemPrompt(PromptInput{Root: root, Mode: ModeBuild, AllowRun: true})
 	if !strings.Contains(p, "Generated documentation is available") {
 		t.Error("system prompt should advertise the generated docs")
 	}
@@ -206,5 +206,50 @@ func TestReadKnowledgeToolIsRegistered(t *testing.T) {
 	}
 	if !found {
 		t.Error("read_knowledge is not in the tool schema")
+	}
+}
+
+// AGENTS.md is the cross-runtime convention for "what an agent must know before
+// editing here", so it has to reach the system prompt — otherwise `kaioken init`
+// writes a file its own agent ignores.
+func TestSystemPromptCarriesProjectInstructions(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "AGENTS.md"),
+		[]byte("# AGENTS.md\n\nNever edit generated/api.ts by hand.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	prompt := SystemPrompt(PromptInput{Root: root, Mode: ModeBuild})
+	if !strings.Contains(prompt, "Never edit generated/api.ts by hand.") {
+		t.Errorf("AGENTS.md did not reach the system prompt:\n%s", prompt)
+	}
+	if !strings.Contains(prompt, "AGENTS.md") {
+		t.Error("the prompt does not name the file its instructions came from")
+	}
+}
+
+// A repo set up for another runtime should not be ignored, but AGENTS.md wins
+// when both exist.
+func TestProjectInstructionsPrecedence(t *testing.T) {
+	root := t.TempDir()
+	mustWrite := func(name, body string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mustWrite("CLAUDE.md", "claude instructions")
+	if doc, name := projectInstructions(root); name != "CLAUDE.md" || doc != "claude instructions" {
+		t.Errorf("CLAUDE.md was not picked up: got (%q, %q)", doc, name)
+	}
+	mustWrite("AGENTS.md", "agents instructions")
+	if _, name := projectInstructions(root); name != "AGENTS.md" {
+		t.Errorf("AGENTS.md should win over CLAUDE.md, got %q", name)
+	}
+}
+
+func TestSystemPromptWithoutProjectInstructions(t *testing.T) {
+	prompt := SystemPrompt(PromptInput{Root: t.TempDir(), Mode: ModeBuild})
+	if strings.Contains(prompt, "Instructions from this repository's") {
+		t.Errorf("an empty repo produced an instructions section:\n%s", prompt)
 	}
 }

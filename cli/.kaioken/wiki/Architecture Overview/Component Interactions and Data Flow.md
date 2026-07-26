@@ -15,9 +15,9 @@ The interactive chat session enables real-time collaboration between the user an
 ```mermaid
 sequenceDiagram
     participant User
-    participant TUI as internal/tui/tui.go
-    participant Agent as internal/agent/agent.go
-    participant LLM as internal/llm/*.go
+    participant TUI as cli/internal/tui/tui.go
+    participant Agent as cli/internal/agent/agent.go
+    participant LLM as cli/internal/llm/*.go
     participant Tools as Tool System
 
     User->>TUI: Enter message
@@ -30,8 +30,7 @@ sequenceDiagram
         TUI->>User: Show approval prompt
         User->>TUI: Approve/decline
         TUI->>Agent: Approval via approvals channel
-        Agent->>Tools: Execute tool (read_file, edit run_command
-        Tools->>Agent: edit_file, etc.)
+        Agent->>Tools: Execute tool (read_file, edit_file, run_command)
         Tools->>Agent: Tool result
         Agent->>LLM: Tool result as tool message
     end
@@ -43,7 +42,7 @@ sequenceDiagram
 ### Step-by-Step Execution
 
 1. **Message Input Handling**  
-   When the user enters a message in the TUI, `startChat` is invoked (`tui.go:916-1043`). The message is appended to the conversation history as a user message.
+   When the user enters a message in the TUI, `startChat` is invoked. The message is appended to the conversation history as a user message.
 
 2. **Agent Initialization**  
    An `agent.Agent` is created with:
@@ -55,24 +54,24 @@ sequenceDiagram
    - Step limit (`MaxSteps: 25`)
 
 3. **LLM Interaction Loop**  
-   The agent enters a tool-calling loop (`agent.go:45-89`):
+   The agent enters a tool-calling loop:
    - Calls `llm.Client.ChatWithToolsStream` with conversation history and available tools
-   - Streams response tokens to TUI via `uiAdapter.AssistantDelta` (`tui.go:2188-2190`)
+   - Streams response tokens to TUI via `uiAdapter.AssistantDelta`
    - If the LLM requests tools:
-     - Notifies TUI via `uiAdapter.Tool` (`tui.go:2192-2194`)
-     - Waits for user approval through `uiAdapter.Approve` (`tui.go:2239-2247`)
+     - Notifies TUI via `uiAdapter.Tool`
+     - Waits for user approval through `uiAdapter.Approve`
      - On approval, executes the tool and returns result to LLM
      - On decline, returns "user declined" error
    - Continues until LLM provides final answer or step limit exceeded
 
 4. **Approval Workflow**  
-   The TUI displays approval requests via `showApproval` (`tui.go:801-837`):
+   The TUI displays approval requests via `showApproval`:
    - Shows action, target, and diff preview
    - Presents y/n options for user confirmation
    - Sends response back to agent through approvals channel
 
 5. **Response Display**  
-   Final LLM responses are rendered as markdown and appended to the TUI view via `uiAdapter.Assistant` (`tui.go:2192-2194` → `assistantMsg` handler).
+   Final LLM responses are rendered as markdown and appended to the TUI view via `uiAdapter.Assistant`.
 
 ### Key Dependencies
 - TUI depends on `internal/agent` for agent logic
@@ -104,13 +103,14 @@ flowchart LR
     B --> C[wiki.Update]
     C --> D[Regenerate affected sections]
     D --> E[state.Save]
-    E --> F[Updated Wiki]
+    E --> F[Refresh affected skills]
+    F --> G[Updated Wiki]
 ```
 
 ### Detailed Wiki Generation Process (`wiki.Run`)
 
 1. **Code Indexing**  
-   Builds structural index of repository (`wiki.go:34-42`):
+   Builds structural index of repository:
    ```go
    r.idx = codemap.Build(res)
    pg.info(fmt.Sprintf("indexed %d declarations across %d files",
@@ -118,20 +118,20 @@ flowchart LR
    ```
 
 2. **Global Planning (Pass 1)**  
-   Creates wiki outline using LLM (`wiki.go:47-72`):
+   Creates wiki outline using LLM:
    - Reuses existing `wiki_plan.yaml` if present and not forced
    - Otherwise, prompts LLM with repository structure to generate sections
    - Each section includes ID, title, goal, and relevant files
 
 3. **Section Processing (Passes 2-3)**  
-   For each section in parallel (`wiki.go:108-142`):
-   - **Sub-Planning (Pass 2)**: Plans subsection structure (`wiki.go:11999-133`)
+   For each section in parallel:
+   - **Sub-Planning (Pass 2)**: Plans subsection structure
    - **Document Generation (Pass 3)**:
-     - Generates main section document (`wiki.go:136-158`)
-     - Generates subsection documents if multiplier ≥ 2 (`wiki.go:160-194`)
+     - Generates main section document
+     - Generates subsection documents if multiplier ≥ 2
 
 4. **Document Generation Details**  
-   Each document creation involves (`wiki.go:177-224`):
+   Each document creation involves:
    - Building prompt with section goal, outline context, and file bundle
    - Calling LLM with depth directive based on multiplier
    - Optional critique pass (multiplier ≥ 4)
@@ -140,14 +140,15 @@ flowchart LR
 
 ### Incremental Update Mechanism
 
-The update process (`wiki.Update` called from `tui.go:1871-1951`):
+The update process (`wiki.Update` called from TUI):
 1. Uses `gitx.Changes` to find modifications since last build (from state)
 2. Identifies invalidated documentation sections
 3. Regenerates only affected sections using similar pipeline as full wiki
 4. Updates build state with new baseline
+5. Refreshes affected skills using the skills system
 
 ### State Management
-- `state.Save` records file hashes after wiki build (`tui.go:1752-1820` shows call to `wiki.Run` which eventually calls `SaveStamp`)
+- `state.Save` records file hashes after wiki build (shows call to `wiki.Run` which eventually calls `SaveStamp`)
 - Enables `update` command to detect changes by comparing current file state with saved baseline
 
 ### Key Dependencies
@@ -157,11 +158,12 @@ The update process (`wiki.Update` called from `tui.go:1871-1951`):
   - `internal/llm` for LLM-powered planning and generation
   - `internal/config` for settings (concurrency, token limits)
   - `internal/state` for incremental update tracking
+  - `internal/skills` for refreshing affected skills during updates
 - TUI coordinates the process and handles user interaction/approvals
 
 ## Referenced Files
-- `internal/tui/tui.go`
-- `internal/wiki/wiki.go`
-- `internal/agent/agent.go`
+- `cli/internal/tui/tui.go`
+- `cli/internal/wiki/wiki.go`
+- `cli/internal/agent/agent.go`
 
 <!-- kaioken:files internal/tui/tui.go,internal/agent/agent.go,internal/wiki/wiki.go -->

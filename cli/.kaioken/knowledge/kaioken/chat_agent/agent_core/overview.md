@@ -1,0 +1,1 @@
+The agent core implements a tool-using coding assistant loop that interacts with an LLM to perform file operations, run commands, and access generated documentation. It includes user approval for repository changes, path confinement, undo tracking, and knowledge base integration via the read_knowledge tool.

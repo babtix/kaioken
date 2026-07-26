@@ -17,11 +17,11 @@ Kaioken uses two configuration files:
 - **Global config**: `$HOME/.config/kaioken/config.yaml` (or `%APPDATA%\kaioken\config.yaml` on Windows)
 - **Per-repo config**: `.kaioken/config.yaml` inside the target repository
 
-The per-repo config overrides global settings. Both files use the same YAML structure defined by the [`Config` struct](#config-struct) in `internal/config/config.go`.
+The per-repo config overrides global settings. Both files use the same YAML structure defined by the [`Config` struct](#config-struct) in `cli/internal/config/config.go`.
 
 ### Config Structure
 
-`internal/config/config.go:18-41`
+`cli/internal/config/config.go:18-41`
 ```go
 type Config struct {
 	Version int `yaml:"version"`
@@ -53,7 +53,7 @@ type Config struct {
 
 The [`Scope` struct](#scope-struct) determines which files are scanned:
 
-`internal/config/config.go:44-49`
+`cli/internal/config/config.go:44-49`
 ```go
 type Scope struct {
 	// Include, when non-empty, restricts scanning to these path prefixes.
@@ -65,7 +65,7 @@ type Scope struct {
 
 Default excludes (always applied) are defined in [`DefaultExcludes`](#defaultexcludes):
 
-`internal/config/config.go:55-60`
+`cli/internal/config/config.go:55-60`
 ```go
 // DefaultExcludes are always skipped regardless of configuration. Dir itself
 // is listed: without it Kaioken scans its own generated wiki and cards as if
@@ -86,7 +86,7 @@ var DefaultExcludes = []string{
 - [`Path`](#path) returns the config file path for a repo
 - [`Default`](#default) returns a fresh config with sensible defaults
 
-`internal/config/config.go:110-129`
+`cli/internal/config/config.go:110-129`
 ```go
 func Load(repo string) (*Config, error) {
 	raw, err := os.ReadFile(Path(repo))
@@ -110,7 +110,7 @@ func Load(repo string) (*Config, error) {
 }
 ```
 
-`internal/config/config.go:132-144`
+`cli/internal/config/config.go:132-144`
 ```go
 func (c *Config) Save(repo string) error {
 	if err := os.MkdirAll(filepath.Join(repo, Dir), 0o755); err != nil {
@@ -127,14 +127,14 @@ func (c *Config) Save(repo string) error {
 }
 ```
 
-`internal/config/config.go:105-107`
+`cli/internal/config/config.go:105-107`
 ```go
 func Path(repo string) string {
 	return filepath.Join(repo, Dir, "config.yaml")
 }
 ```
 
-`internal/config/config.go:63-78`
+`cli/internal/config/config.go:63-78`
 ```go
 func Default() *Config {
 	return &Config{
@@ -156,9 +156,9 @@ func Default() *Config {
 
 ## CLI Flags
 
-CLI flags override configuration file settings. The [`flags` struct](#flags-struct) in `cmd/kaioken/main.go` defines available flags:
+CLI flags override configuration file settings. The [`flags` struct](#flags-struct) in `cli/cmd/kaioken/main.go` defines available flags:
 
-`cmd/kaioken/main.go:123-131`
+`cli/cmd/kaioken/main.go:131-141`
 ```go
 type flags struct {
 	repo       string
@@ -177,7 +177,7 @@ Key flags for LLM configuration:
 
 The [`parseFlags`](#parseflags) function processes these flags:
 
-`cmd/kaioken/main.go:133-169`
+`cli/cmd/kaioken/main.go:143-186`
 ```go
 func parseFlags(argv []string) flags {
 	f := flags{repo: "."}
@@ -224,9 +224,9 @@ API keys are **not** stored in configuration files for security. Instead:
 - Global config (`$HOME/.config/kaioken/config.yaml`) can store keys per provider
 - Provider-specific environment variables (e.g., `OPENROUTER_API_KEY` for OpenRouter)
 
-The [`newClient`](#newclient) function in `cmd/kaioken/main.go` resolves API keys:
+The [`newClient`](#newclient) function in `cli/cmd/kaioken/main.go` resolves API keys:
 
-`cmd/kaioken/main.go:339-361`
+`cli/cmd/kaioken/main.go:356-378`
 ```go
 func newClient(cfg *config.Config, f flags) (*llm.Client, error) {
 	model := cfg.Model
@@ -277,12 +277,12 @@ Optional override for self-hosted or compatible endpoints:
 
 ## Token Budgeting and Concurrency
 
-Kaioken implements intelligent token budgeting to avoid provider credit errors (HTTP 402). See [`internal/llm/budget.go`](#budgetgo) for details.
+Kaioken implements intelligent token budgeting to avoid provider credit errors (HTTP 402). See [`cli/internal/llm/budget.go`](#budgetgo) for details.
 
 ### Concurrency Limits
 The [`EffectiveConcurrency`](#effectiveconcurrency) method adjusts parallelism for free-tier models:
 
-`internal/config/config.go:93-102`
+`cli/internal/config/config.go:93-102`
 ```go
 func (c *Config) EffectiveConcurrency(model string) (limit int, clamped bool) {
 	n := c.Concurrency
@@ -296,7 +296,7 @@ func (c *Config) EffectiveConcurrency(model string) (limit int, clamped bool) {
 }
 ```
 
-`internal/config/config.go:81`
+`cli/internal/config/config.go:81`
 ```go
 const FreeModelConcurrency = 2
 ```
@@ -306,7 +306,7 @@ Free models (detected by `:free` suffix) are capped at 2 concurrent requests to 
 ### Token Ceiling Adjustment
 The [`tokenCeiling`](#tokenceiling) method dynamically reduces `max_tokens` based on provider feedback:
 
-`internal/llm/budget.go:36-48`
+`cli/internal/llm/budget.go:36-48`
 ```go
 func (c *Client) tokenCeiling() int {
 	c.budgetMu.Lock()
@@ -325,7 +325,7 @@ func (c *Client) tokenCeiling() int {
 
 When a 402 error occurs, [`learnCeiling`](#learnceiling) records the provider's reported affordable limit:
 
-`internal/llm/budget.go:53-59`
+`cli/internal/llm/budget.go:53-59`
 ```go
 func (c *Client) learnCeiling(n int) {
 	c.budgetMu.Lock()
@@ -338,7 +338,7 @@ func (c *Client) learnCeiling(n int) {
 
 The [`affordableTokens`](#affordabletokens) function extracts this limit from 402 error messages:
 
-`internal/llm/budget.go:68-90`
+`cli/internal/llm/budget.go:68-90`
 ```go
 func affordableTokens(err error) (int, bool) {
 	if err == nil {
@@ -365,7 +365,7 @@ func affordableTokens(err error) (int, bool) {
 }
 ```
 
-`internal/llm/budget.go:63`
+`cli/internal/llm/budget.go:63`
 ```go
 var affordableRe = regexp.MustCompile(`can only afford (\d+)`)
 ```
@@ -374,12 +374,12 @@ var affordableRe = regexp.MustCompile(`can only afford (\d+)`)
 - [`DefaultMaxTokens`](#defaultmaxtokens): 8192 (used when `MaxTokens` is 0 or unset)
 - [`minTokenCeiling`](#mintokenceiling): 512 (requests below this are not sent)
 
-`internal/llm/budget.go:27`
+`cli/internal/llm/budget.go:27`
 ```go
 const DefaultMaxTokens = 8192
 ```
 
-`internal/llm/budget.go:32`
+`cli/internal/llm/budget.go:32`
 ```go
 const minTokenCeiling = 512
 ```
@@ -388,7 +388,7 @@ const minTokenCeiling = 512
 
 The [`models`](#models) CLI command lists available models for the configured provider:
 
-`cmd/kaioken/main.go:319-337`
+`cli/cmd/kaioken/main.go:336-354`
 ```go
 func cmdModels(ctx context.Context, f flags) error {
 	cfg, err := config.Load(f.repo)
@@ -419,7 +419,7 @@ Usage:
 
 Running `kaioken init` creates a default `.kaioken/config.yaml`:
 
-`cmd/kaioken/main.go:171-185`
+`cli/cmd/kaioken/main.go:188-202`
 ```go
 func cmdInit(f flags) error {
 	if _, err := os.Stat(config.Path(f.repo)); err == nil {
@@ -452,9 +452,9 @@ After initialization, you must:
 3. Run `kaioken plan` to propose modules
 
 ## Referenced Files
-- cmd/kaioken/main.go
-- internal/config/config.go
-- internal/llm/budget.go
+- cli/cmd/kaioken/main.go
+- cli/internal/config/config.go
+- cli/internal/llm/budget.go
 
 --- 
 *This chapter covers all exported/public declarations related to LLM provider and model configuration as specified in the structure block, including config struct fields, CLI flags, environment variable handling, token budgeting mechanisms, and model listing functionality.*

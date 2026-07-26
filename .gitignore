@@ -13,6 +13,16 @@ cli/kaioken_new.exe
 .claude/
 .ainow/
 
+# Third-party source vendored for reading only, not built or shipped.
+# See .reference/README.md for what is here and why.
+.reference/
+
+# Full opencode clone at repo root, read-only reference material — not the
+# vendored .reference/opencode/ sparse checkout, kept separately because it
+# has packages/{llm,app,console,...} that one omits. Never built or shipped;
+# ignored so it can't land in a commit by accident (it carries node_modules).
+/opencode/
+
 # Website
 website/node_modules/
 website/dist/

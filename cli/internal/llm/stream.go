@@ -71,18 +71,24 @@ func (c *Client) ChatStream(ctx context.Context, system, user string, onDelta fu
 func (c *Client) ChatWithToolsStream(ctx context.Context, messages []Message, tools []Tool,
 	onDelta func(string)) (Message, error) {
 
-	reqBody := toolChatRequest{
-		Model:         c.Model,
-		Messages:      messages,
-		Tools:         tools,
-		Temperature:   0.3,
-		Stream:        true,
-		StreamOptions: &streamOptions{IncludeUsage: true},
+	var body []byte
+	var err error
+	if c.Protocol == protocolAnthropic {
+		body, err = anthropicStreamBody(c.Model, messages, tools)
+	} else {
+		reqBody := toolChatRequest{
+			Model:         c.Model,
+			Messages:      messages,
+			Tools:         tools,
+			Temperature:   0.3,
+			Stream:        true,
+			StreamOptions: &streamOptions{IncludeUsage: true},
+		}
+		if len(tools) > 0 {
+			reqBody.ToolChoice = "auto"
+		}
+		body, err = json.Marshal(reqBody)
 	}
-	if len(tools) > 0 {
-		reqBody.ToolChoice = "auto"
-	}
-	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return Message{}, err
 	}
@@ -100,18 +106,20 @@ func (c *Client) stream(ctx context.Context, body []byte, onDelta func(string)) 
 	ceiling := c.tokenCeiling()
 	body = withMaxTokens(body, ceiling)
 
-	backoffs := []time.Duration{0, 3 * time.Second, 10 * time.Second, 25 * time.Second}
 	var lastErr error
 	shrunk := false
-	for i := 0; i < len(backoffs); i++ {
-		if backoffs[i] > 0 {
+	// See rawChat: the ladder is only the fallback for failures that arrive
+	// without a stated delay.
+	next := fallbackBackoffs[0]
+	for i := 0; i < len(fallbackBackoffs); i++ {
+		if next > 0 {
 			select {
-			case <-time.After(backoffs[i]):
+			case <-time.After(next):
 			case <-ctx.Done():
 				return Message{}, ctx.Err()
 			}
 		}
-		msg, retryable, err := c.doStream(ctx, body, onDelta)
+		msg, retryable, wait, err := c.doStream(ctx, body, onDelta)
 		if err == nil {
 			return msg, nil
 		}
@@ -124,8 +132,14 @@ func (c *Client) stream(ctx context.Context, body []byte, onDelta func(string)) 
 			c.learnCeiling(n)
 			ceiling = n
 			body = withMaxTokens(body, n)
+			next = 0
 			i--
 			continue
+		}
+		if wait > 0 {
+			next = wait
+		} else if i+1 < len(fallbackBackoffs) {
+			next = fallbackBackoffs[i+1]
 		}
 		if !retryable {
 			return Message{}, creditError(err, ceiling)
@@ -134,25 +148,28 @@ func (c *Client) stream(ctx context.Context, body []byte, onDelta func(string)) 
 	return Message{}, creditError(fmt.Errorf("giving up after retries: %w", lastErr), ceiling)
 }
 
-func (c *Client) doStream(ctx context.Context, body []byte, onDelta func(string)) (Message, bool, error) {
+// doStream sends one streaming request. Like doPost it reports whether a
+// failure is retryable and, when the provider stated one, how long to wait.
+func (c *Client) doStream(ctx context.Context, body []byte, onDelta func(string)) (Message, bool, time.Duration, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		c.chatURL(), bytes.NewReader(body))
 	if err != nil {
-		return Message{}, false, err
+		return Message{}, false, 0, err
 	}
 	c.setHeaders(req)
 	req.Header.Set("Accept", "text/event-stream")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return Message{}, true, err
+		return Message{}, true, 0, err
 	}
 	defer resp.Body.Close()
 
 	switch {
 	case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500:
 		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 2000))
-		return Message{}, true, fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 300))
+		wait, _ := retryAfter(resp.Header)
+		return Message{}, true, wait, fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 300))
 	case resp.StatusCode == http.StatusBadRequest, resp.StatusCode == http.StatusNotFound,
 		resp.StatusCode == http.StatusUnprocessableEntity:
 		// The shapes a gateway uses to say it does not understand `stream`.
@@ -165,15 +182,20 @@ func (c *Client) doStream(ctx context.Context, body []byte, onDelta func(string)
 			return c.doStream(ctx, body, onDelta)
 		}
 		if strings.Contains(e.Error(), "Not found for account") {
-			return Message{}, false, fmt.Errorf("%s%s", e.Error(), nvidiaAccountHint)
+			return Message{}, false, 0, fmt.Errorf("%s%s", e.Error(), nvidiaAccountHint)
 		}
-		return Message{}, false, fmt.Errorf("%w (%v)", errStreamUnsupported, e)
+		return Message{}, false, 0, fmt.Errorf("%w (%v)", errStreamUnsupported, e)
 	case resp.StatusCode != http.StatusOK:
 		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4000))
-		return Message{}, false, fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 400))
+		return Message{}, false, 0, fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 400))
 	}
 
-	return parseSSE(ctx, resp.Body, onDelta, c.recordUsage)
+	if c.Protocol == protocolAnthropic {
+		msg, retryable, err := parseAnthropicSSE(ctx, resp.Body, onDelta, c.recordUsage)
+		return msg, retryable, 0, err
+	}
+	msg, retryable, err := parseSSE(ctx, resp.Body, onDelta, c.recordUsage)
+	return msg, retryable, 0, err
 }
 
 // parseSSE consumes an OpenAI-compatible event stream into one Message. The

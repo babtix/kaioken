@@ -1,0 +1,8 @@
+- Use both `yaml` and `json` tags for struct fields intended for YAML/JSON serialization (e.g., Module struct).
+- Store the plan file at <repo>/.kaioken/modules.yaml (using config.Dir for the directory name).
+- In Save, create the plan directory (0o755) if it doesn't exist before writing the file (0o644).
+- Prepend a header comment to the YAML file explaining its purpose and editability.
+- In Generate, build the LLM prompt by concatenating: tree summary (max 12 files/dir), manifest contents (max 4000 bytes/manifest), and config notes.
+- Validate generated plans against scan results, logging scope mismatches to stderr as warnings (not errors).
+- In Flatten, traverse the module tree depth-first, building hierarchical IDs by prefixing child IDs with parent IDs separated by '/'.
+- In FilesFor, resolve scope entries to files by exact match or directory prefix match, deduplicate by file path, and preserve scan order.

@@ -1,277 +1,612 @@
-import { useEffect, useRef, useState } from "react"
-import { Plus, Send, Square, ChevronDown, ChevronRight } from "lucide-react"
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { MessageSquare, Plus, Send, Square, Zap, Terminal } from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useChatStore } from "@/store/chat"
+import { useRunsStore } from "@/store/runs"
+import { useToastStore } from "@/store/toast"
+import Markdown from "@/components/common/Markdown"
+import ApprovalDialog from "@/components/chat/ApprovalDialog"
+import Autocomplete, { detectTrigger, type Suggestion } from "@/components/chat/Autocomplete"
+import { ToolCallCard, ToolResultCard } from "@/components/chat/ToolCallCard"
+import EmptyState from "@/components/EmptyState"
+import { Badge, Button, Kbd, Skeleton } from "@/components/ui"
+import { api } from "@/lib/api"
+import { humanize } from "@/lib/errors"
 import { cn } from "@/lib/utils"
-import type { ChatMessage } from "@/lib/types"
+import { formatRelativeTime } from "@/lib/format"
+import { filterCommands, resolveCommand, type SlashAction } from "@/lib/slash"
+import type { ChatMessage, RepoFile } from "@/lib/types"
 
 export default function Chat() {
   const ws = useWorkspaceStore((s) => s.active)
   const {
     sessions, activeSessionId, messages, streamBuffer, isStreaming, approval, error,
-    loadSessions, newSession, openSession, send, resolveApproval,
+    loadSessions, newSession, openSession, send, cancel, resolveApproval, activeRunId,
   } = useChatStore()
+
+  const startRun = useRunsStore((s) => s.start)
+  const pushToast = useToastStore((s) => s.push)
+  const navigate = useNavigate()
+
   const [input, setInput] = useState("")
   const [autoApprove, setAutoApprove] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [allowRun, setAllowRun] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const stickToBottom = useRef(true)
 
   useEffect(() => {
     if (ws) loadSessions(ws.id)
   }, [ws?.id, loadSessions])
 
-  // Auto-scroll on new messages.
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages.length, streamBuffer])
+  // Auto-scroll respects intent: stick to the bottom only while the user is
+  // already near it, so reading back through a transcript is not yanked.
+  const onScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!stickToBottom.current) return
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages?.length ?? 0, streamBuffer])
 
   if (!ws) {
-    return <div className="flex h-full items-center justify-center font-mono text-sm text-kai-dim">Open a workspace first</div>
+    return (
+      <EmptyState
+        icon={MessageSquare}
+        title="No workspace open"
+        hint="Open a repository to start a conversation with the agent."
+      />
+    )
+  }
+
+  /** Execute a slash command instead of sending it as a message — typing
+   *  "/wiki x3" starts a run, exactly as it does in the TUI. */
+  async function runSlash(action: SlashAction): Promise<void> {
+    switch (action.kind) {
+      case "run":
+        await startRun(ws!.id, action.runKind, action.params)
+        navigate("/activity")
+        break
+      case "session":
+        if (action.op === "new") {
+          await newSession(ws!.id)
+        } else if (activeSessionId) {
+          try {
+            const res = await api.compactSession(ws!.id, activeSessionId)
+            pushToast(
+              "success",
+              "Conversation compacted",
+              `${res.before_messages} messages → ${res.after_messages}`
+            )
+            await openSession(ws!.id, activeSessionId)
+          } catch (err) {
+            const h = humanize(err)
+            pushToast("error", h.title, h.body, h.action)
+          }
+        }
+        break
+      case "undo":
+        try {
+          const res = await api.undo(ws!.id)
+          pushToast("success", res.deleted ? "Deleted file" : "Restored file", res.path)
+        } catch (err) {
+          const h = humanize(err)
+          pushToast("error", h.title, h.body, h.action)
+        }
+        break
+      case "toggle":
+        if (action.which === "yolo") setAutoApprove((v) => !v)
+        else setAllowRun((v) => !v)
+        break
+      case "navigate":
+        navigate(action.to)
+        break
+      case "help":
+        // The shortcut sheet is owned by AppShell's global "?" handler.
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "?" }))
+        break
+    }
   }
 
   async function handleSend() {
     const text = input.trim()
     if (!text || isStreaming) return
+
+    // A line that names a real command runs it rather than talking to the
+    // model. An unknown "/foo" falls through and is sent as prose.
+    const slash = resolveCommand(text)
+    if (slash) {
+      setInput("")
+      await runSlash(slash.cmd.action(slash.arg))
+      return
+    }
+
     setInput("")
+    stickToBottom.current = true
     if (!activeSessionId) await newSession(ws!.id)
-    await send(ws!.id, text, { auto_approve: autoApprove, allow_run: ws!.allow_run })
+    await send(ws!.id, text, { auto_approve: autoApprove, allow_run: allowRun || ws!.allow_run })
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.altKey && !e.ctrlKey) {
-      e.preventDefault()
-      handleSend()
-    }
-    if (e.key === "Enter" && (e.altKey || e.ctrlKey)) {
-      setInput((s) => s + "\n")
-    }
-  }
+  const visible = (messages || []).filter((m) => m && m.role !== "system")
 
   return (
     <div className="flex h-full">
-      {/* Session sidebar (T034) */}
-      <aside className="flex w-52 shrink-0 flex-col border-r border-border bg-card">
-        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-          <span className="font-mono text-[10px] font-bold text-kai-dim">SESSIONS</span>
-          <button
-            onClick={() => newSession(ws.id)}
-            className="ml-auto rounded p-1 text-kai-dim transition-colors hover:text-kai-orange"
-            title="New session"
-          >
-            <Plus size={14} />
-          </button>
+      <SessionSidebar
+        sessions={sessions || []}
+        activeId={activeSessionId}
+        onNew={() => newSession(ws.id)}
+        onOpen={(sid) => openSession(ws.id, sid)}
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="min-h-0 flex-1 overflow-auto scroll-smooth"
+        >
+          <div className="mx-auto max-w-3xl px-5 py-5">
+            {visible.length === 0 && !streamBuffer && (
+              <ChatIntro model={ws.model} onPick={(t) => setInput(t)} />
+            )}
+
+            {visible.map((msg, i) => (
+              <MessageRow key={i} msg={msg} />
+            ))}
+
+            {streamBuffer && <StreamingMessage text={streamBuffer} />}
+
+            {isStreaming && !streamBuffer && (
+              <div className="my-3 space-y-2">
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            )}
+
+            {error && (
+              <p className="my-2 rounded border border-kai-rose/30 bg-kai-rose/10 px-3 py-2 font-mono text-xs text-kai-rose">
+                {error}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto">
-          {sessions.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => openSession(ws.id, s.id)}
+
+        <Composer
+          workspaceId={ws.id}
+          value={input}
+          onChange={setInput}
+          onSend={handleSend}
+          onCancel={() => activeRunId && cancel(activeRunId)}
+          isStreaming={isStreaming}
+          autoApprove={autoApprove}
+          setAutoApprove={setAutoApprove}
+          allowRun={allowRun}
+          setAllowRun={setAllowRun}
+        />
+      </div>
+
+      <ApprovalDialog approval={approval} onResolve={resolveApproval} />
+    </div>
+  )
+}
+
+// ── Session sidebar ────────────────────────────────────────────────────────
+
+function SessionSidebar({
+  sessions,
+  activeId,
+  onNew,
+  onOpen,
+}: {
+  sessions: { id: string; title: string; turns: number; updated: string }[]
+  activeId: string | null
+  onNew: () => void
+  onOpen: (sid: string) => void
+}) {
+  return (
+    <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-kai-dim">
+          Sessions
+        </span>
+        <Button variant="ghost" size="sm" onClick={onNew} className="ml-auto px-1.5" title="New session">
+          <Plus size={13} />
+        </Button>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto py-1">
+        {sessions.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => onOpen(s.id)}
+            className={cn(
+              "group relative block w-full px-3 py-2 text-left transition-colors outline-none",
+              "focus-visible:bg-panel",
+              s.id === activeId ? "bg-accent" : "hover:bg-panel/60"
+            )}
+          >
+            {s.id === activeId && (
+              <span className="absolute inset-y-0 left-0 w-0.5 bg-kai-orange" aria-hidden />
+            )}
+            <p
               className={cn(
-                "w-full truncate px-3 py-2 text-left font-mono text-[11px] transition-colors",
-                s.id === activeSessionId ? "bg-accent text-kai-orange" : "text-kai-muted hover:text-kai-text"
+                "truncate font-mono text-[11px]",
+                s.id === activeId ? "text-kai-orange" : "text-kai-text"
               )}
             >
-              {s.title || "(new)"}
-            </button>
-          ))}
-          {sessions.length === 0 && (
-            <p className="px-3 py-4 font-mono text-[10px] text-kai-dim">No sessions yet</p>
-          )}
-        </div>
-      </aside>
-
-      {/* Main chat area */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Transcript (T030) */}
-        <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
-          {messages.filter((m) => m.role !== "system").map((msg, i) => (
-            <MessageBubble key={i} msg={msg} />
-          ))}
-
-          {/* Streaming buffer */}
-          {streamBuffer && (
-            <div className="mb-3 font-mono text-sm text-kai-text">
-              <span className="whitespace-pre-wrap">{streamBuffer}</span>
-              <span className="animate-caret ml-0.5 inline-block h-4 w-1.5 bg-kai-orange" />
-            </div>
-          )}
-
-          {error && (
-            <p className="mb-2 font-mono text-xs text-kai-rose">{error}</p>
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Approval dialog (T032) */}
-        {approval && (
-          <div className="border-t border-kai-amber/30 bg-accent px-4 py-3">
-            <p className="font-mono text-xs text-kai-amber">
-              {approval.action === "run" ? "Run command" : approval.action === "write" ? "Write file" : "Edit file"}:
-              {" "}<span className="text-kai-text">{approval.target}</span>
+              {s.title || "Untitled session"}
             </p>
-            {approval.preview && (
-              <pre className="mt-2 max-h-32 overflow-auto rounded bg-card p-2 font-mono text-[10px] text-kai-muted">
-                {approval.preview}
-              </pre>
-            )}
-            <div className="mt-2 flex gap-2">
-              <button onClick={() => resolveApproval("approve")} className="rounded bg-kai-green/20 px-3 py-1 font-mono text-xs text-kai-green hover:bg-kai-green/30">
-                Approve (Y)
-              </button>
-              <button onClick={() => resolveApproval("deny")} className="rounded bg-kai-rose/20 px-3 py-1 font-mono text-xs text-kai-rose hover:bg-kai-rose/30">
-                Deny (N)
-              </button>
-              {approval.action !== "run" && (
-                <button onClick={() => resolveApproval("approve_all")} className="rounded bg-kai-amber/20 px-3 py-1 font-mono text-xs text-kai-amber hover:bg-kai-amber/30">
-                  Approve All (A)
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+            <p className="mt-0.5 font-mono text-[9px] text-kai-dim">
+              {s.turns} turns · {formatRelativeTime(s.updated)}
+            </p>
+          </button>
+        ))}
 
-        {/* Composer (T033) */}
-        <div className="border-t border-border p-3">
-          <div className="flex items-end gap-2">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={activeSessionId ? "Message… (Enter to send)" : "Start a new conversation…"}
-              rows={Math.min(6, Math.max(1, input.split("\n").length))}
-              className="min-h-[36px] flex-1 resize-none rounded-md border border-border bg-card px-3 py-2 font-mono text-sm text-kai-text placeholder:text-kai-dim focus:border-kai-orange/50 focus:outline-none"
-            />
-            {isStreaming ? (
-              <button className="rounded-md bg-kai-rose/20 p-2 text-kai-rose" title="Cancel (Esc)">
-                <Square size={16} />
-              </button>
-            ) : (
-              <button
-                onClick={handleSend}
-                disabled={!input.trim()}
-                className="rounded-md bg-accent p-2 text-kai-orange transition-colors hover:bg-accent/80 disabled:opacity-30"
-                title="Send"
-              >
-                <Send size={16} />
-              </button>
-            )}
-          </div>
-          <label className="mt-1.5 flex items-center gap-2 font-mono text-[10px] text-kai-dim">
-            <input
-              type="checkbox"
-              checked={autoApprove}
-              onChange={(e) => setAutoApprove(e.target.checked)}
-              className="accent-kai-orange"
-            />
-            auto-approve this turn
-          </label>
+        {sessions.length === 0 && (
+          <p className="px-3 py-4 font-mono text-[10px] leading-relaxed text-kai-dim">
+            No sessions yet. Send a message to start one.
+          </p>
+        )}
+      </div>
+    </aside>
+  )
+}
+
+// ── Transcript ─────────────────────────────────────────────────────────────
+
+const SUGGESTIONS = [
+  "Explain how the wiki pipeline decides what to regenerate",
+  "Where is the approval flow implemented?",
+  "Add a -json flag to the status command",
+]
+
+function ChatIntro({ model, onPick }: { model: string; onPick: (t: string) => void }) {
+  return (
+    <div className="animate-slide-up py-10">
+      <h1 className="font-mono text-lg font-bold text-kai-text">
+        Ask about this repository
+      </h1>
+      <p className="mt-1 font-mono text-xs text-kai-dim">
+        The agent can read, search and edit files — every write goes through an
+        approval you control.
+      </p>
+      {model && (
+        <div className="mt-3">
+          <Badge tone="orange">{model}</Badge>
         </div>
+      )}
+      <div className="mt-6 space-y-1.5">
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s}
+            onClick={() => onPick(s)}
+            className={cn(
+              "block w-full rounded-md border border-border bg-card px-3 py-2 text-left",
+              "font-mono text-[11px] text-kai-muted transition-colors outline-none",
+              "hover:border-kai-orange/40 hover:text-kai-text",
+              "focus-visible:ring-2 focus-visible:ring-kai-orange/50"
+            )}
+          >
+            {s}
+          </button>
+        ))}
       </div>
     </div>
   )
 }
 
-// --- Message rendering (T030 + T031) ---
-
-function MessageBubble({ msg }: { msg: ChatMessage }) {
+/** Committed messages are memoised so a streaming reply never re-renders (or
+ *  re-parses the markdown of) the transcript above it. */
+const MessageRow = memo(function MessageRow({ msg }: { msg: ChatMessage }) {
   if (msg.role === "user") {
     return (
-      <div className="mb-3 flex justify-end">
-        <div className="max-w-[80%] rounded-md bg-accent px-3 py-2 font-mono text-sm text-kai-blue">
-          <span className="whitespace-pre-wrap">{msg.content}</span>
+      <div className="animate-slide-up mb-4 flex justify-end">
+        <div className="max-w-[85%] rounded-lg rounded-br-sm border border-kai-blue/25 bg-kai-blue/[0.07] px-3 py-2">
+          <p className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-kai-blue">
+            {msg.content}
+          </p>
         </div>
       </div>
     )
   }
 
-  if (msg.role === "assistant" && msg.tool_calls && msg.tool_calls.length > 0) {
+  if (msg.role === "assistant" && msg.tool_calls?.length) {
     return (
-      <div className="mb-2 space-y-1">
-        {msg.tool_calls.map((tc) => (
-          <ToolCallCard key={tc.id} name={tc.function.name} args={tc.function.arguments} />
+      <div className="mb-2">
+        {msg.tool_calls.map((tc, i) => (
+          <ToolCallCard key={tc.id || i} name={tc.function.name} args={tc.function.arguments} />
         ))}
       </div>
     )
   }
 
-  if (msg.role === "tool") {
-    return <ToolResultCard name={msg.name || "tool"} content={msg.content} />
-  }
+  if (msg.role === "tool") return <ToolResultCard content={msg.content} />
 
-  if (msg.role === "assistant" && msg.content) {
+  if (msg.role === "assistant" && msg.content.trim()) {
     return (
-      <div className="mb-3 font-mono text-sm text-kai-text">
-        <span className="whitespace-pre-wrap">{msg.content}</span>
+      <div className="animate-slide-up mb-4">
+        <Markdown variant="chat" className="text-kai-text">
+          {msg.content}
+        </Markdown>
       </div>
     )
   }
 
   return null
-}
+})
 
-// T031: Tool-call cards
-const TOOL_GLYPHS: Record<string, string> = {
-  read_file: "📖",
-  write_file: "✏️",
-  edit_file: "✏️",
-  list_files: "📂",
-  search: "🔍",
-  run_command: "⚡",
-  read_knowledge: "🧠",
-}
-
-function ToolCallCard({ name, args }: { name: string; args: string }) {
-  const [open, setOpen] = useState(false)
-  const glyph = TOOL_GLYPHS[name] || "🔧"
-  let summary = ""
-  try {
-    const parsed = JSON.parse(args)
-    summary = parsed.path || parsed.command || parsed.query || ""
-  } catch {
-    summary = args.slice(0, 80)
-  }
-
+/** The live tail renders as pre-wrapped text, not markdown: half-written
+ *  markdown renders badly (an unclosed fence swallows the rest), and
+ *  re-parsing on every token is the app's biggest perf trap. */
+function StreamingMessage({ text }: { text: string }) {
   return (
-    <div className="rounded border border-border bg-card">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2 px-2 py-1.5 font-mono text-[11px] text-kai-tan"
-      >
-        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        <span>{glyph}</span>
-        <span className="font-bold">{name}</span>
-        <span className="truncate text-kai-dim">{summary}</span>
-      </button>
-      {open && (
-        <pre className="border-t border-border px-3 py-2 font-mono text-[10px] text-kai-muted">
-          {args}
-        </pre>
-      )}
+    <div className="mb-4">
+      <p className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-kai-text">
+        {text}
+        <span className="animate-caret ml-0.5 inline-block h-3.5 w-[7px] translate-y-0.5 bg-kai-orange" />
+      </p>
     </div>
   )
 }
 
-function ToolResultCard({ content }: { name: string; content: string }) {
-  const [open, setOpen] = useState(false)
-  const isErr = content.startsWith("error:") || content.startsWith("user declined")
-  const preview = content.split("\n")[0].slice(0, 100)
+// ── Composer ───────────────────────────────────────────────────────────────
+
+type ComposerProps = {
+  workspaceId: string
+  value: string
+  onChange: (v: string) => void
+  onSend: () => void
+  onCancel: () => void
+  isStreaming: boolean
+  autoApprove: boolean
+  setAutoApprove: (v: boolean) => void
+  allowRun: boolean
+  setAllowRun: (v: boolean) => void
+}
+
+const Composer = memo(function Composer({
+  workspaceId,
+  value,
+  onChange,
+  onSend,
+  onCancel,
+  isStreaming,
+  autoApprove,
+  setAutoApprove,
+  allowRun,
+  setAllowRun,
+}: ComposerProps) {
+  const rows = Math.min(8, Math.max(1, value.split("\n").length))
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const [caret, setCaret] = useState(0)
+  const [files, setFiles] = useState<RepoFile[]>([])
+  const [selected, setSelected] = useState(0)
+  // Remembers the trigger text the menu was dismissed at, so Escape keeps it
+  // closed until the query actually changes again (same rule as the TUI).
+  const [dismissed, setDismissed] = useState<string | null>(null)
+
+  const trigger = detectTrigger(value, caret)
+  const triggerId = trigger ? `${trigger.kind}:${trigger.start}:${trigger.query}` : ""
+  const active = trigger && dismissed !== triggerId ? trigger : null
+
+  // Fetch matching paths for an "@" query. Debounced so a fast typist does
+  // not fire a request per keystroke.
+  useEffect(() => {
+    if (active?.kind !== "at") {
+      setFiles([])
+      return
+    }
+    let cancelled = false
+    const id = setTimeout(() => {
+      api
+        .files(workspaceId, active.query, 12)
+        .then((r) => !cancelled && setFiles(r.files))
+        .catch(() => !cancelled && setFiles([]))
+    }, 120)
+    return () => {
+      cancelled = true
+      clearTimeout(id)
+    }
+  }, [active?.kind, active?.query, workspaceId])
+
+  const items: Suggestion[] = !active
+    ? []
+    : active.kind === "slash"
+      ? filterCommands(active.query).map((cmd) => ({ type: "command" as const, cmd }))
+      : files.map((file) => ({ type: "file" as const, file }))
+
+  // Keep the highlight in range as the list shrinks under a longer query.
+  useEffect(() => {
+    setSelected((s) => (s >= items.length ? 0 : s))
+  }, [items.length])
+
+  /** Replace the trigger's span with the chosen completion. */
+  function applySuggestion(item: Suggestion) {
+    if (!active) return
+    const before = value.slice(0, active.start)
+    const after = value.slice(caret)
+
+    let insert: string
+    if (item.type === "command") {
+      // Leave a trailing space when the command takes arguments so the user
+      // can type them immediately; otherwise the line is complete as-is.
+      insert = `/${item.cmd.name}${item.cmd.args ? " " : ""}`
+    } else {
+      insert = `@${item.file.path} `
+    }
+
+    const next = before + insert + after
+    const nextCaret = before.length + insert.length
+    onChange(next)
+    setDismissed(null)
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(nextCaret, nextCaret)
+      setCaret(nextCaret)
+    })
+  }
+
+  function syncCaret(e: React.SyntheticEvent<HTMLTextAreaElement>) {
+    setCaret(e.currentTarget.selectionStart ?? 0)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // The menu owns the arrow keys, Tab and Enter while it is open.
+    if (active && items.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault()
+        setSelected((s) => (s + 1) % items.length)
+        return
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault()
+        setSelected((s) => (s - 1 + items.length) % items.length)
+        return
+      }
+      if (e.key === "Tab" || (e.key === "Enter" && !e.altKey && !e.ctrlKey && !e.shiftKey)) {
+        e.preventDefault()
+        applySuggestion(items[selected])
+        return
+      }
+      if (e.key === "Escape") {
+        e.preventDefault()
+        setDismissed(triggerId)
+        return
+      }
+    }
+
+    // Alt/Ctrl+Enter inserts a newline — same binding as the TUI. Plain
+    // Enter sends.
+    if (e.key === "Enter" && !e.shiftKey && !e.altKey && !e.ctrlKey) {
+      e.preventDefault()
+      onSend()
+      return
+    }
+    if (e.key === "Escape" && isStreaming) {
+      e.preventDefault()
+      onCancel()
+    }
+  }
 
   return (
-    <div className="mb-2 rounded border border-border bg-card">
-      <button
-        onClick={() => setOpen(!open)}
-        className={cn(
-          "flex w-full items-center gap-2 px-2 py-1 font-mono text-[10px]",
-          isErr ? "text-kai-rose" : "text-kai-sage"
+    <div className="shrink-0 border-t border-border bg-card/50 px-4 py-3">
+      <div className="relative mx-auto max-w-3xl">
+        {active && (
+          <Autocomplete
+            items={items}
+            selected={selected}
+            onSelect={applySuggestion}
+            onHover={setSelected}
+            kind={active.kind}
+          />
         )}
-      >
-        {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-        <span className="truncate">{preview}</span>
-      </button>
-      {open && (
-        <pre className="max-h-40 overflow-auto border-t border-border px-3 py-2 font-mono text-[10px] text-kai-muted">
-          {content}
-        </pre>
-      )}
+
+        <div
+          className={cn(
+            "flex items-end gap-2 rounded-lg border border-border bg-card px-2.5 py-2",
+            "transition-colors focus-within:border-kai-orange/50"
+          )}
+        >
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => {
+              onChange(e.target.value)
+              setCaret(e.target.selectionStart ?? 0)
+            }}
+            onKeyDown={handleKeyDown}
+            onKeyUp={syncCaret}
+            onClick={syncCaret}
+            onSelect={syncCaret}
+            rows={rows}
+            placeholder="Ask anything…  /  for commands,  @  for files"
+            className={cn(
+              "flex-1 resize-none bg-transparent py-1 font-mono text-[13px] leading-relaxed",
+              "text-kai-text placeholder:text-kai-dim focus:outline-none"
+            )}
+          />
+          {isStreaming ? (
+            <Button variant="danger" size="sm" onClick={onCancel} title="Cancel (Esc)">
+              <Square size={12} />
+              Stop
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onSend}
+              disabled={!value.trim()}
+              title="Send (Enter)"
+            >
+              <Send size={12} />
+              Send
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <Toggle
+            checked={autoApprove}
+            onChange={setAutoApprove}
+            icon={Zap}
+            label="auto-approve"
+            title="Skip the approval dialog for this turn"
+          />
+          <Toggle
+            checked={allowRun}
+            onChange={setAllowRun}
+            icon={Terminal}
+            label="allow shell"
+            title="Offer the run_command tool to the model"
+            danger
+          />
+          <p className="ml-auto font-mono text-[10px] text-kai-dim">
+            <Kbd>/</Kbd> commands · <Kbd>@</Kbd> files · <Kbd>Alt</Kbd>+<Kbd>Enter</Kbd>{" "}
+            newline
+          </p>
+        </div>
+      </div>
     </div>
+  )
+})
+
+function Toggle({
+  checked,
+  onChange,
+  icon: Icon,
+  label,
+  title,
+  danger,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  icon: typeof Zap
+  label: string
+  title: string
+  danger?: boolean
+}) {
+  return (
+    <button
+      onClick={() => onChange(!checked)}
+      title={title}
+      className={cn(
+        "flex items-center gap-1.5 rounded border px-2 py-0.5 font-mono text-[10px]",
+        "transition-colors outline-none focus-visible:ring-2 focus-visible:ring-kai-orange/50",
+        checked
+          ? danger
+            ? "border-kai-rose/40 bg-kai-rose/10 text-kai-rose"
+            : "border-kai-amber/40 bg-kai-amber/10 text-kai-amber"
+          : "border-border text-kai-dim hover:text-kai-muted"
+      )}
+    >
+      <Icon size={10} />
+      {label}
+    </button>
   )
 }

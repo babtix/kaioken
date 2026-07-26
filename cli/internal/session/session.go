@@ -28,7 +28,23 @@ type Session struct {
 	Provider string        `json:"provider"`
 	Created  time.Time     `json:"created"`
 	Updated  time.Time     `json:"updated"`
+	Mode     string        `json:"mode,omitempty"`
+	Epochs   []Epoch       `json:"epochs,omitempty"`
 	Messages []llm.Message `json:"messages"`
+}
+
+// Epoch marks a point where the conversation's context changed shape. Kind is
+// "mode_switch" or "compaction".
+type Epoch struct {
+	Kind string    `json:"kind"`
+	Mode string    `json:"mode,omitempty"`
+	Note string    `json:"note,omitempty"`
+	At   time.Time `json:"at"`
+}
+
+// AddEpoch appends an epoch marker stamped with the current time.
+func (s *Session) AddEpoch(kind, mode, note string) {
+	s.Epochs = append(s.Epochs, Epoch{Kind: kind, Mode: mode, Note: note, At: time.Now()})
 }
 
 // Meta is a session summary for listings — everything but the transcript.
@@ -85,11 +101,19 @@ func (s *Session) Turns() int {
 // that is only its system prompt is not worth a file.
 func (s *Session) Empty() bool { return s.Turns() == 0 }
 
-// Save writes the session, creating the sessions directory as needed.
+// Save writes the session, creating the sessions directory as needed. A
+// session with no user turns yet is skipped — there's nothing worth keeping.
 func (s *Session) Save(repo string) error {
 	if s.Empty() {
 		return nil
 	}
+	return s.SaveForce(repo)
+}
+
+// SaveForce writes the session unconditionally, even if it has no messages
+// yet. Used when creating a session, so its id can be looked up right away
+// instead of only appearing on disk after the first completed turn.
+func (s *Session) SaveForce(repo string) error {
 	if err := os.MkdirAll(Dir(repo), 0o755); err != nil {
 		return err
 	}

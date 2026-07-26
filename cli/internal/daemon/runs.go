@@ -145,13 +145,18 @@ func (rs *Runs) Start(ws *Workspace, kind string, params map[string]any,
 		}()
 
 		err := fn(ctx, r)
+		// Capture cancellation BEFORE cancel(): calling cancel() always makes
+		// ctx.Err() non-nil, so it must be read first to tell a user-initiated
+		// stop apart from a plain failure. Some engines (wiki.Run) swallow the
+		// cancellation and return nil, so the cancelled state must win here.
+		wasCancelled := ctx.Err() != nil
 		cancel()
 
 		switch {
+		case wasCancelled:
+			r.finish(RunCancelled, "", nil)
 		case err == nil:
 			r.finish(RunDone, "", r.finishSummary)
-		case ctx.Err() != nil:
-			r.finish(RunCancelled, "", nil)
 		default:
 			r.finish(RunFailed, err.Error(), nil)
 		}
@@ -247,7 +252,8 @@ func (rs *Runs) Get(id string) (*RunRecord, bool) {
 func (rs *Runs) List(workspaceID string, activeOnly bool, limit int) []*RunRecord {
 	rs.mu.RLock()
 	defer rs.mu.RUnlock()
-	var out []*RunRecord
+	// Non-nil so JSON encodes [] rather than null (the front-end maps over it).
+	out := make([]*RunRecord, 0)
 	for _, r := range rs.byID {
 		if r.WorkspaceID != workspaceID {
 			continue

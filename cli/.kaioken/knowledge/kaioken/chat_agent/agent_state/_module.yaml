@@ -1,0 +1,9 @@
+description: Session and state management for the agent.
+file_count: 3
+generated_at: "2026-07-26T04:10:38Z"
+id: kaioken/chat_agent/agent_state
+model: nvidia/nemotron-3-super-120b-a12b
+scope:
+    - internal/session
+    - internal/state
+title: Agent State

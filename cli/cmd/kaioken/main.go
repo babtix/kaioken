@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"kaioken/internal/agentsmd"
 	"kaioken/internal/config"
 	"kaioken/internal/daemon"
 	"kaioken/internal/generate"
@@ -22,6 +23,7 @@ import (
 	"kaioken/internal/plan"
 	"kaioken/internal/scan"
 	"kaioken/internal/serve"
+	"kaioken/internal/setup"
 	"kaioken/internal/skills"
 	"kaioken/internal/state"
 	"kaioken/internal/tui"
@@ -35,7 +37,9 @@ Usage: kaioken <command> [flags]
 
 Commands:
   tui        Launch the interactive terminal UI (also the default with no args)
-  init       Create .kaioken/config.yaml in the target repo
+  init       Full first-run setup: create .kaioken/config.yaml, scan the repo, and
+             write AGENTS.md — the instruction file agents read before editing
+             (-force rewrites an existing AGENTS.md)
   scan       Scan the repo and print an inventory summary
   plan       Propose a module tree with the LLM → .kaioken/modules.yaml (editable)
   generate   Generate knowledge cards for all modules (skips unchanged ones)
@@ -86,7 +90,7 @@ func main() {
 	case "tui":
 		err = tui.Run(args.repo)
 	case "init":
-		err = cmdInit(args)
+		err = cmdInit(ctx, args)
 	case "scan":
 		err = cmdScan(args)
 	case "plan":
@@ -185,19 +189,46 @@ func parseFlags(argv []string) flags {
 	return f
 }
 
-func cmdInit(f flags) error {
-	if _, err := os.Stat(config.Path(f.repo)); err == nil {
-		return fmt.Errorf("%s already exists — edit it directly", config.Path(f.repo))
-	}
-	cfg := config.Default()
-	if f.model != "" {
-		cfg.Model = f.model
-	}
-	if err := cfg.Save(f.repo); err != nil {
+// cmdInit runs the full first-run setup: config, scan, and AGENTS.md. It is
+// deliberately re-runnable — pointing it at an already-initialised repo
+// refreshes what is safe to refresh instead of erroring out.
+func cmdInit(ctx context.Context, f flags) error {
+	cfg, created, err := setup.EnsureConfig(f.repo, f.model)
+	if err != nil {
 		return err
 	}
-	fmt.Printf("created %s\n", config.Path(f.repo))
-	fmt.Println("next: set OPENROUTER_API_KEY, review the config, then run `kaioken plan`")
+	if created {
+		fmt.Printf("  ✓ created %s\n", config.Path(f.repo))
+	} else {
+		fmt.Printf("  · %s already exists — kept as is\n", config.Path(f.repo))
+	}
+
+	// A missing key is not a failure here: config and scan are still worth
+	// doing, and the user gets told exactly what to do about the rest.
+	client, err := newClient(cfg, f)
+	if err != nil {
+		fmt.Printf("  · %v\n", err)
+		client = nil
+	}
+
+	pg := agentsmd.Progress{
+		Info:    func(t string) { fmt.Println("  " + t) },
+		Started: func(w string) { fmt.Println("  → " + w) },
+		Wrote:   func(p string, lines int) { fmt.Printf("  ✓ %s (%d lines)\n", p, lines) },
+		Failed:  func(w string, err error) { fmt.Printf("  ✗ %s: %v\n", w, err) },
+	}
+	res, err := setup.Run(ctx, f.repo, cfg, client, setup.Options{Force: f.force}, pg)
+	if err != nil {
+		return err
+	}
+	if res.AgentsSkipped != "" {
+		fmt.Println("  · " + res.AgentsSkipped)
+	}
+
+	fmt.Println("\nnext:")
+	for _, s := range setup.NextSteps(f.repo) {
+		fmt.Println("  " + s)
+	}
 	return nil
 }
 

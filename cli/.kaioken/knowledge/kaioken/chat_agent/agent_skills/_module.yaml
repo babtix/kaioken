@@ -1,0 +1,9 @@
+description: Skill system for the agent to perform tasks.
+file_count: 4
+generated_at: "2026-07-26T04:09:48Z"
+id: kaioken/chat_agent/agent_skills
+model: nvidia/nemotron-3-super-120b-a12b
+scope:
+    - internal/skills
+    - internal/generate
+title: Agent Skills

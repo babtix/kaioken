@@ -24,11 +24,11 @@ The process involves:
 
 ## Data Structures
 
-The planning logic centers around three core data structures defined in `internal/plan/plan.go`.
+The planning logic centers around three core data structures defined in `cli/internal/plan/plan.go`.
 
 ### Module
 
-`internal/plan/plan.go:22-28`
+`cli/internal/plan/plan.go:22-28`
 
 ```go
 // Module is one knowledge unit: a cohesive part of the codebase that gets its
@@ -51,7 +51,7 @@ A `Module` represents a node in the module tree. Key fields:
 
 ### Plan
 
-`internal/plan/plan.go:31-34`
+`cli/internal/plan/plan.go:31-34`
 
 ```go
 // Plan is the persisted module tree.
@@ -67,7 +67,7 @@ The `Plan` struct represents the entire module hierarchy. It contains:
 
 ### FlatModule
 
-`internal/plan/plan.go:92-95`
+`cli/internal/plan/plan.go:92-95`
 
 ```go
 // FlatModule pairs a module with its full hierarchical id.
@@ -87,7 +87,7 @@ This flattening preserves hierarchy while simplifying iteration over all modules
 
 The `Generate` function orchestrates module proposal using an LLM. It does not perform scanning itself—it consumes an existing scan result.
 
-`internal/plan/plan.go:123-151`
+`cli/internal/plan/plan.go:123-151`
 
 ```go
 // Generate scans nothing itself — it takes an existing scan result, asks the
@@ -147,7 +147,7 @@ The LLM is instructed via `plannerSystem` to:
 
 The `Validate` function checks that all scoped entries in the plan correspond to actual scanned files. It returns warnings but never fails hard, as the plan is intended to be user-editable.
 
-`internal/plan/plan.go:155-182`
+`cli/internal/plan/plan.go:155-182`
 
 ```go
 // Validate checks that scope entries actually match scanned files and returns
@@ -198,7 +198,7 @@ This validation helps catch typos in scope entries or modules that reference fil
 
 The `FilesFor` function resolves a module's scope entries to the actual list of files that belong to it, used during knowledge card generation.
 
-`internal/plan/plan.go:186-201`
+`cli/internal/plan/plan.go:186-201`
 
 ```go
 // FilesFor resolves a module's scope entries against the scan result,
@@ -240,7 +240,7 @@ The planning system includes functions to load, save, and locate the modules.yam
 
 ### File Location
 
-`internal/plan/plan.go:37-39`
+`cli/internal/plan/plan.go:37-39`
 
 ```go
 // FilePath returns the modules.yaml path for a repo.
@@ -253,7 +253,7 @@ Returns the path to modules.yaml within the repository's configuration directory
 
 ### Loading
 
-`internal/plan/plan.go:42-55`
+`cli/internal/plan/plan.go:42-55`
 
 ```go
 // Load reads an existing plan.
@@ -277,7 +277,7 @@ Loads and parses the existing modules.yaml file. Returns a specific error if the
 
 ### Saving
 
-`internal/plan/plan.go:58-70`
+`cli/internal/plan/plan.go:58-70`
 
 ```go
 // Save writes the plan with an explanatory header.
@@ -342,6 +342,6 @@ Key integration points:
 The plan is designed to be a stable checkpoint—users can adjust module boundaries, rename modules, or reorganize the hierarchy before proceeding to knowledge card generation, ensuring the final documentation aligns with architectural understanding.
 
 ## Referenced Files
-- internal/plan/plan.go
+- cli/internal/plan/plan.go
 
 <!-- kaioken:files internal/plan/plan.go -->

@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"kaioken/internal/config"
@@ -238,6 +242,95 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 		"scanned_at": ws.scanAt.Format(time.RFC3339),
 		"cached":     cached,
 	})
+}
+
+// GET /v1/workspaces/{id}/files?q=&limit=
+//
+// Path completion for the composer's "@" mentions. It serves the cached
+// scan's file list rather than walking the repo, so it costs nothing on a
+// keystroke, and it respects the workspace's configured scope for free —
+// a file the scanner excludes is one the agent cannot read anyway.
+func (s *Server) handleFiles(w http.ResponseWriter, r *http.Request) {
+	ws := s.workspaceFromRequest(w, r)
+	if ws == nil {
+		return
+	}
+	res, err := ws.ScanCached(false)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
+		return
+	}
+
+	q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	limit := 20
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 200 {
+			limit = n
+		}
+	}
+
+	type scored struct {
+		path  string
+		lines int
+		rank  int
+	}
+	matches := make([]scored, 0, limit)
+	for _, f := range res.Files {
+		rank, ok := rankPath(strings.ToLower(f.Path), q)
+		if !ok {
+			continue
+		}
+		matches = append(matches, scored{path: f.Path, lines: f.Lines, rank: rank})
+	}
+
+	// Best rank first; ties broken by the shorter path, which is almost
+	// always the one the user meant.
+	sort.Slice(matches, func(i, j int) bool {
+		if matches[i].rank != matches[j].rank {
+			return matches[i].rank > matches[j].rank
+		}
+		if len(matches[i].path) != len(matches[j].path) {
+			return len(matches[i].path) < len(matches[j].path)
+		}
+		return matches[i].path < matches[j].path
+	})
+	if len(matches) > limit {
+		matches = matches[:limit]
+	}
+
+	type fileJSON struct {
+		Path  string `json:"path"`
+		Name  string `json:"name"`
+		Lines int    `json:"lines"`
+	}
+	out := make([]fileJSON, 0, len(matches))
+	for _, m := range matches {
+		out = append(out, fileJSON{Path: m.path, Name: path.Base(m.path), Lines: m.lines})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"query": q, "files": out})
+}
+
+// rankPath scores a repo-relative path against a lowercased query. Higher is
+// better; ok is false when it does not match at all. An empty query matches
+// everything so the menu has something to show before the first keystroke.
+func rankPath(lowerPath, q string) (int, bool) {
+	if q == "" {
+		return 0, true
+	}
+	base := path.Base(lowerPath)
+	switch {
+	case base == q:
+		return 5, true
+	case strings.HasPrefix(base, q):
+		return 4, true
+	case strings.HasPrefix(lowerPath, q):
+		return 3, true
+	case strings.Contains(base, q):
+		return 2, true
+	case strings.Contains(lowerPath, q):
+		return 1, true
+	}
+	return 0, false
 }
 
 // GET /v1/workspaces/{id}/status

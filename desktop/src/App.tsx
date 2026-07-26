@@ -17,6 +17,13 @@ import Settings from "@/routes/Settings"
 
 export default function App() {
   const handleEvent = useWorkspaceStore((s) => s.handleEvent)
+  const restoreActive = useWorkspaceStore((s) => s.restoreActive)
+
+  // Re-adopt whichever workspace the daemon still has open, so a reload (or
+  // a WebView crash) does not dump you back on the picker.
+  useEffect(() => {
+    restoreActive()
+  }, [restoreActive])
 
   // Single SSE connection for the whole app, dispatching into stores by
   // event type. One subscription, not one per component.

@@ -13,9 +13,9 @@ Describes the slash-command interface activated by typing `/` in the TUI, includ
 
 ## Palette Structure
 
-The command palette state is managed by the `palette` struct in `internal/tui/palette.go`. It tracks whether the menu is active, the filtered list of available commands, the currently selected item, and viewport offset for scrolling.
+The command palette state is managed by the `palette` struct in `cli/internal/tui/palette.go`. It tracks whether the menu is active, the filtered list of available commands, the currently selected item, and viewport offset for scrolling.
 
-`internal/tui/palette.go:32-40`
+`cli/internal/tui/palette.go:32-40`
 ```go
 type palette struct {
 	active   bool
@@ -36,7 +36,7 @@ type palette struct {
 
 The palette only appears while typing a command name (input starts with `/` and contains no whitespace). Once a space is entered, the palette dismisses and the user types arguments are free-form argument entry begins.
 
-`internal/tui/palette.go:15`
+`cli/internal/tui/palette.go:15`
 ```go
 const maxPaletteRows = 8
 ```
@@ -49,7 +49,7 @@ The palette provides methods for state management, navigation, and selection.
 
 ### Internal State Management
 
-`internal/tui/palette.go:43-70`
+`cli/internal/tui/palette.go:43-70`
 ```go
 func (m *Model) refreshPalette() {
 	p := &m.pal
@@ -88,7 +88,7 @@ Called on every composer change to update the palette:
 - Filters available commands using `filterCommands` (not shown in source) on the text after `/`.
 - Resets selection if out of bounds and adjusts viewport offset.
 
-`internal/tui/palette.go:103-107`
+`cli/internal/tui/palette.go:103-107`
 ```go
 func (m *Model) dismissPalette() {
 	m.pal.active = false
@@ -101,7 +101,7 @@ Deactivates the palette and stores current input to prevent immediate reactivati
 
 ### Navigation
 
-`internal/tui/palette.go:86-92`
+`cli/internal/tui/palette.go:86-92`
 ```go
 func (p *palette) move(delta int) {
 	if len(p.items) == 0 {
@@ -114,7 +114,7 @@ func (p *palette) move(delta int) {
 
 Changes selection by `delta` (negative for up, positive for down) with wrapping at boundaries, then clamps the viewport.
 
-`internal/tui/palette.go:73-83`
+`cli/internal/tui/palette.go:73-83`
 ```go
 func (p *palette) clampWindow() {
 	if p.selected < p.offset {
@@ -132,7 +132,7 @@ Ensures the selected row is within the visible window by adjusting `offset`.
 
 ### Selection Query
 
-`internal/tui/palette.go:95-100`
+`cli/internal/tui/palette.go:95-100`
 ```go
 func (p *palette) current() (command, bool) {
 	if !p.active || p.selected >= len(p.items) {
@@ -145,7 +145,7 @@ Returns the currently highlighted command and a boolean indicating validity.
 
 ### Command Completion
 
-`internal/tui/palette.go:111-124`
+`cli/internal/tui/palette.go:111-124`
 ```go
 func (m *Model) completeSelected() {
 	c, ok := m.pal.current()
@@ -170,7 +170,7 @@ Inserts the selected command into the composer:
 
 ### View Metrics
 
-`internal/tui/palette.go:127-136`
+`cli/internal/tui/palette.go:127-136`
 ```go
 func (m Model) paletteHeight() int {
 	if !m.pal.active {
@@ -187,9 +187,9 @@ Returns the vertical space required by the palette (visible rows + 1 line for na
 
 ## TUI Integration
 
-The TUI Model (`internal/tui/tui.go`) embeds the palette and manages its lifecycle through input handling and rendering.
+The TUI Model (`cli/internal/tui/tui.go`) embeds the palette and manages its lifecycle through input handling and rendering.
 
-`internal/tui/tui.go:127-181`
+`cli/internal/tui/tui.go:127-185`
 ```go
 type Model struct {
 	// ... other fields ...
@@ -200,7 +200,7 @@ type Model struct {
 
 The palette is updated and rendered during the TUI's update and view cycles.
 
-`internal/tui/tui.go:284-426`
+`cli/internal/tui/tui.go:288-428`
 ```go
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// ... other cases ...
@@ -220,7 +220,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 - Key presses are handled by `onKey`.
 - For all other input (text input), the composer is updated, then `refreshPalette` is called to update command suggestions, followed by `syncLayout` to adjust viewport sizing.
 
-`internal/tui/tui.go:590-601`
+`cli/internal/tui/tui.go:592-608`
 ```go
 func (m Model) View() string {
 	if !m.ready {
@@ -241,7 +241,7 @@ The viewport (chat history) is rendered first, followed by the palette view (if 
 
 When the palette is active, specific keys control navigation and execution instead of affecting the composer.
 
-`internal/tui/tui.go:428-567`
+`cli/internal/tui/tui.go:430-569`
 ```go
 func (m Model) onKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
@@ -285,7 +285,7 @@ func (m Model) onKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 - **Esc**: Dismiss the palette without completing.
 
 Outside the palette, Enter triggers command dispatch if the input starts with `/`:
-`internal/tui/tui.go:841-871`
+`cli/internal/tui/tui.go:848-878`
 ```go
 func (m Model) onEnter() (tea.Model, tea.Cmd) {
 	// ... pendingKey handling ...
@@ -311,7 +311,7 @@ The palette's visual appearance is defined by lipgloss styles and custom renderi
 
 ### Styles
 
-`internal/tui/palette.go:18-28`
+`cli/internal/tui/palette.go:18-28`
 ```go
 var (
 	paletteNameStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("117"))
@@ -337,7 +337,7 @@ var (
 
 ### Rendering
 
-`internal/tui/palette.go:139-192`
+`cli/internal/tui/palette.go:139-192`
 ```go
 func (m Model) paletteView() string {
 	if !m.pal.active {
@@ -402,7 +402,7 @@ func (m Model) paletteView() string {
 - Appends navigation hint showing current/total items if scrolling is needed, followed by key bindings.
 - Uses `clip` to truncate lines to viewport width.
 
-`internal/tui/tui.go:194-204`
+`cli/internal/tui/tui.go:194-204`
 ```go
 func itoaTUI(n int) string {
 	if n == 0 {
@@ -429,14 +429,14 @@ The flow from keystroke to command execution involves multiple TUI methods:
    - Enter (without palette) → if input starts with `/` → dispatches entire input.
 5. **Dismissal**: Esc → `dismissPalette` hides menu and prevents reactivation on unchanged input.
 
-`internal/tui/tui.go:841-871` (onEnter) and `internal/tui/tui.go:428-567` (onKey) handle the final dispatch:
+`cli/internal/tui/tui.go:848-878` (onEnter) and `cli/internal/tui/tui.go:430-569` (onKey) handle the final dispatch:
 ```go
 return m.dispatch(val)
 ```
 The `dispatch` method (not detailed here, but referenced in the TUI architecture) parses the command and arguments, then invokes the corresponding functionality (e.g., `/wiki`, `/scan`).
 
 ## Referenced Files
-- internal/tui/palette.go
-- internal/tui/tui.go
+- cli/internal/tui/palette.go
+- cli/internal/tui/tui.go
 
 <!-- kaioken:files internal/tui/palette.go,internal/tui/tui.go -->

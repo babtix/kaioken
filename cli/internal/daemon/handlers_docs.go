@@ -478,6 +478,8 @@ func (s *Server) handleGetSkills(w http.ResponseWriter, r *http.Request) {
 		GeneratedAt string   `json:"generated_at"`
 		Path        string   `json:"path"`
 		Stale       bool     `json:"stale"`
+		Origin      string   `json:"origin"`
+		UseCount    int      `json:"use_count"`
 	}
 	out := make([]skillJSON, 0, len(all))
 	for _, sk := range all {
@@ -493,6 +495,7 @@ func (s *Server) handleGetSkills(w http.ResponseWriter, r *http.Request) {
 		out = append(out, skillJSON{
 			Name: sk.Name, Description: sk.Description, Sources: sk.Sources,
 			GeneratedAt: sk.GeneratedAt.Format(time.RFC3339), Path: config.Dir + "/skills/" + sk.Name + "/SKILL.md", Stale: stale,
+			Origin: sk.Origin, UseCount: sk.UseCount,
 		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"skills": out})
@@ -548,6 +551,7 @@ func (s *Server) handlePutSkill(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"name": sk.Name, "description": sk.Description, "sources": sk.Sources,
 		"markdown": sk.Body, "path": config.Dir + "/skills/" + name + "/SKILL.md",
+		"origin": sk.Origin, "use_count": sk.UseCount,
 	})
 }
 

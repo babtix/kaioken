@@ -34,7 +34,7 @@ The `planOutline` function constructs a comprehensive prompt for the LLM by comb
 5. **Maintainer notes** - steering directives from config via `run.notesBlock`
 
 ```
-`internal/wiki/wiki.go:471-497`
+`cli/internal/wiki/wiki.go:471-497`
 ```
 
 ```go
@@ -44,7 +44,6 @@ func (r *run) planOutline(ctx context.Context) (*Outline, error) {
 	user.WriteString(r.res.TreeSummary(12))
 	user.WriteString("\n\nKey manifest/config file contents:\n\n")
 	user.WriteString(r.res.ManifestContents(4000))
-	if r.idx.ManifestContents(4000))
 	if r.idx != nil {
 		user.WriteString("\n\nCode structure — the public surface of the richest files:\n\n")
 		user.WriteString(r.idx.RepoSkeleton(planSkeletonTokens))
@@ -73,7 +72,7 @@ func (r *run) planOutline(ctx context.Context) (*Outline, error) {
 The LLM receives a fixed system prompt (`outlineSystem`) that defines its role and output requirements:
 
 ```
-`internal/wiki/wiki.go:102-117`
+`cli/internal/wiki/wiki.go:102-117`
 ```
 
 ```go
@@ -100,7 +99,7 @@ Return ONLY JSON: {"sections":[{"id":"...","title":"...","goal":"...","files":["
 The LLM's JSON response is mapped to the `Outline` and `Section` types:
 
 ```
-`internal/wiki/wiki.go:43-47`
+`cli/internal/wiki/wiki.go:43-47`
 ```
 
 ```go
@@ -113,7 +112,7 @@ type Outline struct {
 ```
 
 ```
-`internal/wiki/wiki.go:35-40`
+`cli/internal/wiki/wiki.go:35-40`
 ```
 
 ```go
@@ -129,7 +128,7 @@ type Section struct {
 The outline is saved to disk via `saveOutline` and reloaded on subsequent runs unless `force` is true:
 
 ```
-`internal/wiki/wiki.go:680-692`
+`cli/internal/wiki/wiki.go:680-692`
 ```
 
 ```go
@@ -164,7 +163,7 @@ The `planSection` function builds a prompt containing:
    - Simple file listing (fallback)
 
 ```
-`internal/wiki/wiki.go:499-533`
+`cli/internal/wiki/wiki.go:499-533`
 ```
 
 ```go
@@ -210,7 +209,7 @@ func (r *run) planSection(ctx context.Context, sec Section) (*SubPlan, error) {
 The LLM receives a dynamic system prompt (`subplanSystem`) where `%d` placeholders are replaced with subsection count bounds based on the multiplier:
 
 ```
-`internal/wiki/wiki.go:119-129`
+`cli/internal/wiki/wiki.go:119-129`
 ```
 
 ```go
@@ -232,7 +231,7 @@ subsection's files must come from the section's file list. Order subsections log
 The response maps to `SubPlan` and `Subsection` types:
 
 ```
-`internal/wiki/wiki.go:50-54`
+`cli/internal/wiki/wiki.go:50-54`
 ```
 
 ```go
@@ -245,7 +244,7 @@ type SubPlan struct {
 ```
 
 ```
-`internal/wiki/wiki.go:57-61`
+`cli/internal/wiki/wiki.go:57-61`
 ```
 
 ```go
@@ -268,7 +267,7 @@ The `multiplier` parameter (from `kaioken wiki ×N` or default ×2) controls pla
 - **×3+**: More subsections and longer documents (via `maxSubs = 4*r.multiplier` capped at 12)
 
 This affects:
-- Subsection count bounds in `planSection` (`minSubs=2`, `maxSubs=4*multiplier`)
+- Subsection count bounds in `planSection` (`minSubs=2`, `maxSubs=4*r.multiplier`)
 - Depth directives in document generation (see `depthDirective` function)
 
 ## Persistence and User Editing
@@ -283,7 +282,7 @@ The global outline is persisted as `<repo>/.kaioken/wiki_plan.yaml` and designed
 The `saveOutline` function adds a header encouraging edits:
 
 ```
-`internal/wiki/wiki.go:680-692` (as shown above)
+`cli/internal/wiki/wiki.go:680-692` (as shown above)
 ```
 
 ## Data Flow Diagram
@@ -312,7 +311,7 @@ flowchart TD
 
 ## Referenced Files
 
-- `internal/wiki/wiki.go` - Contains all planning logic:
+- `cli/internal/wiki/wiki.go` - Contains all planning logic:
   - `Outline` and `Section` types (lines 43-47, 35-40)
   - `SubPlan` and `Subsection` types (lines 50-54, 57-61)
   - `planOutline` function (lines 471-497)

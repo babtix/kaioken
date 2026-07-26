@@ -64,6 +64,12 @@ Explain how configuration is managed (global, per-repo, and CLI flags), includin
 ## [LLM Provider Integration](LLM Provider Integration/LLM Provider Integration.md)
 Detail how kaioken connects to various LLM providers (OpenRouter, OpenAI, etc.), manages tool use, streams responses, handles token budgets, and implements retry logic.
 
+- [Client Configuration and Provider Support](LLM Provider Integration/Client Configuration and Provider Support.md)
+- [Error Handling and Retry Logic](LLM Provider Integration/Error Handling and Retry Logic.md)
+- [Streaming Responses](LLM Provider Integration/Streaming Responses.md)
+- [Token Budget Management](LLM Provider Integration/Token Budget Management.md)
+- [Tool Use and Function Calling](LLM Provider Integration/Tool Use and Function Calling.md)
+
 ## [Code Mapping and Indexing](Code Mapping and Indexing/Code Mapping and Indexing.md)
 Explain how the system parses source code to build symbol indexes, code skeletons, and file maps for use in the knowledge engine and agent's context awareness.
 

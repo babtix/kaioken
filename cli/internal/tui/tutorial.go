@@ -41,14 +41,14 @@ var chapters = []chapter{
 			"Replies stream as they arrive and render as markdown. The composer is\n" +
 			"multi-line: alt+enter (or ctrl+j) adds a newline, so pasting a stack\n" +
 			"trace works.",
-		commands: []string{"yolo", "undo", "diff", "stop"},
+		commands: []string{"yolo", "mode", "undo", "diff", "stop"},
 	},
 	{
 		name: "sessions", title: "Sessions and context",
 		intro: "Conversations are saved per repo after every reply, so nothing is lost\n" +
 			"when you quit. When a session gets long, compact it rather than losing\n" +
 			"the thread.",
-		commands: []string{"sessions", "resume", "new", "compact", "copy", "cost", "clear"},
+		commands: []string{"sessions", "resume", "new", "compact", "learn", "copy", "cost", "clear"},
 	},
 	{
 		name: "model", title: "Models, providers and steering",

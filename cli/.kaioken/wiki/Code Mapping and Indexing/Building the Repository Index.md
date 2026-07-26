@@ -11,13 +11,13 @@
 
 ## Overview
 
-The repository index (`internal/codemap/index.go`) builds a searchable symbol map from scan results, enabling fast lookups for the knowledge engine and agent context awareness. It processes scanned files in parallel, extracts symbols, and provides methods to check file/symbol existence, count symbols, and generate structural skeletons for LLM context.
+The repository index (`cli/internal/codemap/index.go`) builds a searchable symbol map from scan results, enabling fast lookups for the knowledge engine and agent context awareness. It processes scanned files in parallel, extracts symbols, and provides methods to check file/symbol existence, count symbols, and generate structural skeletons for LLM context.
 
 ## Index Structure
 
 The `Index` struct represents the repository-wide codemap:
 
-`internal/codemap/index.go:20-26`
+`cli/internal/codemap/index.go:20-26`
 ```go
 // Index is the codemap for a whole repository.
 type Index struct {
@@ -37,7 +37,7 @@ type Index struct {
 
 The `Build` function constructs the index from scan results in parallel:
 
-`internal/codemap/index.go:29-71`
+`cli/internal/codemap/index.go:29-71`
 ```go
 // Build parses every scanned file into a skeleton, in parallel.
 func Build(res *scan.Result) *Index {
@@ -106,7 +106,7 @@ func Build(res *scan.Result) *Index {
 Three methods provide fast symbol and file existence checks:
 
 ### HasFile
-`internal/codemap/index.go:74-77`
+`cli/internal/codemap/index.go:74-77`
 ```go
 // HasFile reports whether a repo-relative path was scanned.
 func (i *Index) HasFile(path string) bool {
@@ -119,7 +119,7 @@ func (i *Index) HasFile(path string) bool {
 - Used by agent to verify file accessibility before operations
 
 ### HasSymbol
-`internal/codemap/index.go:80-83`
+`cli/internal/codemap/index.go:80-83`
 ```go
 // HasSymbol reports whether any file declares a symbol by this name, and where.
 func (i *Index) HasSymbol(name string) ([]string, bool) {
@@ -132,7 +132,7 @@ func (i *Index) HasSymbol(name string) ([]string, bool) {
 - Returns empty slice and false if symbol not found
 
 ### SymbolCount
-`internal/codemap/index.go:86-92`
+`cli/internal/codemap/index.go:86-92`
 ```go
 // SymbolCount is the total number of indexed declarations.
 func (i *Index) SymbolCount() int {
@@ -151,7 +151,7 @@ func (i *Index) SymbolCount() int {
 Two methods generate structural overviews for LLM context:
 
 ### Skeleton
-`internal/codemap/index.go:95-106`
+`cli/internal/codemap/index.go:95-106`
 ```go
 // Skeleton renders the structure of the given files, in the order supplied.
 func (i *Index) Skeleton(paths []string) string {
@@ -172,7 +172,7 @@ func (i *Index) Skeleton(paths []string) string {
 - Used for targeted context (e.g., specific files mentioned in prompt)
 
 ### RepoSkeleton
-`internal/codemap/index.go:111-161`
+`cli/internal/codemap/index.go:111-161`
 ```go
 // RepoSkeleton renders a whole-repo structural overview within a rough token
 // budget, richest files first. It is what the planner sees instead of only a
@@ -245,7 +245,7 @@ func (i *Index) RepoSkeleton(maxTokens int) string {
 
 Two constants govern parsing limits and token estimation:
 
-`internal/codemap/index.go:17`
+`cli/internal/codemap/index.go:17`
 ```go
 // maxParseBytes skips files too large to be worth skeletonising (minified
 // bundles, generated blobs).
@@ -253,7 +253,7 @@ const maxParseBytes = 2 << 20
 ```
 - 2 MiB threshold: skips minified/binary files during parsing (still records metadata)
 
-`internal/codemap/index.go:163`
+`cli/internal/codemap/index.go:163`
 ```go
 const charsPerToken = 4
 ```
@@ -277,8 +277,8 @@ flowchart TD
 ```
 
 ## Referenced Files
-- internal/codemap/index.go
+- cli/internal/codemap/index.go
 
-This chapter exclusively covers the repository index implementation in `internal/codemap/index.go`, detailing how scan results are transformed into a searchable symbol map that powers context-aware operations throughout the Kaioken system. All exported declarations are documented, with behavior derived directly from the provided source code.
+This chapter exclusively covers the repository index implementation in `cli/internal/codemap/index.go`, detailing how scan results are transformed into a searchable symbol map that powers context-aware operations throughout the Kaioken system. All exported declarations are documented, with behavior derived directly from the provided source code.
 
 <!-- kaioken:files internal/codemap/index.go -->

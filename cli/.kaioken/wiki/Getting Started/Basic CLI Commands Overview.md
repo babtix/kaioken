@@ -1,6 +1,6 @@
 # Basic CLI Commands Overview
 
-This chapter provides a quick reference to the essential kaioken commands for getting started with the knowledge engine workflow: scanning a repository, planning modules, generating knowledge cards, building the wiki, and performing incremental updates.
+This chapter provides a quick reference to the essential kaioken commands for getting started with the knowledge engine workflow: scanning a repository, planning modules, generating knowledge cards, building the wiki, and performing incremental updates. The TUI is the default interface when no command is provided and can also be launched explicitly with `kaioken tui`.
 
 ## Table of Contents
 - [Scan](#scan)
@@ -14,7 +14,7 @@ This chapter provides a quick reference to the essential kaioken commands for ge
 ## Scan
 The `scan` command inventories repository files, respecting exclusion rules from the configuration, and prints a summary statistics and tree view.
 
-`cmd/kaioken/main.go:187-200`
+`cli/cmd/kaioken/main.go:204-217`
 
 ```go
 func cmdScan(f flags) error {
@@ -39,7 +39,7 @@ func cmdScan(f flags) error {
 ## Plan
 The `plan` command uses an LLM to propose a module structure (`modules.yaml`) based on the scanned inventory. The output is editable before proceeding to generation.
 
-`cmd/kaioken/main.go:202-231`
+`cli/cmd/kaioken/main.go:219-248`
 
 ```go
 func cmdPlan(ctx context.Context, f flags) error {
@@ -80,7 +80,7 @@ func cmdPlan(ctx context.Context, f flags) error {
 ## Generate
 The `generate` command creates knowledge cards for each module in `modules.yaml`, skipping unchanged sources unless `-force` is used. It leverages the LLM and code map for context.
 
-`cmd/kaioken/main.go:233-277`
+`cli/cmd/kaioken/main.go:250-294`
 
 ```go
 func cmdGenerate(ctx context.Context, f flags) error {
@@ -136,7 +136,7 @@ func cmdGenerate(ctx context.Context, f flags) error {
 ## Wiki
 The `wiki` command executes the deep multi-pass pipeline: scanning, planning (if needed), generating knowledge cards, and building the wiki outline with critique/correction passes. The positional argument sets a complexity multiplier (default `x3`).
 
-`cmd/kaioken/main.go:365-406`
+`cli/cmd/kaioken/main.go:382-423`
 
 ```go
 // cmdWiki runs the deep multi-pass wiki pipeline from the CLI.
@@ -191,7 +191,7 @@ func cmdWiki(ctx context.Context, f flags) error {
 ## Update
 The `update` command performs an incremental refresh by detecting git changes since the last build and regenerating only affected documentation sections.
 
-`cmd/kaioken/main.go:420-457`
+`cli/cmd/kaioken/main.go:437-474`
 
 ```go
 // cmdUpdate refreshes an already-generated wiki from the repository's git diff:
@@ -244,14 +244,19 @@ The remaining commands support setup, inspection, and auxiliary functions. They 
 
 | Command | Line Range | Purpose |
 |---------|------------|---------|
-| init    | cmd/kaioken/main.go:171-185 | Create `.kaioken/config.yaml` in the target repo |
-| status  | cmd/kaioken/main.go:279-317 | Show module freshness (changed / up-to-date / missing) |
-| models  | cmd/kaioken/main.go:319-337 | List provider models (optional filter argument) |
-| skills  | cmd/kaioken/main.go:460-507 | Build task-oriented skills an AI agent loads while working in the repo |
-| hook    | cmd/kaioken/main.go:511-543 | Manage the post-commit auto-update hook (install|remove|status) |
-| serve   | cmd/kaioken/main.go:546-556 | Browse the generated wiki in a browser (-port, default 7777) |
+| init    | cli/cmd/kaioken/main.go:188-202 | Create `.kaioken/config.yaml` in the target repo |
+| status  | cli/cmd/kaioken/main.go:296-334 | Show module freshness (changed / up-to-date / missing) |
+| models  | cli/cmd/kaioken/main.go:336-354 | List provider models (optional filter argument) |
+| skills  | cli/cmd/kaioken/main.go:477-524 | Build or list task-oriented skills an AI agent loads while working in the repo |
+| hook    | cli/cmd/kaioken/main.go:528-560 | Manage the post-commit auto-update hook (install|remove|status) |
+| serve   | cli/cmd/kaioken/main.go:563-573 | Browse the generated wiki in a browser (-port, default 7777) |
+| tui     | cli/cmd/kaioken/main.go:69-127 | Launch the interactive terminal UI (also the default with no arguments) |
+| daemon  | cli/cmd/kaioken/main.go:578-599 | Serve the engine over a loopback HTTP API (used by Kaioken Desktop) |
+| logo    | cli/cmd/kaioken/main.go:69-127 | Print the KAIOKEN wordmark |
+| version | cli/cmd/kaioken/main.go:69-127 | Print the version |
+| help    | cli/cmd/kaioken/main.go:69-127 | Print usage information |
 
 ## Referenced Files
-- cmd/kaioken/main.go
+- cli/cmd/kaioken/main.go
 
 <!-- kaioken:files cmd/kaioken/main.go -->

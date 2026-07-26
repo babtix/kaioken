@@ -1,0 +1,1 @@
+The agent_state module manages persistent chat session state and module source tracking. It comprises two packages: session for saving/loading conversation transcripts to disk as JSON files, and state for tracking per-module source hashes to determine regeneration needs during updates.

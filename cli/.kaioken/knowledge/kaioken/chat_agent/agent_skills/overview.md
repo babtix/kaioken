@@ -1,0 +1,1 @@
+The agent skills system generates and manages project-specific, task-oriented guides (skills) for AI coding agents. Each skill encapsulates how to perform a recurring task in the repository, detailing files to modify, steps to follow, and local conventions. Skills are stored as markdown files with YAML frontmatter under .ainow/skills/ for dynamic loading by agent runtimes.

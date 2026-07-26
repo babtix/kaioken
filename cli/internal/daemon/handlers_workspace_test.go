@@ -287,3 +287,82 @@ func decodeJSON(t *testing.T, resp *http.Response, v any) {
 		t.Fatalf("decode JSON: %v", err)
 	}
 }
+
+// TestFilesEndpoint covers the @-mention path completion: ranking, the
+// limit, and that a non-matching query returns an empty (non-null) list.
+func TestFilesEndpoint(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv(config.HomeEnv, home)
+	ts := newTestServer(t, nil)
+	auth := "Bearer " + testToken
+
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, config.Dir), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.Default().Save(repo); err != nil {
+		t.Fatal(err)
+	}
+	for _, rel := range []string{
+		"main.go",
+		"internal/agent/tools.go",
+		"internal/agent/agent.go",
+		"web/index.html",
+	} {
+		full := filepath.Join(repo, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte("package main\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	resp := doPost(t, ts.URL+"/v1/workspaces", auth, pathBody(repo))
+	var ws workspaceJSON
+	decodeJSON(t, resp, &ws)
+
+	type fileRow struct {
+		Path  string `json:"path"`
+		Name  string `json:"name"`
+		Lines int    `json:"lines"`
+	}
+	get := func(query string) []fileRow {
+		t.Helper()
+		r := doGet(t, ts.URL+"/v1/workspaces/"+ws.ID+"/files"+query, auth)
+		if r.StatusCode != http.StatusOK {
+			t.Fatalf("GET /files%s: status %d", query, r.StatusCode)
+		}
+		var body struct {
+			Files []fileRow `json:"files"`
+		}
+		decodeJSON(t, r, &body)
+		return body.Files
+	}
+
+	// An empty query lists everything (capped by limit).
+	if all := get(""); len(all) != 4 {
+		t.Errorf("empty query returned %d files, want 4", len(all))
+	}
+
+	// An exact basename outranks a mere path substring.
+	hits := get("?q=agent.go")
+	if len(hits) == 0 || hits[0].Path != "internal/agent/agent.go" {
+		t.Errorf("q=agent.go ranked %+v first, want internal/agent/agent.go", hits)
+	}
+
+	// A directory-name query still matches the files beneath it.
+	if hits := get("?q=internal"); len(hits) != 2 {
+		t.Errorf("q=internal returned %d files, want 2", len(hits))
+	}
+
+	// limit is honoured.
+	if hits := get("?limit=1"); len(hits) != 1 {
+		t.Errorf("limit=1 returned %d files, want 1", len(hits))
+	}
+
+	// No match must serialise as [] so the front-end can map over it.
+	if hits := get("?q=zzzznope"); len(hits) != 0 {
+		t.Errorf("non-matching query returned %d files, want 0", len(hits))
+	}
+}

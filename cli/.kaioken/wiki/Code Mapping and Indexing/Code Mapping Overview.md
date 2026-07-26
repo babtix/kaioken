@@ -22,7 +22,7 @@ Kaioken's code mapping system parses source code to build lightweight structural
 
 The `Symbol` struct represents a single declaration found in a file. It captures the declaration's identity, location, and accessibility.
 
-`internal/codemap/codemap.go:36-45`
+`cli/internal/codemap/codemap.go:36-45`
 ```go
 type Symbol struct {
 	Name      string
@@ -59,7 +59,7 @@ The `Kind` type categorizes declarations. Constants are defined in `codemap.go`:
 
 `FileMap` represents the structural skeleton of a single source file. It aggregates symbols, imports, and language metadata.
 
-`internal/codemap/codemap.go:56-64`
+`cli/internal/codemap/codemap.go:56-64`
 ```go
 type FileMap struct {
 	Path     string // repo-relative, slash-separated
@@ -90,7 +90,7 @@ type FileMap struct {
 
 `Index` represents the repository-wide code map, enabling cross-file symbol verification and structural over file symbol lookup and repository-level summarization.
 
-`internal/codemap/index.go:20-26`
+`cli/internal/codemap/index.go:20-26`
 ```go
 type Index struct {
 	Root  string
@@ -154,7 +154,7 @@ graph TD
     F -->|Affected sections| H[Wiki regeneration]
 ```
 
-**Parallel index building** (`internal/codemap/index.go:29-71`):
+**Parallel index building** (`cli/internal/codemap/index.go:29-71`):
 1. Scan results are processed concurrently (8 goroutines via `errgroup`).
 2. Each file is read and parsed by `codemap.Parse()` if under size limit and language supported.
 3. Unsupported/large files are still recorded in `Files` with `Analyzed=false`.
@@ -176,20 +176,13 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     KnowledgeEngine->>Index: Skeleton(moduleFiles)
-    Index->paths
-```
-
-## Referenced Files
-
-- `internal/codemap/codemapplies->>FileMap: Skeleton() for each file
-    FileMap-->>Index: Path + declarations + line anchors
-    Index-->>KnowledgeEngine: Concatenated skeletons
+    Index->>paths
     KnowledgeEngine->>LLM: Prompt with code context
 ```
 
 ## Referenced Files
 
-- `internal/codemap/codemap.go`
-- `internal/codemap/index.go`
+- `cli/internal/codemap/codemap.go`
+- `cli/internal/codemap/index.go`
 
 <!-- kaioken:files internal/codemap/codemap.go,internal/codemap/index.go -->

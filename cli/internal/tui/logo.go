@@ -10,9 +10,9 @@ import (
 	"kaioken/internal/version"
 )
 
-// The KAIOKEN wordmark, per Kaioken-settings-logo.json: "block" font, "fire"
-// palette (a vertical red→yellow gradient, like the Kaioken aura), a full-width
-// rule, and the uppercase spaced tagline.
+// The KAIOKEN wordmark, per KAIOKEN-settings.json: "block" font, "custom"
+// palette (a diagonal gradient from bottom-right red #ff0000 to top-left
+// orange #ff8800), a full-width rule, and no tagline.
 
 // letters holds the 6-row "block" (ANSI Shadow) glyphs used by the wordmark.
 var letters = map[rune][6]string{
@@ -24,13 +24,23 @@ var letters = map[rune][6]string{
 	'N': {"███╗   ██╗", "████╗  ██║", "██╔██╗ ██║", "██║╚██╗██║", "██║ ╚████║", "╚═╝  ╚═══╝"},
 }
 
-// fireColors is the vertical fire gradient (flame tip → ember base).
-var fireColors = []string{"226", "220", "214", "208", "202", "196"}
+// diagRamp is the diagonal gradient ramp indexed from top-left (red
+// #ff0000) to bottom-right (orange #ff8800). One-directional, not symmetric.
+var diagRamp = []string{"214", "208", "202", "196", "196", "196"}
+
+// diagColor returns the gradient color for a given letter index (0–6) and row
+// (0–5). The gradient runs diagonally from top-left (red) to bottom-right
+// (orange): t = (col + (maxRow - row)) / (maxCol + maxRow).
+func diagColor(col, row int) lipgloss.Color {
+	const maxCol = 6 // 7 letters - 1
+	const maxRow = 5 // 6 rows - 1
+	t := (col + (maxRow - row)) * (len(diagRamp) - 1) / (maxCol + maxRow)
+	return lipgloss.Color(diagRamp[t])
+}
 
 const (
-	logoWord    = "KAIOKEN"
-	logoTagline = "AGENTIC BUILDERS COLLECTIVE"
-	logoWidth   = 54
+	logoWord  = "KAIOKEN"
+	logoWidth = 54
 )
 
 // bannerRows renders a word into 6 rows of block glyphs.
@@ -48,11 +58,6 @@ func bannerRows(word string) []string {
 	return rows
 }
 
-// spaced adds letter-spacing to mimic the tagline's tracked mono style.
-func spaced(s string) string {
-	return strings.Join(strings.Split(s, ""), " ")
-}
-
 // LogoPlain returns the wordmark as uncolored text (for files / non-TUI use).
 func LogoPlain() string {
 	var b strings.Builder
@@ -60,27 +65,34 @@ func LogoPlain() string {
 		b.WriteString(r + "\n")
 	}
 	b.WriteString(strings.Repeat("═", logoWidth) + "\n")
-	b.WriteString(spaced(logoTagline) + "\n")
 	return b.String()
 }
 
-// logoLines returns the fire-gradient wordmark as styled lines. On terminals
+// logoLines returns the custom-gradient wordmark as styled lines. On terminals
 // too narrow for the block art it falls back to a compact one-liner.
 func logoLines(width int) []string {
 	if width > 0 && width < logoWidth+2 {
 		return []string{
-			lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("196")).Render(logoWord) +
-				"  " + dimStyle.Render(strings.ToLower(logoTagline)),
+			lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("208")).Render(logoWord),
 		}
 	}
-	rows := bannerRows(logoWord)
-	out := make([]string, 0, len(rows)+2)
-	for i, r := range rows {
-		out = append(out, lipgloss.NewStyle().Foreground(lipgloss.Color(fireColors[i%len(fireColors)])).Render(r))
+	chars := []rune(strings.ToUpper(logoWord))
+	rows := make([]string, 6)
+	for ci, ch := range chars {
+		g, ok := letters[ch]
+		if !ok {
+			continue
+		}
+		for i := 0; i < 6; i++ {
+			rows[i] += lipgloss.NewStyle().Foreground(diagColor(ci, i)).Render(g[i])
+		}
+	}
+	out := make([]string, 0, len(rows)+1)
+	for _, r := range rows {
+		out = append(out, r)
 	}
 	out = append(out,
-		lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render(strings.Repeat("═", logoWidth)),
-		lipgloss.NewStyle().Foreground(lipgloss.Color("208")).Render(spaced(logoTagline)),
+		lipgloss.NewStyle().Foreground(lipgloss.Color("208")).Render(strings.Repeat("═", logoWidth)),
 	)
 	return out
 }
@@ -125,8 +137,7 @@ func stickyHeader(cfg *config.Config, repo string, hasKey bool, termWidth, termH
 // compactHeader is the short-terminal fallback: one row of branding and one
 // row of live status, instead of the eight-row wordmark + panel block.
 func compactHeader(cfg *config.Config, hasKey bool, termWidth int) []string {
-	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("196")).Render(logoWord) +
-		"  " + dimStyle.Render(strings.ToLower(logoTagline))
+	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("208")).Render(logoWord)
 	keyVal := keyMissingStyle.Render("not set")
 	if hasKey {
 		keyVal = keyOKStyle.Render("saved ✓")

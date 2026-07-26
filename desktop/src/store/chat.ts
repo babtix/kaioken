@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { humanize } from "@/lib/errors"
 import { useToastStore } from "@/store/toast"
 import type { Approval, ChatMessage, KaiEvent, SessionMeta } from "@/lib/types"
@@ -44,7 +44,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadSessions: async (wsId: string) => {
     try {
       const res = await api.listSessions(wsId)
-      set({ sessions: res.sessions })
+      const list = res.sessions || []
+      const currentSid = get().activeSessionId
+      const exists = currentSid ? list.some((s) => s.id === currentSid) : false
+      set({
+        sessions: list,
+        activeSessionId: exists ? currentSid : (list[0]?.id ?? null),
+      })
     } catch {
       // non-fatal
     }
@@ -53,7 +59,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   openSession: async (wsId: string, sid: string) => {
     try {
       const full = await api.getSession(wsId, sid)
-      set({ activeSessionId: sid, messages: full.messages, streamBuffer: "", error: null })
+      set({ activeSessionId: sid, messages: full.messages || [], streamBuffer: "", error: null })
     } catch (err) {
       const h = humanize(err)
       useToastStore.getState().push("error", h.title, h.body, h.action)
@@ -65,7 +71,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const meta = await api.createSession(wsId)
       set((s) => ({
-        sessions: [meta, ...s.sessions],
+        sessions: [meta, ...(s.sessions || [])],
         activeSessionId: meta.id,
         messages: [],
         streamBuffer: "",
@@ -79,15 +85,50 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   send: async (wsId: string, content: string, opts) => {
-    const sid = get().activeSessionId
-    if (!sid) return
+    let sid = get().activeSessionId
+    if (!sid) {
+      try {
+        const meta = await api.createSession(wsId)
+        sid = meta.id
+        set((s) => ({
+          sessions: [meta, ...(s.sessions || [])],
+          activeSessionId: meta.id,
+          messages: [],
+          streamBuffer: "",
+          error: null,
+        }))
+      } catch (err) {
+        const h = humanize(err)
+        useToastStore.getState().push("error", h.title, h.body, h.action)
+        set({ isStreaming: false, error: h.title })
+        return
+      }
+    }
+
     set({ isStreaming: true, streamBuffer: "", error: null })
     // Optimistically append the user message.
-    set((s) => ({ messages: [...s.messages, { role: "user", content }] }))
+    set((s) => ({ messages: [...(s.messages || []), { role: "user", content }] }))
+
     try {
       const res = await api.sendMessage(wsId, sid, content, opts)
       set({ activeRunId: res.run_id })
     } catch (err) {
+      // If the session was lost on the server (e.g. daemon restarted or session expired), create a new one and retry
+      if (err instanceof ApiError && (err.status === 404 || err.code === "not_found")) {
+        try {
+          const meta = await api.createSession(wsId)
+          set((s) => ({
+            sessions: [meta, ...(s.sessions || []).filter((x) => x.id !== sid)],
+            activeSessionId: meta.id,
+            error: null,
+          }))
+          const res = await api.sendMessage(wsId, meta.id, content, opts)
+          set({ activeRunId: res.run_id })
+          return
+        } catch {
+          // fallback to error reporting if retry fails
+        }
+      }
       const h = humanize(err)
       useToastStore.getState().push("error", h.title, h.body, h.action)
       set({ isStreaming: false, error: h.title })
@@ -95,8 +136,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   cancel: async (runId: string) => {
-    // Cancel is a run endpoint — will be wired in M3. For now, no-op.
-    void runId
+    try {
+      await api.cancelRun(runId)
+      // Leave isStreaming alone: run.finished flips it, so the transcript
+      // stays coherent if the agent is mid-tool-call when cancel lands.
+    } catch (err) {
+      const h = humanize(err)
+      useToastStore.getState().push("error", h.title, h.body, h.action)
+    }
   },
 
   resolveApproval: async (decision) => {
@@ -118,7 +165,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     switch (ev.type) {
       case "chat.delta": {
         if (ev.session_id !== state.activeSessionId) return
-        set((s) => ({ streamBuffer: s.streamBuffer + (ev.text as string) }))
+        set((s) => ({ streamBuffer: (s.streamBuffer || "") + (ev.text as string) }))
         break
       }
       case "chat.message": {
@@ -128,7 +175,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           content: typeof ev.content === "string" ? ev.content : JSON.stringify(ev.content),
         }
         set((s) => ({
-          messages: [...s.messages, msg],
+          messages: [...(s.messages || []), msg],
           streamBuffer: "",
         }))
         break
@@ -144,7 +191,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             function: { name: ev.name as string, arguments: ev.args as string },
           }],
         }
-        set((s) => ({ messages: [...s.messages, msg] }))
+        set((s) => ({ messages: [...(s.messages || []), msg] }))
         break
       }
       case "chat.tool_result": {
@@ -155,7 +202,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           tool_call_id: (ev.call_id as string) || "",
           name: ev.name as string,
         }
-        set((s) => ({ messages: [...s.messages, msg] }))
+        set((s) => ({ messages: [...(s.messages || []), msg] }))
         break
       }
       case "approval.request": {
@@ -170,6 +217,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       case "run.finished": {
         if (ev.run_id === state.activeRunId) {
           set({ isStreaming: false, activeRunId: null, streamBuffer: "" })
+          if (ev.state === "failed" && ev.error) {
+            useToastStore.getState().push("error", "Run failed", ev.error as string)
+          }
         }
         break
       }

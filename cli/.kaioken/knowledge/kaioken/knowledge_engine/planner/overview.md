@@ -1,0 +1,1 @@
+The planner module (internal/plan) generates a hierarchical module tree plan for a repository by prompting an LLM with a scan result, then persists the plan as an editable YAML file (.kaioken/modules.yaml). It validates the plan's scope against scanned files and provides utilities to load, save, flatten the plan, and resolve file sets for each module.

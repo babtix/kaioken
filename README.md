@@ -21,8 +21,9 @@
    `.qoder/repowiki/knowledge/`), with a human-in-the-loop planning step.
 
 Both live in one interactive TUI (Bubble Tea), in the spirit of Claude Code /
-OpenCode. Provider-agnostic over any OpenAI-compatible endpoint (OpenRouter,
-OpenAI, Groq, Together, DeepSeek, Mistral, Ollama).
+OpenCode. Provider-agnostic over ~20 built-in endpoints — most OpenAI-compatible
+(OpenRouter, OpenAI, Google, Groq, Together, DeepSeek, Mistral, Azure, Ollama,
+…), plus Anthropic reached through its own Messages API directly.
 
 ## Chat + agent
 
@@ -78,7 +79,7 @@ Drive everything with slash-commands from inside it:
 /status                 per-module freshness
 /models [filter]        list the provider's models
 /model <id>             set the generation model
-/provider <name>        switch API provider (openrouter, openai, groq, deepseek, …)
+/provider <name>        switch API provider (openrouter, openai, anthropic, groq, deepseek, …)
 /key [value]            set API key in-memory (blank = hidden prompt)
 /repo <path>            point at a different repository
 /notes [add <t>|clear]  view/edit steering notes injected into prompts

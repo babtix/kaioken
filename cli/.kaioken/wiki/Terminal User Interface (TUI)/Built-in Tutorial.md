@@ -28,7 +28,7 @@ The tutorial system provides a structured, progressive introduction to Kaioken's
 The tutorial system is invoked via the `/tutorial` command (with aliases `/guide` and `/manual`) in the TUI command palette. When executed, it renders formatted help text directly in the chat viewport.
 
 ```
-<repo-relative-path>:internal/tui/tui.go:920-1043
+<repo-relative-path>:cli/internal/tui/tui.go:920-1043
 ```
 
 ```go
@@ -474,6 +474,6 @@ The following table lists all commands documented in the tutorial system, groupe
 ## Referenced Files
 
 - `internal/tui/tutorial.go` - Contains tutorial data structure (chapters, commands) and formatting functions
-- `internal/tui/tui.go` - Contains command dispatch logic that invokes the tutorial system (`/tutorial`, `/guide`, `/manual` handlers)
+- `cli/internal/tui/tui.go` - Contains command dispatch logic that invokes the tutorial system (`/tutorial`, `/guide`, `/manual` handlers)
 
 <!-- kaioken:files internal/tui/tutorial.go,internal/tui/tui.go -->

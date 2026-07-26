@@ -1,0 +1,9 @@
+- Constants and variables use PascalCase (e.g., Dir, FreeModelConcurrency, HomeEnv).
+- Exported struct fields use PascalCase with yaml:"..." tags for YAML serialization (e.g., Model string `yaml:"model"`).
+- Functions that perform I/O or parsing return an error as the last return value for error propagation.
+- When a configuration file is missing, Load() returns a specific error guiding the user to run `kaioken init`, while LoadGlobal() returns an empty Global struct.
+- The Save() methods prepend a header comment to the YAML file explaining its purpose and usage restrictions.
+- Global configuration is saved with file mode 0o600 (readable only by the owner) to protect sensitive API keys.
+- Validation in Load() enforces minimum values: Concurrency is set to at least 1 and MaxModuleTokens to at least 4000 if below threshold.
+- Test files are named *_test.go and use table-driven tests for functions like IsFreeModel and EffectiveConcurrency.
+- The TestMain function in global_test.go sets the KAIOKEN_HOME environment variable to a temporary directory to sandbox tests and avoid modifying the user's real global config.

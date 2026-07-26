@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react"
+import { Button } from "@/components/ui"
 
 export default function EmptyState({
   icon: Icon,
@@ -13,16 +14,25 @@ export default function EmptyState({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
-      <Icon size={28} className="text-kai-dim" />
+      {/* Concentric rings keep the glyph from floating in empty space. */}
+      <div className="relative flex size-14 items-center justify-center">
+        <span className="absolute inset-0 rounded-full border border-border" aria-hidden />
+        <span className="absolute inset-2 rounded-full border border-border/60" aria-hidden />
+        <Icon size={20} className="relative text-kai-dim" />
+      </div>
+
       <p className="font-mono text-sm text-kai-text">{title}</p>
-      {hint && <p className="max-w-xs text-center font-mono text-xs text-kai-dim">{hint}</p>}
+
+      {hint && (
+        <p className="max-w-sm text-center font-mono text-[11px] leading-relaxed text-kai-dim">
+          {hint}
+        </p>
+      )}
+
       {action && (
-        <button
-          onClick={action.onClick}
-          className="mt-1 rounded border border-kai-orange/40 px-3 py-1 font-mono text-xs text-kai-orange transition-colors hover:bg-accent"
-        >
+        <Button variant="primary" size="sm" onClick={action.onClick} className="mt-1">
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   )

@@ -100,6 +100,13 @@ export type ScanResult = {
   cached: boolean
 }
 
+// §2.4 file completion for the composer's @ mentions.
+export type RepoFile = {
+  path: string
+  name: string
+  lines: number
+}
+
 // §2.4 status response.
 export type ModuleStatus = {
   id: string
@@ -132,6 +139,17 @@ export type SessionMeta = {
   model: string
   turns: number
   updated: string
+}
+
+export type Skill = {
+  name: string
+  description: string
+  sources: string[]
+  generated_at: string
+  path: string
+  stale: boolean
+  origin: "generated" | "learned" | "human" | string
+  use_count: number
 }
 
 export type ChatMessage = {
@@ -205,4 +223,62 @@ export type Estimate = {
   heavy: boolean
   passes: string
   text: string
+}
+
+// §2.4 file tree (explorer sidebar).
+export type FileTreeNode = {
+  name: string
+  path: string // repo-relative, slash-separated; "" at the root
+  type: "directory" | "file"
+  children?: FileTreeNode[]
+  lines?: number
+  size?: number
+  ext?: string
+}
+
+export type FileTreeResponse = {
+  root: string
+  name: string
+  children: FileTreeNode[]
+  total: number
+}
+
+// §2.4 git status (explorer sidebar's git navigator).
+export type GitChange = {
+  path: string
+  kind: "added" | "modified" | "deleted" | "renamed" | "untracked"
+  staged: boolean
+  unstaged: boolean
+}
+
+export type GitStatusResponse = {
+  is_repo: boolean
+  branch: string
+  head: string
+  short: string
+  dirty_count: number
+  changes: GitChange[]
+}
+
+// §2.8 wiki tree (explorer sidebar's wiki outline).
+export type WikiDoc = {
+  title: string
+  rel: string
+  lines: number
+  words: number
+  reading_minutes: number
+  modified?: string
+  is_section_doc: boolean
+}
+
+export type WikiTreeSection = {
+  name: string
+  docs: WikiDoc[]
+}
+
+export type WikiTree = {
+  root: string
+  has_readme: boolean
+  sections: WikiTreeSection[]
+  changelog: boolean
 }

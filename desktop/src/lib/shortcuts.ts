@@ -7,6 +7,8 @@ export type Shortcut = {
 // Single source of truth for all keyboard shortcuts.
 export const SHORTCUTS: Shortcut[] = [
   { keys: "Ctrl+K", label: "Command palette", group: "General" },
+  { keys: "Ctrl+P", label: "Quick file switcher", group: "General" },
+  { keys: "Ctrl+B", label: "Toggle explorer sidebar", group: "General" },
   { keys: "?", label: "Shortcut help", group: "General" },
   { keys: "Escape", label: "Close dialog", group: "General" },
   { keys: "Ctrl+1", label: "Chat", group: "Navigation" },

@@ -28,10 +28,13 @@ export const BUILDER_NAME = "BABTICH EL HABIB"
 export const PROVIDERS = [
   "OpenRouter",
   "OpenAI",
+  "Anthropic",
+  "Google",
   "Groq",
   "Together",
   "DeepSeek",
   "Mistral",
+  "Azure",
   "Ollama",
 ]
 
@@ -230,11 +233,11 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     id: "model",
     label: "Provider & model",
     icon: "Cpu",
-    blurb: "Provider-agnostic over any OpenAI-compatible endpoint.",
+    blurb: "~20 built-in providers, most OpenAI-compatible, plus Anthropic's native API.",
     commands: [
       { name: "/models", args: "[filter]", summary: "List the provider's models." },
       { name: "/model", args: "<id>", summary: "Set the generation model." },
-      { name: "/provider", args: "<name>", summary: "Switch API provider (openrouter, openai, groq, deepseek, …)." },
+      { name: "/provider", args: "<name>", summary: "Switch API provider (openrouter, openai, anthropic, groq, …)." },
       { name: "/key", args: "[value]", summary: "Set API key in-memory — blank opens a hidden prompt." },
       { name: "/cost", summary: "What the session has spent." },
       { name: "/config", summary: "Show the active configuration." },

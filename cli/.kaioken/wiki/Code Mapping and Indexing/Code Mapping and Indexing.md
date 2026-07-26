@@ -34,10 +34,10 @@ This system replaces naive truncation strategies (like "first three quarters + l
 
 ### FileMap Structure
 
-`internal/codemap/codemap.go` defines the core data structures for representing parsed source files.
+`cli/internal/codemap/codemap.go` defines the core data structures for representing parsed source files.
 
 #### Symbol Representation
-`internal/codemap/codemap.go:36-45`
+`cli/internal/codemap/codemap.go:36-45`
 ```go
 type Symbol struct {
 	Name      string
@@ -58,7 +58,7 @@ Each symbol captures:
 - Associated documentation and receiver (for methods)
 
 #### Symbol Kinds
-`internal/codemap/codemap.go:23-32`
+`cli/internal/codemap/codemap.go:23-32`
 ```go
 type Kind string
 
@@ -74,7 +74,7 @@ const (
 ```
 
 #### FileMap Container
-`internal/codemap/codemap.go:56-64`
+`cli/internal/codemap/codemap.go:56-64`
 ```go
 type FileMap struct {
 	Path     string // repo-relative, slash-separated
@@ -93,7 +93,7 @@ Key behaviors:
 - `Skeleton()`: Generates compact structural view with line anchors
 
 #### Language Detection
-`internal/codemap/codemap.go:88-95`
+`cli/internal/codemap/codemap.go:88-95`
 ```go
 var langByExt = map[string]string{
 	".go": "go", ".py": "python", ".rb": "ruby", ".rs": "rust",
@@ -109,7 +109,7 @@ func Lang(path string) string { return langByExt[strings.ToLower(filepath.Ext(pa
 ```
 
 #### Parsing Entry Point
-`internal/codemap/codemap.go:103-123`
+`cli/internal/codemap/codemap.go:103-123`
 ```go
 func Parse(path, content string) *FileMap {
 	fm := &FileMap{
@@ -138,22 +138,22 @@ Unsupported languages return `Analyzed:false` rather than errors to accommodate 
 
 ### Index Construction
 
-`internal/codemap/index.go` builds repository-wide symbol indexes from scan results.
+`cli/internal/codemap/index.go` builds repository-wide symbol indexes from scan results.
 
 #### Index Structure
-`internal/codemap/index.go:20-26`
+`cli/internal/codemap/index.go:20-26`
 ```go
 type Index struct {
 	Root  string
 	Files map[string]*FileMap // keyed by repo-relative slash path
 
 	// symbols maps a symbol name to every file declaring it, for verification.
-	symbols map[string][]string
+	symbols map[string][]string{}
 }
 ```
 
 #### Parallel Building
-`internal/codemap/index.go:29-71`
+`cli/internal/codemap/index.go:29-71`
 ```go
 func Build(res *scan.Result) *Index {
 	idx := &Index{
@@ -207,7 +207,7 @@ Key behaviors:
 - Uses 8-worker parallel parsing with error group
 
 #### Query Methods
-`internal/codemap/index.go:74-92`
+`cli/internal/codemap/index.go:74-92`
 ```go
 // HasFile reports whether a repo-relative path was scanned.
 func (i *Index) HasFile(path string) bool {
@@ -233,10 +233,10 @@ func (i *Index) SymbolCount() int {
 
 ### Bundle Assembly
 
-`internal/codemap/bundle.go` creates LLM-optimized context by combining structural skeletons with relevant source excerpts.
+`cli/internal/codemap/bundle.go` creates LLM-optimized context by combining structural skeletons with relevant source excerpts.
 
 #### Bundle Options
-`internal/codemap/bundle.go:32-40`
+`cli/internal/codemap/bundle.go:32-40`
 ```go
 type BundleOptions struct {
 	// Goal is what the document is about; it drives relevance ranking.
@@ -250,7 +250,7 @@ type BundleOptions struct {
 ```
 
 #### Core Bundling Algorithm
-`internal/codemap/bundle.go:43-129`
+`cli/internal/codemap/bundle.go:43-129`
 ```go
 func (i *Index) Bundle(paths []string, opt BundleOptions) string {
 	if opt.MaxTokens <= 0 {
@@ -348,7 +348,7 @@ Key strategies:
 - **Fallback Handling**: Omits files when budget exhausted but preserves structure
 
 #### Excerpt Selection
-`internal/codemap/bundle.go:133-193`
+`cli/internal/codemap/bundle.go:133-193`
 ```go
 func (f *FileMap) excerptSymbols(content, goal string, budget int) string {
 	lines := strings.Split(content, "\n")
@@ -420,7 +420,7 @@ Selection criteria:
 - Respects character budget while preserving syntactic completeness
 
 #### Ranking System
-`internal/codemap/bundle.go:197-227`
+`cli/internal/codemap/bundle.go:197-227`
 ```go
 func (i *Index) rank(paths []string, goal string) []string {
 	t := terms(goal)
@@ -466,9 +466,9 @@ Priority rules (`filePriority`):
 ### Language Parsers
 
 #### Go Parser
-`internal/codemap/parse_go.go` uses `go/ast` for precise symbol extraction.
+`cli/internal/codemap/parse_go.go` uses `go/ast` for precise symbol extraction.
 
-`internal/codemap/parse_go.go:14-98`
+`cli/internal/codemap/parse_go.go:14-98`
 ```go
 func parseGo(fm *FileMap, content string) {
 	fset := token.NewFileSet()
@@ -565,9 +565,9 @@ Key features:
 - Captures leading comment as documentation
 
 #### Line-Based Parsers
-`internal/codemap/parse_lines.go` handles non-Go languages with regex-based approaches.
+`cli/internal/codemap/parse_lines.go` handles non-Go languages with regex-based approaches.
 
-`internal/codemap/parse_lines.go:16-31`
+`cli/internal/codemap/parse_lines.go:16-31`
 ```go
 var (
 	// Python: def/async def and class, capturing indentation for body extent.
@@ -587,7 +587,7 @@ var (
 ```
 
 #### Python Parsing
-`internal/codemap/parse_lines.go:32-104`
+`cli/internal/codemap/parse_lines.go:32-104`
 ```go
 func parsePython(fm *FileMap, content string) {
 	type open struct {

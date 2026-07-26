@@ -1,0 +1,1 @@
+The agent core uses Go's standard library for file operations (os, filepath), command execution (os/exec), and JSON handling (encoding/json). It interacts with the LLM via the kaioken/internal/llm package.

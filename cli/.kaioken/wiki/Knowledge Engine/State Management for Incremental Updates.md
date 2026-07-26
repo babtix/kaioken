@@ -28,7 +28,7 @@ This mechanism avoids reprocessing unchanged modules, significantly reducing upd
 
 `ModuleState` captures the metadata for a single module's last generation:
 
-`internal/state/state.go:20-25`
+`cli/internal/state/state.go:20-25`
 ```go
 type ModuleState struct {
 	SourceHash  string    `json:"source_hash"`
@@ -47,7 +47,7 @@ type ModuleState struct {
 
 `State` represents the complete persisted state:
 
-`internal/state/state.go:28-30`
+`cli/internal/state/state.go:28-30`
 ```go
 type State struct {
 	Modules map[string]ModuleState `json:"modules"`
@@ -65,7 +65,7 @@ State is stored in `.kaioken/state.json` within the repository root. The `config
 
 `Load` reads the state file, returning an empty state if missing:
 
-`internal/state/state.go:37-53`
+`cli/internal/state/state.go:37-53`
 ```go
 func Load(repo string) (*State, error) {
 	raw, err := os.ReadFile(path(repo))
@@ -96,7 +96,7 @@ func Load(repo string) (*State, error) {
 
 `Save` writes the current state to disk:
 
-`internal/state/state.go:56-65`
+`cli/internal/state/state.go:56-65`
 ```go
 func (s *State) Save(repo string) error {
 	if err := os.MkdirAll(filepath.Join(repo, config.Dir), 0o755); err != nil {
@@ -122,7 +122,7 @@ func (s *State) Save(repo string) error {
 
 `HashFiles` computes a deterministic hash over a set of files:
 
-`internal/state/state.go:68-85`
+`cli/internal/state/state.go:68-85`
 ```go
 func HashFiles(root string, files []scan.File) (string, error) {
 	sorted := make([]scan.File, len(files))
@@ -179,7 +179,7 @@ The state package integrates with the knowledge engine's update flow:
 
 This approach ensures:
 - Modules regenerate when source files change
-- Modules regenerate when LLM model changes (stored in `Model`)
+- Modules regenerate when LLM model changes (stored in `ModuleState.Model`)
 - Modules regenerate after vanishing files (path entry in hash)
 - Unchanged modules skip expensive LLM processing
 
@@ -207,7 +207,7 @@ This approach ensures:
 - Relies on accurate file listing from `scan` package
 
 ## Referenced Files
-- internal/state/state.go
+- cli/internal/state/state.go
 
 This chapter exclusively covers the state management implementation as defined in the provided source. All behavioral descriptions are derived directly from the code structure and comments.
 

@@ -13,7 +13,7 @@ This section explains how to serve the generated wiki documentation via a local 
 
 The `serve` command starts a local HTTP server that serves the generated wiki documentation from `.kaioken/wiki/`. It is accessible both as a CLI subcommand and as a TUI slash-command.
 
-`cmd/kaioken/main.go:546-556`
+`cli/cmd/kaioken/main.go:563-573`
 ```go
 // cmdServe browses the generated wiki over HTTP until interrupted.
 func cmdServe(ctx context.Context, f flags) error {
@@ -140,4 +140,4 @@ kaioken update   # Updates only affected wiki sections
 
 The wiki remains available at the same URL during incremental updates; simply refresh the browser to see changes. For major structural changes (e.g., new modules), re-run `kaioken wiki -force` to regenerate everything.
 
-<!-- kaioken:files cmd/kaioken/main.go,README.md -->
+<!-- kaioken:files cmd/kaioken/main.go -->

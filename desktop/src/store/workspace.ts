@@ -19,6 +19,7 @@ type WorkspaceState = {
 
   // Actions
   refresh: () => Promise<void>
+  restoreActive: () => Promise<void>
   open: (path: string) => Promise<Workspace>
   close: (id: string, forget?: boolean) => Promise<void>
   setActive: (id: string | null) => void
@@ -75,6 +76,25 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ list, active, scan: active ? get().scan : null })
     // Refresh recents after a forget.
     if (forget) await get().refresh()
+  },
+
+  // Called once at startup. The daemon keeps workspaces open across a
+  // front-end reload (and across a WebView crash), but `active` is client
+  // state — without this the app forgets which repo you were in and drops
+  // you on the picker. Deliberately not folded into refresh(): navigating
+  // Home sets active to null on purpose, and that must stick.
+  restoreActive: async () => {
+    if (get().active) return
+    try {
+      const res = await api.listWorkspaces()
+      set({ list: res.workspaces, recents: res.recents })
+      const mostRecent = [...res.workspaces].sort(
+        (a, b) => Date.parse(b.last_opened) - Date.parse(a.last_opened)
+      )[0]
+      if (mostRecent) set({ active: mostRecent })
+    } catch {
+      // Non-fatal: the picker is a fine fallback.
+    }
   },
 
   setActive: (id: string | null) => {

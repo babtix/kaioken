@@ -13,7 +13,7 @@ The Terminal User Interface (TUI) in kaioken is built using the Bubble Tea libra
 
 ## Model Structure
 
-The `Model` struct (defined in `internal/tui/tui.go:127-181`) holds the complete state of the TUI application. It manages repository context, configuration, UI components, conversation history, and asynchronous communication channels.
+The `Model` struct (defined in `cli/internal/tui/tui.go:127-181`) holds the complete state of the TUI application. It manages repository context, configuration, UI components, conversation history, and asynchronous communication channels.
 
 ### Key Fields
 
@@ -79,7 +79,7 @@ func Run(repo string) error {
 	return err
 }
 ```
-`internal/tui/tui.go:184-191`
+`cli/internal/tui/tui.go:188-195`
 
 The `Run` function:
 1. Converts the repository path to absolute
@@ -156,7 +156,7 @@ func New(repo string) Model {
 	return m
 }
 ```
-`internal/tui/tui.go:194-257`
+`cli/internal/tui/tui.go:201-264`
 
 The `New` function:
 1. Loads global and repository configuration (with fallbacks)
@@ -180,7 +180,7 @@ func (m *Model) resetConversation() {
 	m.sess = session.New(m.cfg.Model, m.cfg.Provider)
 }
 ```
-`internal/tui/tui.go:259-265`
+`cli/internal/tui/tui.go:266-272`
 
 Initializes conversation with a system prompt and creates a new session.
 
@@ -209,7 +209,7 @@ func (m *Model) rebuildClient() string {
 	return ""
 }
 ```
-`internal/tui/tui.go:2117-2140`
+`cli/internal/tui/tui.go:2117-2140`
 
 Builds the LLM client using:
 1. Session-scoped API key (from `/key`)
@@ -219,7 +219,7 @@ Builds the LLM client using:
 
 ## Event Loop (Update)
 
-The `Update` method (internal/tui/tui.go:284-426) is the core event loop that processes Bubble Tea messages. It handles window resizes, keyboard input, asynchronous messages from goroutines, and UI state transitions.
+The `Update` method (cli/internal/tui/tui.go:288-428) is the core event loop that processes Bubble Tea messages. It handles window resizes, keyboard input, asynchronous messages from goroutines, and UI state transitions.
 
 ### Message Handling Overview
 
@@ -254,18 +254,16 @@ case tea.WindowSizeMsg:
 	m.list.SetSize(msg.Width, msg.Height)
 	m.ready = true
 	m.committed = "" // width changed — the cached wrap is wrong now
-	if first {
-		// Built here, not in New(), because only now do we know the
-		// real terminal width — needed to lay the banner out correctly.
-		m.lines = welcomeBanner(m.cfg, m.repo, m.client != nil, m.width)
-		if m.configMissing {
-			m.lines = append(m.lines, warnStyle.Render("no .kaioken/config.yaml here — using defaults; /init to save"))
-		}
+	// The header is rebuilt on every resize: both its layout (side-by-side
+	// vs stacked vs compact) and its height feed the viewport sizing.
+	m.header = stickyHeader(m.cfg, m.repo, m.client != nil, m.width, m.height)
+	if first && m.configMissing {
+		m.lines = append(m.lines, warnStyle.Render("no .kaioken/config.yaml here — using defaults; /init to save"))
 	}
 	m.syncLayout()
 	return m, nil
 ```
-`internal/tui/tui.go:290-318`
+`cli/internal/tui/tui.go:290-318`
 
 Handles terminal resize by:
 1. Updating dimensions and UI component sizes
@@ -275,7 +273,7 @@ Handles terminal resize by:
 
 ### Key Processing
 
-Keyboard input is handled by `onKey` (internal/tui/tui.go:428-567), which delegates based on UI state:
+Keyboard input is handled by `onKey` (cli/internal/tui/tui.go:430-569), which delegates based on UI state:
 
 #### Mode Picker State
 Handles model/session selection:
@@ -385,7 +383,7 @@ Sets busy state, starts spinner timer, and tracks operation start time.
 
 ## View Rendering
 
-The `View` method (internal/tui/tui.go:590-601) generates the terminal output by combining the viewport, palette, and footer.
+The `View` method (cli/internal/tui/tui.go:592-608) generates the terminal output by combining the viewport, palette, and footer.
 
 ### View Method
 
@@ -397,13 +395,18 @@ func (m Model) View() string {
 	if m.mode == modePicker {
 		return m.list.View()
 	}
-	// No persistent top bar — the logo + status panel (repo/model/provider/
-	// key) lives once at the top of the scrollback via welcomeBanner, and
-	// busy/yolo state shows in the footer hint instead.
-	return m.vp.View() + "\n" + m.paletteView() + m.footer()
+	// The wordmark + status panel is a sticky top block (rebuilt on resize
+	// and on /model, /provider, /key changes), so repo/model/provider/key stay
+	// in view while the transcript scrolls — the top counterpart of the
+	// pinned composer. Busy/yolo state shows in the footer hint.
+	view := m.vp.View()
+	if len(m.header) > 0 {
+		view = strings.Join(m.header, "\n") + "\n" + view
+	}
+	return view + "\n" + m.paletteView() + m.footer()
 }
 ```
-`internal/tui/tui.go:590-601`
+`cli/internal/tui/tui.go:592-608`
 
 Returns:
 - "starting kaioken…" during initialization
@@ -440,7 +443,7 @@ func (m *Model) refreshViewport() {
 	m.vp.GotoBottom()
 }
 ```
-`internal/tui/tui.go:733-753`
+`cli/internal/tui/tui.go:740-760`
 
 ### Footer Composition
 
@@ -476,7 +479,7 @@ func (m Model) footer() string {
 	return m.input.View() + "\n" + m.statusLine()
 }
 ```
-`internal/tui/tui.go:605-633`
+`cli/internal/tui/tui.go:612-640`
 
 Handles three states:
 1. Approval prompt (with yes/no keys)
@@ -507,7 +510,7 @@ func (m Model) statusLine() string {
 	return left + strings.Repeat(" ", gap) + right
 }
 ```
-`internal/tui/tui.go:638-656`
+`cli/internal/tui/tui.go:645-663`
 
 Displays:
 - Left: Busy spinner + text + elapsed time OR default key hints
@@ -537,7 +540,7 @@ func (m Model) sessionStatus() string {
 	return out
 }
 ```
-`internal/tui/tui.go:661-680`
+`cli/internal/tui/tui.go:668-687`
 
 Shows:
 - Wiki serving status
@@ -637,8 +640,8 @@ sequenceDiagram
 
 ## Referenced Files
 
-- internal/tui/tui.go
+- cli/internal/tui/tui.go
 
-This document covers all exported declarations in the `internal/tui/tui.go` file as specified in the STRUCTURE block, including the `Model` struct, initialization functions, event loop (`Update` and `onKey`), view rendering (`View` and helpers), message types, styles, and supporting functions. The explanation focuses on how these components work together to create the interactive TUI experience.
+This document covers all exported declarations in the `cli/internal/tui/tui.go` file as specified in the STRUCTURE block, including the `Model` struct, initialization functions, event loop (`Update` and `onKey`), view rendering (`View` and helpers), message types, styles, and supporting functions. The explanation focuses on how these components work together to create the interactive TUI experience.
 
 <!-- kaioken:files internal/tui/tui.go -->

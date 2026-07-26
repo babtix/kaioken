@@ -8,13 +8,14 @@ Kaioken's behavior can be fine-tuned through configuration options that control 
 - [Free Model Handling](#free-model-handling)
 - [Global Configuration](#global-configuration)
 - [Notes and Steering Instructions](#notes-and-steering-instructions)
+- [Progress Reporting](#progress-reporting)
 - [Referenced Files](#referenced-files)
 
 ## File Excludes and Includes
 
 The `Scope` struct in the repository configuration controls which files are considered part of the repository for scanning, planning, and knowledge generation.
 
-`internal/config/config.go:18-41`
+`cli/internal/config/config.go:18-41`
 ```go
 type Config struct {
     Version int `yaml:"version"`
@@ -42,7 +43,7 @@ type Config struct {
 }
 ```
 
-`internal/config/config.go:44-49`
+`cli/internal/config/config.go:44-49`
 ```go
 // Scope controls which files are considered part of the repository.
 type Scope struct {
@@ -55,7 +56,7 @@ type Scope struct {
 
 By default, the `Exclude` field is populated with `DefaultExcludes` (see below) plus some additional patterns set in `Default()`.
 
-`internal/config/config.go:55-60`
+`cli/internal/config/config.go:55-60`
 ```go
 // DefaultExcludes are always skipped regardless of configuration. Dir itself
 // is listed: without it Kaioken scans its own generated wiki and cards as if
@@ -71,7 +72,7 @@ var DefaultExcludes = []string{
 
 The `Default()` function sets the initial `Scope.Exclude` to a set of lock files and minified assets:
 
-`internal/config/config.go:63-78`
+`cli/internal/config/config.go:63-78`
 ```go
 // Default returns a fresh config with sensible defaults.
 func Default() *Config {
@@ -110,7 +111,7 @@ The configuration controls parallelism and token limits to manage resource usage
 
 The `EffectiveConcurrency` method computes the actual concurrency to use, clamping it for free models:
 
-`internal/config/config.go:93-102`
+`cli/internal/config/config.go:93-102`
 ```go
 // EffectiveConcurrency is the parallelism to actually use for a model. Free
 // tiers enforce tight per-minute limits, so fanning out the configured four
@@ -132,13 +133,13 @@ func (c *Config) EffectiveConcurrency(model string) (limit int, clamped bool) {
 
 Kaioken detects free tier models (typically marked with a `:free` suffix) and enforces a lower concurrency limit to avoid rate limits.
 
-`internal/config/config.go:81`
+`cli/internal/config/config.go:81`
 ```go
 // FreeModelConcurrency caps parallel requests against a provider's free tier.
 const FreeModelConcurrency = 2
 ```
 
-`internal/config/config.go:85-87`
+`cli/internal/config/config.go:85-87`
 ```go
 // IsFreeModel reports whether a model id names a provider's free tier, which
 // OpenRouter and others mark with a ":free" suffix.
@@ -153,7 +154,7 @@ When a free model is detected, the `EffectiveConcurrency` method will return `Fr
 
 Global settings (such as API keys and default provider/model) are stored in the user's home directory (or a custom directory via `KAIOKEN_HOME`).
 
-`internal/config/global.go:14-18`
+`cli/internal/config/global.go:14-18`
 ```go
 // Global is the per-user configuration stored at ~/.kaioken/config.yaml.
 // It survives restarts and applies across repositories: API keys per provider
@@ -168,7 +169,7 @@ type Global struct {
 
 The `HomeEnv` constant allows overriding the global config directory:
 
-`internal/config/global.go:24`
+`cli/internal/config/global.go:24`
 ```go
 // HomeEnv overrides the directory holding the global config. Tests MUST set
 // it: this file holds the user's real API keys, and anything exercising the
@@ -179,7 +180,7 @@ const HomeEnv = "KAIOKEN_HOME"
 
 The `GlobalPath` function returns the path to the global config:
 
-`internal/config/global.go:27-36`
+`cli/internal/config/global.go:27-36`
 ```go
 // GlobalPath returns ~/.kaioken/config.yaml, or $KAIOKEN_HOME/config.yaml.
 func GlobalPath() string {
@@ -198,7 +199,7 @@ func GlobalPath() string {
 
 The `Notes` field in the repository configuration allows users to inject arbitrary instructions into every LLM prompt. This is used to convey conventions, warnings, and guardrails that are not captured by the code.
 
-`internal/config/config.go:18-41` (showing the Notes field)
+`cli/internal/config/config.go:18-41` (showing the Notes field)
 ```go
 type Config struct {
     // ...
@@ -218,8 +219,8 @@ However, note that the architecture brief mentions progress in the glossary. Sin
 
 We have drawn from the following files:
 
-- internal/config/config.go
-- internal/config/global.go
+- cli/internal/config/config.go
+- cli/internal/config/global.go
 
 We note that the structure block only includes these two files, so we have covered all declarations.
 

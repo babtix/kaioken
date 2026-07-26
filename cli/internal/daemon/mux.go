@@ -41,8 +41,11 @@ func newMux(s *Server) http.Handler {
 
 	// Workspace sub-resources (T015–T016)
 	router.HandleFunc("GET /v1/workspaces/{id}/scan", s.handleScan)
+	router.HandleFunc("GET /v1/workspaces/{id}/tree", s.handleTree)
+	router.HandleFunc("GET /v1/workspaces/{id}/files", s.handleFiles)
 	router.HandleFunc("GET /v1/workspaces/{id}/status", s.handleStatus)
 	router.HandleFunc("GET /v1/workspaces/{id}/git", s.handleGit)
+	router.HandleFunc("GET /v1/workspaces/{id}/git/status", s.handleGitStatus)
 	router.HandleFunc("POST /v1/workspaces/{id}/hook", s.handleHook)
 	router.HandleFunc("GET /v1/workspaces/{id}/config", s.handleGetConfig)
 	router.HandleFunc("PUT /v1/workspaces/{id}/config", s.handlePutConfig)
@@ -64,6 +67,7 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("GET /v1/workspaces/{id}/estimate", s.handleEstimate)
 	router.HandleFunc("GET /v1/runs/{run_id}", s.handleGetRun)
 	router.HandleFunc("POST /v1/runs/{run_id}/cancel", s.handleCancelRun)
+	router.HandleFunc("POST /v1/runs/{run_id}/revert", s.handleRevertRun)
 
 	// Documents, wiki, cards, skills (T044–T056)
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/tree", s.handleWikiTree)

@@ -14,6 +14,7 @@ type RunsState = {
   refresh: (wsId: string) => Promise<void>
   start: (wsId: string, kind: string, params?: Record<string, unknown>) => Promise<RunRecord | null>
   cancel: (runId: string) => Promise<void>
+  revert: (runId: string) => Promise<number>
   handleEvent: (ev: KaiEvent) => void
 }
 
@@ -25,7 +26,7 @@ export const useRunsStore = create<RunsState>((set) => ({
   refresh: async (wsId: string) => {
     try {
       const res = await api.listRuns(wsId)
-      set({ runs: res.runs })
+      set({ runs: res.runs || [] })
     } catch {
       // non-fatal
     }
@@ -52,6 +53,22 @@ export const useRunsStore = create<RunsState>((set) => ({
       const h = humanize(err)
       useToastStore.getState().push("error", h.title, h.body, h.action)
       set({ error: h.title })
+    }
+  },
+
+  revert: async (runId: string) => {
+    try {
+      const res = await api.revertRun(runId)
+      useToastStore.getState().push("success", `Reverted ${res.deleted} file(s)`)
+      // Drop the now-deleted artifacts from the run record.
+      set((s) => ({
+        runs: s.runs.map((r) => (r.id === runId ? { ...r, artifacts: [] } : r)),
+      }))
+      return res.deleted
+    } catch (err) {
+      const h = humanize(err)
+      useToastStore.getState().push("error", h.title, h.body, h.action)
+      return 0
     }
   },
 

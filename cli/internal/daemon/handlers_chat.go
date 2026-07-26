@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"time"
 
 	"kaioken/internal/agent"
 	"kaioken/internal/llm"
+	"kaioken/internal/memory"
 	"kaioken/internal/session"
 )
 
@@ -93,7 +93,7 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 
 	sess := session.New(model, provider)
 	repo := filepath.FromSlash(ws.Path)
-	if err := sess.Save(repo); err != nil {
+	if err := sess.SaveForce(repo); err != nil {
 		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
 		return
 	}
@@ -156,9 +156,17 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		AutoApprove bool   `json:"auto_approve"`
 		AllowRun    bool   `json:"allow_run"`
 		MaxSteps    int    `json:"max_steps"`
+		Mode        string `json:"mode,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Content == "" {
 		writeError(w, http.StatusBadRequest, codeBadRequest, "content is required", "")
+		return
+	}
+
+	// An empty mode parses to build, so existing clients are unaffected.
+	mode, err := agent.ParseMode(body.Mode)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, codeBadRequest, err.Error(), "")
 		return
 	}
 
@@ -174,7 +182,13 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	if len(sess.Messages) == 0 {
 		history = append(history, llm.Message{
 			Role:    "system",
-			Content: agent.SystemPrompt(repo, body.AllowRun || ws.AllowRun()),
+			Content: agent.SystemPrompt(agent.PromptInput{
+				Root:     repo,
+				Mode:     mode,
+				Model:    sess.Model,
+				AllowRun: body.AllowRun || ws.AllowRun(),
+				Notes:    ws.Notes(),
+			}),
 		})
 	}
 	history = append(history, sess.Messages...)
@@ -201,10 +215,12 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		ag := &agent.Agent{
-			Client:   client,
-			Root:     repo,
-			UI:       ui,
-			MaxSteps: maxSteps,
+			Client:         client,
+			Root:           repo,
+			UI:             ui,
+			MaxSteps:       maxSteps,
+			Mode:           mode,
+			MemoryDisabled: ws.MemoryDisabled(),
 		}
 
 		result, runErr := ag.Run(ctx, history)
@@ -216,6 +232,15 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		s.hub.Publish("session.updated", map[string]any{
 			"workspace_id": ws.ID, "session": toSessionMeta(sess),
 		})
+		// Run the experience loop (digest + reinforcement + distillation) in
+		// the background so the run completes promptly. It is best-effort: a
+		// failure is not part of the run's outcome. The cfg tier gates whether
+		// distillation actually fires; /learn is the TUI's explicit trigger.
+		if cfg := ws.Config(); cfg != nil && !cfg.Memory.Disable {
+			go func() {
+				_ = memory.LearnSession(context.Background(), repo, cfg, client, sess, false)
+			}()
+		}
 		return runErr
 	})
 
@@ -224,14 +249,6 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		"session_id": sid,
 	})
 }
-
-// compactSystemPrompt mirrors internal/tui/tui.go's compactSystem constant —
-// kept in sync by hand since internal/daemon must not import internal/tui.
-const compactSystemPrompt = `Summarize the following coding-assistant conversation into a concise
-brief a new assistant could use to seamlessly continue the task: what the user wants, key
-facts learned about the codebase, files touched, decisions made, and anything still pending.
-Be factual and terse — this replaces the full transcript, so keep everything load-bearing.
-Output plain text, no preamble, no markdown headers.`
 
 // POST /v1/workspaces/{id}/sessions/{sid}/compact
 func (s *Server) handleCompactSession(w http.ResponseWriter, r *http.Request) {
@@ -258,22 +275,16 @@ func (s *Server) handleCompactSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := summarizeMessages(r.Context(), client, original)
+	// The reply ceiling sizes the headroom compaction leaves free; the client
+	// carries whatever the workspace config set, or zero for the default.
+	kept, note, err := agent.Compact(r.Context(), client, original, sess.Model, client.MaxTokens)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, codeProviderError, err.Error(), "")
 		return
 	}
 
-	// Mirrors the TUI's compactedMsg handling: keep the original system
-	// prompt, replace everything else with one summary message.
-	kept := []llm.Message{{
-		Role:    "system",
-		Content: "Summary of earlier conversation (compacted to save context):\n" + summary,
-	}}
-	if original[0].Role == "system" {
-		kept = append([]llm.Message{original[0]}, kept...)
-	}
 	sess.Messages = kept
+	sess.AddEpoch("compaction", sess.Mode, note)
 	sess.Updated = time.Now()
 	if err := sess.Save(repo); err != nil {
 		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
@@ -283,11 +294,7 @@ func (s *Server) handleCompactSession(w http.ResponseWriter, r *http.Request) {
 		"workspace_id": ws.ID, "session": toSessionMeta(sess),
 	})
 
-	var beforeChars int
-	for _, m := range original {
-		beforeChars += len(m.Content)
-	}
-	saved := (beforeChars - len(summary)) / 4
+	saved := llm.EstimateTokens(original) - llm.EstimateTokens(kept)
 	if saved < 0 {
 		saved = 0
 	}
@@ -296,31 +303,6 @@ func (s *Server) handleCompactSession(w http.ResponseWriter, r *http.Request) {
 		"after_messages":        len(kept),
 		"saved_tokens_estimate": saved,
 	})
-}
-
-// summarizeMessages mirrors internal/tui/tui.go's summarizeConversation
-// without importing internal/tui — a server has no business depending on
-// Bubble Tea for one prompt-building helper.
-func summarizeMessages(ctx context.Context, client *llm.Client, messages []llm.Message) (string, error) {
-	var b strings.Builder
-	for _, msg := range messages {
-		switch msg.Role {
-		case "system":
-			continue
-		case "user":
-			b.WriteString("User: " + msg.Content + "\n")
-		case "assistant":
-			if strings.TrimSpace(msg.Content) != "" {
-				b.WriteString("Assistant: " + msg.Content + "\n")
-			}
-			for _, tc := range msg.ToolCalls {
-				b.WriteString("Assistant used tool " + tc.Function.Name + "(" + tc.Function.Arguments + ")\n")
-			}
-		case "tool":
-			b.WriteString("Tool result [" + msg.Name + "]: " + truncate(msg.Content, 300) + "\n")
-		}
-	}
-	return client.Chat(ctx, compactSystemPrompt, b.String())
 }
 
 // --- T027: Approval endpoint ---

@@ -1,0 +1,1 @@
+The wiki_serve module provides a local web server to browse a generated wiki. It serves markdown documents with a collapsible sidebar, table of contents, search, and reading-time estimates, rendering them via Goldmark with GFM support. The server reads from a pre-generated wiki directory structure and serves HTML pages with client-side enhancements for navigation and search.

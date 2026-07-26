@@ -107,7 +107,7 @@ Follow these workflows when contributing:
 2. **Make changes** adhering to:
    - [Codebase structure](#understanding-the-codebase-structure)
    - [Conventions](#understanding-the-codebase-structure) (error handling, naming, layering)
-   - Configuration patterns in `internal/config/config.go`
+   - [Configuration](../Configuration/Configuration.md) patterns in `internal/config/config.go`
 3. **Verify changes** locally:
    ```bash
    make check   # Runs test + vet
@@ -135,4 +135,4 @@ Makefile
 .gitignore
 ```
 
-<!-- kaioken:files Makefile,go.mod,.gitignore -->
+<!-- kaioken:files Makefile,go.mod -->

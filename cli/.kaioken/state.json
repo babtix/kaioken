@@ -1,0 +1,88 @@
+{
+  "modules": {
+    "kaioken": {
+      "source_hash": "eae8ae6358cfc0ce952ddb51ff7604281c97b3a5f4459148bebd065920d8928a",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:08:50.2013632Z",
+      "file_count": 3
+    },
+    "kaioken/chat_agent/agent_core": {
+      "source_hash": "852aaae7eff424fbd10515fc52eadd7a3401a30e1e1fafce3a71eaf288fe5215",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:09:14.5495139Z",
+      "file_count": 7
+    },
+    "kaioken/chat_agent/agent_skills": {
+      "source_hash": "a97d0c3bb8333ff21349f98952f1d30dfb006f155fbb5b33d513dd02bbf4122b",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:09:48.5877029Z",
+      "file_count": 4
+    },
+    "kaioken/chat_agent/agent_state": {
+      "source_hash": "321ab867b246c289610bf9684aaa02f562dd19c4e9470a52b45bfc2513d07f88",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:10:38.8371589Z",
+      "file_count": 3
+    },
+    "kaioken/chat_agent/llm_integration": {
+      "source_hash": "fa02b70166ce40c4dbdf331ba56b2dce6487919e8ec913857952d82f65f6344d",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:09:34.2325895Z",
+      "file_count": 6
+    },
+    "kaioken/cmd": {
+      "source_hash": "9beb3a2edaee829d432f2ecf6a52d704617f2e5eb8ae6553d73bc72fb7ceec91",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:12:56.1983979Z",
+      "file_count": 1
+    },
+    "kaioken/config": {
+      "source_hash": "6b392d53512aeab44b443f2d25ebd7d80f259bbb28971f52f4bb40edb229af45",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:13:02.6753322Z",
+      "file_count": 4
+    },
+    "kaioken/gitx": {
+      "source_hash": "6eec414ebe7ff2c0ca7593a73bade9483d4c068950b231cad4c4ca74034b690b",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:13:41.691855Z",
+      "file_count": 4
+    },
+    "kaioken/knowledge_engine/codemap": {
+      "source_hash": "24d93f26b655cd8362e1614a1e73ac57c374b1cb3b162c006479254c42af0cb4",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:10:35.4860916Z",
+      "file_count": 6
+    },
+    "kaioken/knowledge_engine/planner": {
+      "source_hash": "49ae949810e0cfccf1eb1af87a7a3f60f4d2cfda94381bce69b780b45edaef46",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:11:35.394814Z",
+      "file_count": 3
+    },
+    "kaioken/knowledge_engine/wiki_generator": {
+      "source_hash": "9f442845b9ef9b72aa56d9b62a6e1c1f893a14c3d7a1d59693bdf743e2763831",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:11:35.7714454Z",
+      "file_count": 15
+    },
+    "kaioken/knowledge_engine/wiki_serve": {
+      "source_hash": "7d31cfb29d54a8f603b5a00b14b473adcb42734e703ddbdbe238b2f6cb5e4614",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:12:17.5249344Z",
+      "file_count": 2
+    },
+    "kaioken/tui": {
+      "source_hash": "e472200ee44f043ba8f388c43730d06ca2c58bce294f91cd9f8c001822b92aba",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:12:24.3388059Z",
+      "file_count": 16
+    },
+    "kaioken/version": {
+      "source_hash": "f0c81adc9b050d74f2cdb5120672d86f3be90c1ebf6610f038e6f2d0fd0b05bb",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-26T04:13:30.7904192Z",
+      "file_count": 1
+    }
+  }
+}

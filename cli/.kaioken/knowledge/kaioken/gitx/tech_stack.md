@@ -1,0 +1,1 @@
+The module uses only the Go standard library (context, exec, bytes, fmt, os, path/filepath, strings) and shells out to the git binary (requiring git to be installed and in PATH). No external libraries or frameworks are used.

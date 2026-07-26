@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"kaioken/internal/config"
+	"kaioken/internal/skills"
 )
 
 // Kaioken generates two kinds of documentation into .kaioken/: dense knowledge
@@ -36,24 +37,25 @@ func knowledgeCatalog(root string) []knowledgeEntry {
 	var entries []knowledgeEntry
 
 	// Skills come first: they are procedural ("how to do X here") and are the
-	// most directly actionable thing available when starting a task.
-	skillsRoot := filepath.Join(root, config.Dir, "skills")
-	if dirs, err := os.ReadDir(skillsRoot); err == nil {
-		for _, d := range dirs {
-			if !d.IsDir() {
-				continue
+	// most directly actionable thing available when starting a task. They are
+	// ordered by reinforcement (UseCount) then name, so the prompt budget —
+	// catalogMaxEntries — favors skills the agent has actually used over
+	// alphabetical noise, which matters once learned skills accumulate.
+	all, err := skills.List(root)
+	if err == nil {
+		sort.Slice(all, func(i, j int) bool {
+			if all[i].UseCount != all[j].UseCount {
+				return all[i].UseCount > all[j].UseCount
 			}
-			p := filepath.Join(skillsRoot, d.Name(), "SKILL.md")
-			raw, err := os.ReadFile(p)
-			if err != nil {
-				continue
-			}
-			label := "skill: " + d.Name()
-			if desc := skillDescription(string(raw)); desc != "" {
+			return all[i].Name < all[j].Name
+		})
+		for _, s := range all {
+			label := "skill: " + s.Name
+			if desc := s.Description; desc != "" {
 				label = "skill — " + desc
 			}
 			entries = append(entries, knowledgeEntry{
-				Path:  path(config.Dir, "skills", d.Name()),
+				Path:  path(config.Dir, "skills", s.Name),
 				Label: label,
 			})
 		}
@@ -113,6 +115,36 @@ func knowledgeCatalog(root string) []knowledgeEntry {
 		}
 	}
 	return entries
+}
+
+// instructionFiles are the root-level agent instruction files, in the order
+// they win. AGENTS.md is the one `kaioken init` writes; the others are here so
+// a repo already set up for another runtime is not ignored.
+var instructionFiles = []string{"AGENTS.md", "CLAUDE.md", ".cursorrules"}
+
+// instructionMaxBytes caps what goes into the system prompt. Every request pays
+// for it, and an AGENTS.md long enough to hit this cap has stopped being an
+// instruction file anyway.
+const instructionMaxBytes = 16_000
+
+// projectInstructions returns the repo's instruction file and its name, or
+// ("", "") when there is none.
+func projectInstructions(root string) (doc, name string) {
+	for _, f := range instructionFiles {
+		raw, err := os.ReadFile(filepath.Join(root, f))
+		if err != nil {
+			continue
+		}
+		text := strings.TrimSpace(strings.ReplaceAll(string(raw), "\r\n", "\n"))
+		if text == "" {
+			continue
+		}
+		if len(text) > instructionMaxBytes {
+			text = text[:instructionMaxBytes] + "\n… [truncated — open " + f + " to read the rest]"
+		}
+		return text, f
+	}
+	return "", ""
 }
 
 // path joins slash-separated repo-relative segments.

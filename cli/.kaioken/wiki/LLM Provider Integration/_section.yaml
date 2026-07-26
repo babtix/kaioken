@@ -1,0 +1,12 @@
+generated_at: "2026-07-26T04:09:34Z"
+model: nvidia/nemotron-3-super-120b-a12b
+section:
+    id: llm_integration
+    title: LLM Provider Integration
+    goal: Detail how kaioken connects to various LLM providers (OpenRouter, OpenAI, etc.), manages tool use, streams responses, handles token budgets, and implements retry logic.
+    files:
+        - internal/llm/openrouter.go
+        - internal/llm/budget.go
+        - internal/llm/stream.go
+        - internal/agent/agent.go
+summary: This section details how kaioken integrates with LLM providers like OpenRouter and OpenAI, covering client configuration, tool use, streaming responses, token budget management, and retry logic. It explains the structure of the LLM client, how it handles tool calls (e.g., read_file, edit_file), streams responses using Server-Sent Events, manages token limits to avoid exceeding model context windows, and implements retry mechanisms for transient errors.

@@ -9,7 +9,7 @@
 
 The agent's system message is built by the `SystemPrompt` function. It informs the LLM of the repository root and the available tools.
 
-`internal/agent/agent.go:12-31`
+`cli/internal/agent/agent.go:12-31`
 
 ```go
 func SystemPrompt(root string, allowRun bool) string {
@@ -40,7 +40,7 @@ The agent communicates with the LLM via the `chat` method. This method sends the
 
 The method supports both streaming and non-streaming modes, controlled by the `NoStream` field of the agent.
 
-`internal/agent/agent.go:35-40`
+`cli/internal/agent/agent.go:35-40`
 
 ```go
 func (a *Agent) chat(ctx context.Context, history []llm.Message, tools []llm.Tool) (llm.Message, error) {
@@ -65,7 +65,7 @@ For each tool call in the model's response, the agent:
 4. Notifies the UI of the tool result and whether it was an error.
 5. Appends a tool message to the conversation history for the LLM to consume.
 
-`internal/agent/agent.go:45-89`
+`cli/internal/agent/agent.go:45-89`
 
 ```go
 func (a *Agent) Run(ctx context.Context, history []llm.Message) ([]llm.Message, error) {
@@ -118,6 +118,6 @@ func (a *Agent) Run(ctx context.Context, history []llm.Message) ([]llm.Message, 
 The `execTool` method (not detailed in the provided structure block) is responsible for mapping the tool name to the corresponding function implementation (e.g., `read_file`, `edit_file`, `run_command`) and executing it with the provided arguments. The result is returned as a string for processing in the loop above.
 
 ## Referenced Files
-- internal/agent/agent.go
+- cli/internal/agent/agent.go
 
 <!-- kaioken:files internal/agent/agent.go -->

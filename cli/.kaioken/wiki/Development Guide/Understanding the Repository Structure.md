@@ -88,6 +88,7 @@ Based on the `Makefile` and `.gitignore`, we can deduce the following repository
 repository-root/
 ├── Makefile
 ├── .gitignore
+├── LICENSE          # MIT license file (added in commit 8a12ad9)
 ├── cmd/
 │   └── kaioken/          # Contains main application (inferred from build target)
 │       └── ...           # Likely main.go and command definitions
@@ -101,6 +102,7 @@ repository-root/
 - `Makefile:22` references `./cmd/kaioken`, confirming a `cmd/kaioken` directory.
 - `.gitignore:7-8` references `.kaioken/sessions/` and `.kaioken/config.yaml`, confirming the `.kaioken` directory structure.
 - The `go build ./...` and `go test ./...` commands imply multiple Go packages exist in subdirectories (consistent with the architecture brief's `internal/` packages).
+- The `LICENSE` file is present in the repository root (added in commit 8a12ad9).
 
 ## Generated Files and Artifacts
 
@@ -125,4 +127,4 @@ The following files and directories are generated during development and should 
 - `Makefile:24-26`
 - `.gitignore:1-12`
 
-<!-- kaioken:files .gitignore,Makefile -->
+<!-- kaioken:files Makefile -->

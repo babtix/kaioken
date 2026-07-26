@@ -1,0 +1,8 @@
+- Keep all Go source under the standard layout (`./cmd/kaioken` for the main application, internal packages under `./internal` or similar).
+- Run unit tests with `go test ./... -count=1` (as defined in the `test` Makefile target).
+- Perform static analysis via `go vet ./...` (`vet` target).
+- If `golangci-lint` is installed, execute `golangci-lint run ./...` (`lint` target).
+- Build the binary using `go build -o kaioken.exe ./cmd/kaioken` (`build` target); the Makefile also builds the default `go build ./...`.
+- Clean build artifacts with `make clean` (removes `kaioken.exe`).
+- Store configuration in JSON files named `Kaioken-settings-logo.json` and `.claude/settings.local.json`; do not commit binaries or sensitive settings.
+- Follow Go formatting conventions (gofmt/goimports) and dependency versioning as declared in `go.mod`.

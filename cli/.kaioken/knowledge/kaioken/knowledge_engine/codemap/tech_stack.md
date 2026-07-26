@@ -1,0 +1,1 @@
+The module uses only the Go standard library: fmt, os, path/filepath, sort, strings, bufio, sync, and golang.org/x/sync/errgroup for parallelism. Go parsing relies on go/ast, go/parser, and go/token packages. No external frameworks or dependencies are used.

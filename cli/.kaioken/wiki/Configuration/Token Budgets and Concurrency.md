@@ -1,8 +1,11 @@
-# Token Budgets and Concurrency
+# Configuration
 
-This chapter explains how Kaioken manages token usage and concurrency for LLM interactions, focusing on configuration-driven controls that prevent rate limits, credit exhaustion, and context overflow. It covers model-specific concurrency clamping for free tiers, dynamic token budgeting based on provider feedback, and input token limits for knowledge generation.
+This chapter explains how Kaioken manages configuration for a repository, covering the per-repo configuration file, default values, and how settings control LLM providers, models, token budgets, and behavior toggles.
+
+Kaioken uses a per-repo configuration file (`.kaioken/config.yaml`) to store user-editable settings. The application also provides sensible defaults (defined in `config.Default()`) for any omitted values.
 
 ## Table of Contents
+- [Configuration File Structure](#configuration-file-structure)
 - [Configuration-Driven Concurrency Limits](#configuration-driven-concurrency-limits)
 - [Token Budgeting for Output Tokens](#token-budgeting-for-output-tokens)
 - [Input Token Management via MaxModuleTokens](#input-token-management-via-maxmoduletokens)
@@ -10,11 +13,29 @@ This chapter explains how Kaioken manages token usage and concurrency for LLM in
 - [Default Configuration and Validation](#default-configuration-and-validation)
 - [Referenced Files](#referenced-files)
 
+## Configuration File Structure
+
+The configuration is stored in `.kaioken/config.yaml` within the target repository. The file defines the following fields:
+
+- `Version`: Configuration schema version (currently 1).
+- `Model`: The model identifier (e.g., `"anthropic/claude-sonnet-4.5"`).
+- `Provider`: The LLM provider to use (e.g., `"openrouter"`, `"openai"`, `"groq"`).
+- `BaseURL`: Optional override for the provider's API endpoint (useful for self-hosted or OpenAI-compatible gateways).
+- `Concurrency`: The number of modules to process in parallel.
+- `MaxModuleTokens`: The maximum input tokens (approximate) to bundle per module for knowledge generation.
+- `MaxTokens`: The maximum output tokens for LLM replies. A value of 0 falls back to the default (8192).
+- `Scope`: Controls which files are scanned:
+  - `Include`: Path prefixes to restrict scanning to (if non-empty).
+  - `Exclude`: Path globs/prefixes to skip (in addition to `.gitignore` and built-in exclusions).
+- `Notes`: A list of strings that are injected verbatim into every LLM prompt, used for steering instructions, conventions, warnings, and guardrails.
+
+Default values are applied when the configuration file omits a field or sets it to a zero value. See [Default Configuration and Validation](#default-configuration-and-validation) for details.
+
 ## Configuration-Driven Concurrency Limits
 
 Kaioken controls parallel LLM requests through the `Concurrency` field in the repository configuration, but automatically adjusts this value for free-tier models to avoid rate limits (HTTP 429). The adjustment happens in `EffectiveConcurrency`, which returns the actual parallelism to use and whether it was clamped.
 
-`internal/config/config.go:85-87`
+`cli/internal/config/config.go:85-87`
 ```go
 // IsFreeModel reports whether a model id names a provider's free tier, which
 // OpenRouter and others mark with a ":free" suffix.
@@ -23,7 +44,7 @@ func IsFreeModel(model string) bool {
 }
 ```
 
-`internal/config/config.go:93-102`
+`cli/internal/config/config.go:93-102`
 ```go
 // EffectiveConcurrency is the parallelism to actually use for a model. Free
 // tiers enforce tight per-minute limits, so fanning out the configured four
@@ -47,7 +68,7 @@ func (c *Config) EffectiveConcurrency(model string) (limit int, clamped bool) {
 - The function returns a boolean `clamped` so callers can log or warn about the adjustment.
 - `FreeModelConcurrency` is a package-level constant set to 2.
 
-`internal/config/config.go:81`
+`cli/internal/config/config.go:81`
 ```go
 // FreeModelConcurrency caps parallel requests against a provider's free tier.
 const FreeModelConcurrency = 2
@@ -59,7 +80,7 @@ This mechanism prevents overwhelming free-tier endpoints with excessive parallel
 
 Kaioken dynamically adjusts the maximum output tokens per LLM request to avoid credit exhaustion errors (HTTP 402) from providers like OpenRouter. When a request fails due to insufficient credits, the provider returns the maximum affordable token count, which Kaioken remembers for subsequent requests.
 
-`internal/llm/budget.go:27-28`
+`cli/internal/llm/budget.go:27-28`
 ```go
 // DefaultMaxTokens is the reply ceiling used when nothing else is configured.
 // Generous enough for a long wiki chapter, small enough to stay affordable on
@@ -67,7 +88,7 @@ Kaioken dynamically adjusts the maximum output tokens per LLM request to avoid c
 const DefaultMaxTokens = 8192
 ```
 
-`internal/llm/budget.go:32`
+`cli/internal/llm/budget.go:32`
 ```go
 // minTokenCeiling is the floor below which a request is not worth sending: a
 // reply that short cannot carry a useful chapter, and the real problem is an
@@ -75,7 +96,7 @@ const DefaultMaxTokens = 8192
 const minTokenCeiling = 512
 ```
 
-`internal/llm/budget.go:36-48`
+`cli/internal/llm/budget.go:36-48`
 ```go
 // tokenCeiling is the cap to send on the next request: whatever was
 // configured, lowered to anything the provider has told us it will accept.
@@ -94,7 +115,7 @@ func (c *Client) tokenCeiling() int {
 }
 ```
 
-`internal/llm/budget.go:53-59`
+`cli/internal/llm/budget.go:53-59`
 ```go
 // learnCeiling records an affordability limit reported by the provider so the
 // remaining calls in a run do not each have to rediscover it. It only ever
@@ -108,7 +129,14 @@ func (c *Client) learnCeiling(n int) {
 }
 ```
 
-`internal/llm/budget.go:68-90`
+`cli/internal/llm/budget.go:63`
+```go
+// affordableRe matches the ceiling out of OpenRouter's 402 body, e.g.
+// "You requested up to 32768 tokens, but can only afford 10757".
+var affordableRe = regexp.MustCompile(`can only afford (\d+)`)
+```
+
+`cli/internal/llm/budget.go:68-90`
 ```go
 // affordableTokens reports the ceiling a 402 says the account can cover.
 // The response embeds earlier attempts under "previous_errors", each with its
@@ -130,8 +158,7 @@ func affordableTokens(err error) (int, bool) {
 		if best == 0 || n < best {
 			best = n
 		}
-	}
-	if best < minTokenCeiling {
+		< minTokenCeiling {
 		return 0, false
 	}
 	return best, true
@@ -154,7 +181,7 @@ When a 402 error occurs, the calling code (not shown in `budget.go`) should:
 2. Pass that count to `learnCeiling` to reduce future request sizes.
 3. Present a user-friendly error via `creditError` (see below).
 
-`internal/llm/budget.go:115-128`
+`cli/internal/llm/budget.go:115-128`
 ```go
 // creditError turns a 402 into something a user can act on. The raw body is a
 // wall of nested JSON listing every upstream provider that declined, which
@@ -181,7 +208,7 @@ This function formats 402 errors to suggest either adding credits or reducing `m
 
 While token budgeting controls output tokens, Kaioken separately limits input tokens (context size) for knowledge generation tasks via the `MaxModuleTokens` configuration. This prevents excessive context window usage and reduces input costs.
 
-`internal/config/config.go:18-41`
+`cli/internal/config/config.go:18-41`
 ```go
 // Config is the user-editable configuration for one target repository.
 type Config struct {
@@ -204,6 +231,82 @@ type Config struct {
 	MaxTokens int   `yaml:"max_tokens,omitempty"`
 	Scope     Scope `yaml:"scope"`
 	// Notes are steering instructions injected verbatim into every LLM prompt.
-	// This is the human-in-the-loop channel
+	// This is the human-in-the-loop channel: conventions the code alone does
+	// not state, warnings, and "do not do X" guardrails.
+	Notes []string `yaml:"notes"`
+}
+```
+
+**Key behaviors:**
+- `MaxModuleTokens` sets the approximate token limit for source code context included in each knowledge generation prompt.
+- Lower values reduce input costs and context window pressure but may reduce the amount of code the model can see per module.
+- The configuration loader enforces a minimum value of 4000 tokens (see [Default Configuration and Validation](#default-configuration-and-validation)).
+
+## Interaction Between Concurrency and Token Budgeting
+
+The concurrency limits and token budgeting systems work together to manage LLM resource usage:
+- Concurrency controls how many LLM requests run in parallel.
+- Token budgeting controls the size of each request's output.
+- For free-tier models, concurrency is clamped to prevent rate limits, while token budgeting protects against credit exhaustion.
+- Adjusting one may affect the other: lower concurrency reduces parallel load but may increase total time, while lower token ceilings reduce per-request cost but may require more requests for the same output.
+
+## Default Configuration and Validation
+
+The `Default()` function provides a baseline configuration that is merged with user settings from `.kaioken/config.yaml`. During loading, values are validated and corrected if necessary.
+
+`cli/internal/config/config.go:63-78`
+```go
+// Default returns a fresh config with sensible defaults.
+func Default() *Config {
+	return &Config{
+		Version:         1,
+		Model:           "nvidia/nemotron-3-ultra-550b-a55b:free",
+		Provider:        "openrouter",
+		Concurrency:     4,
+		MaxModuleTokens: 60000,
+		Scope: Scope{
+			Exclude: []string{
+				"**/*.lock", "**/pnpm-lock.yaml", "**/package-lock.json",
+				"**/uv.lock", "**/*.min.js", "**/*.map",
+			},
+		},
+		Notes: []string{},
+	}
+}
+```
+
+`cli/internal/config/config.go:110-129`
+```go
+// Load reads the config for a repo, returning a helpful error if missing.
+func Load(repo string) (*Config, error) {
+	raw, err := os.ReadFile(Path(repo))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("no %s/config.yaml found in %s — run `kaioken init` first", Dir, repo)
+		}
+		return nil, err
+	}
+	cfg := Default()
+	if err := yaml.Unmarshal(raw, cfg); err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", Path(repo), err)
+	}
+	if cfg.Concurrency < 1 {
+		cfg.Concurrency = 1
+	}
+	if cfg.MaxModuleTokens < 4000 {
+		cfg.MaxModuleTokens = 4000
+	}
+	return cfg, nil
+}
+```
+
+**Validation rules:**
+- `Concurrency` is forced to at least 1.
+- `MaxModuleTokens` is forced to at least 4000 tokens to ensure useful context for knowledge generation.
+- All other fields use the zero-value defaults from `Default()` if not set or invalid.
+
+## Referenced Files
+- `cli/internal/config/config.go`
+- `cli/internal/llm/budget.go`
 
 <!-- kaioken:files internal/llm/budget.go,internal/config/config.go -->

@@ -24,15 +24,16 @@ export default function Config() {
 
       <H2 id="providers">Providers</H2>
       <P>
-        Kaioken is provider-agnostic over any OpenAI-compatible endpoint. Switch at runtime and the
-        model list refetches from whichever provider is active.
+        Kaioken is provider-agnostic over any OpenAI-compatible endpoint, plus Anthropic's own
+        Messages API directly (its own auth header, not a compatibility shim). Switch at runtime
+        and the model list refetches from whichever provider is active.
       </P>
       <div className="pt-4">
         <CodeBlock
           title="tui"
-          code={`/provider openrouter
+          code={`/provider anthropic
 /models claude          # filter the live catalog
-/model anthropic/claude-opus-4
+/model claude-opus-4
 /key                    # hidden prompt, in-memory only`}
         />
       </div>

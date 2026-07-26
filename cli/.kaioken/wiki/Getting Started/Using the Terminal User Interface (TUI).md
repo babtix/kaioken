@@ -1,13 +1,31 @@
-# Using the Terminal User Interface (TUI)
+# Getting Started with kaioken
 
-This chapter explains how to launch the TUI, navigate its interface, and start a basic chat session with the kaioken agent.
+This chapter explains how to install, build, and run kaioken for the first time, including basic usage of the TUI and CLI commands.
 
 ## Table of Contents
+- [Installation](#installation)
+- [Building from Source](#building-from-source)
 - [Launching the TUI](#launching-the-tui)
 - [Navigating the Interface](#navigating-the-interface)
 - [Starting a Chat Session](#starting-a-chat-session)
 - [Slash Commands Reference](#slash-commands-reference)
 - [Referenced Files](#referenced-files)
+
+## Installation
+
+You can install kaioken by downloading a pre-built binary from the releases page or by building from source.
+
+## Building from Source
+
+To build kaioken from source:
+
+1. Ensure you have [Go](https://golang.org/dl/) installed (version 1.20 or later recommended).
+2. Obtain the source code (e.g., by cloning the repository).
+3. From the root of the repository, build the executable:
+   ```bash
+   go build -o kaioken ./cli
+   ```
+4. The resulting `kaioken` binary can be moved to a directory in your `PATH` for easy access.
 
 ## Launching the TUI
 
@@ -15,7 +33,7 @@ The TUI is launched by running the `kaioken` command without arguments, which st
 
 ```powershell
 kaioken            # launches TUI for current directory
-kaioken tui -repo path/to/repo   # launches TUI for specified repository
+kaioken -repo path/to/repo   # launches TUI for specified repository
 ```
 
 The TUI initializes by loading repository configuration, session history, and any existing knowledge artifacts (wiki, skills) from the `.kaioken` directory.
@@ -91,5 +109,3 @@ All TUI functionality is accessed via slash-commands. Type `/` to open the comma
 
 ## Referenced Files
 - README.md
-
-<!-- kaioken:files README.md -->

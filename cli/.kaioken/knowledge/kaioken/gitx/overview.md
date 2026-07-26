@@ -1,0 +1,1 @@
+The gitx module provides Git repository interaction and hook management for Kaioken. It shells out to the git binary to determine repository state (e.g., HEAD, branch, dirty status, changes) and manages post-commit hooks to trigger wiki updates via `kaioken update` in the background.

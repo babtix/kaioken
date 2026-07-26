@@ -13,7 +13,7 @@ The chat agent processes user messages, coordinates interactions with the LLM, m
 
 The agent's behavior is guided by a dynamically generated system message that establishes its role, available tools, and operational guidelines.
 
-`internal/agent/agent.go:12-31`
+`cli/internal/agent/agent.go:12-31`
 ```go
 func SystemPrompt(root string, allowRun bool) string {
 	var b strings.Builder
@@ -48,7 +48,7 @@ The prompt includes:
 
 Handles single-turn LLM interactions, optionally streaming responses to the UI while collecting the complete message for tool processing.
 
-`internal/agent/agent.go:35-40`
+`cli/internal/agent/agent.go:35-40`
 ```go
 func (a *Agent) chat(ctx context.Context, history []llm.Message, tools []llm.Tool) (llm.Message, error) {
 	if a.NoStream {
@@ -69,7 +69,7 @@ Key aspects:
 
 Implements the agent's core reasoning loop, managing tool use, approvals, and conversation history until task completion or step limit.
 
-`internal/agent/agent.go:45-89`
+`cli/internal/agent/agent.go:45-89`
 ```go
 func (a *Agent) Run(ctx context.Context, history []llm.Message) ([]llm.Message, error) {
 	steps := a.MaxSteps
@@ -178,7 +178,7 @@ Key approval mechanics:
 
 The agent leverages wiki-generated documentation through the `read_knowledge` tool, which provides access to structured repository insights.
 
-From the system prompt (`internal/agent/agent.go:12-31`):
+From the system prompt (`cli/internal/agent/agent.go:12-31`):
 > "- read_knowledge: open Kaioken's generated docs for this repo; call it with no\n>   argument to see what exists."
 
 This enables:

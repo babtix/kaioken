@@ -28,14 +28,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"kaioken/internal/agent"
+	"kaioken/internal/agentsmd"
 	"kaioken/internal/config"
 	"kaioken/internal/generate"
 	"kaioken/internal/gitx"
 	"kaioken/internal/llm"
+	"kaioken/internal/memory"
 	"kaioken/internal/plan"
 	"kaioken/internal/scan"
 	"kaioken/internal/serve"
 	"kaioken/internal/session"
+	"kaioken/internal/setup"
 	"kaioken/internal/skills"
 	"kaioken/internal/state"
 	"kaioken/internal/version"
@@ -82,9 +85,16 @@ type assistantMsg struct{ text string }
 
 type serveStartedMsg struct{ url string }
 type serveStoppedMsg struct{}
+// compactedMsg carries a rebuilt conversation back from a compaction. The
+// history is assembled off the UI goroutine and swapped in whole, so the
+// automatic and the /compact paths converge on one piece of state handling.
 type compactedMsg struct {
-	summary string
-	dropped int
+	history []llm.Message
+	note    string
+	// auto marks a compaction the user did not ask for, which is worth saying
+	// out loud — the model is about to answer with less history than the
+	// transcript above it implies.
+	auto bool
 }
 
 func listen(ch chan tea.Msg) tea.Cmd {
@@ -137,8 +147,11 @@ type Model struct {
 
 	conversation []llm.Message
 	autoApprove  bool
-	undoStack    []agent.UndoEntry
-	sess         *session.Session
+	// agentMode is the agent's permission preset (/mode). The zero value
+	// behaves as build, so a fresh Model keeps the historical behavior.
+	agentMode agent.Mode
+	undoStack []agent.UndoEntry
+	sess      *session.Session
 
 	vp    viewport.Model
 	input textarea.Model
@@ -263,9 +276,16 @@ func New(repo string) Model {
 func (m *Model) resetConversation() {
 	m.conversation = []llm.Message{{
 		Role:    "system",
-		Content: agent.SystemPrompt(m.repo, true),
+		Content: agent.SystemPrompt(agent.PromptInput{
+			Root:     m.repo,
+			Mode:     m.agentMode,
+			Model:    m.cfg.Model,
+			AllowRun: true,
+			Notes:    m.cfg.Notes,
+		}),
 	}}
 	m.sess = session.New(m.cfg.Model, m.cfg.Provider)
+	m.sess.Mode = string(m.agentMode)
 }
 
 // saveSession persists the conversation after a completed turn. Failures are
@@ -279,6 +299,22 @@ func (m *Model) saveSession() {
 	if err := m.sess.Save(m.repo); err != nil {
 		m.appendLine(dimStyle.Render("could not save session: " + err.Error()))
 	}
+}
+
+// closeSession runs the experience loop at a session boundary (new/quit). It is
+// non-blocking: learning, digesting, and reinforcement happen in a goroutine
+// so closing or starting fresh never waits on an LLM call. The gate is the
+// configured tier — /learn (startLearn with force) is the always-on escape.
+func (m *Model) closeSession(force bool) {
+	if m.cfg.Memory.Disable || m.sess == nil || len(m.conversation) == 0 {
+		return
+	}
+	repo, cfg, client := m.repo, m.cfg, m.client
+	sess := m.sess
+	sess.Record(m.conversation)
+	go func() {
+		_ = memory.LearnSession(context.Background(), repo, cfg, client, sess, force)
+	}()
 }
 
 func (m Model) Init() tea.Cmd {
@@ -300,7 +336,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.committed = "" // width changed — the cached wrap is wrong now
 		// The header is rebuilt on every resize: both its layout (side-by-side
 		// vs stacked vs compact) and its height feed the viewport sizing.
-		m.header = stickyHeader(m.cfg, m.repo, m.client != nil, m.width, m.height)
+		m.printStatusPanel()
 		if first && m.configMissing {
 			m.lines = append(m.lines, warnStyle.Render("no .kaioken/config.yaml here — using defaults; /init to save"))
 		}
@@ -413,11 +449,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, listen(m.events)
 
 	case compactedMsg:
-		m.conversation = []llm.Message{
-			m.conversation[0], // original system prompt
-			{Role: "system", Content: "Summary of earlier conversation (compacted to save context):\n" + msg.summary},
+		m.conversation = msg.history
+		if m.sess != nil {
+			m.sess.AddEpoch("compaction", string(m.agentMode), msg.note)
 		}
-		m.appendLine(okStyle.Render(fmt.Sprintf("compacted %d messages → summary (%d chars)", msg.dropped, len(msg.summary))))
+		if msg.auto {
+			m.appendLine(dimStyle.Render("context was filling up — " + msg.note))
+		} else {
+			m.appendLine(okStyle.Render(msg.note))
+		}
 		return m, listen(m.events)
 
 	default:
@@ -679,11 +719,45 @@ func (m Model) sessionStatus() string {
 		}
 	}
 	out := hintStyle.Render(strings.Join(parts, " · "))
+	if fill := m.contextFill(); fill != "" {
+		out = fill + hintStyle.Render(" · ") + out
+	}
 	if m.autoApprove {
 		// yolo means edits land without asking — it should never be subtle.
 		out = warnStyle.Render("yolo") + hintStyle.Render(" · ") + out
 	}
 	return out
+}
+
+// contextFill renders how full the context is, as a percentage of the space a
+// conversation may occupy before it is automatically reduced — not of the raw
+// window, which would read low right up to the moment compaction fires.
+//
+// It stays hidden below halfway. An empty session sitting at 3% is noise, and
+// the only decision this number informs — whether to /compact or start fresh
+// before a long task — does not arise until the context is genuinely filling.
+// Once it appears, the color tracks urgency: dim, then warning as automatic
+// reduction approaches.
+func (m Model) contextFill() string {
+	if m.cfg == nil || len(m.conversation) == 0 {
+		return ""
+	}
+	usable := agent.Usable(m.cfg.Model, m.cfg.MaxTokens)
+	if usable <= 0 {
+		return ""
+	}
+	pct := llm.EstimateTokens(m.conversation) * 100 / usable
+	if pct < 50 {
+		return ""
+	}
+	if pct > 100 {
+		pct = 100
+	}
+	label := fmt.Sprintf("ctx %d%%", pct)
+	if pct >= 80 {
+		return warnStyle.Render(label)
+	}
+	return hintStyle.Render(label)
 }
 
 // modelLabelWidth caps the model name so a verbose id cannot crowd out the
@@ -904,16 +978,48 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 	m.cancel = cancel
 	ui := uiAdapter{events: m.events, approvals: m.approvals, ctx: ctx}
 	ag := &agent.Agent{
-		Client:      m.client,
-		Root:        m.repo,
-		UI:          ui,
-		AutoApprove: m.autoApprove,
-		AllowRun:    true,
-		MaxSteps:    25,
+		Client:          m.client,
+		Root:            m.repo,
+		UI:              ui,
+		AutoApprove:     m.autoApprove,
+		AllowRun:        true,
+		MaxSteps:        25,
+		Mode:            m.agentMode,
+		MemoryDisabled:  m.cfg.Memory.Disable,
 	}
 	conv := m.conversation
 	ch := m.events
+	client, model, ceiling := m.client, m.cfg.Model, m.cfg.MaxTokens
 	go func() {
+		// Shrink the context before the turn rather than after a provider
+		// rejects it. Overflow is not recoverable in place: by the time the
+		// request fails, the user's message is already inside a history too
+		// large to send, so the only way forward is to make it smaller — do
+		// that first, while the failure is still hypothetical.
+		//
+		// Two steps, cheapest first. Pruning erases the bodies of stale tool
+		// results for free and keeps the whole conversation; summarizing costs
+		// a model call and replaces it. Most turns never need the second.
+		if need, used := agent.ShouldCompact(conv, model, ceiling); need {
+			if pruned, freed, note := agent.Prune(conv, model, ceiling); freed > 0 {
+				conv = pruned
+				ch <- compactedMsg{history: pruned, note: note, auto: true}
+				used -= freed
+			}
+			if still, _ := agent.ShouldCompact(conv, model, ceiling); still {
+				ch <- busyMsg{true, "compacting context"}
+				compacted, note, err := agent.Compact(ctx, client, conv, model, ceiling)
+				if err == nil {
+					conv = compacted
+					ch <- compactedMsg{history: compacted, note: note, auto: true}
+				} else if ctx.Err() == nil {
+					// A failed compaction is not fatal — the turn may still
+					// fit. Say so and continue rather than losing the message.
+					ch <- logMsg{dimStyle.Render(fmt.Sprintf(
+						"context is large (~%d tokens) and auto-compaction failed: %v", used, err))}
+				}
+			}
+		}
 		ch <- busyMsg{true, "thinking"}
 		hist, err := ag.Run(ctx, conv)
 		ch <- agentDoneMsg{hist, err}
@@ -954,12 +1060,14 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		m.appendLine(helpText)
 		m.appendLine(dimStyle.Render("\n/tutorial explains each of these with examples · /explain goes deeper."))
 	case "quit", "exit", "q":
+		m.closeSession(false) // learn+digest the session before leaving
 		return m, tea.Quit
 	case "clear", "cls":
 		m.lines = nil
 		m.refreshViewport()
 	case "reset", "new":
-		m.saveSession() // keep what was there before starting fresh
+		m.closeSession(false) // learn+digest the previous session, then start fresh
+		m.saveSession()        // keep what was there before starting fresh
 		m.resetConversation()
 		m.undoStack = nil
 		m.appendLine(dimStyle.Render("new session started — /resume to reopen the previous one"))
@@ -980,6 +1088,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		m.showCost()
 	case "compact":
 		return m.startCompact()
+	case "learn":
+		return m.startLearn(true)
 	case "copy":
 		m.doCopy()
 	case "version", "v":
@@ -991,6 +1101,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		} else {
 			m.appendLine(okStyle.Render("auto-approve OFF — changes require confirmation"))
 		}
+	case "mode":
+		m.doMode(rest)
 	case "config":
 		for _, l := range m.configLines() {
 			m.appendLine(l)
@@ -1012,7 +1124,7 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 	case "notes":
 		m.notes(args, rest)
 	case "init":
-		m.doInit()
+		return m.startInit(args)
 	case "scan":
 		return m.startScan()
 	case "plan":
@@ -1107,6 +1219,11 @@ func (m *Model) setProvider(name string) {
 // header is rendered from live state rather than drawn once as history.
 func (m *Model) printStatusPanel() {
 	m.header = stickyHeader(m.cfg, m.repo, m.client != nil, m.width, m.height)
+	// Build is the default and shows nothing; any other mode gets one short
+	// indicator row so a read-only session cannot be mistaken for a normal one.
+	if m.agentMode != "" && m.agentMode != agent.ModeBuild {
+		m.header = append(m.header, warnStyle.Render("mode "+string(m.agentMode)))
+	}
 }
 
 // listProviders prints all available providers with their details.
@@ -1227,16 +1344,60 @@ func (m *Model) notes(args []string, rest string) {
 	}
 }
 
-func (m *Model) doInit() {
-	if _, err := os.Stat(config.Path(m.repo)); err == nil {
-		m.appendLine(warnStyle.Render("config already exists at " + config.Path(m.repo)))
-		return
+// startInit runs the full first-run setup for the current repo: save the
+// config, scan, and write AGENTS.md. Usage: /init [force]
+func (m Model) startInit(args []string) (tea.Model, tea.Cmd) {
+	if m.guardBusy() {
+		return m.busyNote()
 	}
-	if err := m.cfg.Save(m.repo); err != nil {
-		m.appendLine(errStyle.Render(err.Error()))
-		return
+	force := false
+	for _, a := range args {
+		if strings.EqualFold(a, "force") || a == "--force" || a == "-f" {
+			force = true
+		}
 	}
-	m.appendLine(okStyle.Render("created " + config.Path(m.repo)))
+
+	// The config is written synchronously so the rest of the session — and the
+	// background goroutine below — see the same on-disk state.
+	if _, err := os.Stat(config.Path(m.repo)); err != nil {
+		if err := m.cfg.Save(m.repo); err != nil {
+			m.appendLine(errStyle.Render(err.Error()))
+			return m, nil
+		}
+		m.appendLine(okStyle.Render("✓ created " + config.Path(m.repo)))
+	} else {
+		m.appendLine(dimStyle.Render("· " + config.Path(m.repo) + " already exists — kept as is"))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	m.cancel = cancel
+	repo, cfg, client, ch := m.repo, m.cfg, m.client, m.events
+	go func() {
+		ch <- busyMsg{true, "setting up"}
+		pg := agentsmd.Progress{
+			Info:    func(t string) { ch <- logMsg{dimStyle.Render("  " + t)} },
+			Started: func(w string) { ch <- logMsg{toolStyle.Render("  → " + w)} },
+			Wrote: func(p string, lines int) {
+				ch <- logMsg{okStyle.Render(fmt.Sprintf("  ✓ %s (%d lines)", p, lines))}
+			},
+			Failed: func(w string, err error) {
+				ch <- logMsg{errStyle.Render("  ✗ " + w + ": " + err.Error())}
+			},
+		}
+		res, err := setup.Run(ctx, repo, cfg, client, setup.Options{Force: force}, pg)
+		if err == nil {
+			if res.AgentsSkipped != "" {
+				ch <- logMsg{dimStyle.Render("  · " + res.AgentsSkipped)}
+			}
+			ch <- logMsg{dimStyle.Render("next:")}
+			for _, s := range setup.NextSteps(repo) {
+				ch <- logMsg{dimStyle.Render("  " + s)}
+			}
+		}
+		ch <- doneMsg{"init", err}
+		ch <- busyMsg{false, ""}
+	}()
+	return m, nil
 }
 
 // ---- utility commands ----
@@ -1308,14 +1469,10 @@ func (m *Model) showCost() {
 	m.appendLine(dimStyle.Render("resets when you switch /model or /provider"))
 }
 
-const compactSystem = `Summarize the following coding-assistant conversation into a concise
-brief a new assistant could use to seamlessly continue the task: what the user wants, key
-facts learned about the codebase, files touched, decisions made, and anything still pending.
-Be factual and terse — this replaces the full transcript, so keep everything load-bearing.
-Output plain text, no preamble, no markdown headers.`
-
 // startCompact summarizes the conversation via the LLM and replaces the
-// history with system prompt + summary, freeing up context.
+// history with system prompt + summary + the most recent turns, freeing up
+// context. The summarizing itself lives in internal/agent so this path and the
+// automatic one before a turn cannot drift apart.
 func (m Model) startCompact() (tea.Model, tea.Cmd) {
 	if m.client == nil {
 		return m.needKey()
@@ -1323,47 +1480,140 @@ func (m Model) startCompact() (tea.Model, tea.Cmd) {
 	if m.guardBusy() {
 		return m.busyNote()
 	}
-	if len(m.conversation) <= 2 {
-		m.appendLine(dimStyle.Render("conversation is too short to compact"))
-		return m, nil
-	}
 	ctx, cancel := context.WithCancel(context.Background())
 	m.cancel = cancel
 	client, conv, ch := m.client, m.conversation, m.events
+	model, ceiling := m.cfg.Model, m.cfg.MaxTokens
 	go func() {
 		ch <- busyMsg{true, "compacting"}
-		summary, err := summarizeConversation(ctx, client, conv)
+		history, note, err := agent.Compact(ctx, client, conv, model, ceiling)
 		if err != nil {
 			ch <- doneMsg{"compact", err}
 			ch <- busyMsg{false, ""}
 			return
 		}
-		ch <- compactedMsg{summary: summary, dropped: len(conv) - 1}
+		ch <- compactedMsg{history: history, note: note}
 		ch <- busyMsg{false, ""}
 	}()
 	return m, nil
 }
 
-func summarizeConversation(ctx context.Context, client *llm.Client, conv []llm.Message) (string, error) {
-	var b strings.Builder
-	for _, msg := range conv {
-		switch msg.Role {
-		case "system":
-			continue
-		case "user":
-			b.WriteString("User: " + msg.Content + "\n")
-		case "assistant":
-			if strings.TrimSpace(msg.Content) != "" {
-				b.WriteString("Assistant: " + msg.Content + "\n")
-			}
-			for _, tc := range msg.ToolCalls {
-				b.WriteString("Assistant used tool " + tc.Function.Name + "(" + tc.Function.Arguments + ")\n")
-			}
-		case "tool":
-			b.WriteString("Tool result [" + msg.Name + "]: " + preview(msg.Content, 3, 300) + "\n")
-		}
+// startLearn runs the experience loop on the current session: reinforce the
+// skills it consulted, write a digest for recall, and (when the gate fires or
+// force is true) distill a skill. An explicit /learn passes force=true so the
+// user can always learn on demand regardless of the configured multiplier.
+// Session-end learning calls it with force=false so the tier config decides.
+func (m Model) startLearn(force bool) (tea.Model, tea.Cmd) {
+	if m.client == nil {
+		return m.needKey()
 	}
-	return client.Chat(ctx, compactSystem, b.String())
+	if m.sess == nil || len(m.conversation) == 0 {
+		m.appendLine(dimStyle.Render("nothing to learn from an empty session"))
+		return m, nil
+	}
+	if m.guardBusy() {
+		return m.busyNote()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	m.cancel = cancel
+	repo, cfg, client, ch := m.repo, m.cfg, m.client, m.events
+	sess := m.sess
+	sess.Record(m.conversation)
+	go func() {
+		ch <- busyMsg{true, "learning"}
+		res := memory.LearnSession(ctx, repo, cfg, client, sess, force)
+		if res.Err != nil {
+			ch <- logMsg{warnStyle.Render("learn: " + res.Err.Error())}
+		}
+		if len(res.Reinforced) > 0 {
+			ch <- logMsg{dimStyle.Render(fmt.Sprintf(
+				"reinforced %d skill(s): %s", len(res.Reinforced), strings.Join(res.Reinforced, ", ")))}
+		}
+		if res.Digest != nil {
+			ch <- logMsg{dimStyle.Render("wrote session digest for /recall")}
+		}
+		if res.Distill != nil && res.Distill.Skill != "" {
+			verb := "learned"
+			if res.Distill.Patched {
+				verb = "patched"
+			}
+			ch <- logMsg{okStyle.Render(fmt.Sprintf(
+				"%s skill %s (signals: %s)", verb, res.Distill.Skill,
+				strings.Join(signalStrings(res.Distill.Signals), ", ")))}
+		} else if res.Distill != nil && force && len(res.Distill.Signals) == 0 {
+			ch <- logMsg{dimStyle.Render("no lessons strong enough to distill a skill")}
+		}
+		ch <- busyMsg{false, ""}
+	}()
+	return m, nil
+}
+
+func signalStrings(s []memory.Signal) []string {
+	out := make([]string, len(s))
+	for i, v := range s {
+		out[i] = string(v)
+	}
+	return out
+}
+
+// modeSummary is the one-line description shown by /mode and the header.
+func modeSummary(md agent.Mode) string {
+	switch md {
+	case agent.ModePlan:
+		return "read-only — propose changes as text, no edits or commands"
+	case agent.ModeGeneral:
+		return "full toolset, but every repo-changing action asks first"
+	case agent.ModeExplore:
+		return "read-only — search and explain the codebase"
+	default:
+		return "full access — write, edit and run tools (default)"
+	}
+}
+
+// doMode reports or switches the agent's permission mode. A mid-conversation
+// switch injects a context update so the model knows its toolset changed.
+func (m *Model) doMode(arg string) {
+	cur := m.agentMode
+	if cur == "" {
+		cur = agent.ModeBuild
+	}
+	if arg == "" {
+		m.appendLine("current mode: " + string(cur))
+		for _, md := range agent.AllModes() {
+			marker := "  "
+			if md == cur {
+				marker = okStyle.Render("● ")
+			}
+			m.appendLine(marker + string(md) + dimStyle.Render("  — "+modeSummary(md)))
+		}
+		m.appendLine(dimStyle.Render("/mode <name> to switch"))
+		return
+	}
+	md, err := agent.ParseMode(arg)
+	if err != nil {
+		m.appendLine(errStyle.Render(err.Error()))
+		return
+	}
+	if md == cur {
+		m.appendLine(dimStyle.Render("already in " + string(md) + " mode"))
+		return
+	}
+	m.agentMode = md
+	guidance := md.PromptGuidance()
+	if guidance == "" {
+		guidance = "full access"
+	}
+	// A mode switch is announced through its own constructor rather than as
+	// free text: later turns parse these back to notice that the session was
+	// read-only earlier, and prose would make that a substring search.
+	m.conversation = append(m.conversation, agent.ModeSwitch(md, guidance))
+	if m.sess != nil {
+		m.sess.AddEpoch("mode_switch", string(md), "")
+		m.sess.Mode = string(md)
+	}
+	m.printStatusPanel()
+	m.syncLayout()
+	m.appendLine(okStyle.Render("mode: "+string(md)) + dimStyle.Render(" — "+modeSummary(md)))
 }
 
 // doCopy copies the last assistant message to the system clipboard.
@@ -1645,6 +1895,18 @@ func (m *Model) resumeSession(id string) {
 	m.sess = s
 	m.conversation = s.Messages
 	m.undoStack = nil // undo entries belong to the session that made them
+	// Restore the mode the session was saved in; an unrecognized value falls
+	// back to build rather than failing the resume.
+	if s.Mode != "" {
+		if md, err := agent.ParseMode(s.Mode); err == nil {
+			m.agentMode = md
+		} else {
+			m.agentMode = agent.ModeBuild
+			m.appendLine(dimStyle.Render("session mode " + s.Mode + " not recognized — using build"))
+		}
+		m.printStatusPanel()
+		m.syncLayout()
+	}
 
 	m.appendLine("")
 	m.appendLine(okStyle.Render("resumed: " + s.Title))
@@ -2214,6 +2476,8 @@ var toolGlyphs = map[string]string{
 	"write_file":  "◆",
 	"edit_file":   "◆",
 	"run_command": "▶",
+	"task":        "◍",
+	"todo":        "☰",
 }
 
 func toolCallLine(name, args string) string {
@@ -2259,7 +2523,10 @@ func compactArgs(args string) string {
 	if err := json.Unmarshal([]byte(args), &m); err != nil {
 		return clip(strings.ReplaceAll(args, "\n", " "), 80)
 	}
-	for _, k := range []string{"path", "command", "query"} {
+	// Ordered by how well each identifies the call at a glance. "description"
+	// is the task tool's own label for what it is off doing; "doc" names the
+	// knowledge page being opened.
+	for _, k := range []string{"path", "command", "query", "description", "doc"} {
 		if v, ok := m[k].(string); ok {
 			return clip(v, 80)
 		}
@@ -2285,7 +2552,9 @@ func preview(s string, maxLines, maxChars int) string {
 
 var helpText = strings.Join([]string{
 	"Chat: type anything to talk to the model. It can use tools:",
-	"  read_file · list_files · search · write_file · edit_file · run_command",
+	"  read_file · list_files · search · read_knowledge · write_file · edit_file · run_command",
+	"  task     delegate a search to a read-only sub-agent with its own context",
+	"  todo     keep a visible checklist on multi-step work",
 	"  file writes, edits and commands ask for your y/n approval first.",
 	"",
 	"Run control:",
@@ -2300,6 +2569,7 @@ var helpText = strings.Join([]string{
 	"  /diff                   show `git diff` for the repo's working tree",
 	"  /cost                   token usage and call count for the active model",
 	"  /compact                summarize the conversation to free up context",
+	"  /learn                  distill this session into a skill + write a digest for /recall",
 	"  /copy                   copy the last assistant reply to the clipboard",
 	"  /reset                  alias for /new",
 	"  /version                print the Kaioken version",
@@ -2310,6 +2580,7 @@ var helpText = strings.Join([]string{
 	"  /provider [name|list]   switch API provider (no arg = list all available)",
 	"  /key [value]            set API key (blank = hidden prompt) — saved to ~/.kaioken",
 	"  /yolo                   toggle auto-approve for edits and commands",
+	"  /mode [name]            agent permission mode: build · plan · general · explore",
 	"  /repo <path>            point at a different repository",
 	"",
 	"Knowledge engine:",
@@ -2326,7 +2597,8 @@ var helpText = strings.Join([]string{
 	"  /scan /plan /cards      knowledge-card pipeline   ·   /status",
 	"  /notes [add <t>|clear]  steering notes injected into card prompts",
 	"",
-	"  /config /init /clear /help /explain /quit",
+	"  /init [force]           first-run setup: config + scan + AGENTS.md for this repo",
+	"  /config /clear /help /explain /quit",
 }, "\n")
 
 func shortPath(p string) string {

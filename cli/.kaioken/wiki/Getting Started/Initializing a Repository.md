@@ -71,6 +71,6 @@ After running `kaioken init`:
 Once these steps are complete, you can proceed with scanning (`kaioken scan`), planning (`kaioken plan`), and generating knowledge cards (`kaioken generate`).
 
 ## Referenced files
-- cmd/kaioken/main.go
+- cli/cmd/kaioken/main.go
 
 <!-- kaioken:files cmd/kaioken/main.go -->

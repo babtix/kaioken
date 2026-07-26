@@ -19,10 +19,22 @@ function FatalError({ message }: { message: string }) {
   )
 }
 
+// createRoot must run at most once per container. Vite can re-evaluate this
+// module (HMR, or a reload that races the previous evaluation), and calling
+// createRoot twice on #root is a hard React error that blanks the window —
+// so the root is cached on the container itself.
+type RootHost = HTMLElement & { __kaiRoot?: ReturnType<typeof createRoot> }
+
+function getRoot() {
+  const host = document.getElementById("root") as RootHost
+  if (!host.__kaiRoot) host.__kaiRoot = createRoot(host)
+  return host.__kaiRoot
+}
+
 // There is no meaningful UI without a daemon, so there is no point rendering
 // one: bootstrap() must resolve before App ever mounts.
 async function start() {
-  const root = createRoot(document.getElementById("root")!)
+  const root = getRoot()
 
   try {
     await bootstrap()

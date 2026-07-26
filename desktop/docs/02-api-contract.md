@@ -214,6 +214,27 @@ exists returns `409` with code `already_initialized`.
 ```
 `stats` is `scan.Result.Stats()` verbatim; `tree` is `TreeSummary(8)`.
 
+### `GET /v1/workspaces/{id}/files?q=tools&limit=20`
+*(added in M7 — see the amendment note below)*
+```json
+{ "query": "tools", "files": [
+  { "path": "cli/internal/agent/tools.go", "name": "tools.go", "lines": 412 }
+] }
+```
+Path completion for the chat composer's `@` mentions. Served from the cached
+scan rather than a fresh walk, so it is cheap enough to call on a keystroke
+and inherits the workspace's configured scope: a file the scanner excludes is
+one the agent could not read anyway. `q` is matched case-insensitively and
+ranked — exact basename, basename prefix, path prefix, basename substring,
+then path substring — with ties broken by the shorter path. An empty `q`
+returns the first `limit` files. `limit` defaults to 20 and is clamped to 200.
+`files` is always an array, never `null`.
+
+**Amendment (M7):** this endpoint is new; the original 47 did not include a
+way to enumerate repository files, and `GET /scan` returns only a truncated
+`TreeSummary` rather than a list. Added here alongside the handler as
+decision D10 requires.
+
 ### `GET /v1/workspaces/{id}/status`
 Module freshness — the GUI equivalent of `kaioken status`.
 ```json
@@ -230,6 +251,53 @@ Module freshness — the GUI equivalent of `kaioken status`.
 `✓ / Δ / ○ / ∅`.
 
 ### `GET /v1/workspaces/{id}/git` → the `git` sub-object of `Workspace`, refreshed.
+
+### `GET /v1/workspaces/{id}/git/status`
+Per-file working-tree changes for the explorer's git navigator. Structured
+counterpart of the aggregate `dirty_count`: kind, staged and unstaged split.
+```json
+{
+  "is_repo": true,
+  "branch": "master",
+  "head": "058e2d9c1b…",
+  "short": "058e2d9",
+  "dirty_count": 3,
+  "changes": [
+    { "path": "cli/internal/wiki/update.go", "kind": "modified", "staged": false, "unstaged": true },
+    { "path": "desktop/src/components/explorer/FileTree.tsx", "kind": "added", "staged": false, "unstaged": true },
+    { "path": "old/deleted.go", "kind": "deleted", "staged": true, "unstaged": false }
+  ]
+}
+```
+`kind` ∈ `added` | `modified` | `deleted` | `renamed` | `untracked`. `staged` is
+true when the index differs from HEAD; `unstaged` when the working tree differs
+from the index. Served from `git status --porcelain`; `changes` is always an
+array, never `null`. A non-git workspace returns `is_repo: false` with an empty
+`changes` array (not an error).
+
+### `GET /v1/workspaces/{id}/tree?refresh=true`
+A structured, scope-aware file tree built from the cached scan — the same scan
+that `/scan` and `/files` use, so a path the scanner excludes (and the agent
+cannot read) never appears. Directories are derived from file paths, so empty
+directories are absent.
+```json
+{
+  "root": "D:/project/ai_now_know",
+  "name": "ai_now_know",
+  "children": [
+    { "name": "cli", "path": "cli", "type": "directory", "children": [
+        { "name": "cmd", "path": "cli/cmd", "type": "directory", "children": [
+            { "name": "main.go", "path": "cli/cmd/kaioken/main.go", "type": "file",
+              "lines": 50, "size": 1234, "ext": ".go" } ] } ] },
+    { "name": "README.md", "path": "README.md", "type": "file", "lines": 120, "size": 4096, "ext": ".md" }
+  ],
+  "total": 214
+}
+```
+`type` ∈ `directory` | `file`. `children` is present only on directories.
+Directories sort before files, each group alphabetical. `?refresh=true` forces a
+fresh scan (same cache as `/scan`, 60 s TTL otherwise). `lines`/`size`/`ext` come
+from the scanner and are omitted on directories.
 
 ### `POST /v1/workspaces/{id}/hook`
 `{ "action": "install" | "remove" }` → `{ "installed": true, "path": ".git/hooks/post-commit" }`
@@ -467,11 +535,19 @@ The pre-flight cost estimate from `wiki.EstimateRun`:
   "kind": "wiki", "multiplier": 3,
   "calls": 96, "prompt_tokens": 1840000, "output_tokens": 410000,
   "total_tokens": 2250000, "heavy": true,
-  "passes": ["global plan", "architecture brief", "section plans", "section documents", "subsection documents"],
+  "passes": "draft → critique → correction",
   "text": "estimate: 96 calls · ~2.25M tokens · ×3 (plan → brief → sections → subsections)"
 }
 ```
 `text` is `Estimate.String()` verbatim so the GUI and CLI never disagree.
+
+**Amendment (M7):** `passes` is a **string**, not an array. It mirrors
+`wiki.Estimate.Passes`, which the engine defines as a single human-readable
+description of the quality passes a multiplier buys (`passDescription` in
+`internal/wiki/estimate.go`). The array form originally specified here never
+existed in the engine, and changing `wiki.Estimate` to match would be an
+engine behaviour change the desktop work is not permitted to make — so the
+document is corrected to the implementation instead.
 
 ## 2.8 Documents
 
@@ -620,8 +696,11 @@ GET    /v1/workspaces/{id}
 DELETE /v1/workspaces/{id}
 POST   /v1/workspaces/{id}/init
 GET    /v1/workspaces/{id}/scan
+GET    /v1/workspaces/{id}/tree
+GET    /v1/workspaces/{id}/files
 GET    /v1/workspaces/{id}/status
 GET    /v1/workspaces/{id}/git
+GET    /v1/workspaces/{id}/git/status
 POST   /v1/workspaces/{id}/hook
 GET    /v1/workspaces/{id}/config
 PUT    /v1/workspaces/{id}/config
@@ -667,4 +746,4 @@ PUT    /v1/workspaces/{id}/skills/{name}
 GET    /v1/workspaces/{id}/file
 ```
 
-47 endpoints, one event stream, 21 event types.
+49 endpoints, one event stream, 21 event types.

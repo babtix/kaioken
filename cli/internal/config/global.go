@@ -25,14 +25,21 @@ const HomeEnv = "KAIOKEN_HOME"
 
 // GlobalPath returns ~/.kaioken/config.yaml, or $KAIOKEN_HOME/config.yaml.
 func GlobalPath() string {
+	return filepath.Join(GlobalDir(), "config.yaml")
+}
+
+// GlobalDir returns the per-user Kaioken directory: ~/.kaioken, or
+// $KAIOKEN_HOME when set. It is the home of cross-repo state that must never
+// be committed — global config (keys), and the user memory file (USER.md).
+func GlobalDir() string {
 	if dir := os.Getenv(HomeEnv); dir != "" {
-		return filepath.Join(dir, "config.yaml")
+		return dir
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return filepath.Join(".", ".kaioken-global.yaml")
+		return "."
 	}
-	return filepath.Join(home, ".kaioken", "config.yaml")
+	return filepath.Join(home, ".kaioken")
 }
 
 // LoadGlobal reads the global config, returning an empty one when missing.

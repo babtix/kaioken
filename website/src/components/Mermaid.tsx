@@ -12,6 +12,7 @@ function loadMermaid() {
       const mermaid = m.default
       mermaid.initialize({
         startOnLoad: false,
+        suppressErrorRendering: true,
         securityLevel: "strict",
         theme: "base",
         fontFamily: '"JetBrains Mono Variable", ui-monospace, monospace',
@@ -62,7 +63,11 @@ export default function Mermaid({ chart }: { chart: string }) {
     const id = `mmd-${(seq += 1)}`
 
     loadMermaid()
-      .then((mermaid) => mermaid.render(id, chart))
+      .then(async (mermaid) => {
+        const valid = await mermaid.parse(chart, { suppressErrors: true }).catch(() => false)
+        if (!valid) throw new Error("Invalid mermaid syntax")
+        return mermaid.render(id, chart)
+      })
       .then(({ svg }) => {
         if (alive) setSvg(svg)
       })
@@ -70,11 +75,16 @@ export default function Mermaid({ chart }: { chart: string }) {
         // Kaioken demotes invalid mermaid to a code block rather than shipping
         // an error box; the site does the same.
         if (alive) setFailed(true)
+        document.querySelectorAll(`#${id}, #d${id}, [id^="dmmd"]`).forEach((el) => {
+          if (el.parentNode === document.body) el.remove()
+        })
       })
 
     return () => {
       alive = false
-      document.getElementById(id)?.remove()
+      document.querySelectorAll(`#${id}, #d${id}`).forEach((el) => {
+        if (el.parentNode === document.body) el.remove()
+      })
     }
   }, [chart])
 

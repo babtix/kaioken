@@ -1,0 +1,1 @@
+The llm package provides a client for interacting with multiple LLM providers (OpenRouter, OpenAI, Groq, etc.) via OpenAI-compatible APIs. It includes automatic retries, token budgeting to avoid 402 errors, strict-JSON response extraction, tool calling support, and streaming responses with proper SSE handling.

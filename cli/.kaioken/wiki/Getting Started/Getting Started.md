@@ -28,13 +28,18 @@ cd kaioken
 ## Building the Binary
 Build the kaioken executable using the Go toolchain:
 ```bash
-go build -o kaioken ./cmd/kaioken
+go build -o kaioken ./cli/cmd/kaioken
 ```
 Alternatively, use the provided Makefile:
 ```bash
-make build
+make -C cli build
 ```
-This produces an executable named `kaioken` (or `kaioken.exe` on Windows).
+This produces an executable named `kaioken` (or `kaioken.exe` on Windows). The Makefile also provides additional development targets:
+- `test`: run unit tests
+- `vet`: run go vet static analysis
+- `lint`: run golangci-lint (if installed)
+- `check`: run test and vet
+- `clean`: remove build artifacts
 
 ## Setting Up the Environment
 Set your LLM provider API key as an environment variable. For OpenRouter:
@@ -76,7 +81,7 @@ The typical steps to generate knowledge for a repository are:
    ```
    This creates `.kaioken/modules.yaml`. Review and edit this file to adjust module boundaries if needed.
 
-3. **Generate** knowledge cards for each module:
+3. **Generate** knowledge cards for all modules:
    ```bash
    kaioken generate
    ```
@@ -92,19 +97,7 @@ The typical steps to generate knowledge for a repository are:
    ```bash
    kaioken wiki
    ```
-   By default, this runs of 3` can coverage multiplier like `x2` or `x4`).
-
-6. After making code changes, update the wiki incrementally:
-   ```bash
-   kaioken status
-   ```
-   Output shows each module's state (up-to-date, changed, or not generated).
-
-5. Generate the full **wiki** (deep multi-pass documentation):
-   ```bash
-   kaioken wiki
-   ```
-   The default depth is `x3`. Output includes estimated run time and progress.
+   By default, this runs with a `x3` coverage multiplier (use `x1` for faster iteration, `x4` for critique-and-revise cycles). Output includes estimated run time and progress.
 
 6. After making code changes, update the wiki incrementally:
    ```bash
@@ -146,6 +139,8 @@ Here is a reference of the available CLI commands:
 | `serve` | Browse the generated wiki in a browser (-port, default 7777) |
 | `hook` | Manage the post-commit auto-update hook (install|remove|status) |
 | `tui` | Launch the interactive terminal UI (also the default with no args) |
+| `daemon` | Serve the engine over a loopback HTTP API (used by Kaioken Desktop) |
+| `logo` | Print the KAIOKEN wordmark |
 | `version` | Print the version |
 | `help` | Print usage information |
 
@@ -159,9 +154,9 @@ Note: The `tui` command is the default when no command is given.
 - Serve the generated wiki in a browser (`kaioken serve`) for easy navigation and searching
 
 ## Referenced Files
-- cmd/kaioken/main.go
+- cli/cmd/kaioken/main.go
 - README.md
-- go.mod
-- Makefile
+- cli/go.mod
+- cli/Makefile
 
-<!-- kaioken:files README.md,Makefile,go.mod,cmd/kaioken/main.go -->
+<!-- kaioken:files Makefile,go.mod,cmd/kaioken/main.go -->

@@ -24,10 +24,18 @@ var commandGuides = map[string]string{
 	"help": "The quick reference card. Shows every command in a compact list with " +
 		"one-line descriptions. Reach for /help when you know a command exists but " +
 		"cannot remember its name; reach for /explain when you need the full story.",
-	"init": "Run /init once per repo to create a config you can edit. Kaioken works " +
-		"fine without it using defaults, but the file is where you tune the model, " +
-		"provider, scope excludes and steering notes. Commit it so the whole team " +
-		"shares the same settings.",
+	"init": "Run /init once per repo. It does three things: writes the config you can " +
+		"edit (model, provider, scope excludes, steering notes), scans the repository, " +
+		"and generates AGENTS.md at the root. AGENTS.md is the instruction file agents " +
+		"read before touching anything — the exact build and test commands, the real " +
+		"entrypoints, the generated files nobody should hand-edit. It is written from " +
+		"executable sources of truth (CI workflows, task runners, manifests) rather " +
+		"than from the README, because CI states what actually has to pass. If you have " +
+		"already built a wiki or skills, init reuses the architecture brief so AGENTS.md " +
+		"uses the same names for the same things, and appends a generated section " +
+		"pointing at those documents — that section is rewritten from disk on every " +
+		"wiki, skills or init run, so it never names a chapter that does not exist. " +
+		"Commit both files so the whole team, and any agent runtime, shares them.",
 	"key": "The key is stored globally in ~/.kaioken/config.yaml with 0600 permissions, " +
 		"so it carries across repos and restarts. Each provider keeps its own key — " +
 		"switching providers does not lose the previous key. Resolution order: " +
@@ -57,10 +65,21 @@ var commandGuides = map[string]string{
 	"new": "Clears the model's context without losing anything — the current session " +
 		"is saved first, so /resume brings it back. Use it when you want a clean " +
 		"slate for a new task but might return to the old one later.",
-	"compact": "Replaces the history with an LLM-written summary that preserves key " +
-		"decisions, files touched and pending work. Use it when a long session " +
-		"starts hitting the context window, instead of losing the thread with /new. " +
-		"The summary becomes the new conversation context.",
+	"compact": "Replaces older history with an LLM-written summary that preserves key " +
+		"decisions, files touched and pending work. The system prompt and your most " +
+		"recent turns are kept verbatim, so whatever you were just working on stays " +
+		"exactly as it was. Kaioken also reduces context on its own when a turn would " +
+		"otherwise not fit, in two steps: it first erases the output of tool calls you " +
+		"are long past, which is free and keeps the whole conversation, and only " +
+		"summarizes if that was not enough. The status bar shows 'ctx %' once the " +
+		"context is half full, so you can see it coming.",
+	"learn": "Reviews the session you just had and, if it taught something worth keeping, " +
+		"writes or patches a skill in .kaioken/skills/ so the agent loads it before doing " +
+		"this task again. It also writes a digest the recall tool can find later and " +
+		"reinforces any skill the session consulted. It runs automatically at session end " +
+		"when memory.learn is set to 5 or above; /learn forces it on demand, regardless of " +
+		"that setting. The gate is cheap local heuristics (error recovery, corrections, " +
+		"multi-file edits), so a session that taught nothing costs no model call.",
 	"copy": "Copies the last assistant message to the system clipboard. Handy for " +
 		"grabbing a code snippet or explanation from a reply without selecting text " +
 		"in the terminal. If the reply was empty or tool-only, there is nothing to " +

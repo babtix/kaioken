@@ -1,0 +1,6 @@
+- Skill names must be kebab-case (normalized via Slug: lowercase, hyphen-separated, no leading/trailing/consecutive hyphens).
+- Each skill resides in a directory named after its skill under .ainow/skills/ containing a SKILL.md file.
+- SKILL.md must begin with YAML frontmatter (delimited by ---) containing at least name and description fields; the body follows.
+- Manual skills without frontmatter are treated as hand-written (name derived from directory).
+- Skills declare source files/directory prefixes; regeneration occurs only if sources change (checked via prefix matching in Stale).
+- The skills index (.ainow/skills/README.md) is auto-generated; manual edits are overwritten.

@@ -1,0 +1,1 @@
+The kaioken/tui module provides a terminal-based user interface for the Kaioken application using the Bubble Tea framework. It implements an interactive chat interface for interacting with AI agents, managing sessions, and triggering knowledge engine pipelines via slash commands, with features like command autocompletion, markdown rendering, and persistent session storage.

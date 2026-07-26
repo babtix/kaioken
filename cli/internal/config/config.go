@@ -38,7 +38,43 @@ type Config struct {
 	// This is the human-in-the-loop channel: conventions the code alone does
 	// not state, warnings, and "do not do X" guardrails.
 	Notes []string `yaml:"notes"`
+	// Memory controls the agent's experience loop: the project memory file,
+	// session digests, and skill distillation. Zero values are safe — memory
+	// is opt-in and degrades to "explicit /learn only".
+	Memory Memory `yaml:"memory,omitempty"`
 }
+
+// Memory configures the agent's persistent learning. It maps the wiki depth
+// multiplier onto learning aggressiveness with one knob: ×1 (default) means an
+// explicit /learn is the only trigger; ×5 also distills at session end; ×10
+// also reviews each turn, Hermes-style.
+type Memory struct {
+	// Learn is the aggressiveness multiplier (1, 5, or 10). 0 behaves as 1.
+	Learn int `yaml:"learn,omitempty"`
+	// Disable turns the whole loop off, including the remember/recall tools.
+	// Project memory already on disk still reaches the prompt.
+	Disable bool `yaml:"disable,omitempty"`
+	// MaxSkills caps how many learned skills the catalog keeps before pruning
+	// the least-reinforced. Zero means no explicit cap (decay still flags).
+	MaxSkills int `yaml:"max_skills,omitempty"`
+}
+
+// LearnThreshold returns the configured learn multiplier, floored to 1.
+func (c *Config) LearnThreshold() int {
+	if c == nil {
+		return 1
+	}
+	if c.Memory.Learn < 1 {
+		return 1
+	}
+	return c.Memory.Learn
+}
+
+// LearnAtSessionEnd reports whether distillation should run when a session ends.
+func (c *Config) LearnAtSessionEnd() bool { return !c.Memory.Disable && c.LearnThreshold() >= 5 }
+
+// LearnPerTurn reports whether distillation should run after every turn.
+func (c *Config) LearnPerTurn() bool { return !c.Memory.Disable && c.LearnThreshold() >= 10 }
 
 // Scope controls which files are considered part of the repository.
 type Scope struct {

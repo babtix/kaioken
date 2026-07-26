@@ -11,9 +11,9 @@
 
 The global configuration is stored in the user's home directory (or a custom directory via the `KAIOKEN_HOME` environment variable) and is intended to hold sensitive data such as API keys, as well as default values for the provider and model that apply across all repositories.
 
-The global configuration is defined by the `Global` struct in `internal/config/global.go`:
+The global configuration is defined by the `Global` struct in `cli/internal/config/global.go`:
 
-`internal/config/global.go:14-18`
+`cli/internal/config/global.go:14-18`
 ```go
 type Global struct {
     DefaultProvider string            `yaml:"default_provider,omitempty"`
@@ -36,9 +36,9 @@ The global configuration is used primarily for:
 
 Each repository can have its own configuration file at `.kaioken/config.yaml` (relative to the repository root). This file is edited by the user (or created by `kaioken init`) and contains non-sensitive settings that steer the scanning, planning, and generation processes.
 
-The per-repo configuration is defined by the `Config` struct in `internal/config/config.go`:
+The per-repo configuration is defined by the `Config` struct in `cli/internal/config/config.go`:
 
-`internal/config/config.go:18-41`
+`cli/internal/config/config.go:18-41`
 ```go
 type Config struct {
     Version int `yaml:"version"`
@@ -50,6 +50,8 @@ type Config struct {
     // (useful for self-hosted / OpenAI-compatible gateways).
     BaseURL string `yaml:"base_url"`
     // Concurrency is the number of modules generated in parallel.
+    // For free tier models (marked with ":free" suffix), the effective concurrency
+    // may be clamped to avoid rate limits (see EffectiveConcurrency method).
     Concurrency int `yaml:"concurrency"`
     // MaxModuleTokens caps the source context bundled per module (approx tokens).
     MaxModuleTokens int `yaml:"max_module_tokens"`
@@ -68,7 +70,7 @@ type Config struct {
 
 The `Scope` struct controls which files are considered part of the repository:
 
-`internal/config/config.go:44-49`
+`cli/internal/config/config.go:44-49`
 ```go
 type Scope struct {
     // Include, when non-empty, restricts scanning to these path prefixes.
@@ -82,7 +84,7 @@ The per-repo configuration is loaded by `config.Load(repo string)` and saved by 
 
 When the configuration file does not exist or cannot be read, `config.Load` returns an error. The `config.Default()` function provides a hardcoded default configuration that is used as a starting point before merging with the file contents (if present). The defaults include:
 
-`internal/config/config.go:63-78`
+`cli/internal/config/config.go:63-78`
 ```go
 // Default returns a fresh config with sensible defaults.
 func Default() *Config {
@@ -109,9 +111,9 @@ The kaioken CLI accepts command-specific flags that can override configuration v
 
 ### Common CLI Flags
 
-The following flags are available across multiple commands (as defined in the `flags` struct in `cmd/kaioken/main.go`):
+The following flags are available across multiple commands (as defined in the `flags` struct in `cli/cmd/kaioken/main.go`):
 
-`cmd/kaioken/main.go:123-131`
+`cli/cmd/kaioken/main.go:131-141`
 ```go
 // flags is a tiny flag parser: -key value pairs plus boolean -force, with a
 // trailing positional (used by `models <filter>`).
@@ -123,12 +125,14 @@ type flags struct {
     port       int
     force      bool
     positional string
+    token      string
+    tokenStdin bool
 }
 ```
 
 The flags are parsed by `parseFlags`:
 
-`cmd/kaioken/main.go:133-169`
+`cli/cmd/kaioken/main.go:143-186`
 ```go
 func parseFlags(argv []string) flags {
     f := flags{repo: "."}
@@ -161,6 +165,13 @@ func parseFlags(argv []string) flags {
             }
         case "-force", "--force":
             f.force = true
+        case "-token", "--token":
+            if i+1 < len(argv) {
+                i++
+                f.token = argv[i]
+            }
+        case "-token-stdin", "--token-stdin":
+            f.tokenStdin = true
         default:
             f.positional = argv[i]
         }
@@ -180,7 +191,7 @@ Environment:
 
 In the `newClient` function (used by several commands to create an LLM client), the API key is resolved as follows:
 
-`cmd/kaioken/main.go:339-361`
+`cli/cmd/kaioken/main.go:356-378`
 ```go
 func newClient(cfg *config.Config, f flags) (*llm.Client, error) {
     model := cfg.Model
@@ -243,7 +254,7 @@ The values used to create the LLM client (in `newClient`) are determined as foll
 
 ### For Other Configuration Values (Concurrency, MaxModuleTokens, Scope, Notes)
 
-These values are taken solely from the per-repo configuration (with the file contents overriding the defaults from `config.Default()`) and are not affected by CLI flags or the global configuration.
+These values are taken solely from the per-repo configuration (with the file contents overriding the defaults from `config.Default()`) and are not affected by CLI flags or the global configuration. However, note that the effective concurrency used may be clamped for free tier models (see the `EffectiveConcurrency` method in `cli/internal/config/config.go`).
 
 ### Example: Precedence in Action
 
@@ -257,12 +268,12 @@ The LLM client will be created with:
 - Model: "anthropic/claude-3-sonnet" (from the CLI flag, overriding the per-repo config's "gpt-4-turbo")
 - API key: taken from the global configuration for the provider "openai" (if set) or the environment variable `OPENAI_API_KEY` (if the global key for openai is not set).
 - BaseURL: from the per-repo config (if set) or empty (meaning use the provider's default).
-- Other values (Concurrency, MaxModuleTokens, etc.): from the per-repo config.
+- Other values (Concurrency, MaxModuleTokens, etc.): from the per-repo config (with concurrency potentially clamped for free models).
 
 ## Referenced Files
 
-- `cmd/kaioken/main.go`: Contains the CLI flag parsing and the `newClient` function that demonstrates how configuration layers are combined.
-- `internal/config/global.go`: Defines the global configuration structure and loading/saving logic.
-- `internal/config/config.go`: Defines the per-repo configuration structure, defaults, and loading/saving logic.
+- `cli/cmd/kaioken/main.go`: Contains the CLI flag parsing and the `newClient` function that demonstrates how configuration layers are combined.
+- `cli/internal/config/global.go`: Defines the global configuration structure and loading/saving logic.
+- `cli/internal/config/config.go`: Defines the per-repo configuration structure, defaults, and loading/saving logic.
 
 <!-- kaioken:files internal/config/config.go,internal/config/global.go,cmd/kaioken/main.go -->

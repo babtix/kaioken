@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"kaioken/internal/agentsmd"
 	"kaioken/internal/codemap"
 	"kaioken/internal/config"
 	"kaioken/internal/llm"
@@ -188,6 +189,12 @@ func Run(ctx context.Context, repo string, cfg *config.Config, client *llm.Clien
 	if err := WriteIndex(repo, all); err != nil {
 		return written, err
 	}
+	// AGENTS.md carries a generated pointer block listing what documentation
+	// exists here. New skills are only useful if an agent learns they exist, so
+	// refresh it — free, and a no-op when the repo has no AGENTS.md.
+	if changed, err := agentsmd.RefreshKnowledge(repo); err == nil && changed {
+		pg.info("refreshed the knowledge section of " + agentsmd.FileName)
+	}
 	return written, nil
 }
 
@@ -350,6 +357,7 @@ func write(ctx context.Context, repo string, cfg *config.Config, client *llm.Cli
 		Sources:     paths,
 		GeneratedAt: time.Now().UTC(),
 		Model:       client.Model,
+		Origin:      OriginGenerated,
 		Body:        body,
 	}, nil
 }

@@ -2,7 +2,7 @@
 
 ## test: run all unit tests
 test:
-	go test ./...
+	go test ./... -count=1
 
 ## vet: run go vet static analysis
 vet:

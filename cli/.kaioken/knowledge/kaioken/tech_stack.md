@@ -1,0 +1,1 @@
+The module uses Go 1.24.2 with the Charmbracelet Bubbletea v1.3.10 and Bubbles v1.0.0 frameworks for terminal UI, Lipgloss v1.1.1 for styling, atotto/clipboard v0.1.4 for clipboard access, sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 for .gitignore parsing, gopkg.in/yaml.v3 v3.0.1 for settings serialization, and golang.org/x/sync v0.17.0 for concurrency primitives.

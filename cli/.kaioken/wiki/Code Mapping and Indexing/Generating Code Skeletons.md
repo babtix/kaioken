@@ -19,7 +19,7 @@ Kaioken generates structural skeletons for source files to provide token-efficie
 
 The `FileMap` type represents a parsed file's skeleton:
 
-`internal/codemap/codemap.go:56-64`
+`cli/internal/codemap/codemap.go:56-64`
 ```go
 type FileMap struct {
 	Path     string // repo-relative, slash-separated
@@ -43,7 +43,7 @@ Key fields:
 
 Each declaration is represented by a `Symbol`:
 
-`internal/codemap/codemap.go:36-45`
+`cli/internal/codemap/codemap.go:36-45`
 ```go
 type Symbol struct {
 	Name      string
@@ -59,7 +59,7 @@ type Symbol struct {
 
 The `Kind` type categorizes declarations:
 
-`internal/codemap/codemap.go:23-32`
+`cli/internal/codemap/codemap.go:23-32`
 ```go
 type Kind string
 
@@ -78,7 +78,7 @@ const (
 
 The `Parse` function orchestrates skeleton generation for a single file:
 
-`internal/codemap/codemap.go:103-123`
+`cli/internal/codemap/codemap.go:103-123`
 ```go
 func Parse(path, content string) *FileMap {
 	fm := &FileMap{
@@ -113,7 +113,7 @@ Process:
 
 Language detection uses extension mapping:
 
-`internal/codemap/codemap.go:88-95`
+`cli/internal/codemap/codemap.go:88-95`
 ```go
 var langByExt = map[string]string{
 	".go": "go", ".py": "python", ".rb": "ruby", ".rs": "rust",
@@ -132,7 +132,7 @@ func Lang(path string) string { return langByExt[strings.ToLower(filepath.Ext(pa
 
 The `Skeleton` method on `FileMap` produces the final string representation:
 
-`internal/codemap/codemap.go:128-163`
+`cli/internal/codemap/codemap.go:128-163`
 ```go
 func (f *FileMap) Skeleton() string {
 	var b strings.Builder
@@ -180,7 +180,7 @@ Output format:
 
 Symbol line ranges use the `Span` method:
 
-`internal/codemap/codemap.go:48-53`
+`cli/internal/codemap/codemap.go:48-53`
 ```go
 func (s Symbol) Span() (start, end int) {
 	if s.EndLine < s.Line {
@@ -206,7 +206,7 @@ While `FileMap` handles individual files, the `Index` type builds a cross-reposi
 
 The `Build` function in `index.go` creates a repository-wide index from scan results:
 
-`internal/codemap/index.go:29-71`
+`cli/internal/codemap/index.go:29-71`
 ```go
 func Build(res *scan.Result) *Index {
 	idx := &Index{
@@ -265,7 +265,7 @@ Process:
 6. Sort file lists for each symbol
 
 Constants:
-`internal/codemap/index.go:17`
+`cli/internal/codemap/index.go:17`
 ```go
 const maxParseBytes = 2 << 20 // 2MB
 ```
@@ -274,7 +274,7 @@ const maxParseBytes = 2 << 20 // 2MB
 
 The `RepoSkeleton` method generates a token-budget-conscious structural overview of the entire repository, prioritizing files with large public surfaces:
 
-`internal/codemap/index.go:111-161`
+`cli/internal/codemap/index.go:111-161`
 ```go
 func (i *Index) RepoSkeleton(maxTokens int) string {
 	type entry struct {
@@ -340,14 +340,14 @@ Key aspects:
 5. **Omission notice**: Shows count of skipped files when budget exceeded
 
 Constant:
-`internal/codemap/index.go:163`
+`cli/internal/codemap/index.go:163`
 ```go
 const charsPerToken = 4
 ```
 
 The `Skeleton` method (for arbitrary file lists) provides simpler concatenation:
 
-`internal/codemap/index.go:95-106`
+`cli/internal/codemap/index.go:95-106`
 ```go
 func (i *Index) Skeleton(paths []string) string {
 	var b strings.Builder
@@ -390,7 +390,7 @@ internal/agent/agent.go  (go, package agent)
 This captures the file's interface in ~15 tokens versus hundreds for full content, preserving critical structural context while minimizing token consumption.
 
 ## Referenced Files
-- internal/codemap/codemap.go
-- internal/codemap/index.go
+- cli/internal/codemap/codemap.go
+- cli/internal/codemap/index.go
 
 <!-- kaioken:files internal/codemap/codemap.go,internal/codemap/index.go -->

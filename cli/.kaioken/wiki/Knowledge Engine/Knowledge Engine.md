@@ -17,7 +17,7 @@ The scanning phase inventories repository files while respecting `.gitignore` an
 
 The `scan.Repo` function walks the repository root, applies ignore rules, and collects file information:
 
-`internal/scan/scan.go:65-149`
+`cli/internal/scan/scan.go:65-149`
 ```go
 func Repo(root string, cfg *config.Config) (*Result, error) {
 	root, err := filepath.Abs(root)
@@ -118,7 +118,7 @@ The planning phase splits the scanned repository into a hierarchical module tree
 
 The `plan.Generate` function uses the scan result and LLM to propose modules:
 
-`internal/plan/plan.go:123-151`
+`cli/internal/plan/plan.go:123-151`
 ```go
 func Generate(ctx context.Context, client *llm.Client, cfg *config.Config, res *scan.Result) (*Plan, error) {
 	var user strings.Builder
@@ -169,7 +169,7 @@ Knowledge card generation occurs during the wiki build process via a multi-pass 
 
 The pipeline executes in `wiki.Run`:
 
-`internal/wiki/wiki.go:224-273`
+`cli/internal/wiki/wiki.go:224-273`
 ```go
 func Run(ctx context.Context, repo string, cfg *config.Config, client *llm.Client,
 	res *scan.Result, multiplier int, force bool, pg Progress) error {
@@ -266,7 +266,7 @@ Based on multiplier:
 
 Document generation uses `generateDoc`:
 
-`internal/wiki/wiki.go:559-593`
+`cli/internal/wiki/wiki.go:559-593`
 ```go
 func (r *run) generateDoc(ctx context.Context, req docRequest) (string, error) {
 	user := r.docPrompt(req)
@@ -335,7 +335,7 @@ The update process revises only documentation affected by changes since the last
 
 The `wiki.Update` function:
 
-`internal/wiki/update.go:123-214`
+`cli/internal/wiki/update.go:123-214`
 ```go
 func Update(ctx context.Context, repo string, cfg *config.Config, client *llm.Client,
 	res *scan.Result, baseOverride string, pg Progress) (*UpdateReport, error) {
@@ -378,210 +378,6 @@ func Update(ctx context.Context, repo string, cfg *config.Config, client *llm.Cl
 	if len(targets) == 0 {
 		return rep, nil
 	}
-	pg.info(fmt.Sprintf("%d document(s) affected", len(targets)))
-	idx := codemap.Build(res)
-
-	// Revise each affected document in parallel, bounded like a full run.
-	updated := make([]string, len(targets))
-	limit, clamped := cfg.EffectiveConcurrency(client.Model)
-	if clamped {
-		pg.info(fmt.Sprintf("free-tier model — concurrency capped at %d to avoid rate limits", limit))
-	}
-	g, gctx := errgroup.WithContext(ctx)
-	g.SetLimit(limit)
-	for i, t := range targets {
-		i, t := i, t
-		g.Go(func() error {
-			pg.started("update: " + t.Title)
-			doc, err := reviseDoc(gctx, repo, cfg, client, res, idx, outline, t, base, rep.Commits)
-			if err != nil {
-				pg.failed(t.Title, err)
-				return nil // one failed document must not abort the run
-			}
-			if err := os.WriteFile(t.Path, []byte(doc), 0o644); err != nil {
-				pg.failed(t.Title, err)
-				return nil
-			}
-			updated[i] = rel(repo, t.Path)
-			pg.wrote(rel(repo, t.Path), countLines(doc))
-			return nil
-		})
-	}
-	if err := g.Wait(); err != nil {
-		return rep, err
-	}
-	for _, u := range updated {
-		if u != "" {
-			rep.Updated = append(rep.Updated, u)
-		}
-	}
-	if len(rep.Updated) == 0 {
-		return rep, fmt.Errorf("every affected document failed to update")
-	}
-
-	if err := writeChangelog(ctx, repo, client, rep); err != nil {
-		pg.failed("changelog", err)
-	}
-	if err := writeIndex(repo, outline); err != nil {
-		return rep, err
-	}
-	// An update does not regenerate sections, so any outstanding failures from
-	// the last full run still stand.
-	return rep, SaveStamp(repo, client.Model, outline.Multiplier, LoadStamp(repo).Failed)
-}
-```
-
-### Update Workflow
-1. **Load Existing Plan**: Requires `.kaioken/wiki_plan.yaml` and generated wiki directory
-2. **Determine Baseline**: Uses recorded commit from `.kaioken/wiki_state.yaml` or explicit override
-3. **Detect Changes**: `gitx.Changes` finds modifications since baseline, excluding wiki directory itself
-4. **Identify Affected Documents**: 
-   - `affectedDocs` maps changed files to documents using provenance footers in Markdown
-   - Unassigned changed files (no document claims them) suggest need for re-planning
-5. **Revise Documents**: For each affected document:
-   - Reads current document
-   - Gets Git diff for changed files (capped at 60KB)
-   - Bundles current contents of changed files
-   - Prompts LLM with `updateSystem` to revise only invalidated sections
-   - Writes updated document and carries forward provenance
-6. **Generate Changelog**: Creates `.kaioken/wiki/CHANGELOG.md` entry with:
-   - Timestamp and commit range
-   - Summary of changes (via LLM if available)
-   - List of updated documents
-   - Detailed changed files
-7. **Update Index and State**: Rewrites wiki index and records baseline commit
-
-### Document Revision
-The `reviseDoc` function preserves accurate content while updating only what changed:
-
-`internal/wiki/update.go:355-404`
-```go
-func reviseDoc(ctx context.Context, repo string, cfg *config.Config, client *llm.Client,
-	res *scan.Result, idx *codemap.Index, outline *Outline, t docTarget,
-	base string, commits []string) (string, error) {
-
-	existing, err := os.ReadFile(t.Path)
-	if err != nil {
-		return "", err
-	}
-	patch, err := gitx.Patch(ctx, repo, base, t.Files, maxPatchBytes)
-	if err != nil {
-		return "", err
-	}
-
-	var user strings.Builder
-	fmt.Fprintf(&user, "Document: %s\nSection goal: %s\n\n", t.Title, t.Section.Goal)
-	user.WriteString("Global wiki context (sibling chapters exist — stay in your lane):\n")
-	user.WriteString(outlineContext(outline, t.Section.ID))
-	if len(commits) > 0 {
-		user.WriteString("\nCommits since the documented baseline:\n")
-		for _, c := range commits {
-			user.WriteString("  " + c + "\n")
-		}
-	}
-	if len(cfg.Notes) > 0 {
-		user.WriteString("\nMaintainer steering notes (authoritative):\n")
-		for _, n := range cfg.Notes {
-			user.WriteString("- " + n + "\n")
-		}
-	}
-	user.WriteString("\n===== CURRENT DOCUMENT =====\n")
-	user.Write(existing)
-	user.WriteString("\n\n===== GIT DIFF =====\n")
-	if strings.TrimSpace(patch) == "" {
-		user.WriteString("(no textual diff — files were added or removed)\n")
-	} else {
-		user.WriteString(patch)
-	}
-	user.WriteString("\n\n===== CURRENT CONTENTS OF THE CHANGED FILES =====\n")
-	user.WriteString(bundleFiles(idx, resolveFiles(res, t.Files, nil),
-		t.Title+" "+t.Section.Goal, cfg.MaxModuleTokens))
-
-	doc, err := client.Chat(ctx, updateSystem, user.String())
-	if err != nil {
-		return "", err
-	}
-	// Carry the provenance forward, widened by whatever this revision covered,
-	// so the next update can still tell what this document describes.
-	sources := livePaths(res, append(parseProvenance(string(existing)), t.Files...))
-	return stampProvenance(unfence(doc), sources), nil
-}
-```
-
-## Data Flow and Component Interaction
-
-The knowledge engine involves coordinated interaction between scanning, planning, LLM integration, code mapping, and state tracking.
-
-```mermaid
-graph TD
-    A[User Command: kaioken wiki] --> B[scan.Repo]
-    B --> C[scan.Result]
-    C --> D[plan.Generate]
-    D --> E[modules.yaml]
-    E --> F[wiki.Run]
-    F --> G[codemap.Build]
-    G --> H[Symbol Index]
-    F --> I[LLM Passes]
-    I --> J[Global Plan (outline)]
-    J --> K[Section Sub-Plans]
-    K --> L[Section Documents]
-    L --> M[Subsection Documents]
-    M --> N[Quality Passes]
-    N --> O[Written Documents]
-    O --> P[writeIndex]
-    P --> Q[.kaioken/wiki/README.md]
-    O --> R[SaveStamp]
-    R --> S[.kaioken/wiki_state.yaml]
-    
-    T[User Command: kaioken update] --> U[Load Stamp]
-    U --> V[gitx.Changes]
-    V --> W[Changed Files]
-    W --> X[affectedDocs]
-    X --> Y[docTarget List]
-    Y --> Z[reviseDoc]
-    Z --> AA[Updated Documents]
-    AA --> AB[writeChangelog]
-    AB --> AC[.kaioken/wiki/CHANGELOG.md]
-    AA --> AD[writeIndex]
-    AD --> AE[.kaioken/wiki/README.md]
-    AA --> AF[SaveStamp]
-    AF --> AG[.kaioken/wiki_state.yaml]
-    
-    style A fill:#e3f2fd,stroke:#1565c0
-    style T fill:#e8f5e9,stroke:#2e7d32
-```
-
-### Key Data Flows
-1. **Scan → Plan**: `scan.Result` feeds `plan.Generate` to create `modules.yaml`
-2. **Plan → Wiki**: `modules.yaml` (via loaded `Outline`) guides section generation in `wiki.Run`
-3. **Code Map**: `codemap.Build` creates symbol index used throughout wiki generation for context
-4. **Wiki → State**: Generated documents trigger `SaveStamp` to record baseline commit
-5. **Update Loop**: 
-   - `LoadStamp` provides baseline commit
-   - `gitx.Changes` detects modifications
-   - `affectedDocs` maps changes to documents using provenance
-   - `reviseDoc` updates only invalidated sections
-   - `SaveStamp` updates baseline after successful revision
-
-### Component Dependencies
-- **scan**: Independent; only uses config
-- **plan**: Depends on scan, llm, config
-- **codemap**: Independent; parses source for symbol indexes
-- **wiki**: Depends on scan, plan, llm, config, codemap, state, gitx, skills
-- **state**: Depends on scan
-- **gitx**: Independent; handles Git operations
-- **llm**: Depends on config; manages provider communication
-- **config**: Cross-cutting; manages global/repo configuration
-
-## Referenced Files
-- internal/scan/scan.go
-- internal/plan/plan.go
-- internal/wiki/wiki.go
-- internal/wiki/update.go
-- internal/state/state.go
-- internal/codemap/codemap.go (referenced but not detailed in scope)
-- internal/gitx/gitx.go (referenced but not detailed in scope)
-- internal/llm/openrouter.go (referenced but not detailed in scope)
-- internal/config/config.go (referenced but not detailed in scope)
+	pg.info(fmt.Sprintf("%d document(s) affected", len
 
 <!-- kaioken:files internal/wiki/wiki.go,internal/plan/plan.go,internal/scan/scan.go,internal/state/state.go,internal/wiki/passes.go,internal/wiki/update.go -->

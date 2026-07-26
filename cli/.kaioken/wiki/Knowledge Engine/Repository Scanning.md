@@ -38,7 +38,7 @@ The result is used by the planner (`plan.Generate`) and the knowledge engine (`w
 ## Data Structures
 
 ### File
-`internal/scan/scan.go:20-26`
+`cli/internal/scan/scan.go:20-26`
 
 ```go
 // File is one scanned source file.
@@ -56,7 +56,7 @@ type File struct {
 * `Ext` – lower‑cased file extension (including the leading dot).
 
 ### Result
-`internal/scan/scan.go:29-35`
+`cli/internal/scan/scan.go:29-35`
 
 ```go
 // Result holds everything the scanner learned about a repository.
@@ -75,7 +75,7 @@ type Result struct {
 * `TotalSize` – sum of `Size` across all `Files`.
 
 ### Manifest Names
-`internal/scan/scan.go:39-49`
+`cli/internal/scan/scan.go:39-49`
 
 ```go
 // manifestNames are files that reveal the tech stack; they are surfaced to
@@ -95,7 +95,7 @@ var manifestNames = map[string]bool{
 These files are always included in the scan (unless excluded by ignore rules) and are reported in `Result.Manifests` for the planner to prioritize.
 
 ### Binary Extensions
-`internal/scan/scan.go:52-60`
+`cli/internal/scan/scan.go:52-60`
 
 ```go
 // binaryExts are skipped without content inspection.
@@ -112,7 +112,7 @@ var binaryExts = map[string]bool{
 Entries with value `true` are skipped outright; `.svg` is `false` because SVGs are text‑based and may be inspected.
 
 ### Max File Size
-`internal/scan/scan.go:62`
+`cli/internal/scan/scan.go:62`
 
 ```go
 const maxFileBytes = 2 << 20 // files larger than 2 MiB are inventoried but never bundled
@@ -170,7 +170,7 @@ The `Result` fields are updated as follows:
 ## Helper Functions
 
 ### underAny
-`internal/scan/scan.go:151-159`
+`cli/internal/scan/scan.go:151-159`
 
 ```go
 func underAny(rel string, prefixes []string) bool {
@@ -186,7 +186,7 @@ func underAny(rel string, prefixes []string) bool {
 Returns true if the repository‑relative path `rel` equals any prefix or is a child of that prefix (with a trailing `/`). Used to enforce `cfg.Scope.Include`.
 
 ### TreeSummary
-`internal/scan/scan.go:163-197`
+`cli/internal/scan/scan.go:163-197`
 
 ```go
 func (r *Result) TreeSummary(maxFilesPerDir int) string {
@@ -228,7 +228,7 @@ func (r *Result) TreeSummary(maxFilesPerDir int) string {
 Produces a compact, indented tree view with per‑directory file counts and a limited number of example file names (useful for LLM prompts).
 
 ### ManifestContents
-`internal/scan/scan.go:201-214`
+`cli/internal/scan/scan.go:201-214`
 
 ```go
 func (r *Result) ManifestContents(capBytes int) string {
@@ -249,7 +249,7 @@ func (r *Result) ManifestContents(capBytes int) string {
 Concatenates the contents of all manifest files, each truncated to `capBytes` bytes, separated by a header line. Used by the planner to surface tech‑stack signals.
 
 ### Stats
-`internal/scan/scan.go:217-239`
+`cli/internal/scan/scan.go:217-239`
 
 ```go
 func (r *Result) Stats() string {
@@ -312,6 +312,6 @@ flowchart TD
 ---
 
 ## Referenced Files
-- `internal/scan/scan.go`
+- `cli/internal/scan/scan.go`
 
 <!-- kaioken:files internal/scan/scan.go -->

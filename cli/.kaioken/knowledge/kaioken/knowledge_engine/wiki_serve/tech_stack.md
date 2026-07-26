@@ -1,0 +1,1 @@
+The module uses Go's standard library (net/http, os, path/filepath, context, regexp, strings) for HTTP serving and file operations. It relies on github.com/yuin/goldmark with the GFM extension for markdown rendering, including table, strikethrough, and autolink support. No external frameworks or infrastructure components are used beyond these libraries.

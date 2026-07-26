@@ -264,6 +264,29 @@ func (ws *Workspace) Config() *config.Config {
 	return ws.cfg
 }
 
+// Notes returns the user's standing steering instructions from config, or nil
+// when the workspace has none. They are copied out under the lock so a caller
+// cannot mutate the workspace's slice through the returned value.
+func (ws *Workspace) Notes() []string {
+	ws.mu.RLock()
+	defer ws.mu.RUnlock()
+	if ws.cfg == nil || len(ws.cfg.Notes) == 0 {
+		return nil
+	}
+	out := make([]string, len(ws.cfg.Notes))
+	copy(out, ws.cfg.Notes)
+	return out
+}
+
+// MemoryDisabled reports whether the experience loop (remember/recall tools,
+// digest, distillation) is turned off for this workspace. Project memory
+// already on disk still reaches the prompt via the memory context source.
+func (ws *Workspace) MemoryDisabled() bool {
+	ws.mu.RLock()
+	defer ws.mu.RUnlock()
+	return ws.cfg == nil || ws.cfg.Memory.Disable
+}
+
 // Client returns the LLM client, building it lazily using the same resolution
 // order as cmd/kaioken/main.go:newClient — repo config model/provider → global
 // saved key → provider env var. A missing key is an error only at call time.

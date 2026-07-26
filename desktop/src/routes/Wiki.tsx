@@ -1,125 +1,349 @@
-import { useEffect, useState } from "react"
-import { ChevronDown, ChevronRight, FileText, Search } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import {
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  FileText,
+  Hash,
+  Search,
+  X,
+} from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
 import { api } from "@/lib/api"
+import Markdown from "@/components/common/Markdown"
+import EmptyState from "@/components/EmptyState"
+import { Badge, Skeleton } from "@/components/ui"
 import { cn } from "@/lib/utils"
 
-type DocMeta = { title: string; rel: string; lines: number; words: number; reading_minutes: number; is_section_doc: boolean }
+type DocMeta = {
+  title: string
+  rel: string
+  lines: number
+  words: number
+  reading_minutes: number
+  is_section_doc: boolean
+}
 type Section = { name: string; docs: DocMeta[] }
+type TocEntry = { level: number; text: string; slug: string }
+type Doc = {
+  path: string
+  title: string
+  markdown: string
+  lines: number
+  words: number
+  reading_minutes: number
+  provenance: string[]
+  toc: TocEntry[]
+}
+type Hit = { path: string; title: string; line: number; snippet: string; score: number }
 
 export default function Wiki() {
   const ws = useWorkspaceStore((s) => s.active)
   const [sections, setSections] = useState<Section[]>([])
-  const [activeDoc, setActiveDoc] = useState<any>(null)
-  const [searchQ, setSearchQ] = useState("")
-  const [searchHits, setSearchHits] = useState<any[]>([])
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [doc, setDoc] = useState<Doc | null>(null)
   const [loading, setLoading] = useState(false)
+  const [query, setQuery] = useState("")
+  const [hits, setHits] = useState<Hit[] | null>(null)
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [activeSlug, setActiveSlug] = useState<string | null>(null)
+  const readerRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const [searchParams] = useSearchParams()
+  const docParam = searchParams.get("doc")
 
   useEffect(() => {
     if (!ws) return
-    api.wikiTree(ws.id).then((res) => {
-      setSections(res.sections || [])
-      setExpanded(new Set((res.sections || []).map((s: Section) => s.name)))
-    }).catch(() => {})
+    api
+      .wikiTree(ws.id)
+      .then((res) => setSections(res.sections || []))
+      .catch(() => setSections([]))
   }, [ws?.id])
 
-  async function openDoc(rel: string) {
+  const openDoc = useCallback(
+    async (rel: string) => {
+      if (!ws) return
+      setLoading(true)
+      try {
+        const d = await api.wikiDoc(ws.id, rel)
+        setDoc(d)
+        setActiveSlug(null)
+        readerRef.current?.scrollTo({ top: 0 })
+      } catch {
+        setDoc(null)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [ws?.id]
+  )
+
+  // Deep-link from the explorer's wiki outline: ?doc=<rel> opens that document
+  // on arrival. Runs only when the param changes, so in-reader navigation that
+  // does not touch the URL is not clobbered.
+  useEffect(() => {
+    if (!ws || !docParam) return
+    void openDoc(docParam)
+  }, [ws?.id, docParam, openDoc])
+
+  // Debounced live search — no Enter required.
+  useEffect(() => {
     if (!ws) return
-    setLoading(true)
-    try {
-      const doc = await api.wikiDoc(ws.id, rel)
-      setActiveDoc(doc)
-    } catch { setActiveDoc(null) }
-    setLoading(false)
+    const q = query.trim()
+    if (!q) {
+      setHits(null)
+      return
+    }
+    const id = setTimeout(() => {
+      api
+        .wikiSearch(ws.id, q)
+        .then((r) => setHits(r.hits || []))
+        .catch(() => setHits([]))
+    }, 180)
+    return () => clearTimeout(id)
+  }, [query, ws?.id])
+
+  // Ctrl/Cmd+F focuses wiki search rather than the WebView's find bar.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault()
+        searchRef.current?.focus()
+        searchRef.current?.select()
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  // Scroll-spy: highlight the TOC entry for the heading nearest the top.
+  useEffect(() => {
+    const root = readerRef.current
+    if (!root || !doc) return
+    const headings = Array.from(root.querySelectorAll<HTMLElement>("h2[id], h3[id], h4[id]"))
+    if (headings.length === 0) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+        if (visible[0]) setActiveSlug(visible[0].target.id)
+      },
+      { root, rootMargin: "0px 0px -70% 0px", threshold: 0 }
+    )
+    headings.forEach((h) => observer.observe(h))
+    return () => observer.disconnect()
+  }, [doc])
+
+  const docCount = useMemo(
+    () => sections.reduce((n, s) => n + s.docs.length, 0),
+    [sections]
+  )
+
+  if (!ws) {
+    return <EmptyState icon={BookOpen} title="No workspace open" hint="Open a repository to read its wiki." />
   }
 
-  async function doSearch() {
-    if (!ws || !searchQ.trim()) { setSearchHits([]); return }
-    const res = await api.wikiSearch(ws.id, searchQ)
-    setSearchHits(res.hits || [])
-  }
-
-  if (!ws) return <div className="flex h-full items-center justify-center font-mono text-sm text-kai-dim">Open a workspace first</div>
-
-  if (sections.length === 0 && !activeDoc) {
+  if (sections.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="font-mono text-sm text-kai-dim">No wiki generated yet</p>
-        <p className="font-mono text-xs text-kai-dim">Run a wiki from the Activity screen</p>
-      </div>
+      <EmptyState
+        icon={BookOpen}
+        title="No wiki generated yet"
+        hint="A wiki turns this repository into linked chapters with diagrams. Start one from the Activity screen."
+      />
     )
   }
 
   return (
     <div className="flex h-full">
-      {/* Sidebar tree */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-card">
-        {/* Search */}
-        <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-          <Search size={12} className="text-kai-dim" />
-          <input
-            value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && doSearch()}
-            placeholder="Search wiki…"
-            className="flex-1 bg-transparent font-mono text-[11px] text-kai-text placeholder:text-kai-dim focus:outline-none"
-          />
+      {/* Navigation tree + search */}
+      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card">
+        <div className="border-b border-border p-2">
+          <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1.5 transition-colors focus-within:border-kai-orange/50">
+            <Search size={12} className="shrink-0 text-kai-dim" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search wiki…"
+              className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-kai-text placeholder:text-kai-dim focus:outline-none"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="shrink-0 text-kai-dim hover:text-kai-text"
+                aria-label="Clear search"
+              >
+                <X size={11} />
+              </button>
+            )}
+          </div>
+          <p className="mt-1.5 px-0.5 font-mono text-[9px] text-kai-dim">
+            {hits ? `${hits.length} matches` : `${sections.length} sections · ${docCount} documents`}
+          </p>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto py-1">
-          {searchHits.length > 0 ? (
-            searchHits.map((h, i) => (
-              <button key={i} onClick={() => openDoc(h.path)} className="block w-full px-3 py-1.5 text-left font-mono text-[10px] text-kai-muted hover:text-kai-text">
-                <span className="text-kai-blue">{h.title}</span> :{h.line} — {h.snippet}
-              </button>
-            ))
-          ) : (
-            sections.map((sec) => (
-              <div key={sec.name}>
+        <nav className="min-h-0 flex-1 overflow-auto py-1">
+          {hits ? (
+            hits.length === 0 ? (
+              <p className="px-3 py-4 font-mono text-[10px] text-kai-dim">No matches.</p>
+            ) : (
+              hits.map((h, i) => (
                 <button
-                  onClick={() => setExpanded((s) => { const n = new Set(s); n.has(sec.name) ? n.delete(sec.name) : n.add(sec.name); return n })}
-                  className="flex w-full items-center gap-1 px-2 py-1 font-mono text-[11px] font-bold text-kai-text hover:bg-panel"
+                  key={`${h.path}-${i}`}
+                  onClick={() => openDoc(h.path)}
+                  className="block w-full px-3 py-1.5 text-left transition-colors hover:bg-panel/60"
                 >
-                  {expanded.has(sec.name) ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                  {sec.name}
+                  <span className="flex items-baseline gap-1.5">
+                    <span className="truncate font-mono text-[11px] text-kai-blue">{h.title}</span>
+                    <span className="shrink-0 font-mono text-[9px] text-kai-dim">:{h.line}</span>
+                  </span>
+                  <span className="mt-0.5 block truncate font-mono text-[9px] text-kai-muted">
+                    {h.snippet}
+                  </span>
                 </button>
-                {expanded.has(sec.name) && sec.docs.map((doc) => (
+              ))
+            )
+          ) : (
+            sections.map((sec) => {
+              const isCollapsed = collapsed.has(sec.name)
+              return (
+                <div key={sec.name} className="mb-0.5">
                   <button
-                    key={doc.rel}
-                    onClick={() => openDoc(doc.rel)}
-                    className={cn(
-                      "block w-full truncate py-0.5 pl-7 pr-2 text-left font-mono text-[10px] transition-colors",
-                      activeDoc?.path === doc.rel ? "text-kai-orange" : "text-kai-muted hover:text-kai-text"
-                    )}
+                    onClick={() =>
+                      setCollapsed((prev) => {
+                        const next = new Set(prev)
+                        next.has(sec.name) ? next.delete(sec.name) : next.add(sec.name)
+                        return next
+                      })
+                    }
+                    className="flex w-full items-center gap-1 px-2 py-1 font-mono text-[11px] font-semibold text-kai-text transition-colors hover:bg-panel/60"
                   >
-                    {doc.title}
+                    {isCollapsed ? <ChevronRight size={11} className="text-kai-dim" /> : <ChevronDown size={11} className="text-kai-dim" />}
+                    <span className="truncate">{sec.name}</span>
+                    <span className="ml-auto shrink-0 font-mono text-[9px] font-normal text-kai-dim">
+                      {sec.docs.length}
+                    </span>
                   </button>
-                ))}
-              </div>
-            ))
+
+                  {!isCollapsed &&
+                    sec.docs.map((d) => (
+                      <button
+                        key={d.rel}
+                        onClick={() => openDoc(d.rel)}
+                        className={cn(
+                          "relative block w-full truncate py-1 pl-7 pr-2 text-left font-mono text-[10.5px] transition-colors",
+                          doc?.path === d.rel
+                            ? "bg-accent text-kai-orange"
+                            : "text-kai-muted hover:bg-panel/60 hover:text-kai-text"
+                        )}
+                      >
+                        {doc?.path === d.rel && (
+                          <span className="absolute inset-y-0 left-0 w-0.5 bg-kai-orange" aria-hidden />
+                        )}
+                        {d.title}
+                      </button>
+                    ))}
+                </div>
+              )
+            })
           )}
-        </div>
+        </nav>
       </aside>
 
-      {/* Document reader */}
-      <main className="min-w-0 flex-1 overflow-auto p-6">
-        {loading && <p className="font-mono text-xs text-kai-dim">Loading…</p>}
-        {activeDoc && !loading && (
-          <article>
-            <h1 className="mb-1 font-mono text-lg font-bold text-kai-text">{activeDoc.title}</h1>
-            <p className="mb-4 font-mono text-[10px] text-kai-dim">
-              {activeDoc.lines} lines · {activeDoc.words} words · ~{activeDoc.reading_minutes} min
-              {activeDoc.provenance?.length > 0 && ` · from ${activeDoc.provenance.length} files`}
-            </p>
-            <div className="prose prose-invert prose-sm max-w-none font-mono">
-              <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-kai-text">{activeDoc.markdown}</pre>
+      {/* Reader */}
+      <main ref={readerRef} className="min-w-0 flex-1 overflow-auto">
+        {loading ? (
+          <div className="mx-auto max-w-3xl space-y-3 p-8">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-3 w-1/3" />
+            <div className="space-y-2 pt-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className={cn("h-3", i % 3 === 2 ? "w-2/3" : "w-full")} />
+              ))}
             </div>
-          </article>
-        )}
-        {!activeDoc && !loading && (
-          <div className="flex h-full items-center justify-center">
-            <p className="flex items-center gap-2 font-mono text-xs text-kai-dim"><FileText size={14} /> Select a document</p>
+          </div>
+        ) : doc ? (
+          <div className="mx-auto flex max-w-5xl gap-8 px-8 py-8">
+            <article className="min-w-0 flex-1">
+              <h1 className="font-mono text-2xl font-bold tracking-tight text-kai-white">
+                {doc.title}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge tone="neutral">
+                  <Clock size={9} /> {doc.reading_minutes || 1} min read
+                </Badge>
+                <Badge tone="neutral">{doc.lines} lines</Badge>
+                <Badge tone="neutral">{doc.words.toLocaleString()} words</Badge>
+              </div>
+
+              <div className="mt-6">
+                <Markdown docPath={doc.path} onNavigate={openDoc}>
+                  {doc.markdown}
+                </Markdown>
+              </div>
+
+              {doc.provenance.length > 0 && (
+                <footer className="mt-10 border-t border-border pt-4">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-kai-dim">
+                    Generated from
+                  </p>
+                  <ul className="mt-2 flex flex-wrap gap-1.5">
+                    {doc.provenance.map((p) => (
+                      <li
+                        key={p}
+                        className="rounded border border-border bg-panel px-1.5 py-0.5 font-mono text-[10px] text-kai-sage"
+                      >
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </footer>
+              )}
+            </article>
+
+            {doc.toc.length > 2 && (
+              <nav className="sticky top-8 hidden h-fit w-48 shrink-0 xl:block">
+                <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-kai-dim">
+                  On this page
+                </p>
+                <ul className="space-y-0.5 border-l border-border">
+                  {doc.toc.map((t, i) => (
+                    <li key={`${t.slug}-${i}`}>
+                      <a
+                        href={`#${t.slug}`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          readerRef.current
+                            ?.querySelector(`#${CSS.escape(t.slug)}`)
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                          setActiveSlug(t.slug)
+                        }}
+                        className={cn(
+                          "-ml-px block border-l py-0.5 font-mono text-[10px] transition-colors",
+                          t.level === 2 ? "pl-2.5" : t.level === 3 ? "pl-5" : "pl-7",
+                          activeSlug === t.slug
+                            ? "border-kai-orange text-kai-orange"
+                            : "border-transparent text-kai-dim hover:text-kai-text"
+                        )}
+                      >
+                        {t.text}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-8">
+            <FileText size={26} className="text-kai-dim" />
+            <p className="font-mono text-sm text-kai-text">Select a document</p>
+            <p className="max-w-xs text-center font-mono text-[11px] leading-relaxed text-kai-dim">
+              Pick a chapter from the tree, or press{" "}
+              <Hash size={9} className="inline" /> search to jump straight to a phrase.
+            </p>
           </div>
         )}
       </main>

@@ -38,12 +38,39 @@ type Skill struct {
 	GeneratedAt time.Time `yaml:"generated_at,omitempty"`
 	Model       string    `yaml:"model,omitempty"`
 
+	// Origin records how this skill came to exist. A generated skill is
+	// written from static analysis; a learned one is distilled from a session
+	// that actually did the task; a human one was dropped in by hand. The
+	// distinction is what lets a reviewer tell a hard-won lesson from a guess.
+	Origin string `yaml:"origin,omitempty"`
+	// UseCount is how many sessions opened this skill and followed it to a
+	// clean outcome. It is the reinforcement signal: a loaded skill that
+	// worked is more likely to be the right answer next time.
+	UseCount int `yaml:"use_count,omitempty"`
+	// LastUsed is the most recent session that consulted this skill, so a
+	// skill nobody has reached for in a long time can be flagged for pruning.
+	LastUsed time.Time `yaml:"last_used,omitempty"`
+	// Sessions records the ids of sessions that contributed to or reinforced
+	// this skill, so a learned skill carries its provenance and can be
+	// reverted to the generated baseline when a lesson turns out wrong.
+	Sessions []string `yaml:"sessions,omitempty"`
+
 	// Body is the markdown after the frontmatter.
 	Body string `yaml:"-"`
 }
 
 // Dir is the skills root inside a repository.
 func Dir(repo string) string { return filepath.Join(repo, config.Dir, "skills") }
+
+// Origin values record how a skill came to exist.
+const (
+	// OriginGenerated is written from static analysis of the repo by skills.Run.
+	OriginGenerated = "generated"
+	// OriginLearned is distilled from a session that actually performed the task.
+	OriginLearned = "learned"
+	// OriginHuman is a skill dropped in by hand, with no frontmatter provenance.
+	OriginHuman = "human"
+)
 
 // Path is where one skill's SKILL.md lives.
 func Path(repo, name string) string {
@@ -152,10 +179,25 @@ func List(repo string) ([]*Skill, error) {
 		if s.Name == "" {
 			s.Name = e.Name() // hand-written skill: fall back to the directory
 		}
+		s.inferOrigin()
 		out = append(out, s)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out, nil
+}
+
+// inferOrigin fills Origin for skills written before the field existed, so the
+// catalog can still tell a generated baseline from a hand-written one. A skill
+// with generated_at was produced by skills.Run; one with only a body is human.
+func (s *Skill) inferOrigin() {
+	if s.Origin != "" {
+		return
+	}
+	if !s.GeneratedAt.IsZero() {
+		s.Origin = OriginGenerated
+		return
+	}
+	s.Origin = OriginHuman
 }
 
 // Stale reports the skills whose sources intersect the changed paths, so an

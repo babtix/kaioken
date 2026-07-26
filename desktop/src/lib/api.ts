@@ -1,5 +1,5 @@
 import { authHeaders, base } from "./daemon"
-import type { ErrorEnvelope, Estimate, Health, ModuleStatus, RunRecord, ScanResult, SessionFull, SessionMeta, Usage, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
+import type { ErrorEnvelope, Estimate, FileTreeResponse, GitStatusResponse, Health, ModuleStatus, RepoFile, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
 
 // Parses the §2.1 error envelope; carries enough for a component to branch
 // on err.code (e.g. "no_api_key") instead of printing a stack trace.
@@ -61,6 +61,14 @@ export const api = {
   // Workspace sub-resources (T015–T016)
   scan: (id: string, refresh = false) =>
     req<ScanResult>("GET", `/workspaces/${id}/scan${refresh ? "?refresh=true" : ""}`),
+  tree: (id: string, refresh = false) =>
+    req<FileTreeResponse>("GET", `/workspaces/${id}/tree${refresh ? "?refresh=true" : ""}`),
+  gitStatus: (id: string) => req<GitStatusResponse>("GET", `/workspaces/${id}/git/status`),
+  files: (id: string, q = "", limit = 20) =>
+    req<{ query: string; files: RepoFile[] }>(
+      "GET",
+      `/workspaces/${id}/files?q=${encodeURIComponent(q)}&limit=${limit}`
+    ),
   status: (id: string) => req<{ modules: ModuleStatus[] }>("GET", `/workspaces/${id}/status`),
   git: (id: string) => req<Workspace["git"]>("GET", `/workspaces/${id}/git`),
   hook: (id: string, action: "install" | "remove") =>
@@ -94,11 +102,12 @@ export const api = {
     req<{ runs: RunRecord[] }>("GET", `/workspaces/${wsId}/runs${active ? "?active=true" : ""}`),
   getRun: (runId: string) => req<RunRecord>("GET", `/runs/${runId}`),
   cancelRun: (runId: string) => req<void>("POST", `/runs/${runId}/cancel`),
+  revertRun: (runId: string) => req<{ deleted: number; total: number }>("POST", `/runs/${runId}/revert`),
   estimate: (wsId: string, kind = "wiki", multiplier = 3) =>
     req<Estimate>("GET", `/workspaces/${wsId}/estimate?kind=${kind}&multiplier=${multiplier}`),
 
   // Wiki/docs (T044–T052)
-  wikiTree: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/wiki/tree`),
+  wikiTree: (wsId: string) => req<WikiTree>("GET", `/workspaces/${wsId}/wiki/tree`),
   wikiDoc: (wsId: string, path: string) => req<any>("GET", `/workspaces/${wsId}/wiki/doc?path=${encodeURIComponent(path)}`),
   wikiSearch: (wsId: string, q: string) => req<any>("GET", `/workspaces/${wsId}/wiki/search?q=${encodeURIComponent(q)}`),
   wikiPlan: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/wiki/plan`),
@@ -115,7 +124,7 @@ export const api = {
     ),
   modules: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/modules`),
   putModules: (wsId: string, yaml: string) => req<any>("PUT", `/workspaces/${wsId}/modules`, { yaml }),
-  skills: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/skills`),
+  skills: (wsId: string) => req<{ skills: Skill[] }>("GET", `/workspaces/${wsId}/skills`),
   getSkill: (wsId: string, name: string) =>
     req<{ name: string; description: string; sources: string[]; markdown: string; path: string }>(
       "GET",

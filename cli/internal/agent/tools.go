@@ -14,9 +14,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"kaioken/internal/llm"
+	"kaioken/internal/memory"
 )
 
 // maxReadBytes caps a single read_file / write preview.
@@ -62,10 +64,20 @@ type Agent struct {
 	MaxSteps    int
 	AllowRun    bool // whether run_command is offered
 	NoStream    bool // buffer the whole reply instead of streaming it
+	Mode        Mode // permission preset; the zero value behaves as build
+	// Depth is how many levels of delegation deep this agent is. Zero is the
+	// agent the user talks to; a sub-agent spawned by the task tool is one.
+	// It gates further delegation — see maxSubAgentDepth.
+	Depth int
+	// MemoryDisabled hides the remember/recall tools and the experience loop.
+	// Project memory already on disk still reaches the prompt via the memory
+	// context source; only the agent's ability to write more is removed.
+	MemoryDisabled bool
 }
 
 // Tools returns the tool schemas offered to the model.
 func (a *Agent) Tools() []llm.Tool {
+	perms := PermissionsFor(a.Mode)
 	tools := []llm.Tool{
 		{Type: "function", Function: llm.FunctionDef{
 			Name:        "read_file",
@@ -95,16 +107,30 @@ func (a *Agent) Tools() []llm.Tool {
 			Parameters: raw(`{"type":"object","properties":{
 				"doc":{"type":"string","description":"a path from the catalog, e.g. '.kaioken/wiki/Architecture'; omit to list everything"}}}`),
 		}},
-		{Type: "function", Function: llm.FunctionDef{
+	}
+	// recall is read-only — it scans past-session digests, never touching disk —
+	// so it is offered in every mode. It is the L2 session-recall layer.
+	if !a.MemoryDisabled {
+		tools = append(tools, llm.Tool{Type: "function", Function: llm.FunctionDef{
+			Name: "recall",
+			Description: "Search past sessions in this repo for ones matching a query, returning a " +
+				"short digest (goal, files touched, outcome, gotchas) of each match. Use it when " +
+				"the current task resembles something done before and you want to learn what " +
+				"worked. Omit the query to list the most recent sessions.",
+			Parameters: raw(`{"type":"object","properties":{
+				"query":{"type":"string","description":"free-text to match against past session digests; omit for the most recent"}}}`),
+		}})
+	}
+	if perms.CanWrite {
+		tools = append(tools, llm.Tool{Type: "function", Function: llm.FunctionDef{
 			Name:        "write_file",
 			Description: "Create or overwrite a file with the given content. Requires user approval.",
 			Parameters: raw(`{"type":"object","properties":{
 				"path":{"type":"string"},
 				"content":{"type":"string"}},
 				"required":["path","content"]}`),
-		}},
-		{Type: "function", Function: llm.FunctionDef{
-			Name: "edit_file",
+		}}, llm.Tool{Type: "function", Function: llm.FunctionDef{
+			Name:        "edit_file",
 			Description: "Replace the first exact occurrence of old_string with new_string in a file. " +
 				"old_string must match uniquely. Requires user approval.",
 			Parameters: raw(`{"type":"object","properties":{
@@ -112,9 +138,25 @@ func (a *Agent) Tools() []llm.Tool {
 				"old_string":{"type":"string"},
 				"new_string":{"type":"string"}},
 				"required":["path","old_string","new_string"]}`),
-		}},
+		}})
+		if !a.MemoryDisabled {
+			tools = append(tools, llm.Tool{Type: "function", Function: llm.FunctionDef{
+				Name: "remember",
+				Description: "Record a durable fact the agent should keep for future sessions in this " +
+					"repo. Use it for tribal knowledge the code does not state and the agent learned " +
+					"by doing: a registry that must be updated in lockstep, a test that flakes when " +
+					"run a certain way, a command that works where the documented one does not. " +
+					"With rewrite=true, replace the whole memory (use to consolidate when near the " +
+					"cap). Requires user approval. scope=user records a personal, cross-repo note.",
+				Parameters: raw(`{"type":"object","properties":{
+					"content":{"type":"string","description":"the concise fact to remember"},
+					"rewrite":{"type":"boolean","description":"replace the whole memory file instead of appending; default false"},
+					"scope":{"type":"string","enum":["project","user"],"description":"project (default) writes .kaioken/MEMORY.md; user writes ~/.kaioken/USER.md"}},
+					"required":["content"]}`),
+			}})
+		}
 	}
-	if a.AllowRun {
+	if a.AllowRun && perms.CanRun {
 		tools = append(tools, llm.Tool{Type: "function", Function: llm.FunctionDef{
 			Name:        "run_command",
 			Description: "Run a shell command in the repo root and return its output. Requires user approval.",
@@ -122,6 +164,14 @@ func (a *Agent) Tools() []llm.Tool {
 				"command":{"type":"string","description":"the command line to execute"}},
 				"required":["command"]}`),
 		}})
+	}
+	// Delegation and the checklist are both offered in every mode — a
+	// read-only sub-agent adds no permission the parent does not already have,
+	// and a checklist changes nothing on disk — but only to the agent the user
+	// is actually talking to. A delegate has one job and no standing to rewrite
+	// the plan it was called from.
+	if a.Depth < maxSubAgentDepth {
+		tools = append(tools, taskTool(), todoTool())
 	}
 	return tools
 }
@@ -141,6 +191,12 @@ func (a *Agent) execTool(ctx context.Context, tc llm.ToolCall) string {
 		}
 		return ""
 	}
+	getBool := func(k string) bool {
+		if v, ok := args[k].(bool); ok {
+			return v
+		}
+		return false
+	}
 
 	switch tc.Function.Name {
 	case "read_file":
@@ -155,12 +211,35 @@ func (a *Agent) execTool(ctx context.Context, tc llm.ToolCall) string {
 		return a.search(getStr("query"))
 	case "read_knowledge":
 		return a.readKnowledge(getStr("doc"))
+	case "recall":
+		return a.recall(getStr("query"))
 	case "write_file":
+		if !PermissionsFor(a.Mode).CanWrite {
+			return a.modeDenied("write_file")
+		}
 		return a.writeFile(getStr("path"), getStr("content"))
 	case "edit_file":
+		if !PermissionsFor(a.Mode).CanWrite {
+			return a.modeDenied("edit_file")
+		}
 		return a.editFile(getStr("path"), getStr("old_string"), getStr("new_string"))
+	case "remember":
+		if !PermissionsFor(a.Mode).CanWrite {
+			return a.modeDenied("remember")
+		}
+		return a.remember(getStr("content"), getBool("rewrite"), getStr("scope"))
 	case "run_command":
+		if !PermissionsFor(a.Mode).CanRun {
+			return a.modeDenied("run_command")
+		}
 		return a.runCommand(ctx, getStr("command"))
+	case "task":
+		return a.runTask(ctx, getStr("description"), getStr("prompt"), getStr("mode"))
+	case "todo":
+		// Parsed from the raw arguments rather than the decoded map: the items
+		// are structured, and re-deriving them from map[string]any would mean
+		// hand-rolling the type checks json.Unmarshal already does.
+		return a.updateTodos(tc.Function.Arguments)
 	default:
 		return "error: unknown tool " + tc.Function.Name
 	}
@@ -359,10 +438,101 @@ func (a *Agent) runCommand(ctx context.Context, command string) string {
 	return result
 }
 
-// approve consults the UI (unless AutoApprove is set).
+// modeDenied explains that a tool is blocked by the current mode. It only
+// fires for modes that withhold the tool, so a.Mode is never the zero value
+// here.
+func (a *Agent) modeDenied(tool string) string {
+	return "error: " + tool + " is not available in " + string(a.Mode) + " mode — switch with /mode build"
+}
+
+// approve consults the UI (unless AutoApprove is set). Modes that force
+// approval always prompt, even when AutoApprove is on.
 func (a *Agent) approve(action, target, preview string) bool {
-	if a.AutoApprove {
+	if a.AutoApprove && !PermissionsFor(a.Mode).ForceApproval {
 		return true
 	}
 	return a.UI.Approve(ApprovalRequest{Action: action, Target: target, Preview: preview})
+}
+
+// remember writes a durable fact to project (or personal) memory. It is the
+// agent's L1 prompt-memory write channel, distinct from write_file: a memory
+// write is metadata, hard-capped, and shown as a focused preview so a wrong
+// lesson can be caught at the approval gate. A refused append past the cap
+// surfaces as actionable guidance rather than a silent truncation.
+func (a *Agent) remember(content string, rewrite bool, scope string) string {
+	scope = strings.TrimSpace(strings.ToLower(scope))
+	if scope == "" {
+		scope = "project"
+	}
+
+	// Dry-run first to size the result for the approval preview without
+	// touching disk if the user declines or the cap is hit.
+	dry, err := a.rememberOnce(content, rewrite, scope, false)
+	if err != nil {
+		if err == memory.ErrMemoryFull {
+			return "error: " + err.Error()
+		}
+		return "error: " + err.Error()
+	}
+
+	preview := "+ " + strings.TrimSpace(content)
+	if rewrite {
+		preview = "(rewrite) replacing memory with:\n" + capLines(prefixLines(preview, "+"), maxDiffLines)
+	}
+	if !a.approve("remember", dry.Path, preview) {
+		return "user declined to update memory"
+	}
+
+	res, err := a.rememberOnce(content, rewrite, scope, true)
+	if err != nil {
+		if err == memory.ErrMemoryFull {
+			return "error: " + err.Error()
+		}
+		return "error: " + err.Error()
+	}
+	return fmt.Sprintf("remembered in %s (%d bytes)", res.Path, res.Bytes)
+}
+
+// rememberOnce calls the memory package once for the chosen scope. It exists to
+// keep the dry-run/apply pair in remember() tidy.
+func (a *Agent) rememberOnce(content string, rewrite bool, scope string, allowWrite bool) (memory.RememberResult, error) {
+	if scope == "user" {
+		return memory.RememberUser(content, rewrite, allowWrite)
+	}
+	return memory.Remember(a.Root, content, rewrite, allowWrite)
+}
+
+// recall searches past-session digests. It is read-only and offered in every
+// mode: a recall never changes the repo, and a session that taught something is
+// exactly the context a planning turn wants before it writes anything.
+func (a *Agent) recall(query string) string {
+	digests, err := memory.Recall(a.Root, query, 10)
+	if err != nil {
+		return "error: " + err.Error()
+	}
+	if len(digests) == 0 {
+		if strings.TrimSpace(query) == "" {
+			return "no past sessions recorded yet"
+		}
+		return "no past sessions matched " + strconv.Quote(query)
+	}
+	var b strings.Builder
+	for _, d := range digests {
+		fmt.Fprintf(&b, "## %s\n", d.Title)
+		fmt.Fprintf(&b, "session: %s  date: %s  outcome: %s\n", d.SessionID, d.Date, d.Outcome)
+		if d.Goal != "" {
+			fmt.Fprintf(&b, "goal: %s\n", d.Goal)
+		}
+		if len(d.Files) > 0 {
+			fmt.Fprintf(&b, "files: %s\n", strings.Join(d.Files, ", "))
+		}
+		if len(d.Gotchas) > 0 {
+			b.WriteString("gotchas:\n")
+			for _, g := range d.Gotchas {
+				fmt.Fprintf(&b, "  - %s\n", g)
+			}
+		}
+		b.WriteString("\n")
+	}
+	return strings.TrimSpace(b.String())
 }

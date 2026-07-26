@@ -25,7 +25,7 @@ export default function Install() {
         items={[
           <>
             Pick a <strong className="font-semibold text-foreground">provider</strong> — OpenRouter,
-            OpenAI, Groq, Together, DeepSeek, Mistral, or a local Ollama.
+            OpenAI, Anthropic, Google, Groq, Together, DeepSeek, Mistral, Azure, or a local Ollama.
           </>,
           <>
             Set its API <strong className="font-semibold text-foreground">key</strong> —{" "}
@@ -48,8 +48,8 @@ export default function Install() {
           <C>Go ≥ 1.24</C> to build the binary.
         </LI>
         <LI>
-          An API key for any OpenAI-compatible provider — OpenRouter, OpenAI, Groq, Together,
-          DeepSeek, Mistral, or a local Ollama.
+          An API key for any of ~20 built-in providers — OpenRouter, OpenAI, Anthropic, Google,
+          Groq, Together, DeepSeek, Mistral, Azure, or a local Ollama, among others.
         </LI>
         <LI>
           A git repository, if you want <C>kaioken update</C> to work from diffs.
@@ -82,9 +82,9 @@ $env:OPENROUTER_API_KEY = "sk-or-..."`}
         />
       </div>
       <Callout kind="tip" title="Switching providers">
-        Kaioken is provider-agnostic over any OpenAI-compatible endpoint. Use{" "}
-        <C>/provider &lt;name&gt;</C> in the TUI to switch, then <C>/models</C> to see what that
-        provider actually offers.
+        Kaioken is provider-agnostic over any OpenAI-compatible endpoint, plus Anthropic's own API
+        directly. Use <C>/provider &lt;name&gt;</C> in the TUI to switch, then <C>/models</C> to see
+        what that provider actually offers.
       </Callout>
 
       <H2 id="first-run">First run</H2>

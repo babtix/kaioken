@@ -1,0 +1,8 @@
+description: Mapping and indexing source code for knowledge generation.
+file_count: 6
+generated_at: "2026-07-26T04:10:35Z"
+id: kaioken/knowledge_engine/codemap
+model: nvidia/nemotron-3-super-120b-a12b
+scope:
+    - internal/codemap
+title: Code Mapping

@@ -17,32 +17,78 @@ import (
 
 const defaultBaseURL = "https://openrouter.ai/api/v1"
 
-// Provider describes an OpenAI-compatible chat-completions endpoint.
+// Provider describes a chat-completions endpoint. Most speak the
+// OpenAI-compatible /chat/completions and /models shapes (the zero value of
+// AuthHeader/Protocol); a few need a different auth header or wire protocol,
+// named explicitly below.
 type Provider struct {
 	BaseURL string
 	KeyEnv  string
+
+	// AuthHeader, when set, carries the raw API key under this header name
+	// instead of the default "Authorization: Bearer <key>". Anthropic wants
+	// "x-api-key"; Azure OpenAI wants "api-key".
+	AuthHeader string
+
+	// Protocol selects the wire format. "" means OpenAI-compatible
+	// chat-completions (the default); "anthropic" means Anthropic's native
+	// Messages API, which has a different request/response shape entirely
+	// (see anthropic.go).
+	Protocol string
+
+	// RequiresBaseURL marks a provider whose endpoint is account-scoped and
+	// has no public default — Azure's resource URL, Cloudflare's account ID.
+	// NewForProvider refuses to build a client until a base URL override is
+	// supplied, rather than silently sending requests to a relative path.
+	RequiresBaseURL bool
 }
 
-// Providers is the built-in registry the TUI/CLI can switch between. All use
-// the same OpenAI-compatible /chat/completions and /models shapes.
+const protocolAnthropic = "anthropic"
+
+// Providers is the built-in registry the TUI/CLI can switch between.
 var Providers = map[string]Provider{
-	"openrouter":  {"https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"},
-	"openai":      {"https://api.openai.com/v1", "OPENAI_API_KEY"},
-	"groq":        {"https://api.groq.com/openai/v1", "GROQ_API_KEY"},
-	"together":    {"https://api.together.xyz/v1", "TOGETHER_API_KEY"},
-	"deepseek":    {"https://api.deepseek.com/v1", "DEEPSEEK_API_KEY"},
-	"mistral":     {"https://api.mistral.ai/v1", "MISTRAL_API_KEY"},
-	"ollama":      {"http://localhost:11434/v1", "OLLAMA_API_KEY"},
-	"fireworks":   {"https://api.fireworks.ai/inference/v1", "FIREWORKS_API_KEY"},
-	"perplexity":  {"https://api.perplexity.ai", "PERPLEXITY_API_KEY"},
-	"xai":         {"https://api.x.ai/v1", "XAI_API_KEY"},
-	"cerebras":    {"https://api.cerebras.ai/v1", "CEREBRAS_API_KEY"},
-	"sambanova":   {"https://api.sambanova.ai/v1", "SAMBANOVA_API_KEY"},
-	"huggingface": {"https://api-inference.huggingface.co/v1", "HF_TOKEN"},
-	"cohere":      {"https://api.cohere.com/compatibility/v1", "COHERE_API_KEY"},
-	"anyscale":    {"https://api.endpoints.anyscale.com/v1", "ANYSCALE_API_KEY"},
-	"nvidia":      {"https://integrate.api.nvidia.com/v1", "NVIDIA_API_KEY"},
-	"anthropic":   {"https://api.anthropic.com/v1", "ANTHROPIC_API_KEY"},
+	"openrouter":  {BaseURL: "https://openrouter.ai/api/v1", KeyEnv: "OPENROUTER_API_KEY"},
+	"openai":      {BaseURL: "https://api.openai.com/v1", KeyEnv: "OPENAI_API_KEY"},
+	"groq":        {BaseURL: "https://api.groq.com/openai/v1", KeyEnv: "GROQ_API_KEY"},
+	"together":    {BaseURL: "https://api.together.xyz/v1", KeyEnv: "TOGETHER_API_KEY"},
+	"deepseek":    {BaseURL: "https://api.deepseek.com/v1", KeyEnv: "DEEPSEEK_API_KEY"},
+	"mistral":     {BaseURL: "https://api.mistral.ai/v1", KeyEnv: "MISTRAL_API_KEY"},
+	"ollama":      {BaseURL: "http://localhost:11434/v1", KeyEnv: "OLLAMA_API_KEY"},
+	"fireworks":   {BaseURL: "https://api.fireworks.ai/inference/v1", KeyEnv: "FIREWORKS_API_KEY"},
+	"perplexity":  {BaseURL: "https://api.perplexity.ai", KeyEnv: "PERPLEXITY_API_KEY"},
+	"xai":         {BaseURL: "https://api.x.ai/v1", KeyEnv: "XAI_API_KEY"},
+	"cerebras":    {BaseURL: "https://api.cerebras.ai/v1", KeyEnv: "CEREBRAS_API_KEY"},
+	"sambanova":   {BaseURL: "https://api.sambanova.ai/v1", KeyEnv: "SAMBANOVA_API_KEY"},
+	"huggingface": {BaseURL: "https://api-inference.huggingface.co/v1", KeyEnv: "HF_TOKEN"},
+	"cohere":      {BaseURL: "https://api.cohere.com/compatibility/v1", KeyEnv: "COHERE_API_KEY"},
+	"anyscale":    {BaseURL: "https://api.endpoints.anyscale.com/v1", KeyEnv: "ANYSCALE_API_KEY"},
+	"nvidia":      {BaseURL: "https://integrate.api.nvidia.com/v1", KeyEnv: "NVIDIA_API_KEY"},
+	"deepinfra":   {BaseURL: "https://api.deepinfra.com/v1/openai", KeyEnv: "DEEPINFRA_API_KEY"},
+	"baseten":     {BaseURL: "https://inference.baseten.co/v1", KeyEnv: "BASETEN_API_KEY"},
+
+	// Google's Gemini models via its own OpenAI-compatibility endpoint —
+	// same bearer auth and /chat/completions shape as everything above, so
+	// no special protocol is needed to reach it.
+	"google": {BaseURL: "https://generativelanguage.googleapis.com/v1beta/openai", KeyEnv: "GEMINI_API_KEY"},
+
+	// Anthropic has no OpenAI-compatible endpoint: a distinct auth header
+	// and the native Messages API (anthropic.go handles the translation).
+	"anthropic": {
+		BaseURL:    "https://api.anthropic.com/v1",
+		KeyEnv:     "ANTHROPIC_API_KEY",
+		AuthHeader: "x-api-key",
+		Protocol:   protocolAnthropic,
+	},
+
+	// Azure OpenAI: the endpoint is a customer-specific resource URL
+	// (https://<resource>.openai.azure.com/openai/v1), so there is no public
+	// default — set base_url in workspace config to the resource URL.
+	"azure": {KeyEnv: "AZURE_OPENAI_API_KEY", AuthHeader: "api-key", RequiresBaseURL: true},
+
+	// Cloudflare Workers AI: the endpoint embeds the Cloudflare account ID
+	// (https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1), so it is
+	// account-scoped the same way Azure is.
+	"cloudflare-workers-ai": {KeyEnv: "CLOUDFLARE_API_KEY", RequiresBaseURL: true},
 }
 
 // NewForProvider builds a client for a named provider. baseURLOverride wins
@@ -50,11 +96,18 @@ var Providers = map[string]Provider{
 func NewForProvider(provName, baseURLOverride, model, apiKey string) (*Client, error) {
 	base := baseURLOverride
 	keyEnv := "OPENROUTER_API_KEY"
+	var authHeader, protocol string
 	if p, ok := Providers[provName]; ok {
 		if base == "" {
 			base = p.BaseURL
 		}
 		keyEnv = p.KeyEnv
+		authHeader = p.AuthHeader
+		protocol = p.Protocol
+		if base == "" {
+			return nil, fmt.Errorf("%s has no default endpoint — set base_url in the workspace config "+
+				"(e.g. the Azure resource URL, or the Cloudflare account URL)", provName)
+		}
 	} else if base == "" {
 		base = defaultBaseURL
 	}
@@ -62,10 +115,12 @@ func NewForProvider(provName, baseURLOverride, model, apiKey string) (*Client, e
 		return nil, fmt.Errorf("no API key — set %s or provide one with /key", keyEnv)
 	}
 	return &Client{
-		APIKey:  apiKey,
-		BaseURL: base,
-		Model:   model,
-		HTTP:    &http.Client{Timeout: 300 * time.Second},
+		APIKey:     apiKey,
+		BaseURL:    base,
+		Model:      model,
+		AuthHeader: authHeader,
+		Protocol:   protocol,
+		HTTP:       &http.Client{Timeout: 300 * time.Second},
 	}, nil
 }
 
@@ -75,6 +130,13 @@ type Client struct {
 	BaseURL string
 	Model   string
 	HTTP    *http.Client
+
+	// AuthHeader, when non-empty, is the header the raw APIKey is sent under
+	// instead of "Authorization: Bearer <key>". See Provider.AuthHeader.
+	AuthHeader string
+
+	// Protocol selects the wire format for this client. See Provider.Protocol.
+	Protocol string
 
 	// MaxTokens caps the reply length on every request. Zero means "let the
 	// provider decide", which is how this used to behave — but OpenRouter
@@ -162,6 +224,9 @@ type chatResponse struct {
 
 // Chat sends a system+user prompt and returns the assistant text.
 func (c *Client) Chat(ctx context.Context, system, user string) (string, error) {
+	if c.Protocol == protocolAnthropic {
+		return c.anthropicChat(ctx, system, user)
+	}
 	body, err := json.Marshal(chatRequest{
 		Model: c.Model,
 		Messages: []message{
@@ -197,18 +262,20 @@ func (c *Client) rawChat(ctx context.Context, body []byte) ([]byte, error) {
 	ceiling := c.tokenCeiling()
 	body = withMaxTokens(body, ceiling)
 
-	backoffs := []time.Duration{0, 3 * time.Second, 10 * time.Second, 25 * time.Second}
 	var lastErr error
 	shrunk := false
-	for i := 0; i < len(backoffs); i++ {
-		if backoffs[i] > 0 {
+	// next is how long to wait before the upcoming attempt: the fallback
+	// schedule by default, overridden whenever a provider states its own.
+	next := fallbackBackoffs[0]
+	for i := 0; i < len(fallbackBackoffs); i++ {
+		if next > 0 {
 			select {
-			case <-time.After(backoffs[i]):
+			case <-time.After(next):
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			}
 		}
-		raw, retryable, err := c.doPost(ctx, body)
+		raw, retryable, wait, err := c.doPost(ctx, body)
 		if err == nil {
 			return raw, nil
 		}
@@ -221,8 +288,16 @@ func (c *Client) rawChat(ctx context.Context, body []byte) ([]byte, error) {
 			c.learnCeiling(n)
 			ceiling = n
 			body = withMaxTokens(body, n)
-			i-- // this attempt did not consume a backoff slot
+			next = 0 // the resend is corrective, not a retry — do not sleep
+			i--      // and it does not consume a backoff slot
 			continue
+		}
+		// Otherwise prefer what the provider asked for, falling back to the
+		// ladder only when it said nothing.
+		if wait > 0 {
+			next = wait
+		} else if i+1 < len(fallbackBackoffs) {
+			next = fallbackBackoffs[i+1]
 		}
 		if !retryable {
 			return nil, creditError(err, ceiling)
@@ -233,7 +308,17 @@ func (c *Client) rawChat(ctx context.Context, body []byte) ([]byte, error) {
 
 // setHeaders applies the auth and attribution headers every request needs.
 func (c *Client) setHeaders(req *http.Request) {
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	if c.Protocol == protocolAnthropic {
+		req.Header.Set("x-api-key", c.APIKey)
+		req.Header.Set("anthropic-version", anthropicVersion)
+		req.Header.Set("Content-Type", "application/json")
+		return
+	}
+	if c.AuthHeader != "" {
+		req.Header.Set(c.AuthHeader, c.APIKey)
+	} else {
+		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("HTTP-Referer", "https://github.com/local/kaioken")
 	req.Header.Set("X-Title", "kaioken")
@@ -245,6 +330,9 @@ func (c *Client) setHeaders(req *http.Request) {
 // enabled; the model-specific invoke URL (/v1/chat/completions/{model})
 // routes through a different path that often still works.
 func (c *Client) chatURL() string {
+	if c.Protocol == protocolAnthropic {
+		return c.BaseURL + "/messages"
+	}
 	if c.nvidiaModelURL {
 		return c.BaseURL + "/chat/completions/" + c.Model
 	}
@@ -292,25 +380,30 @@ const nvidiaAccountHint = "\n→ NVIDIA rejected the model for this account. Thi
 	"or generate a fresh API key after enabling. Alternatively, switch " +
 	"providers (/provider) to openrouter with the same model name."
 
-func (c *Client) doPost(ctx context.Context, body []byte) (raw []byte, retryable bool, err error) {
+// doPost sends one request. Alongside the body it reports whether the failure
+// is worth retrying and, when the provider stated one, how long to wait first.
+func (c *Client) doPost(ctx context.Context, body []byte) (raw []byte, retryable bool, wait time.Duration, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		c.chatURL(), bytes.NewReader(body))
 	if err != nil {
-		return nil, false, err
+		return nil, false, 0, err
 	}
 	c.setHeaders(req)
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, true, err
+		return nil, true, 0, err
 	}
 	defer resp.Body.Close()
 	raw, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, true, err
+		return nil, true, 0, err
 	}
 	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
-		return nil, true, fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 300))
+		// A 429 is where Retry-After actually appears; 5xx occasionally
+		// carries one too, and honoring it costs nothing when it does not.
+		wait, _ = retryAfter(resp.Header)
+		return nil, true, wait, fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 300))
 	}
 	if resp.StatusCode != http.StatusOK {
 		e := fmt.Errorf("provider HTTP %d: %s", resp.StatusCode, truncate(string(raw), 400))
@@ -318,11 +411,11 @@ func (c *Client) doPost(ctx context.Context, body []byte) (raw []byte, retryable
 			return c.doPost(ctx, body)
 		}
 		if strings.Contains(e.Error(), "Not found for account") {
-			return nil, false, fmt.Errorf("%s%s", e.Error(), nvidiaAccountHint)
+			return nil, false, 0, fmt.Errorf("%s%s", e.Error(), nvidiaAccountHint)
 		}
-		return nil, false, e
+		return nil, false, 0, e
 	}
-	return raw, false, nil
+	return raw, false, 0, nil
 }
 
 // ---- tool-calling chat (OpenAI-compatible) ----
@@ -386,6 +479,9 @@ type toolChatResponse struct {
 // ChatWithTools runs one non-streaming turn of a tool-calling conversation.
 // The returned Message may contain assistant text, tool calls, or both.
 func (c *Client) ChatWithTools(ctx context.Context, messages []Message, tools []Tool) (Message, error) {
+	if c.Protocol == protocolAnthropic {
+		return c.anthropicChatWithTools(ctx, messages, tools)
+	}
 	reqBody := toolChatRequest{
 		Model:       c.Model,
 		Messages:    messages,
@@ -565,11 +661,18 @@ type ModelInfo struct {
 // ListModels fetches the OpenRouter model catalog, optionally filtered by a
 // case-insensitive substring.
 func (c *Client) ListModels(ctx context.Context, filter string) ([]ModelInfo, error) {
+	if c.Protocol == protocolAnthropic {
+		return c.anthropicListModels(ctx, filter)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/models", nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	if c.AuthHeader != "" {
+		req.Header.Set(c.AuthHeader, c.APIKey)
+	} else {
+		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	}
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return nil, err

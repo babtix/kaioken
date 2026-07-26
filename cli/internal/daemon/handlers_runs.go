@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"kaioken/internal/config"
@@ -91,6 +92,41 @@ func (s *Server) handleCancelRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
+}
+
+// POST /v1/runs/{run_id}/revert deletes the files a run wrote, returning the
+// repo to its pre-run state. Only the run's own recorded artifacts are touched,
+// and every path is confined to the workspace root via safeJoin.
+func (s *Server) handleRevertRun(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("run_id")
+	run, ok := s.runs.Get(id)
+	if !ok {
+		writeError(w, http.StatusNotFound, codeNotFound, "run not found", "")
+		return
+	}
+	ws, ok := s.mgr.Get(run.WorkspaceID)
+	if !ok {
+		writeError(w, http.StatusNotFound, codeWorkspaceNotFound, "workspace not found", "")
+		return
+	}
+	repo := filepath.FromSlash(ws.Path)
+
+	run.mu.Lock()
+	artifacts := make([]Artifact, len(run.Artifacts))
+	copy(artifacts, run.Artifacts)
+	run.mu.Unlock()
+
+	deleted := 0
+	for _, a := range artifacts {
+		abs, err := safeJoin(repo, a.Path)
+		if err != nil {
+			continue // never touch anything outside the repo
+		}
+		if err := os.Remove(abs); err == nil {
+			deleted++
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"deleted": deleted, "total": len(artifacts)})
 }
 
 // --- T038: Estimate endpoint ---

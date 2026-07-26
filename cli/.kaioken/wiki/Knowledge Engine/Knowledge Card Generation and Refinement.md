@@ -26,7 +26,7 @@ Knowledge cards are generated through a multi-pass pipeline that combines LLM-ge
 4. **Subsection generation** (Pass 3b) for detailed child documents (when multiplier ≥ 2)
 5. **Quality refinement** through critique and correction passes (when multiplier ≥ 4)
 
-The pipeline is implemented in `internal/wiki/wiki.go` and `internal/wiki/passes.go`, with the core orchestration in the `Run` function.
+The pipeline is implemented in `cli/internal/wiki/wiki.go` and `cli/internal/wiki/passes.go`, with the core orchestration in the `Run` function.
 
 ## Multi-Pass Generation Process
 
@@ -35,7 +35,7 @@ The pipeline is implemented in `internal/wiki/wiki.go` and `internal/wiki/passes
 The process begins by either loading an existing wiki plan or generating a new one via `planOutline`. This pass creates a structural skeleton of the repository to inform section planning:
 
 ```go
-// internal/wiki/wiki.go:471-533
+// cli/internal/wiki/wiki.go
 func (r *run) planOutline(ctx context.Context) (*Outline, error) {
 	var user strings.Builder
 	user.WriteString("Repository layout (dir → file count, sample files):\n\n")
@@ -72,7 +72,7 @@ The outline defines sections with IDs, titles, goals, and relevant files, stored
 For each section, the system generates a detailed sub-plan via `planSection`. This pass focuses on the section's specific goal and available files:
 
 ```go
-// internal/wiki/wiki.go:499-533
+// cli/internal/wiki/wiki.go
 func (r *run) planSection(ctx context.Context, sec Section) (*SubPlan, error) {
 	minSubs, maxSubs := 2, 4*r.multiplier
 	if maxSubs > 12 {
@@ -117,7 +117,7 @@ The sub-plan specifies focus files for the section overview and defines subsecti
 The main section document is generated via `generateDoc`, which creates a long-form markdown file based on the section's goal and sub-plan summary:
 
 ```go
-// internal/wiki/wiki.go:383-464
+// cli/internal/wiki/wiki.go
 func (r *run) runSection(ctx context.Context, sec Section) error {
 	// ... setup ...
 	
@@ -145,7 +145,7 @@ func (r *run) runSection(ctx context.Context, sec Section) error {
 The `generateDoc` function assembles context and invokes the LLM with the `docSystem` prompt and depth directive:
 
 ```go
-// internal/wiki/wiki.go:559-593
+// cli/internal/wiki/wiki.go
 func (r *run) generateDoc(ctx context.Context, req docRequest) (string, error) {
 	user := r.docPrompt(req)
 
@@ -166,7 +166,7 @@ func (r *run) generateDoc(ctx context.Context, req docRequest) (string, error) {
 When the multiplier is 2 or higher, the system generates additional documents for each planned subsection:
 
 ```go
-// internal/wiki/wiki.go:430-464
+// cli/internal/wiki/wiki.go
 // ---- pass 3b: one document per planned subsection ----
 if r.multiplier < 2 {
 	return nil
@@ -200,7 +200,7 @@ Subsection documents inherit the section's goal and global outline context, with
 At multiplier 4 and above, a critique pass revises the draft against a quality rubric:
 
 ```go
-// internal/wiki/wiki.go:398-415
+// cli/internal/wiki/wiki.go
 if r.multiplier >= critiqueMultiplier {
 	if revised, cerr := r.critique(ctx, req, doc); cerr == nil && revised != "" {
 		doc = revised
@@ -213,7 +213,7 @@ if r.multiplier >= critiqueMultiplier {
 The critique pass is implemented in `passes.go`:
 
 ```go
-// internal/wiki/passes.go:61-81
+// cli/internal/wiki/passes.go
 func (r *run) critique(ctx context.Context, req docRequest, draft string) (string, error) {
 	var user strings.Builder
 	fmt.Fprintf(&user, "Chapter under review: %s\n\nIts goal was:\n%s\n\n", req.Title, req.Goal)
@@ -244,7 +244,7 @@ The `critiqueSystem` prompt instructs the LLM to check for coverage, accuracy, p
 At multiplier 10 and above, grounding failures trigger a correction pass:
 
 ```go
-// internal/wiki/wiki.go:417-430
+// cli/internal/wiki/wiki.go
 // Grounding: always report, and at the highest multiplier also correct.
 report := verify(doc, r.idx, req.Files)
 if !report.Clean() {
@@ -262,7 +262,7 @@ if !report.Clean() {
 The correction pass is implemented in `passes.go`:
 
 ```go
-// internal/wiki/passes.go:84-103
+// cli/internal/wiki/passes.go
 func (r *run) correct(ctx context.Context, req docRequest, draft string, rep Report) (string, error) {
 	var user strings.Builder
 	fmt.Fprintf(&user, "Chapter: %s\n\n", req.Title)
@@ -294,7 +294,7 @@ The `correctSystem` prompt directs the LLM to fix only the specific unverifiable
 Source context is assembled via `bundleFiles`, which uses the code map to provide structural skeletons and relevant file bodies:
 
 ```go
-// internal/wiki/wiki.go:660-666
+// cli/internal/wiki/wiki.go
 func bundleFiles(idx *codemap.Index, files []scan.File, goal string, maxTokens int) string {
 	paths := make([]string, 0, len(files))
 	for _, f := range files {
@@ -311,7 +311,7 @@ This approach prioritizes structural completeness over truncating file middles, 
 An authoritative architecture brief is loaded once per wiki run and injected into all prompts:
 
 ```go
-// internal/wiki/wiki.go:209-220
+// cli/internal/wiki/wiki.go
 type run struct {
 	repo       string
 	cfg        *config.Config
@@ -325,7 +325,7 @@ type run struct {
 	pg         Progress
 }
 
-// internal/wiki/wiki.go:322-325
+// cli/internal/wiki/wiki.go
 // ---- pass 1b: the shared architecture brief ----
 if err := r.loadOrBuildBrief(ctx); err != nil {
 	pg.failed("architecture brief", err)
@@ -339,7 +339,7 @@ The brief is built from the global outline and maintained throughout the generat
 Real framework facts extracted from the code are scoped to each document's file set:
 
 ```go
-// internal/wiki/wiki.go:579-583
+// cli/internal/wiki/wiki.go
 if facts := detectFacts(r.res, r.idx); facts.Any() {
 	user.WriteString("\nFramework facts extracted from the code (real; cover the ones in scope):\n")
 	user.WriteString(facts.ScopedSummary(filePaths(req.Files), 60))
@@ -354,7 +354,7 @@ The wiki generation includes several resilience mechanisms:
 
 1. **Section-level isolation**: Failures in one section don't abort the entire wiki build:
    ```go
-   // internal/wiki/wiki.go:343-381
+   // cli/internal/wiki/wiki.go
    func (r *run) runSections(ctx context.Context, sections []Section) error {
 	   // ...
 	   g.Go(func() error {
@@ -369,7 +369,7 @@ The wiki generation includes several resilience mechanisms:
 
 2. **Retry capability**: Failed sections can be retried independently:
    ```go
-   // internal/wiki/wiki.go:278-319
+   // cli/internal/wiki/wiki.go
    func Retry(ctx context.Context, repo string, cfg *config.Config, client *llm.Client,
    	res *scan.Result, pg Progress) (int, error) {
    	// ...
@@ -380,7 +380,7 @@ The wiki generation includes several resilience mechanisms:
 
 3. **Document existence checks**: Skips regeneration unless forced:
    ```go
-   // internal/wiki/wiki.go:383-390
+   // cli/internal/wiki/wiki.go
    mainDoc := filepath.Join(WikiDir(r.repo), safeName(sec.Title)+".md")
    if !r.force {
 	   if _, err := os.Stat(mainDoc); err == nil {
@@ -392,7 +392,7 @@ The wiki generation includes several resilience mechanisms:
 
 4. **Quality pass safeguards**: Prevents over-aggressive revision/correction:
    ```go
-   // internal/wiki/passes.go:75-80
+   // cli/internal/wiki/passes.go
    if len(revised) < len(draft)/3 {
 	   return "", fmt.Errorf("revision collapsed the document (%d → %d chars); keeping the draft",
 		   len(draft), len(revised))
@@ -401,8 +401,8 @@ The wiki generation includes several resilience mechanisms:
 
 ## Referenced Files
 
-- `internal/wiki/wiki.go`: Contains the main wiki generation pipeline (`Run`, `runSection`, `generateDoc`)
-- `internal/wiki/passes.go`: Implements critique and correction quality passes
+- `cli/internal/wiki/wiki.go`: Contains the main wiki generation pipeline (`Run`, `runSection`, `generateDoc`)
+- `cli/internal/wiki/passes.go`: Implements critique and correction quality passes
 - `internal/codemap/codemap.go`: Provides code indexing and bundling for LLM context
 - `internal/scan/scan.go`: Handles repository file inventory
 - `internal/plan/plan.go`: Generates the initial module plan (used for outline context)

@@ -10,7 +10,7 @@
 Kaioken generates Git patch outputs via the `gitx.Patch` function, which produces a unified diff between a baseline commit and the current working tree. This is used for creating patch files and displaying changes in the TUI.
 
 ### Function Signature
-`internal/gitx/gitx.go:122-136`
+`cli/internal/gitx/gitx.go:142-156`
 
 ```go
 // Patch returns the unified diff from base to the working tree, restricted to
@@ -55,10 +55,10 @@ func Patch(ctx context.Context, repo, base string, paths []string, maxBytes int)
 
 ## Generating Diff Previews for Approval
 
-Kaioken creates human-readable diff previews for user approval in the TUI using functions in `internal/agent/diff.go`. These previews show changes in a compact format suitable for terminal display.
+Kaioken creates human-readable diff previews for user approval in the TUI using functions in `cli/internal/agent/diff.go`. These previews show changes in a compact format suitable for terminal display.
 
 ### File-Level Diff Preview (`diffPreview`)
-`internal/agent/diff.go:12-45`
+`cli/internal/agent/diff.go:12-45`
 
 ```go
 // diffPreview renders a compact line diff between old and new content for the
@@ -120,7 +120,7 @@ func diffPreview(oldContent, newContent string) string {
    - Truncates with `  … X more line(s)` when exceeding limit
 
 ### Inline Edit Preview (`hunkPreview`)
-`internal/agent/diff.go:48-53`
+`cli/internal/agent/diff.go:48-53`
 
 ```go
 // hunkPreview renders an edit_file change as a removed/added hunk.
@@ -143,7 +143,7 @@ func hunkPreview(oldStr, newStr string) string {
    - `capLines`: Limits lines to `n`, appending `  … X more line(s)` if exceeded
 
 ### Constants
-`internal/agent/diff.go:8`
+`cli/internal/agent/diff.go:8`
 
 ```go
 const maxDiffLines = 40
@@ -162,7 +162,7 @@ const maxDiffLines = 40
    - Review new file content
 
 ## Referenced Files
-- internal/gitx/gitx.go
-- internal/agent/diff.go
+- cli/internal/gitx/gitx.go
+- cli/internal/agent/diff.go
 
 <!-- kaioken:files internal/gitx/gitx.go,internal/agent/diff.go -->

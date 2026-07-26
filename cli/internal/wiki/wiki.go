@@ -25,6 +25,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 
+	"kaioken/internal/agentsmd"
 	"kaioken/internal/codemap"
 	"kaioken/internal/config"
 	"kaioken/internal/llm"
@@ -376,6 +377,11 @@ func (r *run) runSections(ctx context.Context, sections []Section) error {
 	// Record the commit this wiki reflects so `update` can diff against it.
 	if err := SaveStamp(r.repo, r.client.Model, r.multiplier, fail.sorted()); err != nil {
 		r.pg.failed("baseline", err)
+	}
+	// Point AGENTS.md at the chapters that now exist. This is a rewrite of a
+	// delimited block, not an LLM call, and a no-op when there is no AGENTS.md.
+	if changed, err := agentsmd.RefreshKnowledge(r.repo); err == nil && changed {
+		r.pg.info("refreshed the knowledge section of " + agentsmd.FileName)
 	}
 	return nil
 }

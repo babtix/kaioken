@@ -1,55 +1,29 @@
-# Building the Binary
+Based on the provided `go.mod` and `Makefile` files, here's the documentation update for the project's build system and dependencies:
 
-This chapter explains how to compile the `kaioken` executable using the provided Makefile or the Go toolchain directly.
+## Build System and Dependencies
 
-## Table of Contents
-- [Building with Makefile](#building-with-makefile)
-- [Building with Go Toolchain Directly](#building-with-go-toolchain-directly)
-- [Cleaning Build Artifacts](#cleaning-build-artifacts)
-- [Referenced Files](#referenced-files)
+The project uses Go modules for dependency management as defined in [`go.mod`](go.mod):
+- Direct dependencies include:
+  - `github.com/atotto/clipboard v0.1.4`
+  - `github.com/charmbracelet/bubbles v1.0.0`
+  - `github.com/charmbracelet/bubbletea v1.3.10`
+  - `github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834`
+  - `github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06`
+  - `golang.org/x/sync v0.17.0`
+  - `gopkg.in/yaml.v3 v3.0.1`
+- Numerous indirect dependencies are managed automatically (see full list in [`go.mod`](go.mod))
 
-## Building with Makefile
+The build process is managed via [`Makefile`](Makefile) with these targets:
+- `test`: Run all unit tests (`go test ./... -count=1`)
+- `vet`: Run Go vet static analysis (`go vet ./...`)
+- `lint`: Run golangci-lint if installed (skips if missing)
+- `check`: Run verification gates (`test` + `vet`)
+- `build`: Compile binaries (`go build ./...` + Windows executable `kaioken.exe`)
+- `clean`: Remove build artifacts (`rm -f kaioken.exe` or `del kaioken.exe`)
 
-The project includes a Makefile that automates the build process. The `build` target compiles the executable and places it in the current directory.
+---
 
-`Makefile:20-22`
-
-```makefile
-build:
-	go build ./...
-	go build -o kaioken.exe ./cmd/kaioken
-```
-
-This target performs two steps:
-1. `go build ./...` builds all packages in the project to verify dependencies and catch compilation errors.
-2. `go build -o kaioken.exe ./cmd/kaioken` builds the main command and outputs the binary as `kaioken.exe`.
-
-> **Note**: The `.exe` suffix is used in the Makefile output, but the actual binary name adapts to the host platform (e.g., `kaioken` on Unix-like systems, `kaioken.exe` on Windows) when built via the Go toolchain directly. The Makefile's output is explicitly named `kaioken.exe` for consistency in the provided script.
-
-## Building with Go Toolchain Directly
-
-If you prefer to bypass Make, use the Go toolchain directly:
-
-```bash
-go build -o kaioken ./cmd/kaioken
-```
-
-This command builds the `kaioken` binary (with platform-appropriate naming) from the `cmd/kaioken` package. Omitting the intermediate `go build ./...` step is acceptable for most builds, but running it first (as in the Makefile) helps ensure dependency integrity.
-
-## Cleaning Build Artifacts
-
-Remove compiled binaries using the Makefile's `clean` target:
-
-`Makefile:25-26`
-
-```makefile
-clean:
-	@rm -f kaioken.exe 2>/dev/null || del kaioken.exe 2>nul || true
-```
-
-This command attempts to delete `kaioken.exe` using platform-appropriate commands (`rm` for Unix-like systems, `del` for Windows), suppressing errors if the file doesn't exist.
-
-## Referenced Files
-- Makefile
+*Documentation updated based on current `go.mod` and `Makefile` contents*  
+*References: [go.mod](go.md), [Makefile](Makefile)*
 
 <!-- kaioken:files Makefile,go.mod -->

@@ -154,32 +154,5 @@ Key constraints defined as package constants:
 During a chat session, knowledge integration follows this sequence:
 1. User submits a message via the TUI
 2. TUI forwards the message to the agent (`agent.Agent.Run`)
-3. Agent invokes LLM with:
-   - Conversation history
-   - System prompt (including knowledge catalog summary from `knowledgeSummary`)
-   - Tool definitions (including `read_knowledge`)
-4. LLM processes input and may request the `read_knowledge` tool with a document name
-5. Agent executes `readKnowledge(doc)`:
-   - For empty `doc`: returns catalog listing
-   - For file/dir: reads and caps content as described
-6. Agent returns tool result to LLM
-7. LLM incorporates fetched knowledge into its reasoning
-8. LLM streams final response back to TUI for display
-
-This flow allows the agent to:
-- Dynamically access only relevant documentation (saving tokens)
-- Provide up-to-date context from the generated wiki
-- Prioritize procedural skills when matching user tasks
-- Fall back to source code as ground truth when documentation conflicts
-
-## Constraints and Design Considerations
-- **Token efficiency**: The 60KB cap (`knowledgeMaxBytes`) ensures documentation chunks fit within typical LLM context windows while preventing excessive prompt sizes
-- **Prompt hygiene**: Limiting catalog entries to 60 (`catalogMaxEntries`) keeps the system prompt concise while still advertising available documentation
-- **Safety**: Path validation prevents directory traversal attacks by ensuring all accesses remain within `.kaioken/`
-- **Usability**: Directory reads concatenate markdown files with clear separators (`===== path/file =====`), maintaining readability when multiple files are combined
-- **Fallback behavior**: Missing documentation gracefully guides users to generate it via `/wiki` or `/generate`
-
-## Referenced Files
-- internal/agent/knowledge.go
 
 <!-- kaioken:files internal/agent/knowledge.go -->

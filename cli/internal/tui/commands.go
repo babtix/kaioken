@@ -99,12 +99,17 @@ var commands = []command{
 		},
 	},
 	{
-		name:    "init",
-		summary: "create .kaioken/config.yaml here",
-		detail: "Writes the per-repo config: model, provider, scope excludes and steering notes. " +
-			"Kaioken works without it using defaults, but the file is where you tune things.",
+		name: "init", args: "[force]",
+		summary: "full first-run setup: config, scan, AGENTS.md",
+		detail: "Writes the per-repo config (model, provider, scope excludes, steering notes), " +
+			"scans the repository, and generates AGENTS.md — the root instruction file an " +
+			"agent reads before editing: the real commands, the package boundaries, the " +
+			"gotchas. When a wiki or skills already exist, init writes AGENTS.md in their " +
+			"vocabulary and links to them. Re-running is safe: an existing AGENTS.md is left " +
+			"alone unless you pass force.",
 		examples: []example{
-			{"/init", "create the config in the current repo"},
+			{"/init", "set the repo up (keeps an existing AGENTS.md)"},
+			{"/init force", "rewrite AGENTS.md from the current sources"},
 		},
 	},
 	{
@@ -129,6 +134,25 @@ var commands = []command{
 			"as it sounds. /undo still works afterwards.",
 		examples: []example{
 			{"/yolo", "toggle it; the footer shows 'yolo' while it is on"},
+		},
+	},
+	{
+		name: "mode", args: "[build|plan|general|explore]",
+		summary: "switch the agent's permission mode",
+		detail: "Build is the full-access default. Plan and explore are read-only — the agent can " +
+			"inspect but not change anything; general keeps every tool but always asks first. " +
+			"Switching mid-conversation tells the model its toolset changed, and the mode is " +
+			"saved with the session so /resume restores it.",
+		guide: "Use /mode plan when you want a proposal you can review before anything is " +
+			"touched, /mode explore when you are only asking questions about the code, and " +
+			"/mode general when you want full capability with a mandatory prompt on every " +
+			"change — even with /yolo on. Bare /mode shows where you are; switching back to " +
+			"build restores the default. The switch is announced to the model mid-conversation, " +
+			"so it stops offering edits it can no longer make.",
+		examples: []example{
+			{"/mode", "show the current mode and the alternatives"},
+			{"/mode plan", "read-only: propose changes without applying them"},
+			{"/mode build", "back to full access"},
 		},
 	},
 	{
@@ -188,10 +212,24 @@ var commands = []command{
 	{
 		name:    "compact",
 		summary: "summarize the conversation to free context",
-		detail: "Replaces the history with an LLM-written summary. Use it when a long session starts " +
-			"hitting the context window, instead of losing the thread with /new.",
+		detail: "Replaces older history with an LLM-written summary, keeping the system prompt and " +
+			"the most recent turns intact. Kaioken also reduces context on its own when a turn " +
+			"would not fit: first by dropping stale tool output (free, keeps the conversation), " +
+			"then by summarizing if that was not enough. Run it by hand when you would rather " +
+			"choose the moment, such as before starting a long task.",
 		examples: []example{
 			{"/compact", "summarize and continue"},
+		},
+	},
+	{
+		name:    "learn",
+		summary: "distill this session into a skill",
+		detail: "Reviews the session and, if it taught something worth keeping, writes or patches " +
+			"a skill in .kaioken/skills/ so the agent loads it before doing this task again. Also " +
+			"writes a digest the recall tool can find later, and reinforces any skill consulted. " +
+			"Runs automatically at session end when memory.learn >= 5; /learn forces it now.",
+		examples: []example{
+			{"/learn", "turn this session's lessons into a skill"},
 		},
 	},
 	{

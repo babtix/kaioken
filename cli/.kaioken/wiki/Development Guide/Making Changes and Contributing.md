@@ -180,4 +180,4 @@ Thumbs.db
 
 These files are the sole references for the development workflow described in this chapter. All other aspects of the codebase (e.g., internal packages, CLI commands) are covered in sibling chapters such as [Architecture Overview](../Architecture%20Overview.md) and [Configuration](../Configuration.md).
 
-<!-- kaioken:files Makefile,go.mod,.gitignore -->
+<!-- kaioken:files Makefile,go.mod -->
