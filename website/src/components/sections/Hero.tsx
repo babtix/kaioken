@@ -5,7 +5,7 @@ import AsciiArt from "@/components/AsciiArt"
 import TerminalDemo from "@/components/TerminalDemo"
 import { Badge } from "@/components/ui/badge"
 import LinkButton from "@/components/LinkButton"
-import { ASCII_LOGO, GITHUB_URL, PROVIDERS } from "@/data/content"
+import { ASCII_LOGO, GITHUB_URL } from "@/data/content"
 
 // The shader pulls in the whole ogl WebGL library — load it after the first
 // paint so phones parse the landing page itself before the effect starts.
@@ -86,8 +86,10 @@ export default function Hero() {
           </Badge>
           <h1 className="mt-5 text-balance font-mono text-[26px] leading-tight font-bold tracking-tight text-foreground sm:text-4xl md:text-[42px]">
             A terminal AI coding assistant
-            <br className="hidden sm:block" />{" "}
-            <span className="text-kai-orange glow-orange">+ knowledge engine</span>
+            <br />
+            <span className="text-kai-orange glow-orange">+</span>
+            <br />
+            <span className="text-kai-orange glow-orange">knowledge engine</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl font-sans text-[15px] leading-relaxed text-muted-foreground sm:text-base">
             One binary, two faces. A chat agent that edits your repo behind diff approval — and an
@@ -110,16 +112,9 @@ export default function Hero() {
           </LinkButton>
         </div>
 
-        <p
-          className="animate-rise mt-7 text-center font-mono text-[11px] text-kai-dim"
-          style={{ animationDelay: "0.3s" }}
-        >
-          {PROVIDERS.join("  ·  ")}
-        </p>
-
         <div
           className="animate-rise mx-auto mt-14 max-w-3xl"
-          style={{ animationDelay: "0.4s" }}
+          style={{ animationDelay: "0.3s" }}
         >
           <TerminalDemo />
         </div>

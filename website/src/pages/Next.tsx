@@ -49,11 +49,21 @@ function CategorySection({ cat }: { cat: RoadmapCategory }) {
               {cat.index}
             </span>
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <Icon name={cat.icon} className={cn("size-4.5", tone.icon)} />
                 <h3 className="font-mono text-lg font-bold tracking-tight text-foreground sm:text-xl">
                   {cat.title}
                 </h3>
+                {cat.status && (
+                  <span
+                    className={cn(
+                      "rounded-sm border px-2 py-0.5 font-mono text-[10px] tracking-wider uppercase",
+                      tone.badge
+                    )}
+                  >
+                    {cat.status}
+                  </span>
+                )}
               </div>
               <p className="mt-2 max-w-2xl font-sans text-[13.5px] leading-relaxed text-muted-foreground">
                 {cat.blurb}

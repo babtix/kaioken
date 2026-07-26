@@ -16,6 +16,8 @@ export interface RoadmapCategory {
   title: string
   blurb: string
   tone: "orange" | "amber" | "blue" | "green"
+  /** Optional status label rendered next to the title, e.g. "working on it". */
+  status?: string
   items: RoadmapItem[]
 }
 
@@ -98,6 +100,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
     blurb:
       "A web-based companion and desktop shell that extend the serve layer into a full interactive interface.",
     tone: "amber",
+    status: "working on it",
     items: [
       {
         title: "Web IDE companion",
