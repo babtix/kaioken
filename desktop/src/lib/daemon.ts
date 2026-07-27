@@ -25,6 +25,19 @@ export function authHeaders(): HeadersInit {
   return { Authorization: `Bearer ${current.token}`, "Content-Type": "application/json" }
 }
 
+/**
+ * The daemon URL that renders `target` inside an iframe, with the origin's
+ * framing restrictions stripped by the proxy.
+ *
+ * The token rides in the query string because an iframe's src cannot carry an
+ * Authorization header. Everything here stays on loopback.
+ */
+export function proxyUrl(target: string): string {
+  if (!current) throw new Error("daemon not ready")
+  const q = new URLSearchParams({ url: target, token: current.token })
+  return `http://127.0.0.1:${current.port}/v1/browser/proxy?${q}`
+}
+
 export function onDaemonUp(fn: (info: DaemonInfo) => void) {
   return listen<DaemonInfo>("daemon://up", (e) => {
     current = e.payload
