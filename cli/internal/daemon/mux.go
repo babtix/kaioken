@@ -32,6 +32,9 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("POST /v1/shutdown", s.handleShutdown)
 	router.HandleFunc("GET /v1/events", s.handleEvents)
 
+	// In-app browser
+	router.HandleFunc("GET /v1/browser/proxy", s.handleBrowserProxy)
+
 	// Workspaces (T014)
 	router.HandleFunc("GET /v1/workspaces", s.handleListWorkspaces)
 	router.HandleFunc("POST /v1/workspaces", s.handleOpenWorkspace)
@@ -46,6 +49,11 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("GET /v1/workspaces/{id}/status", s.handleStatus)
 	router.HandleFunc("GET /v1/workspaces/{id}/git", s.handleGit)
 	router.HandleFunc("GET /v1/workspaces/{id}/git/status", s.handleGitStatus)
+	router.HandleFunc("GET /v1/workspaces/{id}/git/diff", s.handleGitDiff)
+	router.HandleFunc("POST /v1/workspaces/{id}/git/stage", s.handleGitStage)
+	router.HandleFunc("POST /v1/workspaces/{id}/git/unstage", s.handleGitUnstage)
+	router.HandleFunc("POST /v1/workspaces/{id}/git/discard", s.handleGitDiscard)
+	router.HandleFunc("POST /v1/workspaces/{id}/git/commit", s.handleGitCommit)
 	router.HandleFunc("POST /v1/workspaces/{id}/hook", s.handleHook)
 	router.HandleFunc("GET /v1/workspaces/{id}/config", s.handleGetConfig)
 	router.HandleFunc("PUT /v1/workspaces/{id}/config", s.handlePutConfig)
@@ -78,6 +86,7 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/brief", s.handleGetBrief)
 	router.HandleFunc("PUT /v1/workspaces/{id}/wiki/brief", s.handlePutBrief)
 	router.HandleFunc("GET /v1/workspaces/{id}/file", s.handleFile)
+	router.HandleFunc("PUT /v1/workspaces/{id}/file", s.handlePutFile)
 	router.HandleFunc("GET /v1/workspaces/{id}/modules", s.handleGetModules)
 	router.HandleFunc("PUT /v1/workspaces/{id}/modules", s.handlePutModules)
 	router.HandleFunc("GET /v1/workspaces/{id}/skills", s.handleGetSkills)
@@ -120,10 +129,17 @@ func auth(token string, next http.Handler) http.Handler {
 func bearerToken(r *http.Request) string {
 	const prefix = "Bearer "
 	h := r.Header.Get("Authorization")
-	if !strings.HasPrefix(h, prefix) {
-		return ""
+	if strings.HasPrefix(h, prefix) {
+		return strings.TrimPrefix(h, prefix)
 	}
-	return strings.TrimPrefix(h, prefix)
+	// An iframe's src cannot carry an Authorization header, so the browser
+	// proxy — and only the browser proxy — also accepts the token as a query
+	// parameter. The daemon binds to loopback, so the URL never leaves the
+	// machine.
+	if r.URL.Path == "/v1/browser/proxy" {
+		return r.URL.Query().Get("token")
+	}
+	return ""
 }
 
 // originGuard rejects requests carrying a hostile Origin header, and answers
