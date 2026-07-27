@@ -4,7 +4,9 @@ import { useToastStore } from "@/store/toast"
 import { humanize } from "@/lib/errors"
 import type { FileTreeResponse, FileTreeNode, GitStatusResponse } from "@/lib/types"
 
-export type ExplorerPanel = "files" | "git" | "modules" | "wiki" | "recent"
+// The wiki is not among these: it has its own route on the left rather than a
+// duplicate outline in the right-hand explorer.
+export type ExplorerPanel = "files" | "git" | "modules" | "recent"
 
 const RECENT_CAP = 20
 
@@ -18,9 +20,12 @@ type ExplorerState = {
   treeLoading: boolean
   treeError: string | null
 
-  // Git status (git changes panel)
+  // Git status (source-control panel)
   git: GitStatusResponse | null
   gitLoading: boolean
+  /** Paths with an in-flight stage/unstage/discard, so their rows can show it. */
+  gitBusy: Set<string>
+  gitCommitting: boolean
 
   // Interaction
   expanded: Set<string> // directory paths that are expanded
@@ -46,6 +51,10 @@ type ExplorerState = {
 
   loadTree: (wsId: string, refresh?: boolean) => Promise<void>
   loadGitStatus: (wsId: string) => Promise<void>
+  stagePaths: (wsId: string, paths: string[]) => Promise<void>
+  unstagePaths: (wsId: string, paths: string[]) => Promise<void>
+  discardPaths: (wsId: string, paths: string[]) => Promise<void>
+  commit: (wsId: string, message: string, amend?: boolean) => Promise<boolean>
 
   // Called when the active workspace changes; loads its pinned/recents.
   initForWorkspace: (wsId: string) => void
@@ -86,6 +95,8 @@ export const useExplorerStore = create<ExplorerState>((set) => ({
   treeError: null,
   git: null,
   gitLoading: false,
+  gitBusy: new Set(),
+  gitCommitting: false,
   expanded: new Set(),
   selectedPath: null,
   pinned: [],
@@ -171,12 +182,73 @@ export const useExplorerStore = create<ExplorerState>((set) => ({
     }
   },
 
+  stagePaths: (wsId, paths) => runGitOp(set, paths, () => api.gitStage(wsId, paths)),
+  unstagePaths: (wsId, paths) => runGitOp(set, paths, () => api.gitUnstage(wsId, paths)),
+  discardPaths: (wsId, paths) => runGitOp(set, paths, () => api.gitDiscard(wsId, paths)),
+
+  commit: async (wsId, message, amend = false) => {
+    set({ gitCommitting: true })
+    try {
+      const git = await api.gitCommit(wsId, message, amend)
+      set({ git, gitCommitting: false })
+      const short = git.commit?.short
+      useToastStore
+        .getState()
+        .push("success", "Committed", short ? `${short} · ${message.split("\n")[0]}` : message)
+      return true
+    } catch (err) {
+      // A rejecting hook, an unconfigured identity or an empty index all land
+      // here; the daemon forwards git's own message as the detail, which is the
+      // part worth reading, so it becomes the toast body under a plain title.
+      const h = humanize(err)
+      useToastStore.getState().push("error", "Commit failed", h.body || h.title)
+      set({ gitCommitting: false })
+      return false
+    }
+  },
+
   initForWorkspace: (wsId) => {
     const pinned = readList(pinnedKey(wsId))
     const recents = readList(recentsKey(wsId))
-    set({ wsId, pinned, recents, expanded: new Set(), selectedPath: null, tree: null, git: null })
+    set({
+      wsId,
+      pinned,
+      recents,
+      expanded: new Set(),
+      selectedPath: null,
+      tree: null,
+      git: null,
+      gitBusy: new Set(),
+      gitCommitting: false,
+    })
   },
 }))
+
+// runGitOp is the shared body of stage/unstage/discard. Each of those endpoints
+// answers with the refreshed status, so the result replaces `git` outright
+// rather than being patched in — no chance of the panel drifting from the repo.
+// The touched paths are marked busy for the duration so their rows can show it.
+async function runGitOp(
+  set: (fn: (s: ExplorerState) => Partial<ExplorerState>) => void,
+  paths: string[],
+  call: () => Promise<GitStatusResponse>
+) {
+  if (paths.length === 0) return
+  set((s) => ({ gitBusy: new Set([...s.gitBusy, ...paths]) }))
+  try {
+    const git = await call()
+    set(() => ({ git }))
+  } catch (err) {
+    const h = humanize(err)
+    useToastStore.getState().push("error", h.title, h.body, h.action)
+  } finally {
+    set((s) => {
+      const next = new Set(s.gitBusy)
+      for (const p of paths) next.delete(p)
+      return { gitBusy: next }
+    })
+  }
+}
 
 // Persist pinned & recents whenever they change. The store tracks which
 // workspace these lists belong to, so persistence is keyed correctly without a

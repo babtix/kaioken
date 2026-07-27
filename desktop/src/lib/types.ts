@@ -243,12 +243,14 @@ export type FileTreeResponse = {
   total: number
 }
 
-// §2.4 git status (explorer sidebar's git navigator).
+// §2.4 git status (explorer sidebar's source-control panel).
 export type GitChange = {
   path: string
   kind: "added" | "modified" | "deleted" | "renamed" | "untracked"
   staged: boolean
   unstaged: boolean
+  added: number
+  removed: number
 }
 
 export type GitStatusResponse = {
@@ -256,8 +258,23 @@ export type GitStatusResponse = {
   branch: string
   head: string
   short: string
+  /** Tracking branch, or "" when the local branch has no upstream. */
+  upstream: string
+  ahead: number
+  behind: number
   dirty_count: number
+  staged_count: number
   changes: GitChange[]
+  /** Only present on the response to a commit. */
+  commit?: { sha: string; short: string }
+}
+
+export type GitDiffResponse = {
+  path: string
+  staged: boolean
+  /** Raw unified diff; untracked files are synthesised against /dev/null. */
+  diff: string
+  truncated: boolean
 }
 
 // §2.8 wiki tree (explorer sidebar's wiki outline).
