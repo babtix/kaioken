@@ -38,3 +38,12 @@ desktop/src-tauri/target/release/bundle/
 # OS files
 Thumbs.db
 .DS_Store
+
+# Nested reference repo with its own .git — not part of this repository, same
+# treatment as opencode/. Committing it would create a stray gitlink.
+cli/PRISM_RAG/
+
+# web-news
+web-news/node_modules/
+web-news/dist/
+web-news/.vercel/
