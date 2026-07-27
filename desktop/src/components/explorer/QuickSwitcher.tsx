@@ -3,8 +3,10 @@ import { Search } from "lucide-react"
 import { useExplorerStore, flattenFiles } from "@/store/explorer"
 import { Modal } from "@/components/ui"
 import { fileIcon, fileIconColor, pathExt } from "./fileIcon"
+import { fuzzyMatch } from "@/lib/fuzzy"
 import { cn } from "@/lib/utils"
 import type { FileTreeNode } from "@/lib/types"
+import { useOpenFile } from "@/lib/openFile"
 
 // QuickSwitcher is the Ctrl+P file navigator: type to fuzzy-find any file the
 // scanner sees, Enter to select + record it. The same flattened tree the file
@@ -17,8 +19,7 @@ export default function QuickSwitcher({
   onClose: () => void
 }) {
   const tree = useExplorerStore((s) => s.tree)
-  const selectFile = useExplorerStore((s) => s.selectFile)
-  const addRecent = useExplorerStore((s) => s.addRecent)
+  const openFile = useOpenFile()
   const [q, setQ] = useState("")
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -30,8 +31,8 @@ export default function QuickSwitcher({
     if (!query) return files.slice(0, 100)
     const scored: { node: FileTreeNode; score: number }[] = []
     for (const f of files) {
-      const m = fuzzy(f.path.toLowerCase(), query)
-      if (m) scored.push({ node: f, score: m })
+      const m = fuzzyMatch(f.path, query)
+      if (m) scored.push({ node: f, score: m.score })
     }
     scored.sort((a, b) => b.score - a.score)
     return scored.slice(0, 100).map((s) => s.node)
@@ -54,8 +55,7 @@ export default function QuickSwitcher({
   if (!open) return null
 
   const choose = (node: FileTreeNode) => {
-    selectFile(node.path)
-    addRecent(node.path)
+    openFile(node.path)
     onClose()
   }
 
@@ -134,33 +134,4 @@ export default function QuickSwitcher({
 function dirOf(path: string): string {
   const i = path.lastIndexOf("/")
   return i < 0 ? "" : path.slice(0, i)
-}
-
-// fuzzy scores path against query (both lowercased). Returns 0 when matched,
-// higher is better; null when query is not a subsequence of path. Bonus for
-// consecutive matches, matches at word boundaries (/ . _ -), and matches near
-// the path's end (basename).
-function fuzzy(path: string, query: string): number | null {
-  if (query.length === 0) return 0
-  let qi = 0
-  let score = 0
-  let prevMatch = -2
-  const baseStart = path.lastIndexOf("/") + 1
-  for (let i = 0; i < path.length && qi < query.length; i++) {
-    if (path[i] !== query[qi]) continue
-    // Boundary bonus: previous char is / . _ - or start.
-    const boundary = i === 0 || "/._- ".includes(path[i - 1])
-    if (boundary) score += 8
-    // Consecutive-match bonus.
-    if (i === prevMatch + 1) score += 6
-    // Basename bonus: matches in the file name rank higher.
-    if (i >= baseStart) score += 4
-    score += 1
-    prevMatch = i
-    qi++
-  }
-  if (qi < query.length) return null
-  // Prefer shorter paths on ties — less to read.
-  score -= path.length * 0.05
-  return score
 }

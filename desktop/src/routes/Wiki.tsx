@@ -1,19 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import {
-  BookOpen,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  FileText,
-  Hash,
-  Search,
-  X,
-} from "lucide-react"
+import { BookOpen, Clock, FileText, Hash } from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
 import { api } from "@/lib/api"
 import Markdown from "@/components/common/Markdown"
 import EmptyState from "@/components/EmptyState"
+import WikiNavigator from "@/components/wiki/WikiNavigator"
 import { Badge, Skeleton } from "@/components/ui"
 import { cn } from "@/lib/utils"
 
@@ -46,7 +38,6 @@ export default function Wiki() {
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
   const [hits, setHits] = useState<Hit[] | null>(null)
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [activeSlug, setActiveSlug] = useState<string | null>(null)
   const readerRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -136,11 +127,6 @@ export default function Wiki() {
     return () => observer.disconnect()
   }, [doc])
 
-  const docCount = useMemo(
-    () => sections.reduce((n, s) => n + s.docs.length, 0),
-    [sections]
-  )
-
   if (!ws) {
     return <EmptyState icon={BookOpen} title="No workspace open" hint="Open a repository to read its wiki." />
   }
@@ -157,100 +143,15 @@ export default function Wiki() {
 
   return (
     <div className="flex h-full">
-      {/* Navigation tree + search */}
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card">
-        <div className="border-b border-border p-2">
-          <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1.5 transition-colors focus-within:border-kai-orange/50">
-            <Search size={12} className="shrink-0 text-kai-dim" />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search wiki…"
-              className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-kai-text placeholder:text-kai-dim focus:outline-none"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                className="shrink-0 text-kai-dim hover:text-kai-text"
-                aria-label="Clear search"
-              >
-                <X size={11} />
-              </button>
-            )}
-          </div>
-          <p className="mt-1.5 px-0.5 font-mono text-[9px] text-kai-dim">
-            {hits ? `${hits.length} matches` : `${sections.length} sections · ${docCount} documents`}
-          </p>
-        </div>
-
-        <nav className="min-h-0 flex-1 overflow-auto py-1">
-          {hits ? (
-            hits.length === 0 ? (
-              <p className="px-3 py-4 font-mono text-[10px] text-kai-dim">No matches.</p>
-            ) : (
-              hits.map((h, i) => (
-                <button
-                  key={`${h.path}-${i}`}
-                  onClick={() => openDoc(h.path)}
-                  className="block w-full px-3 py-1.5 text-left transition-colors hover:bg-panel/60"
-                >
-                  <span className="flex items-baseline gap-1.5">
-                    <span className="truncate font-mono text-[11px] text-kai-blue">{h.title}</span>
-                    <span className="shrink-0 font-mono text-[9px] text-kai-dim">:{h.line}</span>
-                  </span>
-                  <span className="mt-0.5 block truncate font-mono text-[9px] text-kai-muted">
-                    {h.snippet}
-                  </span>
-                </button>
-              ))
-            )
-          ) : (
-            sections.map((sec) => {
-              const isCollapsed = collapsed.has(sec.name)
-              return (
-                <div key={sec.name} className="mb-0.5">
-                  <button
-                    onClick={() =>
-                      setCollapsed((prev) => {
-                        const next = new Set(prev)
-                        next.has(sec.name) ? next.delete(sec.name) : next.add(sec.name)
-                        return next
-                      })
-                    }
-                    className="flex w-full items-center gap-1 px-2 py-1 font-mono text-[11px] font-semibold text-kai-text transition-colors hover:bg-panel/60"
-                  >
-                    {isCollapsed ? <ChevronRight size={11} className="text-kai-dim" /> : <ChevronDown size={11} className="text-kai-dim" />}
-                    <span className="truncate">{sec.name}</span>
-                    <span className="ml-auto shrink-0 font-mono text-[9px] font-normal text-kai-dim">
-                      {sec.docs.length}
-                    </span>
-                  </button>
-
-                  {!isCollapsed &&
-                    sec.docs.map((d) => (
-                      <button
-                        key={d.rel}
-                        onClick={() => openDoc(d.rel)}
-                        className={cn(
-                          "relative block w-full truncate py-1 pl-7 pr-2 text-left font-mono text-[10.5px] transition-colors",
-                          doc?.path === d.rel
-                            ? "bg-accent text-kai-orange"
-                            : "text-kai-muted hover:bg-panel/60 hover:text-kai-text"
-                        )}
-                      >
-                        {doc?.path === d.rel && (
-                          <span className="absolute inset-y-0 left-0 w-0.5 bg-kai-orange" aria-hidden />
-                        )}
-                        {d.title}
-                      </button>
-                    ))}
-                </div>
-              )
-            })
-          )}
-        </nav>
-      </aside>
+      <WikiNavigator
+        sections={sections}
+        activePath={doc?.path ?? null}
+        onOpen={openDoc}
+        query={query}
+        onQueryChange={setQuery}
+        hits={hits}
+        searchRef={searchRef}
+      />
 
       {/* Reader */}
       <main ref={readerRef} className="min-w-0 flex-1 overflow-auto">
