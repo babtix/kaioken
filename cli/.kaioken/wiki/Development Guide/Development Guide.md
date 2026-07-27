@@ -122,6 +122,10 @@ Important considerations:
 - Wiki generation (`internal/wiki/wiki.go`) follows scan → plan → generate → update flow
 - Git operations (`internal/gitx/gitx.go`) respect `.gitignore` patterns (see below)
 - Configuration changes should work with both global and per-repo configs
+- The LLM provider integration now supports multiple providers (e.g., OpenRouter, OpenAI)
+- The TUI includes a workspace explorer for navigating the repository structure
+- The knowledge engine maintains a persistent repo knowledge base to support incremental updates
+- The CLI has been extended with new endpoints for browser proxy, file-write, git write operations, and per-file diff (see `cmd/kaioken/main.go` for details)
 
 ## Referenced Files
 - `go.mod` - Dependency declarations and Go version

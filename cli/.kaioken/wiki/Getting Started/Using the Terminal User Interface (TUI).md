@@ -40,14 +40,16 @@ The TUI initializes by loading repository configuration, session history, and an
 
 ## Navigating the Interface
 
-The TUI consists of three main areas:
-1. **Chat Display** (top): Shows conversation history with markdown rendering, syntax highlighting, and diff previews for proposed changes
-2. **Composer** (bottom): Multi-line input area where users type messages
-3. **Status Line** (between composer and chat): Displays context information (current repo, model, token usage) and temporary notifications
+The TUI consists of the following main areas:
+- **Chat Display**: Shows conversation history with markdown rendering, syntax highlighting, and diff previews for proposed changes
+- **Workspace Explorer**: A file tree view for navigating the repository, viewing file contents, and accessing code skeletons
+- **Composer**: Multi-line input area where users type messages
+- **Status Line**: Displays context information (current repo, model, token usage) and temporary notifications
 
 Key navigation features:
 - **Multi-line input**: Press `Alt+Enter` (or `Ctrl+J`) in the composer to insert a newline without submitting the message
 - **Command palette**: Type `/` to open the slash-command interface; navigate with arrow keys and press `Enter` to execute
+- **Workspace Explorer navigation**: Use arrow keys to navigate the file tree, press `Enter` to open a file in the chat or view its contents, and use standard tree navigation shortcuts (e.g., `left`/`right` to collapse/expand, `home`/`end` to go to start/end)
 - **Session persistence**: Conversations are automatically saved per repository in `.kaioken/sessions/` and can be resumed later
 - **Progress reporting**: Long operations (wiki generation, skill building) show live progress bars in the status line without freezing the UI; `Ctrl+C` cancels in-flight operations
 

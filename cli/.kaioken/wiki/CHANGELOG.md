@@ -2,6 +2,402 @@
 
 What Kaioken revised, and why.
 
+## 2026-07-27 17:15 — 269e8dc4 → 84e3ef5c
+
+35 files changed · 1 documents updated
+
+- Added git write operations (stage, commit, push) and per-file diff endpoints to the CLI daemon, with new handlers in `cli/internal/daemon/handlers_*` and routing updates in `mux.go`.  
+- Implemented the core `gitx` work module (`cli/internal/gitx/work.go`) with unit tests (`work_test.go`) and an integration test skeleton (`handlers_git_test.go`) to support the new endpoints.  
+- Updated CLI daemon configuration and metadata (`.gitignore`, session digest/json, wiki state) to reflect the new functionality.  
+- Refactored the desktop explorer UI: added/modified panels for git changes (`GitChangesPanel.tsx`, `ExplorerSidebar.tsx`, `FileTreePanel.tsx`, `QuickSwitcher.tsx`, `RecentFilesPanel.tsx`), removed `WebBrowserPanel` and `WikiOutlinePanel`, and adjusted layout, navigation, state, API, daemon, shortcuts, and type definitions.  
+- Bumped frontend dependencies (`package.json`, `package-lock.json`) and Tauri config (`tauri.conf.json`), and refreshed documentation (`Overview.md`, `Guide.md`, `Started.md`, `(TUI).md`, wiki files, `CHANGELOG.md`).
+
+**Documents updated**
+
+- .kaioken/wiki/Development Guide/Development Guide.md
+
+<details><summary>Changed files</summary>
+
+- `M` .gitignore
+- `M` cli/.kaioken/sessions/20260726-221313-3822.digest.md
+- `M` cli/.kaioken/sessions/20260726-221313-3822.json
+- `M` Overview.md
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` Guide.md
+- `M` Started.md
+- `M` (TUI).md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` cli/internal/daemon/handlers_explorer.go
+- `A` cli/internal/daemon/handlers_git_test.go
+- `M` cli/internal/daemon/mux.go
+- `A` cli/internal/gitx/work.go
+- `A` cli/internal/gitx/work_test.go
+- `M` desktop/package-lock.json
+- `M` desktop/package.json
+- `M` desktop/src-tauri/tauri.conf.json
+- `M` desktop/src/App.tsx
+- `M` desktop/src/components/explorer/ExplorerSidebar.tsx
+- `M` desktop/src/components/explorer/FileTreePanel.tsx
+- `M` desktop/src/components/explorer/GitChangesPanel.tsx
+- `M` desktop/src/components/explorer/QuickSwitcher.tsx
+- `M` desktop/src/components/explorer/RecentFilesPanel.tsx
+- `D` desktop/src/components/explorer/WebBrowserPanel.tsx
+- `D` desktop/src/components/explorer/WikiOutlinePanel.tsx
+- `M` desktop/src/components/layout/AppShell.tsx
+- `M` desktop/src/components/layout/NavRail.tsx
+- `M` desktop/src/lib/api.ts
+- `M` desktop/src/lib/daemon.ts
+- `M` desktop/src/lib/shortcuts.ts
+- `M` desktop/src/lib/types.ts
+- `M` desktop/src/routes/Wiki.tsx
+- `M` desktop/src/store/explorer.ts
+- `?` internal/daemon/handlers_browser.go
+- `?` internal/daemon/handlers_editor.go
+
+</details>
+
+## 2026-07-27 17:15 — 269e8dc4 → 709c4b9d
+
+35 files changed · 1 documents updated
+
+- Added Git write operation endpoints (commit, push, etc.) to the CLI daemon, exposing them via new handlers in `handlers_explorer.go` and registering routes in `mux.go`, with accompanying unit tests in `handlers_git_test.go`.  
+- Implemented a per‑file diff endpoint that returns a diff for a single file, backed by new `work.go`/`work_test.go` in the `gitx` package and wired into the daemon’s router.  
+- Updated the desktop client: extended the API layer (`api.ts`, `daemon.ts`, `types.ts`) to call the new Git endpoints, refreshed Explorer UI (sidebar, file tree, Git changes panel, quick switcher, recent files) and removed the unused `WebBrowserPanel.tsx` and `WikiOutlinePanel.tsx`.  
+- Adjusted the application shell and navigation (`AppShell.tsx`, `NavRail.tsx`, layout files) to accommodate the updated Explorer panels and updated dependencies (`package.json`, `package-lock.json`, `tauri.conf.json`).  
+- Updated documentation and changelog files (`Overview.md`, `Guide.md`, `Started.md`, `(TUI).md`, `CHANGELOG.md`, `wiki_state.yaml`) and session metadata to reflect the new Git write and diff features.
+
+**Documents updated**
+
+- .kaioken/wiki/Development Guide/Development Guide.md
+
+<details><summary>Changed files</summary>
+
+- `M` .gitignore
+- `M` cli/.kaioken/sessions/20260726-221313-3822.digest.md
+- `M` cli/.kaioken/sessions/20260726-221313-3822.json
+- `M` Overview.md
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` Guide.md
+- `M` Started.md
+- `M` (TUI).md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` cli/internal/daemon/handlers_explorer.go
+- `A` cli/internal/daemon/handlers_git_test.go
+- `M` cli/internal/daemon/mux.go
+- `A` cli/internal/gitx/work.go
+- `A` cli/internal/gitx/work_test.go
+- `M` desktop/package-lock.json
+- `M` desktop/package.json
+- `M` desktop/src-tauri/tauri.conf.json
+- `M` desktop/src/App.tsx
+- `M` desktop/src/components/explorer/ExplorerSidebar.tsx
+- `M` desktop/src/components/explorer/FileTreePanel.tsx
+- `M` desktop/src/components/explorer/GitChangesPanel.tsx
+- `M` desktop/src/components/explorer/QuickSwitcher.tsx
+- `M` desktop/src/components/explorer/RecentFilesPanel.tsx
+- `D` desktop/src/components/explorer/WebBrowserPanel.tsx
+- `D` desktop/src/components/explorer/WikiOutlinePanel.tsx
+- `M` desktop/src/components/layout/AppShell.tsx
+- `M` desktop/src/components/layout/NavRail.tsx
+- `M` desktop/src/lib/api.ts
+- `M` desktop/src/lib/daemon.ts
+- `M` desktop/src/lib/shortcuts.ts
+- `M` desktop/src/lib/types.ts
+- `M` desktop/src/routes/Wiki.tsx
+- `M` desktop/src/store/explorer.ts
+- `?` internal/daemon/handlers_browser.go
+- `?` internal/daemon/handlers_editor.go
+
+</details>
+
+## 2026-07-26 21:29 — f33ec90f → 269e8dc4
+
+267 files changed · 4 documents updated
+
+- Added multi‑provider LLM support (Anthropic, OpenRouter with retry, streaming, and token handling) and updated internal LLM packages.  
+- Implemented the workspace explorer UI: new backend handlers, frontend panels (file tree, git changes, context, wiki outline, etc.), layout components, and workspace switcher logic.  
+- Created a structured repo knowledge base under `cli/.kaioken/knowledge/` with module definitions, architecture, conventions, tech‑stack docs for each subsystem, plus skills, agent specs, wiki generation/serve, and session storage files.  
+- Updated project configuration and documentation: CI workflow, `.gitignore`, README, config files, Makefile, desktop source changes, wiki pages, and added new markdown docs (Support, Logic, Integration, etc.).
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Getting Started.md
+- .kaioken/wiki/Getting Started/Using the Terminal User Interface (TUI).md
+- .kaioken/wiki/Architecture Overview/Architecture Overview.md
+- .kaioken/wiki/Development Guide/Development Guide.md
+
+<details><summary>Changed files</summary>
+
+- `M` .github/workflows/ci.yml
+- `M` .gitignore
+- `A` AGENTS.md
+- `M` README.md
+- `A` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/config.yaml
+- `A` cli/.kaioken/knowledge/kaioken/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/setup_commands.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/cmd/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/cmd/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/cmd/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/cmd/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/cmd/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/config/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/config/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/config/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/config/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/config/setup_commands.md
+- `A` cli/.kaioken/knowledge/kaioken/config/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/gitx/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/gitx/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/gitx/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/gitx/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/gitx/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/codemap/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/codemap/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/codemap/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/codemap/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/codemap/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/planner/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/planner/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/planner/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/planner/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/planner/setup_commands.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/planner/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/setup_commands.md
+- `A` cli/.kaioken/knowledge/kaioken/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/tui/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/tui/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/tui/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/tui/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/tui/tech_stack.md
+- `A` cli/.kaioken/knowledge/kaioken/version/_module.yaml
+- `A` cli/.kaioken/knowledge/kaioken/version/architecture.md
+- `A` cli/.kaioken/knowledge/kaioken/version/conventions.md
+- `A` cli/.kaioken/knowledge/kaioken/version/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/version/tech_stack.md
+- `M` cli/.kaioken/sessions/20260726-041643-3695.json
+- `A` cli/.kaioken/sessions/20260726-215059-7859.json
+- `A` cli/.kaioken/sessions/20260726-221034-3211.json
+- `A` cli/.kaioken/sessions/20260726-221313-3822.digest.md
+- `A` cli/.kaioken/sessions/20260726-221313-3822.json
+- `A` cli/.kaioken/skills/README.md
+- `A` cli/.kaioken/skills/add-a-cli-command/SKILL.md
+- `A` cli/.kaioken/skills/add-a-skill/SKILL.md
+- `A` cli/.kaioken/skills/add-a-tui-command/SKILL.md
+- `A` cli/.kaioken/skills/build-the-binary/SKILL.md
+- `A` cli/.kaioken/skills/generate-wiki-documentation/SKILL.md
+- `A` cli/.kaioken/skills/lint-the-code/SKILL.md
+- `A` cli/.kaioken/skills/run-the-test-suite/SKILL.md
+- `A` cli/.kaioken/skills/update-dependencies/SKILL.md
+- `A` cli/.kaioken/state.json
+- `M` Overview.md
+- `M` Agent.md
+- `M` Flow.md
+- `M` Engine.md
+- `M` System).md
+- `M` (TUI).md
+- `A` cli/.kaioken/wiki/CHANGELOG.md
+- `M` Handling.md
+- `M` Wiki.md
+- `M` Invocation.md
+- `M` Workflow.md
+- `M` Index.md
+- `M` Context.md
+- `M` Indexing.md
+- `M` Skeletons.md
+- `M` Settings.md
+- `M` Precedence.md
+- `M` cli/.kaioken/wiki/Configuration/Configuration.md
+- `M` Models.md
+- `M` Concurrency.md
+- `M` Configuration.md
+- `M` Guide.md
+- `M` Contributing.md
+- `M` Structure.md
+- `M` Binary.md
+- `M` Started.md
+- `M` Repository.md
+- `M` Started/Installation.md
+- `M` Hooks.md
+- `M` Previews.md
+- `M` Updates.md
+- `M` Refinement.md
+- `M` Planning.md
+- `M` Scanning.md
+- `A` Support.md
+- `A` Logic.md
+- `A` Integration.md
+- `A` Responses.md
+- `A` Management.md
+- `A` Calling.md
+- `A` Integration/_section.yaml
+- `M` cli/.kaioken/wiki/README.md
+- `M` Tutorial.md
+- `M` Palette.md
+- `M` Rendering.md
+- `M` Footer.md
+- `M` Loop.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `A` cli/AGENTS.md
+- `A` cli/KAIOKEN-settings.json
+- `M` cli/Makefile
+- `M` cli/cmd/kaioken/main.go
+- `M` cli/internal/agent/agent.go
+- `A` cli/internal/agent/compact.go
+- `A` cli/internal/agent/compact_test.go
+- `A` cli/internal/agent/context.go
+- `M` cli/internal/agent/knowledge.go
+- `M` cli/internal/agent/knowledge_test.go
+- `A` cli/internal/agent/mode.go
+- `A` cli/internal/agent/prompts.go
+- `A` cli/internal/agent/prune.go
+- `A` cli/internal/agent/reminders.go
+- `A` cli/internal/agent/reminders_test.go
+- `A` cli/internal/agent/task.go
+- `A` cli/internal/agent/todo.go
+- `M` cli/internal/agent/tools.go
+- `A` cli/internal/agentsmd/agentsmd.go
+- `A` cli/internal/agentsmd/agentsmd_test.go
+- `A` cli/internal/agentsmd/generate.go
+- `A` cli/internal/agentsmd/sources.go
+- `M` cli/internal/config/config.go
+- `M` cli/internal/config/global.go
+- `M` cli/internal/daemon/chatui.go
+- `M` cli/internal/daemon/handlers_chat.go
+- `M` cli/internal/daemon/handlers_docs.go
+- `A` cli/internal/daemon/handlers_explorer.go
+- `A` cli/internal/daemon/handlers_explorer_test.go
+- `M` cli/internal/daemon/handlers_runs.go
+- `M` cli/internal/daemon/handlers_settings.go
+- `M` cli/internal/daemon/handlers_workspace.go
+- `M` cli/internal/daemon/handlers_workspace_test.go
+- `M` cli/internal/daemon/mux.go
+- `M` cli/internal/daemon/runs.go
+- `M` cli/internal/daemon/workspace.go
+- `A` cli/internal/gitx/status.go
+- `A` cli/internal/gitx/status_test.go
+- `A` cli/internal/llm/anthropic.go
+- `A` cli/internal/llm/anthropic_test.go
+- `M` cli/internal/llm/openrouter.go
+- `A` cli/internal/llm/retry.go
+- `M` cli/internal/llm/stream.go
+- `A` cli/internal/llm/tokens.go
+- `A` cli/internal/memory/DESIGN.md
+- `A` cli/internal/memory/digest.go
+- `A` cli/internal/memory/digest_test.go
+- `A` cli/internal/memory/doc.go
+- `A` cli/internal/memory/learn.go
+- `A` cli/internal/memory/learn_test.go
+- `A` cli/internal/memory/memory.go
+- `A` cli/internal/memory/memory_test.go
+- `A` cli/internal/memory/reinforce.go
+- `A` cli/internal/memory/reinforce_test.go
+- `A` cli/internal/memory/session.go
+- `M` cli/internal/session/session.go
+- `A` cli/internal/setup/setup.go
+- `M` cli/internal/skills/generate.go
+- `M` cli/internal/skills/skills.go
+- `M` cli/internal/tui/commands.go
+- `M` cli/internal/tui/explain.go
+- `M` cli/internal/tui/logo.go
+- `M` cli/internal/tui/tui.go
+- `M` cli/internal/tui/tutorial.go
+- `M` cli/internal/wiki/wiki.go
+- `M` desktop/docs/02-api-contract.md
+- `M` desktop/index.html
+- `M` desktop/src-tauri/capabilities/default.json
+- `M` desktop/src-tauri/tauri.conf.json
+- `M` desktop/src/App.tsx
+- `M` desktop/src/components/EmptyState.tsx
+- `A` desktop/src/components/ErrorBoundary.tsx
+- `M` desktop/src/components/Toaster.tsx
+- `A` desktop/src/components/chat/ApprovalDialog.tsx
+- `A` desktop/src/components/chat/Autocomplete.tsx
+- `A` desktop/src/components/chat/DiffView.tsx
+- `A` desktop/src/components/chat/ToolCallCard.tsx
+- `A` desktop/src/components/common/AsciiArt.tsx
+- `A` desktop/src/components/common/CodeBlock.tsx
+- `A` desktop/src/components/common/Markdown.tsx
+- `A` desktop/src/components/common/Mermaid.tsx
+- `A` desktop/src/components/explorer/ContextPanel.tsx
+- `A` desktop/src/components/explorer/ExplorerSidebar.tsx
+- `A` desktop/src/components/explorer/FileTreePanel.tsx
+- `A` desktop/src/components/explorer/GitChangesPanel.tsx
+- `A` desktop/src/components/explorer/ModuleStatusPanel.tsx
+- `A` desktop/src/components/explorer/QuickSwitcher.tsx
+- `A` desktop/src/components/explorer/RecentFilesPanel.tsx
+- `A` desktop/src/components/explorer/WebBrowserPanel.tsx
+- `A` desktop/src/components/explorer/WikiOutlinePanel.tsx
+- `A` desktop/src/components/explorer/fileIcon.tsx
+- `M` desktop/src/components/layout/AppShell.tsx
+- `M` desktop/src/components/layout/NavRail.tsx
+- `M` desktop/src/components/layout/StatusBar.tsx
+- `A` desktop/src/components/layout/WorkspaceSwitcher.tsx
+- `A` desktop/src/components/ui/index.tsx
+- `M` desktop/src/index.css
+- `A` desktop/src/lib/__tests__/slash.test.ts
+- `M` desktop/src/lib/api.ts
+- `M` desktop/src/lib/shortcuts.ts
+- `A` desktop/src/lib/slash.ts
+- `M` desktop/src/lib/types.ts
+- `M` desktop/src/main.tsx
+- `M` desktop/src/routes/Activity.tsx
+- `M` desktop/src/routes/Cards.tsx
+- `M` desktop/src/routes/Chat.tsx
+- `M` desktop/src/routes/Settings.tsx
+- `M` desktop/src/routes/Welcome.tsx
+- `M` desktop/src/routes/Wiki.tsx
+- `M` desktop/src/store/chat.ts
+- `A` desktop/src/store/explorer.ts
+- `M` desktop/src/store/runs.ts
+- `A` desktop/src/store/theme.ts
+- `M` desktop/src/store/workspace.ts
+- `A` docs/opencode-map.md
+- `A` verify-dark.png
+- `M` website/package-lock.json
+- `M` website/package.json
+- `M` website/src/components/Mermaid.tsx
+- `M` website/src/data/content.ts
+- `M` website/src/main.tsx
+- `M` website/src/pages/docs/Config.tsx
+- `M` website/src/pages/docs/Install.tsx
+- `?` PRISM_RAG/
+
+</details>
+
 ## 2026-07-26 18:41 — 8a12ad9b → f33ec90f
 
 113 files changed · 1 documents updated

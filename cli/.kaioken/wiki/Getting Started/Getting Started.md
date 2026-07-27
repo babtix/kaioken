@@ -116,10 +116,11 @@ kaioken tui
 ```
 In the TUI:
 - Chat with the LLM agent to perform coding tasks (file edits, command execution, etc.)
-- Access slash-commands by typing `/` to open the command palette (e.g., `/wiki`, `/plan`, `/skills`)
+- Access slash-commands by typing `/` to open the command palette (e.g., `/wiki`, `/plan`, `/skills`, `/workspace`)
 - View saved sessions with `/sessions` and `/resume`
 - Browse the generated wiki in a browser with `/serve`
 - Install automatic post-commit updates with `/hook install`
+- Explore the repository structure with the workspace explorer
 - The TUI streams progress live during long operations and never freezes the UI
 
 ## Common CLI Commands
