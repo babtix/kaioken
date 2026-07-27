@@ -16,7 +16,7 @@ import { useWorkspaceStore } from "@/store/workspace"
 import { useExplorerStore } from "@/store/explorer"
 import { cn } from "@/lib/utils"
 
-const NAV_ROUTES = ["/chat", "/wiki", "/activity", "/cards", "/settings"]
+const NAV_ROUTES = ["/chat", "/editor", "/browser", "/wiki", "/activity", "/cards", "/settings"]
 
 export default function AppShell() {
   const active = useWorkspaceStore((s) => s.active)
@@ -46,7 +46,7 @@ export default function AppShell() {
       if (mod && e.key === "k") { e.preventDefault(); setPaletteOpen((o) => !o); return }
       if (mod && e.key === "p") { e.preventDefault(); setQuickOpen(true); return }
       if (mod && e.key.toLowerCase() === "b") { e.preventDefault(); toggleExplorer(); return }
-      if (mod && e.key >= "1" && e.key <= "5") { e.preventDefault(); navigate(NAV_ROUTES[Number(e.key) - 1]); return }
+      if (mod && e.key >= "1" && e.key <= "7") { e.preventDefault(); navigate(NAV_ROUTES[Number(e.key) - 1]); return }
       if (mod && e.key === ",") { e.preventDefault(); navigate("/settings"); return }
       if (e.key === "?" && !isInputFocused()) { e.preventDefault(); setHelpOpen((o) => !o) }
     }

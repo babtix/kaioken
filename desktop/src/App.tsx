@@ -11,6 +11,8 @@ import type { KaiEvent } from "@/lib/types"
 
 import Chat from "@/routes/Chat"
 import Activity from "@/routes/Activity"
+import Browser from "@/routes/Browser"
+import Editor from "@/routes/Editor"
 import Wiki from "@/routes/Wiki"
 import Cards from "@/routes/Cards"
 import Settings from "@/routes/Settings"
@@ -42,6 +44,8 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route index element={<Welcome />} />
         <Route path="chat" element={<Chat />} />
+        <Route path="editor" element={<Editor />} />
+        <Route path="browser" element={<Browser />} />
         <Route path="wiki" element={<Wiki />} />
         <Route path="activity" element={<Activity />} />
         <Route path="cards" element={<Cards />} />

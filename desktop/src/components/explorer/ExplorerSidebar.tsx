@@ -1,6 +1,5 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import {
-  BookOpen,
   Clock,
   Files,
   GitBranch,
@@ -10,16 +9,22 @@ import {
 } from "lucide-react"
 import { useExplorerStore, type ExplorerPanel } from "@/store/explorer"
 import { useWorkspaceStore } from "@/store/workspace"
+import ResizeHandle, { readWidth, writeWidth } from "@/components/common/ResizeHandle"
 import { cn } from "@/lib/utils"
 import FileTreePanel from "./FileTreePanel"
 import GitChangesPanel from "./GitChangesPanel"
 import ModuleStatusPanel from "./ModuleStatusPanel"
-import WikiOutlinePanel from "./WikiOutlinePanel"
 import RecentFilesPanel from "./RecentFilesPanel"
 
+const WIDTH_KEY = "kaioken.explorer.width"
+const MIN_WIDTH = 200
+const MAX_WIDTH = 560
+const DEFAULT_WIDTH = 288 // matches the previous fixed w-72
+
 // ExplorerSidebar is the right-side project navigator: file tree, git changes,
-// module status, wiki outline and recent/pinned files behind a tab strip. It
-// mirrors what VS Code's Explorer does, on the right per the product's layout.
+// module status and recent/pinned files behind a tab strip. It mirrors what
+// VS Code's Explorer does, on the right per the product's layout. The wiki
+// lives on the left, in its own route, rather than being duplicated here.
 export default function ExplorerSidebar() {
   const ws = useWorkspaceStore((s) => s.active)
   const open = useExplorerStore((s) => s.open)
@@ -30,6 +35,15 @@ export default function ExplorerSidebar() {
   const loadTree = useExplorerStore((s) => s.loadTree)
   const loadGitStatus = useExplorerStore((s) => s.loadGitStatus)
   const git = useExplorerStore((s) => s.git)
+  const [width, setWidth] = useState(() =>
+    readWidth(WIDTH_KEY, DEFAULT_WIDTH, MIN_WIDTH, MAX_WIDTH)
+  )
+
+  // Persist outside the drag loop so resizing does not write on every frame.
+  useEffect(() => {
+    const id = setTimeout(() => writeWidth(WIDTH_KEY, width), 250)
+    return () => clearTimeout(id)
+  }, [width])
 
   // Re-initialise per-workspace state and fetch the tree when the active
   // workspace changes. The tree is the explorer's primary content and the
@@ -64,7 +78,19 @@ export default function ExplorerSidebar() {
   }
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-l border-border bg-card">
+    <aside
+      className="relative flex shrink-0 flex-col border-l border-border bg-card"
+      style={{ width }}
+    >
+      <ResizeHandle
+        side="left"
+        width={width}
+        onWidth={setWidth}
+        min={MIN_WIDTH}
+        max={MAX_WIDTH}
+        defaultWidth={DEFAULT_WIDTH}
+        label="Resize explorer"
+      />
       <div className="flex items-center gap-0.5 border-b border-border px-1.5 py-1.5">
         <TabButton
           active={panel === "files"}
@@ -83,12 +109,6 @@ export default function ExplorerSidebar() {
           onClick={() => setPanel("modules")}
           icon={Layers}
           label="Modules"
-        />
-        <TabButton
-          active={panel === "wiki"}
-          onClick={() => setPanel("wiki")}
-          icon={BookOpen}
-          label="Wiki"
         />
         <TabButton
           active={panel === "recent"}
@@ -110,7 +130,6 @@ export default function ExplorerSidebar() {
         {panel === "files" && <FileTreePanel />}
         {panel === "git" && <GitChangesPanel />}
         {panel === "modules" && <ModuleStatusPanel />}
-        {panel === "wiki" && <WikiOutlinePanel />}
         {panel === "recent" && <RecentFilesPanel />}
       </div>
     </aside>

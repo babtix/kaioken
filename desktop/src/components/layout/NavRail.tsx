@@ -1,15 +1,17 @@
 import { NavLink } from "react-router-dom"
-import { BookOpen, FolderOpen, Layers, MessageSquare, Settings, Zap } from "lucide-react"
+import { BookOpen, Code2, FolderOpen, Globe, Layers, MessageSquare, Settings, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useRunsStore } from "@/store/runs"
 
 const NAV_ITEMS = [
   { to: "/chat", icon: MessageSquare, label: "Chat", key: "1" },
-  { to: "/wiki", icon: BookOpen, label: "Wiki", key: "2" },
-  { to: "/activity", icon: Zap, label: "Activity", key: "3" },
-  { to: "/cards", icon: Layers, label: "Cards", key: "4" },
-  { to: "/settings", icon: Settings, label: "Settings", key: "5" },
+  { to: "/editor", icon: Code2, label: "Editor", key: "2" },
+  { to: "/browser", icon: Globe, label: "Browser", key: "3" },
+  { to: "/wiki", icon: BookOpen, label: "Wiki", key: "4" },
+  { to: "/activity", icon: Zap, label: "Activity", key: "5" },
+  { to: "/cards", icon: Layers, label: "Cards", key: "6" },
+  { to: "/settings", icon: Settings, label: "Settings", key: "7" },
 ] as const
 
 export default function NavRail() {
