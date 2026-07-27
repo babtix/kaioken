@@ -5,6 +5,7 @@ import { fileIcon, fileIconColor } from "./fileIcon"
 import { Spinner } from "@/components/ui"
 import { cn } from "@/lib/utils"
 import type { FileTreeNode } from "@/lib/types"
+import { useOpenFile } from "@/lib/openFile"
 
 // FileTreePanel renders the scope-aware file tree from GET /tree. Directories
 // expand/collapse in the explorer store; files select + record a recent. Kept
@@ -95,8 +96,7 @@ function TreeNode({
   const expanded = useExplorerStore((s) => s.expanded.has(node.path))
   const selected = useExplorerStore((s) => s.selectedPath === node.path)
   const toggleDir = useExplorerStore((s) => s.toggleDir)
-  const selectFile = useExplorerStore((s) => s.selectFile)
-  const addRecent = useExplorerStore((s) => s.addRecent)
+  const openFile = useOpenFile()
 
   const changeKind = changeMap.get(node.path)
 
@@ -137,8 +137,7 @@ function TreeNode({
         depth={depth}
         active={selected}
         onClick={() => {
-          selectFile(node.path)
-          addRecent(node.path)
+          openFile(node.path)
         }}
       >
         <span className="size-4 shrink-0" />

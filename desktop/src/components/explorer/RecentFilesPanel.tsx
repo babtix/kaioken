@@ -2,6 +2,7 @@ import { Clock, Pin, X } from "lucide-react"
 import { useExplorerStore } from "@/store/explorer"
 import { fileIcon, fileIconColor, pathExt } from "./fileIcon"
 import { cn } from "@/lib/utils"
+import { useOpenFile } from "@/lib/openFile"
 
 // RecentFilesPanel shows pinned files (persistent, manually added) above a
 // most-recently-used list that grows as the user navigates the explorer. Both
@@ -80,8 +81,7 @@ function FileRow({
   path: string
   action: React.ReactNode
 }) {
-  const selectFile = useExplorerStore((s) => s.selectFile)
-  const addRecent = useExplorerStore((s) => s.addRecent)
+  const openFile = useOpenFile()
   const selected = useExplorerStore((s) => s.selectedPath === path)
   const name = path.split("/").pop() ?? path
   const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : ""
@@ -97,8 +97,7 @@ function FileRow({
       <button
         type="button"
         onClick={() => {
-          selectFile(path)
-          addRecent(path)
+          openFile(path)
         }}
         className="flex min-w-0 flex-1 items-center gap-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-kai-orange/50"
       >

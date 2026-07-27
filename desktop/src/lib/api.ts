@@ -1,5 +1,5 @@
 import { authHeaders, base } from "./daemon"
-import type { ErrorEnvelope, Estimate, FileTreeResponse, GitStatusResponse, Health, ModuleStatus, RepoFile, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
+import type { ErrorEnvelope, Estimate, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, ModuleStatus, RepoFile, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
 
 // Parses the §2.1 error envelope; carries enough for a component to branch
 // on err.code (e.g. "no_api_key") instead of printing a stack trace.
@@ -64,12 +64,41 @@ export const api = {
   tree: (id: string, refresh = false) =>
     req<FileTreeResponse>("GET", `/workspaces/${id}/tree${refresh ? "?refresh=true" : ""}`),
   gitStatus: (id: string) => req<GitStatusResponse>("GET", `/workspaces/${id}/git/status`),
+  // Every mutation answers with the refreshed status, so the panel never has
+  // to chase a write with a read.
+  gitStage: (id: string, paths: string[]) =>
+    req<GitStatusResponse>("POST", `/workspaces/${id}/git/stage`, { paths }),
+  gitUnstage: (id: string, paths: string[]) =>
+    req<GitStatusResponse>("POST", `/workspaces/${id}/git/unstage`, { paths }),
+  gitDiscard: (id: string, paths: string[]) =>
+    req<GitStatusResponse>("POST", `/workspaces/${id}/git/discard`, { paths }),
+  gitCommit: (id: string, message: string, amend = false) =>
+    req<GitStatusResponse>("POST", `/workspaces/${id}/git/commit`, { message, amend }),
+  gitDiff: (id: string, path: string, staged = false) =>
+    req<GitDiffResponse>(
+      "GET",
+      `/workspaces/${id}/git/diff?path=${encodeURIComponent(path)}${staged ? "&staged=true" : ""}`
+    ),
   files: (id: string, q = "", limit = 20) =>
     req<{ query: string; files: RepoFile[] }>(
       "GET",
       `/workspaces/${id}/files?q=${encodeURIComponent(q)}&limit=${limit}`
     ),
   status: (id: string) => req<{ modules: ModuleStatus[] }>("GET", `/workspaces/${id}/status`),
+  readFile: (id: string, path: string) =>
+    req<{
+      path: string
+      language: string
+      content: string
+      total_lines: number
+      truncated: boolean
+    }>("GET", `/workspaces/${id}/file?path=${encodeURIComponent(path)}`),
+  writeFile: (id: string, path: string, content: string) =>
+    req<{ path: string; bytes: number; modified: string }>(
+      "PUT",
+      `/workspaces/${id}/file?path=${encodeURIComponent(path)}`,
+      { content }
+    ),
   git: (id: string) => req<Workspace["git"]>("GET", `/workspaces/${id}/git`),
   hook: (id: string, action: "install" | "remove") =>
     req<{ installed: boolean; path?: string }>("POST", `/workspaces/${id}/hook`, { action }),
