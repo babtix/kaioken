@@ -1,1 +1,1 @@
-The agent core uses Go's standard library for file operations (os, filepath), command execution (os/exec), and JSON handling (encoding/json). It interacts with the LLM via the kaioken/internal/llm package.
+The module is written in Go and uses the standard library. It depends on internal packages: llm, memory, ext, skills, and config. The llm.Client interface is used for interactions with language models, but the specific implementation is external to this module.
