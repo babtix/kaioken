@@ -3,6 +3,18 @@ import { listen } from "@tauri-apps/api/event"
 
 export type DaemonInfo = { port: number; token: string; version: string }
 
+/**
+ * The /v1 contract shape this build was written against, checked at startup
+ * against `/v1/health`'s `contract` field. It lives here, beside `base()` and
+ * `authHeaders()`, because this is the file you touch when the contract moves.
+ *
+ * Keep it in step with `version.ContractVersion` in
+ * `cli/internal/version/version.go`. R1 in docs/09-risks.md: an NSIS upgrade
+ * can leave the old sidecar in place, and a vN app talking to a vN−1 daemon
+ * fails as scattered 404s that look like front-end bugs.
+ */
+export const EXPECTED_CONTRACT = 4
+
 let current: DaemonInfo | null = null
 
 export async function bootstrap(): Promise<DaemonInfo> {

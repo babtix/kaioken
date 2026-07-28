@@ -244,7 +244,7 @@ export default function Activity() {
           <SectionLabel>History</SectionLabel>
           <button
             onClick={() => refresh(ws.id)}
-            className="ml-auto rounded p-1 text-kai-dim transition-colors hover:text-kai-text"
+            className="ml-auto rounded p-1 text-kai-dim transition-colors outline-none hover:text-kai-text focus-visible:ring-2 focus-visible:ring-kai-orange/50"
             title="Refresh"
           >
             <RefreshCw size={11} />
@@ -340,7 +340,7 @@ function RunRow({
       <div className="flex items-center gap-2 px-3 py-2">
         <button
           onClick={() => setOpen(!open)}
-          className="shrink-0 text-kai-dim transition-colors hover:text-kai-text"
+          className="shrink-0 rounded text-kai-dim transition-colors outline-none hover:text-kai-text focus-visible:ring-2 focus-visible:ring-kai-orange/50"
           aria-label={open ? "Collapse" : "Expand"}
         >
           {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -377,7 +377,7 @@ function RunRow({
         {isActive && (
           <button
             onClick={onCancel}
-            className="shrink-0 rounded p-1 text-kai-rose transition-colors hover:bg-kai-rose/10"
+            className="shrink-0 rounded p-1 text-kai-rose transition-colors outline-none hover:bg-kai-rose/10 focus-visible:ring-2 focus-visible:ring-kai-orange/50"
             title="Cancel run"
           >
             <Ban size={12} />
@@ -404,7 +404,7 @@ function RunRow({
           ) : (
             <button
               onClick={() => setConfirming(true)}
-              className="shrink-0 rounded p-1 text-kai-dim transition-colors hover:bg-kai-amber/10 hover:text-kai-amber"
+              className="shrink-0 rounded p-1 text-kai-dim transition-colors outline-none hover:bg-kai-amber/10 hover:text-kai-amber focus-visible:ring-2 focus-visible:ring-kai-orange/50"
               title="Revert: delete the files this run wrote"
             >
               <RotateCcw size={12} />

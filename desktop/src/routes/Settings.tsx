@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Beaker, Check, ChevronDown, Eye, EyeOff, KeyRound, Loader2, Save, Search, Settings as SettingsIcon, Trash2, TriangleAlert, X } from "lucide-react"
+import { Beaker, Check, ChevronDown, Eye, EyeOff, GitBranch, KeyRound, Loader2, Save, Search, Settings as SettingsIcon, Trash2, TriangleAlert, X } from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useToastStore } from "@/store/toast"
 import { api } from "@/lib/api"
@@ -452,6 +452,67 @@ export default function Settings() {
           </Card>
         </section>
       )}
+
+      {/* Git integration */}
+      {ws && ws.git.is_repo && (
+        <section>
+          <SectionLabel>Git integration</SectionLabel>
+          <Card className="mt-3">
+            <GitHookRow wsId={ws.id} installed={ws.git.hook_installed} />
+          </Card>
+        </section>
+      )}
+    </div>
+  )
+}
+
+// ── Git hook ──────────────────────────────────────────────────────────────────
+
+/**
+ * Mirrors the CLI's `kaioken hook` (PLAN.md G2): a post-commit hook that
+ * nudges the knowledge base to refresh after each commit. Installed state
+ * comes from the workspace object and is kept locally after a toggle.
+ */
+function GitHookRow({ wsId, installed: initial }: { wsId: string; installed: boolean }) {
+  const push = useToastStore((s) => s.push)
+  const [installed, setInstalled] = useState(initial)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => setInstalled(initial), [wsId, initial])
+
+  async function toggle() {
+    setBusy(true)
+    try {
+      const res = await api.hook(wsId, installed ? "remove" : "install")
+      setInstalled(res.installed)
+      push(
+        "success",
+        res.installed ? "Hook installed" : "Hook removed",
+        res.path ?? ".git/hooks/post-commit"
+      )
+    } catch (err) {
+      const h = humanize(err)
+      push("error", h.title, h.body, h.action)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 p-3">
+      <GitBranch size={14} className="shrink-0 text-kai-orange" />
+      <div className="min-w-0 flex-1">
+        <p className="font-mono text-xs text-kai-text">
+          post-commit hook
+          {installed ? <Badge tone="green" className="ml-2">installed</Badge> : <Badge tone="neutral" className="ml-2">not installed</Badge>}
+        </p>
+        <p className="mt-0.5 font-mono text-[10px] leading-relaxed text-kai-dim">
+          Marks the knowledge base stale after each commit, the same hook <code className="text-kai-tan">kaioken hook</code> installs from the CLI.
+        </p>
+      </div>
+      <Button size="sm" variant={installed ? "subtle" : "primary"} onClick={toggle} loading={busy}>
+        {installed ? "Remove" : "Install"}
+      </Button>
     </div>
   )
 }

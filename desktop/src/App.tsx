@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { lazy, useEffect } from "react"
 import { Route, Routes } from "react-router-dom"
 import AppShell from "@/components/layout/AppShell"
 import Welcome from "@/routes/Welcome"
@@ -11,11 +11,18 @@ import type { KaiEvent } from "@/lib/types"
 
 import Chat from "@/routes/Chat"
 import Activity from "@/routes/Activity"
-import Browser from "@/routes/Browser"
-import Editor from "@/routes/Editor"
 import Wiki from "@/routes/Wiki"
-import Cards from "@/routes/Cards"
-import Settings from "@/routes/Settings"
+
+// Route-level code splitting: Editor drags in CodeMirror plus its language
+// packs, Browser/Cards/Settings/Graph each carry weight a user who only
+// opens Chat or the Wiki never pays for. AppShell provides the Suspense
+// boundary around its <Outlet/>.
+const Editor = lazy(() => import("@/routes/Editor"))
+const Browser = lazy(() => import("@/routes/Browser"))
+const Graph = lazy(() => import("@/routes/Graph"))
+const Cards = lazy(() => import("@/routes/Cards"))
+const Extensions = lazy(() => import("@/routes/Extensions"))
+const Settings = lazy(() => import("@/routes/Settings"))
 
 export default function App() {
   const handleEvent = useWorkspaceStore((s) => s.handleEvent)
@@ -47,8 +54,10 @@ export default function App() {
         <Route path="editor" element={<Editor />} />
         <Route path="browser" element={<Browser />} />
         <Route path="wiki" element={<Wiki />} />
+        <Route path="graph" element={<Graph />} />
         <Route path="activity" element={<Activity />} />
         <Route path="cards" element={<Cards />} />
+        <Route path="extensions" element={<Extensions />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

@@ -23,6 +23,7 @@ type ChatState = {
   loadSessions: (wsId: string) => Promise<void>
   openSession: (wsId: string, sid: string) => Promise<void>
   newSession: (wsId: string) => Promise<void>
+  deleteSession: (wsId: string, sid: string) => Promise<void>
   send: (wsId: string, content: string, opts?: { auto_approve?: boolean; allow_run?: boolean }) => Promise<void>
   cancel: (runId: string) => Promise<void>
   resolveApproval: (decision: "approve" | "deny" | "approve_all") => Promise<void>
@@ -82,6 +83,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
       useToastStore.getState().push("error", h.title, h.body, h.action)
       set({ error: h.title })
     }
+  },
+
+  deleteSession: async (wsId: string, sid: string) => {
+    try {
+      await api.deleteSession(wsId, sid)
+    } catch (err) {
+      const h = humanize(err)
+      useToastStore.getState().push("error", h.title, h.body, h.action)
+      return
+    }
+    const remaining = (get().sessions || []).filter((x) => x.id !== sid)
+    if (get().activeSessionId !== sid) {
+      set({ sessions: remaining })
+      return
+    }
+    // The open conversation was deleted: fall back to the most recent
+    // remaining session, or an empty pane when none are left.
+    const next = remaining[0]
+    set({
+      sessions: remaining,
+      activeSessionId: next?.id ?? null,
+      messages: [],
+      streamBuffer: "",
+      error: null,
+    })
+    if (next) await get().openSession(wsId, next.id)
   },
 
   send: async (wsId: string, content: string, opts) => {

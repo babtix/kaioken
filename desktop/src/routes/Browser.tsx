@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   Star,
   X,
+  Zap,
 } from "lucide-react"
 import {
   ENGINES,
@@ -23,6 +24,14 @@ import {
 import { proxyUrl } from "@/lib/daemon"
 import { Button } from "@/components/ui"
 import { cn } from "@/lib/utils"
+
+// The project's own destinations, always offered on the new-tab page so the
+// three places worth returning to are one click away.
+const PROJECT_LINKS = [
+  { url: "https://kaioken.vercel.app", title: "Main website" },
+  { url: "https://kaioken-news.vercel.app", title: "News" },
+  { url: "https://github.com/babtix/kaioken", title: "Source · GitHub" },
+]
 
 // Browser is an in-app web navigator with Chrome's shape: a tab strip, an
 // omnibox that takes either a URL or a search, and back/forward/reload.
@@ -378,6 +387,13 @@ function NewTabPage({
           />
         </div>
       </form>
+
+      <LinkGroup
+        icon={Zap}
+        label="Project"
+        items={PROJECT_LINKS}
+        onOpen={onOpen}
+      />
 
       {bookmarks.length > 0 && (
         <LinkGroup

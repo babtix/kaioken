@@ -228,3 +228,24 @@ Command palette, keyboard map, toasts, empty states, updater, installers, CI.
   handler, and say so in the commit message.
 - **Windows build gotchas are real** — see [`docs/09-risks.md`](docs/09-risks.md)
   R2 and R3 before the first `go build`.
+
+## 7. TUI parity audit — deliberate omissions
+
+Audited `cli/internal/tui/commands.go` against the GUI (the B4 parity pass).
+Every daemon endpoint the UI can reach is now wired: usage meter (StatusBar),
+wiki_plan/modules/brief editors (Cards → Plan & brief), estimate (Activity),
+skill editing (Cards), git hook (Settings). The remaining TUI commands:
+
+- `/yolo` — **covered**: Chat's auto-approve toggle sends `auto_approve` per
+  message, which is the same daemon behaviour with finer grain.
+- `/notes` — **covered**: the Notes field in Settings edits the same
+  `config.notes` list.
+- `/mode` (build/plan/general/explore) — **deliberately omitted for v1**. The
+  daemon's session API does not expose a permission-mode field; adding one is
+  a contract change. The GUI's approval dialog already mediates every write,
+  which covers the safety half of plan mode. Revisit if/when the daemon grows
+  a session-mode endpoint.
+- `/tutorial`, `/explain` — TUI-specific teaching aids; not ported by design.
+- `/recall`, `/learn` — explicitly TUI-only per the Activity screen's Memory
+  panel copy.
+

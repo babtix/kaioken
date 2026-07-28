@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom"
-import { BookOpen, Code2, FolderOpen, Globe, Layers, MessageSquare, Settings, Zap } from "lucide-react"
+import { openUrl } from "@tauri-apps/plugin-opener"
+import { BookOpen, Code2, FolderOpen, Globe, Layers, MessageSquare, Puzzle, Settings, Store, Waypoints, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { REGISTRY_WEB_URL } from "@/lib/links"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useRunsStore } from "@/store/runs"
 
@@ -9,9 +11,11 @@ const NAV_ITEMS = [
   { to: "/editor", icon: Code2, label: "Editor", key: "2" },
   { to: "/browser", icon: Globe, label: "Browser", key: "3" },
   { to: "/wiki", icon: BookOpen, label: "Wiki", key: "4" },
-  { to: "/activity", icon: Zap, label: "Activity", key: "5" },
-  { to: "/cards", icon: Layers, label: "Cards", key: "6" },
-  { to: "/settings", icon: Settings, label: "Settings", key: "7" },
+  { to: "/graph", icon: Waypoints, label: "Graph", key: "5" },
+  { to: "/activity", icon: Zap, label: "Activity", key: "6" },
+  { to: "/cards", icon: Layers, label: "Cards", key: "7" },
+  { to: "/extensions", icon: Puzzle, label: "Ext", key: "8" },
+  { to: "/settings", icon: Settings, label: "Settings", key: "9" },
 ] as const
 
 export default function NavRail() {
@@ -36,6 +40,18 @@ export default function NavRail() {
           badge={item.to === "/activity" && activeRuns > 0 ? activeRuns : undefined}
         />
       ))}
+
+      {/* External: the registry website. Pinned to the bottom, past a
+          divider, so it reads as "leaves the app" — and it needs no open
+          workspace, unlike the internal routes above. */}
+      <div className="mt-auto" />
+      <div className="my-1 h-px w-8 bg-border" />
+      <RailExternal
+        url={REGISTRY_WEB_URL}
+        icon={Store}
+        label="Registry"
+        hint="Extension registry (web)"
+      />
     </nav>
   )
 }
@@ -83,7 +99,7 @@ function RailLink({
           <span className="relative">
             <Icon size={17} />
             {badge !== undefined && (
-              <span className="absolute -right-1.5 -top-1 flex size-3.5 items-center justify-center rounded-full bg-kai-orange font-mono text-[8px] font-bold text-black">
+              <span className="absolute -right-1.5 -top-1 flex size-3.5 items-center justify-center rounded-full bg-kai-orange font-mono text-[8px] font-bold text-primary-foreground">
                 {badge}
               </span>
             )}
@@ -92,5 +108,35 @@ function RailLink({
         </>
       )}
     </NavLink>
+  )
+}
+
+// RailExternal mirrors RailLink's look but opens a URL in the system
+// browser instead of routing — no active state, never disabled.
+function RailExternal({
+  url,
+  icon: Icon,
+  label,
+  hint,
+}: {
+  url: string
+  icon: typeof FolderOpen
+  label: string
+  hint: string
+}) {
+  return (
+    <button
+      type="button"
+      title={hint}
+      onClick={() => void openUrl(url).catch(() => {})}
+      className={cn(
+        "group relative flex w-14 flex-col items-center gap-0.5 rounded-md py-1.5",
+        "transition-colors outline-none focus-visible:ring-2 focus-visible:ring-kai-orange/50",
+        "text-kai-dim hover:bg-panel/60 hover:text-kai-text"
+      )}
+    >
+      <Icon size={17} />
+      <span className="font-mono text-[9px] leading-none">{label}</span>
+    </button>
   )
 }

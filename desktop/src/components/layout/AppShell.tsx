@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { Outlet, useNavigate } from "react-router-dom"
+import { Suspense, useEffect, useState } from "react"
+import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { GitBranch, Maximize2, Minus, Search, Sparkles, Terminal, TriangleAlert, X } from "lucide-react"
 import NavRail from "./NavRail"
@@ -11,18 +11,19 @@ import Toaster from "@/components/Toaster"
 import CommandPalette from "@/components/CommandPalette"
 import ShortcutHelp from "@/components/ShortcutHelp"
 import ErrorBoundary from "@/components/ErrorBoundary"
-import { Badge, Button, Kbd } from "@/components/ui"
+import { Badge, Button, Kbd, Skeleton } from "@/components/ui"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useExplorerStore } from "@/store/explorer"
 import { cn } from "@/lib/utils"
 
-const NAV_ROUTES = ["/chat", "/editor", "/browser", "/wiki", "/activity", "/cards", "/settings"]
+const NAV_ROUTES = ["/chat", "/editor", "/browser", "/wiki", "/graph", "/activity", "/cards", "/extensions", "/settings"]
 
 export default function AppShell() {
   const active = useWorkspaceStore((s) => s.active)
   const initWorkspace = useWorkspaceStore((s) => s.initWorkspace)
   const toggleExplorer = useExplorerStore((s) => s.toggleOpen)
   const navigate = useNavigate()
+  const location = useLocation()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [quickOpen, setQuickOpen] = useState(false)
@@ -46,7 +47,7 @@ export default function AppShell() {
       if (mod && e.key === "k") { e.preventDefault(); setPaletteOpen((o) => !o); return }
       if (mod && e.key === "p") { e.preventDefault(); setQuickOpen(true); return }
       if (mod && e.key.toLowerCase() === "b") { e.preventDefault(); toggleExplorer(); return }
-      if (mod && e.key >= "1" && e.key <= "7") { e.preventDefault(); navigate(NAV_ROUTES[Number(e.key) - 1]); return }
+      if (mod && e.key >= "1" && e.key <= "9") { e.preventDefault(); navigate(NAV_ROUTES[Number(e.key) - 1]); return }
       if (mod && e.key === ",") { e.preventDefault(); navigate("/settings"); return }
       if (e.key === "?" && !isInputFocused()) { e.preventDefault(); setHelpOpen((o) => !o) }
     }
@@ -145,8 +146,12 @@ export default function AppShell() {
         )}
 
         <main className="min-h-0 flex-1 overflow-auto">
-          <ErrorBoundary>
-            <Outlet />
+          {/* Keyed on the path so a crash in one route clears when the user
+              navigates away, instead of blanking the content area for good. */}
+          <ErrorBoundary key={location.pathname}>
+            <Suspense fallback={<div className="space-y-3 p-8"><Skeleton className="h-6 w-48" /><Skeleton className="h-40 w-full" /></div>}>
+              <Outlet />
+            </Suspense>
           </ErrorBoundary>
         </main>
 

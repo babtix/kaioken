@@ -37,6 +37,14 @@
   --kai-skeleton-mid: #2a2a2a;
   --kai-hover-row: #ffffff06;
 
+  /* code editor overlays (components/editor/theme.ts) — kept separate from
+     --border/--input so tuning either later cannot silently retint the other */
+  --kai-editor-selection: #ff870026;
+  --kai-editor-search-match: #ffaf0033;
+  --kai-editor-search-match-selected: #ff870055;
+  --kai-editor-selection-match: #ffffff12;
+  --kai-editor-bracket-match: #ffffff14;
+
   /* shadcn tokens */
   --background: var(--kai-black);
   --foreground: var(--kai-text);
@@ -104,6 +112,14 @@
   --kai-code: #f0f0f0;
   --kai-skeleton-mid: #e0e0e0;
   --kai-hover-row: #00000006;
+
+  /* code editor overlays — same alpha ramps as dark, rebased onto the
+     WCAG-adjusted light accents so selection/search stay legible */
+  --kai-editor-selection: #d96e0026;
+  --kai-editor-search-match: #9a670033;
+  --kai-editor-search-match-selected: #d96e0055;
+  --kai-editor-selection-match: #00000012;
+  --kai-editor-bracket-match: #00000014;
 
   /* shadcn semantic */
   --primary-foreground: #ffffff;

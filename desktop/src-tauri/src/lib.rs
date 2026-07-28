@@ -1,5 +1,6 @@
 mod commands;
 mod daemon;
+mod term;
 
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
@@ -17,11 +18,17 @@ pub fn run() {
             info: tokio::sync::watch::Sender::new(None),
             child: Mutex::new(None),
         })
+        .manage(term::TermState::default())
         .invoke_handler(tauri::generate_handler![
             commands::daemon_info,
             commands::pick_folder,
             commands::reveal_path,
-            commands::open_external
+            commands::open_external,
+            term::term_create,
+            term::term_write,
+            term::term_resize,
+            term::term_ack,
+            term::term_kill
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -34,6 +41,7 @@ pub fn run() {
         .expect("error building Kaioken")
         .run(|handle, event| {
             if let tauri::RunEvent::ExitRequested { .. } = event {
+                term::kill_all(handle);
                 daemon::stop(handle);
             }
         });

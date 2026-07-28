@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search } from "lucide-react"
+import { openUrl } from "@tauri-apps/plugin-opener"
+import { REGISTRY_LINKS } from "@/lib/links"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useRunsStore } from "@/store/runs"
 import { useChatStore } from "@/store/chat"
@@ -38,7 +40,9 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
     // Navigation
     const nav = [
       { to: "/chat", label: "Chat" }, { to: "/wiki", label: "Wiki" },
+      { to: "/graph", label: "Graph" },
       { to: "/activity", label: "Activity" }, { to: "/cards", label: "Cards" },
+      { to: "/extensions", label: "Extensions" },
       { to: "/settings", label: "Settings" },
     ]
     for (const n of nav) {
@@ -62,6 +66,10 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
     for (const r of recents.slice(0, 5)) {
       if (r.missing) continue
       out.push({ id: `recent-${r.path}`, label: r.path.split("/").pop() || r.path, sub: r.path, group: "Recents", action: () => { openWs(r.path).then(() => navigate("/chat")); onClose() } })
+    }
+    // Registry website — external links, workspace not required (like Navigation).
+    for (const l of REGISTRY_LINKS) {
+      out.push({ id: `web-${l.url}`, label: l.label, sub: l.description, group: "Registry (web)", action: () => { void openUrl(l.url).catch(() => {}); onClose() } })
     }
     return out
   }, [ws, recents, navigate, onClose, startRun, newSession, openWs])

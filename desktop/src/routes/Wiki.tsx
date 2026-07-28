@@ -5,6 +5,7 @@ import { useWorkspaceStore } from "@/store/workspace"
 import { api } from "@/lib/api"
 import Markdown from "@/components/common/Markdown"
 import EmptyState from "@/components/EmptyState"
+import LocalGraph from "@/components/graph/LocalGraph"
 import WikiNavigator from "@/components/wiki/WikiNavigator"
 import { Badge, Skeleton } from "@/components/ui"
 import { cn } from "@/lib/utils"
@@ -204,38 +205,41 @@ export default function Wiki() {
               )}
             </article>
 
-            {doc.toc.length > 2 && (
-              <nav className="sticky top-8 hidden h-fit w-48 shrink-0 xl:block">
-                <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-kai-dim">
-                  On this page
-                </p>
-                <ul className="space-y-0.5 border-l border-border">
-                  {doc.toc.map((t, i) => (
-                    <li key={`${t.slug}-${i}`}>
-                      <a
-                        href={`#${t.slug}`}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          readerRef.current
-                            ?.querySelector(`#${CSS.escape(t.slug)}`)
-                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                          setActiveSlug(t.slug)
-                        }}
-                        className={cn(
-                          "-ml-px block border-l py-0.5 font-mono text-[10px] transition-colors",
-                          t.level === 2 ? "pl-2.5" : t.level === 3 ? "pl-5" : "pl-7",
-                          activeSlug === t.slug
-                            ? "border-kai-orange text-kai-orange"
-                            : "border-transparent text-kai-dim hover:text-kai-text"
-                        )}
-                      >
-                        {t.text}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            )}
+            <aside className="sticky top-8 hidden h-fit max-h-[calc(100vh-8rem)] w-60 shrink-0 overflow-y-auto xl:block">
+              <LocalGraph docPath={doc.path} onNavigate={openDoc} />
+              {doc.toc.length > 2 && (
+                <nav>
+                  <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-kai-dim">
+                    On this page
+                  </p>
+                  <ul className="space-y-0.5 border-l border-border">
+                    {doc.toc.map((t, i) => (
+                      <li key={`${t.slug}-${i}`}>
+                        <a
+                          href={`#${t.slug}`}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            readerRef.current
+                              ?.querySelector(`#${CSS.escape(t.slug)}`)
+                              ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                            setActiveSlug(t.slug)
+                          }}
+                          className={cn(
+                            "-ml-px block border-l py-0.5 font-mono text-[10px] transition-colors",
+                            t.level === 2 ? "pl-2.5" : t.level === 3 ? "pl-5" : "pl-7",
+                            activeSlug === t.slug
+                              ? "border-kai-orange text-kai-orange"
+                              : "border-transparent text-kai-dim hover:text-kai-text"
+                          )}
+                        >
+                          {t.text}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              )}
+            </aside>
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 p-8">

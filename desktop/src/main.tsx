@@ -2,20 +2,38 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { HashRouter } from "react-router-dom"
 import App from "./App"
-import { bootstrap, onDaemonDead, onDaemonUp } from "./lib/daemon"
+import { EXPECTED_CONTRACT, bootstrap, onDaemonDead, onDaemonUp } from "./lib/daemon"
 import { api } from "./lib/api"
 import "./index.css"
 
-const EXPECTED_CONTRACT = 1
-
-function FatalError({ message }: { message: string }) {
+function FatalError({ title, message }: { title: string; message: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-8">
       <div className="max-w-md text-center">
-        <p className="font-mono text-lg font-bold text-kai-rose">daemon unavailable</p>
+        <p className="font-mono text-lg font-bold text-kai-rose">{title}</p>
         <p className="mt-2 whitespace-pre-wrap font-mono text-sm text-kai-dim">{message}</p>
       </div>
     </div>
+  )
+}
+
+/**
+ * Both directions of a contract mismatch are fatal, but they have opposite
+ * remedies, and guessing wrong sends the user down the wrong path. A daemon
+ * behind the app is the R1 installer bug (reinstall / rebuild the sidecar); a
+ * daemon ahead of it means the app itself is the stale half.
+ */
+function contractMessage(got: number): string {
+  if (got < EXPECTED_CONTRACT) {
+    return (
+      `The engine speaks contract v${got}; this app needs v${EXPECTED_CONTRACT}.\n\n` +
+      `The installer left an old sidecar behind. Reinstall Kaioken, or run ` +
+      `\`npm run sidecar\` from a development checkout.`
+    )
+  }
+  return (
+    `The engine speaks contract v${got}; this app only understands ` +
+    `v${EXPECTED_CONTRACT}.\n\nThis app is the stale half — update Kaioken.`
   )
 }
 
@@ -42,18 +60,21 @@ async function start() {
     const health = await api.health()
     if (health.contract !== EXPECTED_CONTRACT) {
       root.render(
-        <FatalError
-          message={`Contract version mismatch: daemon=${health.contract}, expected=${EXPECTED_CONTRACT}. Rebuild the sidecar (npm run sidecar).`}
-        />
+        <FatalError title="version mismatch" message={contractMessage(health.contract)} />
       )
       return
     }
   } catch (err) {
-    root.render(<FatalError message={err instanceof Error ? err.message : String(err)} />)
+    root.render(
+      <FatalError
+        title="daemon unavailable"
+        message={err instanceof Error ? err.message : String(err)}
+      />
+    )
     return
   }
 
-  onDaemonDead((message) => root.render(<FatalError message={message} />))
+  onDaemonDead((message) => root.render(<FatalError title="daemon unavailable" message={message} />))
   // Rust restarts a crashed sidecar on a fresh port + token (docs/01
   // -architecture.md §1.6). Without this listener the SSE reconnect loop in
   // lib/events.ts would keep retrying the old, now-dead port forever.

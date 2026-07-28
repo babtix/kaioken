@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react"
-import { Moon, Sun } from "lucide-react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { Moon, Sigma, SquareTerminal, Sun } from "lucide-react"
 import { api } from "@/lib/api"
 import { info } from "@/lib/daemon"
+import { formatTokens } from "@/lib/format"
 import { useConnStore } from "@/store/conn"
 import { useRunsStore } from "@/store/runs"
+import { useTerminalStore } from "@/store/terminal"
 import { useThemeStore } from "@/store/theme"
 import { useWorkspaceStore } from "@/store/workspace"
-import type { ConnStatus } from "@/lib/types"
+import type { ConnStatus, Usage } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 const DOT: Record<ConnStatus, { className: string; label: string }> = {
@@ -21,7 +24,23 @@ export default function StatusBar() {
   const runs = useRunsStore((s) => s.runs)
   const theme = useThemeStore((s) => s.theme)
   const toggleTheme = useThemeStore((s) => s.toggle)
+  const panelOpen = useTerminalStore((s) => s.panelOpen)
+  const togglePanel = useTerminalStore((s) => s.togglePanel)
+  const navigate = useNavigate()
+  const location = useLocation()
   const [version, setVersion] = useState<string | null>(null)
+
+  // The terminal lives on the Editor screen; from anywhere else this button
+  // goes there and makes sure the panel is up (spawning a shell if none) —
+  // the discoverable counterpart to Ctrl+`.
+  const openTerminal = () => {
+    if (location.pathname === "/editor") {
+      togglePanel()
+      return
+    }
+    navigate("/editor")
+    if (!useTerminalStore.getState().panelOpen) togglePanel()
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -36,6 +55,7 @@ export default function StatusBar() {
 
   const dot = DOT[status]
   const activeRuns = runs.filter((r) => r.state === "running" || r.state === "queued")
+  const usage = useUsage(ws?.id ?? null, activeRuns.length)
 
   return (
     <footer className="flex h-6 shrink-0 items-center gap-2 border-t border-border bg-card px-3 font-mono text-[10px] text-kai-dim">
@@ -70,17 +90,72 @@ export default function StatusBar() {
         </span>
       )}
 
+      {ws && usage && usage.calls > 0 && (
+        <span
+          className="flex shrink-0 items-center gap-1 text-kai-muted"
+          title={`${usage.calls} LLM calls · ${usage.prompt_tokens.toLocaleString()} prompt + ${usage.completion_tokens.toLocaleString()} completion tokens${usage.model ? ` · ${usage.model}` : ""}`}
+        >
+          <Sigma size={9} />
+          {formatTokens(usage.prompt_tokens + usage.completion_tokens)} tok · {usage.calls} calls
+        </span>
+      )}
+
+      <button
+        onClick={openTerminal}
+        title="Terminal (Ctrl+`)"
+        aria-label="Toggle terminal panel"
+        className={cn(
+          "flex size-4.5 shrink-0 items-center justify-center rounded transition-colors outline-none",
+          "hover:text-kai-orange focus-visible:ring-2 focus-visible:ring-kai-orange/50",
+          panelOpen ? "text-kai-orange" : "text-kai-dim",
+          !ws && "ml-auto"
+        )}
+        disabled={!ws}
+      >
+        <SquareTerminal size={12} />
+      </button>
+
       <button
         onClick={toggleTheme}
         title="Toggle theme"
         aria-label="Toggle theme"
         className={cn(
-          "flex size-4.5 shrink-0 items-center justify-center rounded text-kai-dim transition-colors hover:text-kai-orange",
-          !ws && "ml-auto"
+          "flex size-4.5 shrink-0 items-center justify-center rounded text-kai-dim transition-colors outline-none",
+          "hover:text-kai-orange focus-visible:ring-2 focus-visible:ring-kai-orange/50"
         )}
       >
         {theme === "dark" ? <Sun size={12} /> : <Moon size={12} />}
       </button>
     </footer>
   )
+}
+
+/**
+ * The always-visible cost meter (PLAN.md G3): workspace-lifetime LLM usage,
+ * re-read when a run finishes and on a slow tick so chat turns show up
+ * without a dedicated event stream.
+ */
+function useUsage(wsId: string | null, activeRunCount: number): Usage | null {
+  const [usage, setUsage] = useState<Usage | null>(null)
+
+  useEffect(() => {
+    if (!wsId) {
+      setUsage(null)
+      return
+    }
+    let cancelled = false
+    const load = () =>
+      api
+        .usage(wsId)
+        .then((u) => !cancelled && setUsage(u))
+        .catch(() => {})
+    load()
+    const id = setInterval(load, 30_000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [wsId, activeRunCount]) // a run starting or ending moves the number
+
+  return usage
 }

@@ -1,6 +1,17 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { MessageSquare, Plus, Send, Square, Zap, Terminal } from "lucide-react"
+import {
+  Clock,
+  MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Send,
+  Square,
+  Terminal,
+  Trash2,
+  Zap,
+} from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useChatStore } from "@/store/chat"
 import { useRunsStore } from "@/store/runs"
@@ -10,7 +21,7 @@ import ApprovalDialog from "@/components/chat/ApprovalDialog"
 import Autocomplete, { detectTrigger, type Suggestion } from "@/components/chat/Autocomplete"
 import { ToolCallCard, ToolResultCard } from "@/components/chat/ToolCallCard"
 import EmptyState from "@/components/EmptyState"
-import { Badge, Button, Kbd, Skeleton } from "@/components/ui"
+import { Badge, Button, Kbd, SectionLabel, Skeleton } from "@/components/ui"
 import { api } from "@/lib/api"
 import { humanize } from "@/lib/errors"
 import { cn } from "@/lib/utils"
@@ -22,7 +33,7 @@ export default function Chat() {
   const ws = useWorkspaceStore((s) => s.active)
   const {
     sessions, activeSessionId, messages, streamBuffer, isStreaming, approval, error,
-    loadSessions, newSession, openSession, send, cancel, resolveApproval, activeRunId,
+    loadSessions, newSession, openSession, deleteSession, send, cancel, resolveApproval, activeRunId,
   } = useChatStore()
 
   const startRun = useRunsStore((s) => s.start)
@@ -138,8 +149,10 @@ export default function Chat() {
       <SessionSidebar
         sessions={sessions || []}
         activeId={activeSessionId}
+        busy={isStreaming}
         onNew={() => newSession(ws.id)}
         onOpen={(sid) => openSession(ws.id, sid)}
+        onDelete={(sid) => deleteSession(ws.id, sid)}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -195,60 +208,178 @@ export default function Chat() {
 
 // ── Session sidebar ────────────────────────────────────────────────────────
 
+const SIDEBAR_COLLAPSED_KEY = "kaioken.chat.sidebar.collapsed"
+
 function SessionSidebar({
   sessions,
   activeId,
+  busy,
   onNew,
   onOpen,
+  onDelete,
 }: {
   sessions: { id: string; title: string; turns: number; updated: string }[]
   activeId: string | null
+  /** True while a reply is streaming — deleting the live session would orphan the run. */
+  busy: boolean
   onNew: () => void
   onOpen: (sid: string) => void
+  onDelete: (sid: string) => void
 }) {
-  return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-kai-dim">
-          Sessions
-        </span>
-        <Button variant="ghost" size="sm" onClick={onNew} className="ml-auto px-1.5" title="New session">
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1"
+  )
+  // Deleting is a two-click affair: the first click arms this id, the second
+  // commits. Cheaper than a modal for something this local, still not fatal
+  // to fat-finger.
+  const [confirming, setConfirming] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!confirming) return
+    const id = setTimeout(() => setConfirming(null), 2500)
+    return () => clearTimeout(id)
+  }, [confirming])
+
+  const toggleCollapsed = () => {
+    setCollapsed((v) => {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, v ? "0" : "1")
+      return !v
+    })
+  }
+
+  if (collapsed) {
+    return (
+      <aside className="flex w-10 shrink-0 flex-col items-center gap-1 border-r border-border bg-card py-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleCollapsed}
+          className="px-1.5"
+          title="Expand sessions"
+        >
+          <PanelLeftOpen size={13} />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onNew} className="px-1.5" title="New session">
           <Plus size={13} />
         </Button>
+        {sessions.length > 0 && (
+          <span
+            className="mt-auto pb-1 font-mono text-[9px] text-kai-dim"
+            title={`${sessions.length} session${sessions.length === 1 ? "" : "s"}`}
+          >
+            {sessions.length}
+          </span>
+        )}
+      </aside>
+    )
+  }
+
+  return (
+    <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card">
+      <div className="flex items-center gap-1.5 border-b border-border py-2 pr-1.5 pl-3">
+        <SectionLabel>Sessions</SectionLabel>
+        {sessions.length > 0 && (
+          <span className="rounded bg-panel px-1 font-mono text-[9px] leading-4 text-kai-dim">
+            {sessions.length}
+          </span>
+        )}
+        <div className="ml-auto flex items-center">
+          <Button variant="ghost" size="sm" onClick={onNew} className="px-1.5" title="New session">
+            <Plus size={13} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleCollapsed}
+            className="px-1.5"
+            title="Collapse sidebar"
+          >
+            <PanelLeftClose size={13} />
+          </Button>
+        </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto py-1">
-        {sessions.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => onOpen(s.id)}
-            className={cn(
-              "group relative block w-full px-3 py-2 text-left transition-colors outline-none",
-              "focus-visible:bg-panel",
-              s.id === activeId ? "bg-accent" : "hover:bg-panel/60"
-            )}
-          >
-            {s.id === activeId && (
-              <span className="absolute inset-y-0 left-0 w-0.5 bg-kai-orange" aria-hidden />
-            )}
-            <p
-              className={cn(
-                "truncate font-mono text-[11px]",
-                s.id === activeId ? "text-kai-orange" : "text-kai-text"
-              )}
-            >
-              {s.title || "Untitled session"}
-            </p>
-            <p className="mt-0.5 font-mono text-[9px] text-kai-dim">
-              {s.turns} turns · {formatRelativeTime(s.updated)}
-            </p>
-          </button>
-        ))}
+      <div
+        className="min-h-0 flex-1 overflow-auto px-1.5 py-1.5"
+        onMouseLeave={() => setConfirming(null)}
+      >
+        {sessions.map((s) => {
+          const active = s.id === activeId
+          // The live session cannot be deleted — its run would stream into a void.
+          const locked = busy && active
+          const armed = confirming === s.id
+          return (
+            <div key={s.id} className="group relative">
+              <button
+                onClick={() => onOpen(s.id)}
+                className={cn(
+                  "relative mb-0.5 block w-full rounded-md py-2 pr-8 pl-3 text-left transition-colors outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-kai-orange/50",
+                  active ? "bg-accent" : "hover:bg-panel/60"
+                )}
+              >
+                {active && (
+                  <span
+                    className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-kai-orange"
+                    aria-hidden
+                  />
+                )}
+                <p
+                  className={cn(
+                    "truncate font-mono text-[11px] leading-5",
+                    active ? "font-medium text-kai-orange" : "text-kai-text"
+                  )}
+                >
+                  {s.title || "Untitled session"}
+                </p>
+                <p className="mt-0.5 flex items-center gap-1 font-mono text-[9px] text-kai-dim">
+                  <Clock size={8} className="shrink-0" aria-hidden />
+                  {formatRelativeTime(s.updated)}
+                  <span aria-hidden>·</span>
+                  {s.turns} turn{s.turns === 1 ? "" : "s"}
+                </p>
+              </button>
+              <button
+                onClick={() => (armed ? onDelete(s.id) : setConfirming(s.id))}
+                disabled={locked}
+                title={
+                  locked
+                    ? "Streaming — stop the reply before deleting"
+                    : armed
+                      ? "Click again to delete"
+                      : "Delete session"
+                }
+                aria-label={
+                  armed ? `Confirm delete ${s.title || "session"}` : `Delete ${s.title || "session"}`
+                }
+                className={cn(
+                  "absolute top-1/2 right-1.5 flex size-5 -translate-y-1/2 items-center justify-center rounded",
+                  "outline-none transition-all focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-kai-orange/50",
+                  "disabled:pointer-events-none disabled:opacity-0",
+                  armed
+                    ? "bg-kai-rose/15 text-kai-rose opacity-100"
+                    : "text-kai-dim opacity-0 group-hover:opacity-100 hover:bg-panel hover:text-kai-rose"
+                )}
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
+          )
+        })}
 
         {sessions.length === 0 && (
-          <p className="px-3 py-4 font-mono text-[10px] leading-relaxed text-kai-dim">
-            No sessions yet. Send a message to start one.
-          </p>
+          <div className="flex flex-col items-center gap-2.5 px-3 py-10 text-center">
+            <span className="flex size-8 items-center justify-center rounded-full border border-border bg-panel">
+              <MessageSquare size={13} className="text-kai-dim" />
+            </span>
+            <p className="font-mono text-[10px] leading-relaxed text-kai-dim">
+              Conversations with the agent live here.
+            </p>
+            <Button variant="subtle" size="sm" onClick={onNew}>
+              <Plus size={11} />
+              New session
+            </Button>
+          </div>
         )}
       </div>
     </aside>

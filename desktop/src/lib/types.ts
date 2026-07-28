@@ -299,3 +299,65 @@ export type WikiTree = {
   sections: WikiTreeSection[]
   changelog: boolean
 }
+
+// --- Extensions (contract v4) ---
+
+export type ExtSkill = { name: string; description: string }
+
+export type ExtensionInfo = {
+  id: string
+  version: string
+  type: "declarative" | "mcp" | "wasm" | ""
+  repo: string
+  tag: string
+  local: boolean
+  enabled: boolean
+  trusted: boolean
+  needs_trust: boolean
+  description?: string
+  author?: string
+  permissions?: string[]
+  /** mcp only: the exact command line trusting would allow to run. */
+  command?: string
+  /** wasm only: the sandboxed module path inside the package. */
+  wasm_entry?: string
+  skills: ExtSkill[]
+  installed_at: string
+  error?: string
+}
+
+export type ExtInstallReport = {
+  extension: ExtensionInfo
+  needs_trust: boolean
+  warnings: string[]
+}
+
+export type ExtTool = {
+  name: string
+  full_name: string
+  description: string
+  kind: string
+}
+
+export type ExtUpdateResult = {
+  id: string
+  from: string
+  to?: string
+  updated: boolean
+  local: boolean
+  error?: string
+}
+
+export type ExtRegistryEntry = {
+  id: string
+  repo: string
+  name: string
+  description: string
+  author: string
+  /** Capability tier, normalized by the daemon: declarative | mcp | wasm. */
+  type: "declarative" | "mcp" | "wasm" | string
+  tags?: string[]
+  homepage?: string
+  /** wasm only: what trusting the extension would grant. */
+  permissions?: string[]
+}

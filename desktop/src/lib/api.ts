@@ -1,5 +1,6 @@
 import { authHeaders, base } from "./daemon"
-import type { ErrorEnvelope, Estimate, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, ModuleStatus, RepoFile, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
+import type { Graph as WikiGraph } from "./graph/types"
+import type { ErrorEnvelope, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, ModuleStatus, RepoFile, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
 
 // Parses the §2.1 error envelope; carries enough for a component to branch
 // on err.code (e.g. "no_api_key") instead of printing a stack trace.
@@ -139,6 +140,7 @@ export const api = {
   wikiTree: (wsId: string) => req<WikiTree>("GET", `/workspaces/${wsId}/wiki/tree`),
   wikiDoc: (wsId: string, path: string) => req<any>("GET", `/workspaces/${wsId}/wiki/doc?path=${encodeURIComponent(path)}`),
   wikiSearch: (wsId: string, q: string) => req<any>("GET", `/workspaces/${wsId}/wiki/search?q=${encodeURIComponent(q)}`),
+  wikiGraph: (wsId: string) => req<WikiGraph>("GET", `/workspaces/${wsId}/wiki/graph`),
   wikiPlan: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/wiki/plan`),
   putWikiPlan: (wsId: string, yaml: string) => req<any>("PUT", `/workspaces/${wsId}/wiki/plan`, { yaml }),
   wikiBrief: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/wiki/brief`),
@@ -174,4 +176,23 @@ export const api = {
   testKey: (provider: string) => req<any>("POST", `/settings/keys/${provider}/test`),
   models: (provider: string, filter?: string) =>
     req<any>("GET", `/models?provider=${provider}${filter ? `&filter=${encodeURIComponent(filter)}` : ""}`),
+
+  // Extensions (contract v4)
+  listExtensions: () => req<{ extensions: ExtensionInfo[] }>("GET", "/extensions"),
+  installExtension: (source: string) => req<ExtInstallReport>("POST", "/extensions", { source }),
+  devExtension: (path: string) => req<ExtInstallReport>("POST", "/extensions/dev", { path }),
+  removeExtension: (id: string) => req<void>("DELETE", `/extensions/${encodeURIComponent(id)}`),
+  enableExtension: (id: string, enabled: boolean) =>
+    req<void>("POST", `/extensions/${encodeURIComponent(id)}/enable`, { enabled }),
+  trustExtension: (id: string) => req<{ tools: ExtTool[] }>("POST", `/extensions/${encodeURIComponent(id)}/trust`),
+  untrustExtension: (id: string) => req<void>("POST", `/extensions/${encodeURIComponent(id)}/untrust`),
+  extensionTools: (id: string, refresh = false) =>
+    req<{ tools: ExtTool[] }>("GET", `/extensions/${encodeURIComponent(id)}/tools${refresh ? "?refresh=true" : ""}`),
+  updateExtensions: (id?: string) =>
+    req<{ results: ExtUpdateResult[] }>("POST", "/extensions/update", id ? { id } : {}),
+  extensionRegistry: (q = "", refresh = false) =>
+    req<{ entries: ExtRegistryEntry[] }>(
+      "GET",
+      `/extensions/registry?q=${encodeURIComponent(q)}${refresh ? "&refresh=true" : ""}`
+    ),
 }

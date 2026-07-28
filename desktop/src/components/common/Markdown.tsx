@@ -120,15 +120,19 @@ export default function Markdown({
     [docPath, onNavigate]
   )
 
-  return (
-    <div className={cn("md-body", variant === "chat" && "md-chat", className)}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeSlug]}
-        components={components}
-      >
+  // The parse itself is the expensive part: on a 2000-line chapter,
+  // <ReactMarkdown> re-parsing on every render is what makes scroll-spy
+  // (which re-renders the article per heading intersection) feel like
+  // scrolling through mud. Memoising the element means one parse per
+  // document, not one per scroll tick.
+  const article = useMemo(
+    () => (
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]} components={components}>
         {children}
       </ReactMarkdown>
-    </div>
+    ),
+    [children, components]
   )
+
+  return <div className={cn("md-body", variant === "chat" && "md-chat", className)}>{article}</div>
 }
