@@ -1,6 +1,6 @@
-- Skill names must be kebab-case (normalized via Slug: lowercase, hyphen-separated, no leading/trailing/consecutive hyphens).
-- Each skill resides in a directory named after its skill under .ainow/skills/ containing a SKILL.md file.
-- SKILL.md must begin with YAML frontmatter (delimited by ---) containing at least name and description fields; the body follows.
-- Manual skills without frontmatter are treated as hand-written (name derived from directory).
-- Skills declare source files/directory prefixes; regeneration occurs only if sources change (checked via prefix matching in Stale).
-- The skills index (.ainow/skills/README.md) is auto-generated; manual edits are overwritten.
+Skill names must be normalized to kebab-case using the Slug function (e.g., "Add a TUI Command" becomes "add-a-tui-command").
+Each skill must be saved in a directory named after its slug under .kaioken/skills/ with the file SKILL.md.
+The Sources field in a skill's frontmatter must list the repo-relative files or directories used to generate it, enabling staleness-based refreshes.
+When generating skills, individual failures are logged but do not abort the generation of other skills.
+The skills index (.kaioken/skills/README.md) and the repository's AGENTS.md file (if present) must be updated after skill generation or refresh.
+A skill's frontmatter must include YAML fields for name, description, sources, generated_at, model, origin, use_count, last_used, and sessions (though some are optional and inferred if missing).

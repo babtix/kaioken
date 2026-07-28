@@ -1,9 +1,10 @@
-- Constants and variables use PascalCase (e.g., Dir, FreeModelConcurrency, HomeEnv).
-- Exported struct fields use PascalCase with yaml:"..." tags for YAML serialization (e.g., Model string `yaml:"model"`).
-- Functions that perform I/O or parsing return an error as the last return value for error propagation.
-- When a configuration file is missing, Load() returns a specific error guiding the user to run `kaioken init`, while LoadGlobal() returns an empty Global struct.
-- The Save() methods prepend a header comment to the YAML file explaining its purpose and usage restrictions.
-- Global configuration is saved with file mode 0o600 (readable only by the owner) to protect sensitive API keys.
-- Validation in Load() enforces minimum values: Concurrency is set to at least 1 and MaxModuleTokens to at least 4000 if below threshold.
-- Test files are named *_test.go and use table-driven tests for functions like IsFreeModel and EffectiveConcurrency.
-- The TestMain function in global_test.go sets the KAIOKEN_HOME environment variable to a temporary directory to sandbox tests and avoid modifying the user's real global config.
+- Use yaml struct tags for field mapping (e.g., `yaml:"version"`)
+- Initialize nil maps (e.g., Global.Keys) to empty map after unmarshaling
+- Set directory permissions: 0o755 for repo config dir, 0o700 for global config dir
+- Set file permissions: 0o644 for repo config, 0o600 for global config
+- Prepend header comments when saving config files
+- Validate config values on load (e.g., concurrency ≥1, maxModuleTokens ≥4000)
+- Return error for missing repo config (suggesting `kaioken init`), but return empty struct for missing global config
+- Use filepath.Join for path construction
+- Test environment isolation via HomeEnv (KAIOKEN_HOME) in TestMain
+- Test files named *_test.go in same directory, using t.TempDir() for sandboxing

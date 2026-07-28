@@ -1,9 +1,8 @@
-Use Server.resolve(rel) to convert wiki-relative paths to absolute paths with security checks against directory traversal.
-Render markdown via the Server's goldmark.Markdown instance (initialized with GFM extension and unsafe HTML rendering).
-Handle HTTP routes via Server.routes() returning an http.Handler with specific path prefixes: '/', '/d/', '/search'.
-Build navigation structure using Server.sections() which reads the wiki directory tree and organizes documents into sections.
-Return 404 status for paths that fail resolution or file access, and 500 for markdown rendering errors.
-Use Server.page() to wrap document content in standard HTML chrome (sidebar, breadcrumbs, meta, pager, TOC).
-In tests, seed wiki content using seedWiki helper which writes markdown files to wiki.WikiDir(repo) subdirectories.
-Validate search functionality with case-insensitive queries and verify <mark> tags in highlighted results.
-Ensure path escape tests confirm refusal to serve files outside the wiki directory (e.g., '/d/../secret.txt').
+- Always use html.EscapeString (via the htmlEscape helper) for any user-provided string inserted into HTML output.
+- When serving documents, resolve the requested path relative to the wiki root and reject paths that escape the wiki directory (using the resolve function).
+- For markdown rendering, use the pre-configured goldmark.Markdown instance in the Server struct (with GFM extensions and unsafe renderer options).
+- In the graph view, file nodes are inert (no navigation) while doc nodes navigate to /d/<rel> upon click.
+- Perform case-insensitive matching in search and highlight matches with <mark> tags.
+- The server must not start if the wiki directory does not exist (checked in the Run function).
+- Use context.Context for graceful server shutdown in the Run function.
+- In tests, use t.TempDir() for temporary repositories and helper functions like seedWiki to set up test data.

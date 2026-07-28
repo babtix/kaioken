@@ -1,8 +1,8 @@
 description: Serves the generated wiki via a web interface.
-file_count: 2
-generated_at: "2026-07-26T04:12:17Z"
+file_count: 4
+generated_at: "2026-07-28T10:18:22Z"
 id: kaioken/knowledge_engine/wiki_serve
-model: nvidia/nemotron-3-super-120b-a12b
+model: nemotron-3-super:cloud
 scope:
     - internal/serve
 title: Wiki Server

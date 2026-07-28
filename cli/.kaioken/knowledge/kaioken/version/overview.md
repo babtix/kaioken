@@ -1,1 +1,1 @@
-The internal/version package holds the Kaioken build version and API contract version shared by the CLI and TUI. Version is a mutable variable that can be overridden at build time with -ldflags, while ContractVersion is a constant indicating the API contract version.
+The kaioken/internal/version package provides the build version (Version) and API contract version (ContractVersion) shared across the CLI and TUI components.

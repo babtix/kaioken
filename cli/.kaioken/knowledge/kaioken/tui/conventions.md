@@ -1,12 +1,8 @@
-New slash commands must be added to the commands slice in commands.go with unique name, optional aliases, argument hint, summary, detail, guide, and examples.
-Each command must implement the matches method (inherited from command struct) for prefix matching in the palette.
-Command guide text must be added to the commandGuides map in explain.go for /explain support.
-Commands must be assigned to appropriate chapters in tutorial.go for guided walkthroughs.
-New commands must be handled in the dispatch method (in tui.go) to avoid 'unknown command' errors.
-The TUI must reset conversation state via resetConversation on session creation and save sessions after each turn via saveSession.
-During long-running operations, set busy state (showing spinner and elapsed time) and listen for cancellation signals.
-Assistant replies are rendered as markdown only after full response receipt to avoid continuous reflow during streaming.
-The /key command uses a separate masked input field (keyInput) to prevent API key leakage.
-The palette closes when a space is typed (indicating argument entry) or when user presses Esc.
-Every command must have non-empty summary and guide text (enforced by tests).
-Command examples must be literal invocations starting with '/' and have non-empty explanations.
+- Slash commands are registered in the commands slice in commands.go as command structs with name, aliases, args, summary, detail, guide, and examples fields.
+- Command matching and completion logic is centralized in the command.matches method and filterCommands function in commands.go.
+- The command palette UI state is managed by the palette struct in palette.go, with methods for activation, filtering, selection, and rendering.
+- Error messages in the TUI are displayed using predefined Lipgloss styles (errStyle for errors, warnStyle for warnings, okStyle for success) by appending formatted strings to the Model's lines slice.
+- Asynchronous operations (e.g., extension installation, wiki generation) are launched as goroutines that communicate results via the Model's events channel, using doneMsg for completion with error and logMsg for intermediate logging.
+- The Markdown renderer in markdown.go uses a mutex-protected singleton pattern to cache the glamour.TermRenderer instance by terminal width, rebuilding only on resize.
+- The TUI's Bubble Tea Update method handles key events for command palette navigation (arrow keys for selection, tab for completion, enter to run, esc to dismiss) and input handling (alt+enter for newline in the composer).
+- The TUI's Model struct maintains separate state for the visible composer (input) and the hidden API key prompt (keyInput) to prevent key leakage.

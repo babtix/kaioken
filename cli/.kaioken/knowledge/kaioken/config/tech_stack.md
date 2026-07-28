@@ -1,1 +1,1 @@
-The module is written in Go and uses the gopkg.in/yaml.v3 package for YAML marshaling and unmarshaling. It relies on the Go standard library for file system operations (os, path/filepath), string manipulation (strings), and error formatting (fmt).
+The module uses Go standard library packages (fmt, os, path/filepath, strings) and gopkg.in/yaml.v3 for YAML serialization. No external frameworks or infrastructure are directly used within this module.

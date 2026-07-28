@@ -1,1 +1,1 @@
-The module uses only the Go programming language; no external libraries or frameworks are referenced.
+Go (standard library only). The module relies on the Go toolchain's -ldflags feature for version injection.

@@ -1,1 +1,1 @@
-The module uses Go standard library with third-party packages golang.org/x/sync/errgroup for concurrency and gopkg.in/yaml.v3 for YAML. It depends on internal packages codemap (code indexing), config (configuration), llm (language model interactions), and scan (repository scanning results).
+The module uses the Go standard library along with the external dependencies golang.org/x/sync/errgroup for concurrent skill generation with error handling and gopkg.in/yaml.v3 for YAML frontmatter serialization in skill files.
