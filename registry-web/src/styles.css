@@ -1,0 +1,157 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/jetbrains-mono";
+
+/* Kaioken palette — the same ANSI-derived tokens the TUI and website use
+   (website/src/index.css is the reference), borrowed rather than imported so
+   this app deploys independently. */
+:root {
+  --kai-red: #ff0000;
+  --kai-orange: #ff8700;
+  --kai-amber: #ffaf00;
+  --kai-tan: #d7af87;
+
+  --kai-blue: #87d7ff;
+  --kai-green: #00d787;
+  --kai-sage: #87af87;
+  --kai-rose: #ff5f5f;
+
+  --kai-black: #080808;
+  --kai-ink: #121212;
+  --kai-panel: #1c1c1c;
+  --kai-line: #303030;
+  --kai-dim: #585858;
+  --kai-muted: #808080;
+  --kai-text: #d0d0d0;
+  --kai-white: #eeeeee;
+}
+
+@theme inline {
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Code", monospace;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-kai-red: var(--kai-red);
+  --color-kai-orange: var(--kai-orange);
+  --color-kai-amber: var(--kai-amber);
+  --color-kai-tan: var(--kai-tan);
+  --color-kai-blue: var(--kai-blue);
+  --color-kai-green: var(--kai-green);
+  --color-kai-sage: var(--kai-sage);
+  --color-kai-rose: var(--kai-rose);
+  --color-kai-black: var(--kai-black);
+  --color-kai-ink: var(--kai-ink);
+  --color-kai-panel: var(--kai-panel);
+  --color-kai-line: var(--kai-line);
+  --color-kai-dim: var(--kai-dim);
+  --color-kai-muted: var(--kai-muted);
+  --color-kai-text: var(--kai-text);
+  --color-kai-white: var(--kai-white);
+
+  /* terminals do not have rounded corners */
+  --radius-md: 0.25rem;
+}
+
+body {
+  background: var(--kai-black);
+  color: var(--kai-text);
+  font-family: var(--font-sans);
+}
+
+/* Markdown body — README and docs rendering. Deliberately terminal-flavored:
+   mono headings, orange accents, quiet borders. */
+.md {
+  line-height: 1.65;
+  font-size: 0.9rem;
+}
+.md h1,
+.md h2,
+.md h3,
+.md h4 {
+  font-family: var(--font-mono);
+  color: var(--kai-white);
+  font-weight: 700;
+  margin: 1.6em 0 0.6em;
+  line-height: 1.25;
+}
+.md h1 {
+  font-size: 1.35rem;
+  color: var(--kai-orange);
+}
+.md h2 {
+  font-size: 1.1rem;
+  border-bottom: 1px solid var(--kai-line);
+  padding-bottom: 0.3em;
+}
+.md h3 {
+  font-size: 0.95rem;
+}
+.md p,
+.md ul,
+.md ol {
+  margin: 0.7em 0;
+}
+.md ul {
+  list-style: square;
+  padding-left: 1.4em;
+}
+.md ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.md a {
+  color: var(--kai-blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.md code {
+  font-family: var(--font-mono);
+  font-size: 0.83em;
+  background: var(--kai-panel);
+  border: 1px solid var(--kai-line);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+}
+.md pre {
+  background: var(--kai-ink);
+  border: 1px solid var(--kai-line);
+  border-radius: 4px;
+  padding: 0.9em 1em;
+  overflow-x: auto;
+  margin: 0.9em 0;
+}
+.md pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+}
+.md blockquote {
+  border-left: 3px solid var(--kai-orange);
+  padding-left: 1em;
+  color: var(--kai-muted);
+  margin: 0.9em 0;
+}
+.md table {
+  border-collapse: collapse;
+  margin: 0.9em 0;
+  font-size: 0.85em;
+}
+.md th,
+.md td {
+  border: 1px solid var(--kai-line);
+  padding: 0.4em 0.8em;
+  text-align: left;
+}
+.md th {
+  font-family: var(--font-mono);
+  color: var(--kai-white);
+  background: var(--kai-panel);
+}
+.md hr {
+  border: none;
+  border-top: 1px solid var(--kai-line);
+  margin: 1.4em 0;
+}
+.md img {
+  max-width: 100%;
+}
