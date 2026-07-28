@@ -2,7 +2,7 @@ import { Link } from "react-router-dom"
 import { Terminal } from "lucide-react"
 import AsciiArt from "@/components/AsciiArt"
 import GithubMark from "@/components/GithubMark"
-import { BUILDER_ART, BUILDER_NAME, GITHUB_URL, PROVIDERS } from "@/data/content"
+import { BUILDER_ART, BUILDER_NAME, GITHUB_URL, NEWS_URL, PROVIDERS } from "@/data/content"
 
 const COLUMNS: { heading: string; links: { label: string; to: string; external?: boolean }[] }[] = [
   {
@@ -26,6 +26,7 @@ const COLUMNS: { heading: string; links: { label: string; to: string; external?:
   {
     heading: "project",
     links: [
+      { label: "News", to: NEWS_URL, external: true },
       { label: "Generated output", to: "/preview" },
       { label: "Showcase", to: "/showcase" },
       { label: "Output layout", to: "/docs/output" },

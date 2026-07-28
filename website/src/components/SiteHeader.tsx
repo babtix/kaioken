@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom"
 import { Menu, Terminal, X } from "lucide-react"
 import GithubMark from "@/components/GithubMark"
 import LinkButton from "@/components/LinkButton"
-import { GITHUB_URL } from "@/data/content"
+import { GITHUB_URL, NEWS_URL } from "@/data/content"
 import { cn } from "@/lib/utils"
 
 const NAV = [
@@ -13,6 +13,9 @@ const NAV = [
   { to: "/showcase", label: "showcase" },
   { to: "/next", label: "next" },
 ]
+
+// External destinations rendered alongside NAV — plain anchors, not NavLinks.
+const EXTERNAL_NAV = [{ href: NEWS_URL, label: "news" }]
 
 export default function SiteHeader() {
   const [open, setOpen] = React.useState(false)
@@ -74,6 +77,21 @@ export default function SiteHeader() {
               )}
             </NavLink>
           ))}
+          {EXTERNAL_NAV.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-sm px-2.5 py-1 font-mono text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <span className="mr-0.5 text-transparent">/</span>
+              {item.label}
+              <span className="ml-1 text-[10px] text-kai-dim" aria-hidden>
+                ↗
+              </span>
+            </a>
+          ))}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
@@ -109,6 +127,20 @@ export default function SiteHeader() {
             >
               /{item.label}
             </NavLink>
+          ))}
+          {EXTERNAL_NAV.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-sm px-2 py-2 font-mono text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              /{item.label}
+              <span className="ml-1 text-[10px] text-kai-dim" aria-hidden>
+                ↗
+              </span>
+            </a>
           ))}
         </nav>
       ) : null}

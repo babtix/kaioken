@@ -1,5 +1,5 @@
-import { allPosts, createPost, publishedPosts, sortPosts, type Post } from "./_lib/store"
-import { isAuthed, readBody, requireAuth, sendError, sendJSON, type Req, type Res } from "./_lib/http"
+import { allPosts, createPost, publishedPosts, sortPosts, type Post } from "./_lib/store.js"
+import { isAuthed, readBody, requireAuth, sendError, sendJSON, type Req, type Res } from "./_lib/http.js"
 
 type PostInput = Partial<Pick<Post, "title" | "summary" | "body" | "tags" | "published">>
 

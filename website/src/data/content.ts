@@ -5,6 +5,8 @@
 
 export const GITHUB_URL = "https://github.com/babtix/kaioken"
 
+export const NEWS_URL = "https://kaioken-news.vercel.app"
+
 export const ASCII_LOGO = `██╗  ██╗  █████╗  ██╗  ██████╗  ██╗  ██╗ ███████╗ ███╗   ██╗
 ██║ ██╔╝ ██╔══██╗ ██║ ██╔═══██╗ ██║ ██╔╝ ██╔════╝ ████╗  ██║
 █████╔╝  ███████║ ██║ ██║   ██║ █████╔╝  █████╗   ██╔██╗ ██║

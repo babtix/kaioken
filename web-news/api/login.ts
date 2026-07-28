@@ -1,5 +1,5 @@
-import { checkPassword, createSession, sessionCookie } from "./_lib/auth"
-import { readBody, sendError, sendJSON, type Req, type Res } from "./_lib/http"
+import { checkPassword, createSession, sessionCookie } from "./_lib/auth.js"
+import { readBody, sendError, sendJSON, type Req, type Res } from "./_lib/http.js"
 
 // POST /api/login  {"password": "..."}
 export default async function handler(req: Req, res: Res) {

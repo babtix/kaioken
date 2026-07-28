@@ -232,6 +232,9 @@ function Editor({
 
       <label htmlFor="body">Body</label>
       <textarea id="body" value={value.body ?? ""} onChange={(e) => set("body", e.target.value)} />
+      <p className="muted" style={{ marginTop: 6 }}>
+        Markdown supported — headings, bold, lists, code blocks, tables and links.
+      </p>
 
       <label style={{ display: "flex", alignItems: "center", gap: 8, textTransform: "none", letterSpacing: 0, fontSize: 13, color: "var(--text)" }}>
         <input

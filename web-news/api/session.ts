@@ -1,4 +1,4 @@
-import { isAuthed, sendJSON, type Req, type Res } from "./_lib/http"
+import { isAuthed, sendJSON, type Req, type Res } from "./_lib/http.js"
 
 // GET /api/session — lets the admin page decide what to render on load.
 export default async function handler(req: Req, res: Res) {

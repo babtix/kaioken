@@ -1,4 +1,4 @@
-import { readCookie, SESSION_COOKIE, verifySession } from "./auth"
+import { readCookie, SESSION_COOKIE, verifySession } from "./auth.js"
 
 // Vercel's Node runtime passes Node-shaped req/res objects. Typing them
 // structurally keeps this deployable without pulling in @vercel/node just for

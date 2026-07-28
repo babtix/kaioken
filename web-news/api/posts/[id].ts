@@ -1,4 +1,4 @@
-import { deletePost, getPost, updatePost, type Post } from "../_lib/store"
+import { deletePost, getPost, updatePost, type Post } from "../_lib/store.js"
 import {
   firstQuery,
   isAuthed,
@@ -8,8 +8,8 @@ import {
   sendJSON,
   type Req,
   type Res,
-} from "../_lib/http"
-import { normaliseTags } from "../posts"
+} from "../_lib/http.js"
+import { normaliseTags } from "../posts.js"
 
 // GET    /api/posts/:id — one post (drafts require a session)
 // PUT    /api/posts/:id — update (admin only)

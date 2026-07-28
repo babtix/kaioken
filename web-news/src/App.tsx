@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, formatDate, type Post } from "./api"
 import Admin from "./Admin"
+import Markdown from "./Markdown"
 
 // Routing is by pathname without a router dependency: this site has two
 // screens. vercel.json rewrites every non-API path to index.html, so deep
@@ -38,10 +39,13 @@ export default function App() {
             <span className="sub">news</span>
           </a>
           <span className="spacer" />
-          <a className="muted" href="https://github.com/babtix/kaioken" target="_blank" rel="noreferrer">
-            GitHub
+          <a className="nav-link" href="https://kaioken.vercel.app" target="_blank" rel="noreferrer">
+            main site<span className="ext">↗</span>
           </a>
-          <a className="muted" href="/admin" onClick={link("/admin")}>
+          <a className="nav-link" href="https://github.com/babtix/kaioken" target="_blank" rel="noreferrer">
+            GitHub<span className="ext">↗</span>
+          </a>
+          <a className="nav-link" href="/admin" onClick={link("/admin")}>
             Admin
           </a>
         </div>
@@ -54,7 +58,18 @@ export default function App() {
       </main>
 
       <footer className="site">
-        <div className="wrap">Kaioken — a terminal AI coding assistant and knowledge engine.</div>
+        <div className="wrap">
+          <span>
+            <span className="ps1">$</span> built for terminals · MIT
+          </span>
+          <span className="spacer" />
+          <a href="https://kaioken.vercel.app" target="_blank" rel="noreferrer">
+            kaioken.vercel.app
+          </a>
+          <a href="https://github.com/babtix/kaioken" target="_blank" rel="noreferrer">
+            github.com/babtix/kaioken
+          </a>
+        </div>
       </footer>
     </>
   )
@@ -85,7 +100,13 @@ function Feed() {
   return (
     <>
       <section className="hero">
-        <h1>Project news</h1>
+        <div className="prompt">
+          <span className="ps1">$</span> <span className="cmd">tail -f kaioken/news</span>
+          <span className="cursor" aria-hidden />
+        </div>
+        <h1>
+          Project <span className="accent">news</span>
+        </h1>
         <p>Releases, design notes and what's changing in Kaioken.</p>
       </section>
 
@@ -98,25 +119,29 @@ function Feed() {
         </div>
       )}
 
-      {posts?.map((p) => (
-        <article className="post" key={p.id}>
-          <h2>
-            <a href={`/post/${p.id}`} onClick={link(`/post/${p.id}`)}>
-              {p.title}
-            </a>
-          </h2>
-          <div className="meta">
-            <span>{formatDate(p.created)}</span>
-            {!p.published && <span className="badge-draft">draft</span>}
-            {p.tags.map((t) => (
-              <span className="tag" key={t}>
-                {t}
-              </span>
-            ))}
-          </div>
-          {p.summary && <p className="summary">{p.summary}</p>}
-        </article>
-      ))}
+      <div className="feed">
+        {posts?.map((p, i) => (
+          <article className="post" key={p.id}>
+            <h2>
+              <a href={`/post/${p.id}`} onClick={link(`/post/${p.id}`)}>
+                {p.title}
+              </a>
+            </h2>
+            <div className="meta">
+              <span className="idx">#{String(posts.length - i).padStart(2, "0")}</span>
+              <span>{formatDate(p.created)}</span>
+              {!p.published && <span className="badge-draft">draft</span>}
+              {p.tags.map((t) => (
+                <span className="tag" key={t}>
+                  {t}
+                </span>
+              ))}
+            </div>
+            {p.summary && <p className="summary">{p.summary}</p>}
+            <div className="more">read →</div>
+          </article>
+        ))}
+      </div>
     </>
   )
 }
@@ -136,11 +161,11 @@ function PostPage({ id }: { id: string }) {
   if (!post) return <p className="muted">Loading…</p>
 
   return (
-    <article style={{ padding: "40px 0" }}>
-      <a className="muted" href="/" onClick={link("/")}>
+    <article className="article">
+      <a className="back" href="/" onClick={link("/")}>
         ← All news
       </a>
-      <h1 style={{ margin: "16px 0 6px", color: "var(--white)" }}>{post.title}</h1>
+      <h1>{post.title}</h1>
       <div className="meta">
         <span>{formatDate(post.created)}</span>
         {!post.published && <span className="badge-draft">draft</span>}
@@ -151,7 +176,9 @@ function PostPage({ id }: { id: string }) {
         ))}
       </div>
       {post.summary && <p className="summary">{post.summary}</p>}
-      <div className="body">{post.body}</div>
+      <div className="body">
+        <Markdown>{post.body}</Markdown>
+      </div>
     </article>
   )
 }
