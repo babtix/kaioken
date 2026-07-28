@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	"kaioken/internal/ext"
 	"kaioken/internal/llm"
 	"kaioken/internal/memory"
 )
@@ -73,6 +74,10 @@ type Agent struct {
 	// Project memory already on disk still reaches the prompt via the memory
 	// context source; only the agent's ability to write more is removed.
 	MemoryDisabled bool
+	// Budget guards the session's spend. Nil means no guardrails. It must be
+	// shared with sub-agents (they bill the same client) and outlive the
+	// per-turn Agent value — see BudgetGuard.
+	Budget *BudgetGuard
 }
 
 // Tools returns the tool schemas offered to the model.
@@ -165,6 +170,32 @@ func (a *Agent) Tools() []llm.Tool {
 				"required":["command"]}`),
 		}})
 	}
+	// Extension tools are classed with run_command: their effects live in
+	// plugin code, so read-only modes never see them, and only the top-level
+	// agent gets them — a delegate should not gain tools the conversation
+	// never showed the user.
+	if a.AllowRun && perms.CanRun && a.Depth == 0 {
+		for _, mt := range ext.ToolSchemas() {
+			params := raw(`{"type":"object"}`)
+			if len(mt.InputSchema) > 0 {
+				params = json.RawMessage(mt.InputSchema)
+			}
+			desc := strings.TrimSpace(mt.Description)
+			if desc != "" {
+				desc += " "
+			}
+			if mt.Kind == ext.TypeWasm {
+				desc += "[extension " + mt.ExtID + " — sandboxed wasm plugin; requires user approval]"
+			} else {
+				desc += "[extension " + mt.ExtID + " — external MCP server, runs outside the sandbox; requires user approval]"
+			}
+			tools = append(tools, llm.Tool{Type: "function", Function: llm.FunctionDef{
+				Name:        mt.FullName,
+				Description: desc,
+				Parameters:  params,
+			}})
+		}
+	}
 	// Delegation and the checklist are both offered in every mode — a
 	// read-only sub-agent adds no permission the parent does not already have,
 	// and a checklist changes nothing on disk — but only to the agent the user
@@ -241,8 +272,58 @@ func (a *Agent) execTool(ctx context.Context, tc llm.ToolCall) string {
 		// hand-rolling the type checks json.Unmarshal already does.
 		return a.updateTodos(tc.Function.Arguments)
 	default:
+		if mt, ok := ext.LookupTool(tc.Function.Name); ok {
+			return a.callExtTool(ctx, mt, tc.Function.Arguments)
+		}
 		return "error: unknown tool " + tc.Function.Name
 	}
+}
+
+// extInvoke is the extension-tool dispatch, a variable so tests can stub the
+// plugin machinery away.
+var extInvoke = ext.CallTool
+
+// callExtTool routes an extension tool call through the same gates as
+// run_command: mode permissions first, then explicit approval naming the
+// extension — the user must always see who is asking to run code.
+func (a *Agent) callExtTool(ctx context.Context, mt ext.Tool, argsJSON string) string {
+	if !PermissionsFor(a.Mode).CanRun {
+		return a.modeDenied(mt.FullName)
+	}
+	preview := strings.TrimSpace(argsJSON)
+	if preview == "" {
+		preview = "(no arguments)"
+	} else if pretty := prettyJSON(preview); pretty != "" {
+		preview = pretty
+	}
+	if !a.approve("extension", mt.ExtID+" → "+mt.Name, preview) {
+		return "user declined to run the extension tool"
+	}
+	out, err := extInvoke(ctx, a.Root, mt.ExtID, mt.Name, argsJSON)
+	if err != nil {
+		return "error: " + err.Error()
+	}
+	if len(out) > maxReadBytes {
+		out = out[:maxReadBytes] + "\n… [output truncated]"
+	}
+	if strings.TrimSpace(out) == "" {
+		return "(tool produced no output)"
+	}
+	return out
+}
+
+// prettyJSON re-indents a JSON document for the approval preview, or returns
+// "" when the input is not valid JSON.
+func prettyJSON(s string) string {
+	var v any
+	if json.Unmarshal([]byte(s), &v) != nil {
+		return ""
+	}
+	out, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(out)
 }
 
 // resolve maps a repo-relative path to an absolute path, refusing escapes.

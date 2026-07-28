@@ -85,9 +85,11 @@ var commandGuides = map[string]string{
 		"in the terminal. If the reply was empty or tool-only, there is nothing to " +
 		"copy.",
 	"cost": "Shows cumulative calls and prompt/output token counts for the active " +
-		"client. Counts reset when you switch model or provider, since that starts " +
-		"a new client. Use it to keep an eye on spend during a long session or a " +
-		"big wiki run.",
+		"client, plus the real USD spend when the provider reports it (OpenRouter " +
+		"does). Counts reset when you switch model or provider, since that starts " +
+		"a new client. Set budget.warn_at and budget.hard_stop in config.yaml to " +
+		"turn spend into a guardrail: a one-time warning, then a refusal to keep " +
+		"spending.",
 	"clear": "Only clears the display — the conversation is untouched. Use /new if " +
 		"you actually want to reset the model's context. /clear is purely cosmetic: " +
 		"it wipes the scrollback so you can focus on what comes next.",

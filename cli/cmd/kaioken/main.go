@@ -12,11 +12,13 @@ import (
 	"os/signal"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"kaioken/internal/agentsmd"
 	"kaioken/internal/config"
 	"kaioken/internal/daemon"
+	"kaioken/internal/export"
 	"kaioken/internal/generate"
 	"kaioken/internal/gitx"
 	"kaioken/internal/llm"
@@ -46,10 +48,17 @@ Commands:
   status     Show module freshness (changed / up-to-date / missing)
   models     List provider models (optional filter argument)
   wiki       Deep multi-pass wiki (positional arg: x1..x10 multiplier)
-  update     Incremental wiki refresh: git-diff the repo against the commit the
-             wiki was generated from and revise only the affected documents
+  update     Incremental refresh: git-diff the repo against the commit the
+             wiki was generated from, revise only the affected documents,
+             then revise the knowledge cards of changed modules
   skills     Build task-oriented skills an AI agent loads while working in the
              repo (positional: "list", or a skill name; -force to rewrite)
+  export     Flatten the generated knowledge into another tool's context file
+             (claude-md | agents-md | cursor-rules | context-md; -out overrides
+             the path, -force overwrites, -full inlines wiki chapters)
+  ext        Manage community extensions installed from GitHub releases
+             (install | dev | validate | remove | list | update | search |
+             enable | disable | trust | untrust | tools)
   serve      Browse the generated wiki in a browser (-port, default 7777)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
@@ -103,6 +112,10 @@ func main() {
 		err = cmdGenerate(ctx, args)
 	case "skills", "skill":
 		err = cmdSkills(ctx, args)
+	case "export":
+		err = cmdExport(args)
+	case "ext", "extension", "extensions":
+		err = cmdExt(ctx, args)
 	case "serve":
 		err = cmdServe(ctx, args)
 	case "hook":
@@ -139,9 +152,15 @@ type flags struct {
 	base       string
 	port       int
 	force      bool
+	full       bool
+	out        string
 	positional string
-	token      string
-	tokenStdin bool
+	// positionals keeps every positional in order, for commands like `ext`
+	// that take a subcommand plus an argument. positional stays the last one
+	// so existing single-positional commands are unaffected.
+	positionals []string
+	token       string
+	tokenStdin  bool
 }
 
 func parseFlags(argv []string) flags {
@@ -175,6 +194,13 @@ func parseFlags(argv []string) flags {
 			}
 		case "-force", "--force":
 			f.force = true
+		case "-full", "--full":
+			f.full = true
+		case "-out", "--out":
+			if i+1 < len(argv) {
+				i++
+				f.out = argv[i]
+			}
 		case "-token", "--token":
 			if i+1 < len(argv) {
 				i++
@@ -184,6 +210,7 @@ func parseFlags(argv []string) flags {
 			f.tokenStdin = true
 		default:
 			f.positional = argv[i]
+			f.positionals = append(f.positionals, argv[i])
 		}
 	}
 	return f
@@ -301,8 +328,10 @@ func cmdGenerate(ctx context.Context, f flags) error {
 		opts.Only = splitComma(f.module)
 	}
 	started := time.Now()
-	done, skipped, failed := 0, 0, 0
+	done, revised, skipped, failed := 0, 0, 0, 0
+	var revisedIDs sync.Map
 	opts.OnStart = func(id string) { fmt.Printf("  → generating %s\n", id) }
+	opts.OnRevised = func(id string) { revisedIDs.Store(id, true) }
 	opts.OnDone = func(id string, err error, wasSkipped bool) {
 		switch {
 		case err != nil:
@@ -311,15 +340,20 @@ func cmdGenerate(ctx context.Context, f flags) error {
 		case wasSkipped:
 			skipped++
 		default:
-			done++
-			fmt.Printf("  ✓ %s\n", id)
+			if _, ok := revisedIDs.Load(id); ok {
+				revised++
+				fmt.Printf("  ↻ %s (revised from diff)\n", id)
+			} else {
+				done++
+				fmt.Printf("  ✓ %s\n", id)
+			}
 		}
 	}
 
 	fmt.Printf("generating cards with %s (concurrency %d) …\n", client.Model, cfg.Concurrency)
 	err = generate.Run(ctx, f.repo, cfg, client, p, res, opts)
-	fmt.Printf("\n%d generated, %d up-to-date, %d failed in %s\n",
-		done, skipped, failed, time.Since(started).Round(time.Second))
+	fmt.Printf("\n%d generated, %d revised, %d up-to-date, %d failed in %s\n",
+		done, revised, skipped, failed, time.Since(started).Round(time.Second))
 	fmt.Printf("index: %s\n", config.Dir+"/KNOWLEDGE.md")
 	return err
 }
@@ -501,6 +535,44 @@ func cmdUpdate(ctx context.Context, f flags) error {
 	for _, u := range rep.Unassigned {
 		fmt.Printf("  ! %s is outside every section's scope\n", u)
 	}
+
+	// Cards are part of the update story too: modules whose sources changed
+	// get revised (or rebuilt) so `update` refreshes everything the engine
+	// generated. No module plan simply means there are no cards to refresh.
+	if p, perr := plan.Load(f.repo); perr == nil {
+		fmt.Println("\nrefreshing knowledge cards …")
+		cardStart := time.Now()
+		done, revised, failed := 0, 0, 0
+		var revisedIDs sync.Map
+		cardOpts := generate.Options{
+			OnRevised: func(id string) { revisedIDs.Store(id, true) },
+			OnDone: func(id string, err error, wasSkipped bool) {
+				switch {
+				case err != nil:
+					failed++
+					fmt.Printf("  ✗ %s: %v\n", id, err)
+				case wasSkipped:
+				default:
+					if _, ok := revisedIDs.Load(id); ok {
+						revised++
+						fmt.Printf("  ↻ %s (revised from diff)\n", id)
+					} else {
+						done++
+						fmt.Printf("  ✓ %s\n", id)
+					}
+				}
+			},
+		}
+		if gerr := generate.Run(ctx, f.repo, cfg, client, p, res, cardOpts); gerr != nil {
+			fmt.Printf("  card refresh finished with errors: %v\n", gerr)
+		}
+		if done+revised+failed == 0 {
+			fmt.Println("  cards already up-to-date")
+		} else {
+			fmt.Printf("  %d rebuilt, %d revised, %d failed in %s\n",
+				done, revised, failed, time.Since(cardStart).Round(time.Second))
+		}
+	}
 	return nil
 }
 
@@ -551,6 +623,25 @@ func cmdSkills(ctx context.Context, f flags) error {
 	}
 	fmt.Printf("\n%d skill(s) in %s → %s/skills/\n", len(written),
 		time.Since(started).Round(time.Second), config.Dir)
+	return nil
+}
+
+// cmdExport flattens the generated knowledge into another tool's context
+// file. Pure assembly — no client, no key, no cost.
+func cmdExport(f flags) error {
+	if f.positional == "" {
+		fmt.Println("usage: kaioken export <target> [-out path] [-force] [-full]\n\ntargets:")
+		for _, t := range export.Targets() {
+			fmt.Printf("  %-14s → %-14s %s\n", t.Name, t.Default, t.Desc)
+		}
+		return nil
+	}
+	opts := export.Options{Out: f.out, Force: f.force, Full: f.full}
+	out, err := export.Run(f.repo, f.positional, opts)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("wrote %s\n", out)
 	return nil
 }
 

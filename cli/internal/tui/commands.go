@@ -241,10 +241,12 @@ var commands = []command{
 	},
 	{
 		name: "cost", aliases: []string{"usage"},
-		summary: "token usage for the active model",
-		detail:  "Counts reset when you switch model or provider, since that starts a new client.",
+		summary: "token usage and spend for the active model",
+		detail: "Counts reset when you switch model or provider, since that starts a new client. " +
+			"On OpenRouter the real USD spend is shown too, and budget.warn_at / budget.hard_stop " +
+			"in config.yaml turn it into a guardrail.",
 		examples: []example{
-			{"/cost", "calls and prompt/output tokens so far"},
+			{"/cost", "calls, prompt/output tokens, and USD spend so far"},
 		},
 	},
 	{
@@ -359,6 +361,37 @@ var commands = []command{
 			{"/skills list", "show what exists"},
 			{"/skills force", "rewrite them all"},
 			{"/skills add-an-api-endpoint", "rebuild just one"},
+		},
+	},
+	{
+		name: "ext", aliases: []string{"extension", "extensions"},
+		args:    "[list|install|remove|update|search|trust|tools|…]",
+		summary: "manage community extensions",
+		detail: "Extensions are packages installed from GitHub releases into " +
+			"~/.kaioken/extensions. Declarative ones contribute skills and never run " +
+			"code; mcp ones declare a server process and wasm ones ship a sandboxed " +
+			"plugin module whose tools the agent can call — but only after you " +
+			"explicitly trust that exact version, and every call still goes through " +
+			"the normal approval prompt. Installs are pinned in a lockfile by version " +
+			"and archive hash.",
+		guide: "Browse the community registry interactively with /ext browse (enter installs " +
+			"the selection), or install directly with /ext install owner/repo — add @1.2.0 " +
+			"to pin a version. Keep things current with /ext update; nothing updates " +
+			"silently. An mcp or wasm extension stays inert until /ext trust <id>: mcp " +
+			"trust shows the exact UNSANDBOXED command it would run, wasm trust shows the " +
+			"sandboxed module and the permissions it asked for (fs:read:workspace mounts " +
+			"your repo read-only; there is no network). Both require an explicit yes, and " +
+			"updating an extension revokes its trust until you re-grant it. Authors: " +
+			"`kaioken ext dev <path>` installs a working tree for a fast dev loop, and " +
+			"`kaioken ext validate` lints it before publishing. /ext remove uninstalls; " +
+			"extensions are per-user, so one install serves every repository.",
+		examples: []example{
+			{"/ext", "list installed extensions and their trust state"},
+			{"/ext browse", "pick from the community registry and install"},
+			{"/ext search git", "find community extensions about git"},
+			{"/ext install alice/kaioken-git-flow", "install one from its GitHub releases"},
+			{"/ext trust alice.git-flow", "review what an mcp extension would run"},
+			{"/ext update", "check every extension for a newer release"},
 		},
 	},
 	{

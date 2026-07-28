@@ -42,6 +42,21 @@ type Config struct {
 	// session digests, and skill distillation. Zero values are safe — memory
 	// is opt-in and degrades to "explicit /learn only".
 	Memory Memory `yaml:"memory,omitempty"`
+	// Budget sets proactive USD spending guardrails for agent sessions. Zero
+	// values disable them. Spend is only known when the provider reports it
+	// (OpenRouter does); elsewhere the guardrails stay inert.
+	Budget Budget `yaml:"budget,omitempty"`
+}
+
+// Budget is the per-session spending guardrail. Both thresholds are USD;
+// zero disables the threshold.
+type Budget struct {
+	// WarnAt injects a one-time warning into the conversation once the
+	// session's spend passes this amount.
+	WarnAt float64 `yaml:"warn_at,omitempty"`
+	// HardStop refuses further LLM calls once the session's spend reaches
+	// this amount, telling the user how to proceed.
+	HardStop float64 `yaml:"hard_stop,omitempty"`
 }
 
 // Memory configures the agent's persistent learning. It maps the wiki depth

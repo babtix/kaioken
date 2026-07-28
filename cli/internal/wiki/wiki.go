@@ -683,6 +683,14 @@ func loadOutline(repo string) (*Outline, error) {
 	return &o, nil
 }
 
+// LoadOutline is the exported form of loadOutline, for consumers outside the
+// package that need the section ordering of a generated wiki (kaioken export).
+func LoadOutline(repo string) (*Outline, error) { return loadOutline(repo) }
+
+// SafeName is the exported form of safeName: the filesystem-safe form of a
+// section title, matching the directory and file names the generator wrote.
+func SafeName(s string) string { return safeName(s) }
+
 func saveOutline(repo string, o *Outline) error {
 	if err := os.MkdirAll(filepath.Dir(OutlinePath(repo)), 0o755); err != nil {
 		return err

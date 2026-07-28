@@ -236,6 +236,26 @@ func (s *Server) handleWikiSearch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"query": q, "hits": hits})
 }
 
+// --- Wiki graph ---
+
+// GET /v1/workspaces/{id}/wiki/graph
+//
+// The whole graph is computed in wiki.BuildGraph so this payload and the one
+// `kaioken serve` writes at /graph.json stay byte-identical for the same repo.
+func (s *Server) handleWikiGraph(w http.ResponseWriter, r *http.Request) {
+	ws := s.workspaceFromRequest(w, r)
+	if ws == nil {
+		return
+	}
+	repo := filepath.FromSlash(ws.Path)
+	g, err := wiki.BuildGraph(repo)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
+		return
+	}
+	writeJSON(w, http.StatusOK, g)
+}
+
 // --- T047: Source file endpoint ---
 
 // GET /v1/workspaces/{id}/file

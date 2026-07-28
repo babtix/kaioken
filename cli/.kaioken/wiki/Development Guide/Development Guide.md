@@ -72,6 +72,7 @@ Kaioken follows a layered architecture where high-level components depend on low
 
 ```
 cmd/kaioken/main.go        → Entry point (CLI commands)
+cmd/webnews/main.go        → Entry point for the serverless news site
 internal/tui/tui.go        → Terminal UI (Bubble Tea)
 internal/agent/agent.go    → Chat agent (LLM interaction, tool execution)
 internal/wiki/wiki.go      → Knowledge engine (documentation generation)

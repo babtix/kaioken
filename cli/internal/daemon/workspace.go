@@ -34,6 +34,7 @@ type Workspace struct {
 	hasCfg   bool
 	global   *config.Global
 	client   *llm.Client
+	budget   *agent.BudgetGuard // built with the client; watches its spend
 	scanRes  *scan.Result
 	scanAt   time.Time
 	allowRun bool
@@ -318,7 +319,18 @@ func (ws *Workspace) Client() (*llm.Client, error) {
 	}
 	c.MaxTokens = ws.cfg.MaxTokens
 	ws.client = c
+	// The guard is born with the client so "session spend" and its limits
+	// always measure the same thing.
+	ws.budget = agent.NewBudgetGuard(ws.cfg.Budget.WarnAt, ws.cfg.Budget.HardStop)
 	return c, nil
+}
+
+// Budget returns the guard built alongside the client, nil when no budget is
+// configured (or no client has been built yet).
+func (ws *Workspace) Budget() *agent.BudgetGuard {
+	ws.mu.RLock()
+	defer ws.mu.RUnlock()
+	return ws.budget
 }
 
 // ScanCached returns the scan result, re-running the scan when refresh is true or

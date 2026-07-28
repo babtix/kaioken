@@ -15,6 +15,9 @@ type Global struct {
 	DefaultProvider string            `yaml:"default_provider,omitempty"`
 	DefaultModel    string            `yaml:"default_model,omitempty"`
 	Keys            map[string]string `yaml:"keys,omitempty"` // provider → API key
+	// ExtRegistry overrides the community extension registry index URL.
+	// Empty means the default public index.
+	ExtRegistry string `yaml:"ext_registry,omitempty"`
 }
 
 // HomeEnv overrides the directory holding the global config. Tests MUST set

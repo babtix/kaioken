@@ -103,3 +103,10 @@ func parseProvenance(doc string) []string {
 func ReadProvenance(markdown string) []string {
 	return parseProvenance(markdown)
 }
+
+// StripProvenance is the exported form of stripProvenance, for consumers that
+// embed wiki documents elsewhere (kaioken export) and must not carry the
+// machine-readable footer along.
+func StripProvenance(markdown string) string {
+	return stripProvenance(markdown)
+}

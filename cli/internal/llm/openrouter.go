@@ -149,6 +149,8 @@ type Client struct {
 	calls        int
 	promptToks   int
 	completeToks int
+	costUSD      float64 // cumulative spend, when the provider reports it
+	costKnown    bool    // whether any response carried a cost figure
 
 	budgetMu  sync.Mutex
 	budgetCap int // ceiling learned from a 402; 0 until the provider tells us
@@ -158,10 +160,14 @@ type Client struct {
 }
 
 // usage mirrors the OpenAI-compatible "usage" object returned alongside a
-// chat completion.
+// chat completion. Cost is OpenRouter's usage-accounting extension: the
+// request's exact USD price, present only when the request asked for it
+// (see withUsageAccounting) — a pointer so a genuine $0 (free tier) is
+// distinguishable from the field being absent.
 type usage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
+	PromptTokens     int      `json:"prompt_tokens"`
+	CompletionTokens int      `json:"completion_tokens"`
+	Cost             *float64 `json:"cost"`
 }
 
 func (c *Client) recordUsage(u *usage) {
@@ -172,6 +178,10 @@ func (c *Client) recordUsage(u *usage) {
 	c.calls++
 	c.promptToks += u.PromptTokens
 	c.completeToks += u.CompletionTokens
+	if u.Cost != nil {
+		c.costUSD += *u.Cost
+		c.costKnown = true
+	}
 	c.usageMu.Unlock()
 }
 
@@ -181,6 +191,23 @@ func (c *Client) Usage() (calls, promptTokens, completionTokens int) {
 	c.usageMu.Lock()
 	defer c.usageMu.Unlock()
 	return c.calls, c.promptToks, c.completeToks
+}
+
+// CostUSD returns the session's cumulative spend in USD and whether that
+// figure is real. known is false until a provider reports cost — in practice
+// only OpenRouter does, via its usage-accounting extension — so callers must
+// treat (0, false) as "unknown", not "free".
+func (c *Client) CostUSD() (usd float64, known bool) {
+	c.usageMu.Lock()
+	defer c.usageMu.Unlock()
+	return c.costUSD, c.costKnown
+}
+
+// wantsCostAccounting reports whether the endpoint understands OpenRouter's
+// usage-accounting extension. Sent anywhere else the unknown "usage" key
+// risks a 400 from a strict gateway, so it stays opt-in by host.
+func (c *Client) wantsCostAccounting() bool {
+	return strings.Contains(c.BaseURL, "openrouter.ai")
 }
 
 // New builds a client from the environment; model comes from config.
@@ -261,6 +288,9 @@ func (c *Client) Chat(ctx context.Context, system, user string) (string, error) 
 func (c *Client) rawChat(ctx context.Context, body []byte) ([]byte, error) {
 	ceiling := c.tokenCeiling()
 	body = withMaxTokens(body, ceiling)
+	if c.wantsCostAccounting() {
+		body = withUsageAccounting(body)
+	}
 
 	var lastErr error
 	shrunk := false

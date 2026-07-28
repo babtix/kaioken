@@ -2,6 +2,7 @@ package serve
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -339,6 +340,62 @@ func TestSearchHighlightsMatches(t *testing.T) {
 	}
 	if !strings.Contains(body, `class="result"`) {
 		t.Error("search results should be grouped per document")
+	}
+}
+
+// ---- graph view ----
+
+func TestGraphJSON(t *testing.T) {
+	h := New(seedWiki(t)).routes()
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/graph.json", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+	var g wiki.Graph
+	if err := json.Unmarshal(rec.Body.Bytes(), &g); err != nil {
+		t.Fatalf("payload is not a graph: %v", err)
+	}
+	if g.Stats.Docs != 4 {
+		t.Errorf("Stats.Docs = %d, want 4", g.Stats.Docs)
+	}
+	if len(g.Edges) == 0 {
+		t.Error("seeded wiki should produce contains edges")
+	}
+}
+
+func TestGraphPage(t *testing.T) {
+	h := New(seedWiki(t)).routes()
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/graph", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/html") {
+		t.Errorf("Content-Type = %q, want text/html", ct)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		`id="graph-canvas"`, // the canvas the engine mounts
+		"KaioGraph",          // the embedded engine bundle
+		`id="f-files"`,       // the control strip
+		"/graph.json",        // the boot script fetches the payload
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("graph page missing %q", want)
+		}
+	}
+}
+
+// The sidebar on regular pages links to the graph view.
+func TestSidebarLinksGraph(t *testing.T) {
+	h := New(seedWiki(t)).routes()
+	_, body := get(t, h, "/")
+	if !strings.Contains(body, `href="/graph"`) {
+		t.Error("sidebar should link to /graph")
 	}
 }
 

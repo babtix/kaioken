@@ -36,6 +36,16 @@ func (a *Agent) Run(ctx context.Context, history []llm.Message) ([]llm.Message, 
 		if ctx.Err() != nil {
 			return history, ctx.Err()
 		}
+		// The budget check runs before the call, not after: the point is to
+		// refuse the spend, not to report it. A warning joins the conversation
+		// as a context update so the model economizes for the rest of the
+		// session, not just this turn.
+		if warn, stop := a.Budget.Check(a.Client.CostUSD()); stop != nil {
+			return history, stop
+		} else if warn != "" {
+			a.UI.Info("⚠ " + warn)
+			history = append(history, ContextUpdate(warn))
+		}
 		msg, err := a.chat(ctx, history, tools)
 		if err != nil {
 			return history, err

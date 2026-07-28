@@ -81,6 +81,7 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/tree", s.handleWikiTree)
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/doc", s.handleWikiDoc)
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/search", s.handleWikiSearch)
+	router.HandleFunc("GET /v1/workspaces/{id}/wiki/graph", s.handleWikiGraph)
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/plan", s.handleGetWikiPlan)
 	router.HandleFunc("PUT /v1/workspaces/{id}/wiki/plan", s.handlePutWikiPlan)
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/brief", s.handleGetBrief)
@@ -102,6 +103,19 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("DELETE /v1/settings/keys/{provider}", s.handleDeleteKey)
 	router.HandleFunc("POST /v1/settings/keys/{provider}/test", s.handleTestKey)
 	router.HandleFunc("GET /v1/models", s.handleModels)
+
+	// Extensions (per-user, like settings)
+	router.HandleFunc("GET /v1/extensions", s.handleListExtensions)
+	router.HandleFunc("POST /v1/extensions", s.handleInstallExtension)
+	router.HandleFunc("POST /v1/extensions/dev", s.handleDevExtension)
+	router.HandleFunc("POST /v1/extensions/validate", s.handleValidateExtension)
+	router.HandleFunc("POST /v1/extensions/update", s.handleUpdateExtensions)
+	router.HandleFunc("GET /v1/extensions/registry", s.handleExtensionRegistry)
+	router.HandleFunc("DELETE /v1/extensions/{eid}", s.handleRemoveExtension)
+	router.HandleFunc("POST /v1/extensions/{eid}/enable", s.handleEnableExtension)
+	router.HandleFunc("POST /v1/extensions/{eid}/trust", s.handleTrustExtension)
+	router.HandleFunc("POST /v1/extensions/{eid}/untrust", s.handleUntrustExtension)
+	router.HandleFunc("GET /v1/extensions/{eid}/tools", s.handleExtensionTools)
 
 	var h http.Handler = router
 	h = logRequests(s, h)

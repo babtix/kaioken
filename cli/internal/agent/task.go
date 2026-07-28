@@ -117,6 +117,9 @@ func (a *Agent) runTask(ctx context.Context, description, prompt, modeArg string
 		MaxSteps: subAgentSteps,
 		Mode:     mode,
 		Depth:    a.Depth + 1,
+		// The same client bills both agents, so the same guard watches both:
+		// a delegated investigation must not out-spend the session's budget.
+		Budget: a.Budget,
 		// A sub-agent never streams: its prose would interleave with the
 		// parent's in the front-end's live region, and nobody is reading it
 		// token by token anyway.

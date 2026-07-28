@@ -7,6 +7,7 @@ package serve
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
@@ -96,6 +97,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("/", s.handleIndex)
 	mux.HandleFunc("/d/", s.handleDoc)
 	mux.HandleFunc("/search", s.handleSearch)
+	mux.HandleFunc("/graph", s.handleGraphPage)
+	mux.HandleFunc("/graph.json", s.handleGraphJSON)
 	return mux
 }
 
@@ -302,6 +305,44 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	s.page(w, pageInfo{title: "Search", bodyHTML: b.String()})
 }
 
+// handleGraphJSON serves the same wiki.BuildGraph payload the daemon does at
+// /v1/workspaces/{id}/wiki/graph — the same encoder on the same struct, so
+// the two transports are byte-identical for the same repository.
+func (s *Server) handleGraphJSON(w http.ResponseWriter, r *http.Request) {
+	g, err := wiki.BuildGraph(s.repo)
+	if err != nil {
+		http.Error(w, "graph error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(g)
+}
+
+// handleGraphPage renders the full-bleed graph view: a canvas driven by the
+// embedded engine, plus a small control strip. Clicking a doc node navigates
+// to /d/<rel>; file nodes are inert — there is no editor to open into.
+func (s *Server) handleGraphPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(`<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Graph · Kaioken Wiki</title><link rel="icon" href="` + favicon + `"><style>` +
+		styles + graphStyles + `</style></head><body class="graph-page">
+<a class="graph-back" href="/">← wiki</a>
+<div class="graph-bar">
+<label><input type="checkbox" id="f-files" checked> files</label>
+<label><input type="checkbox" id="f-contains" checked> contains</label>
+<label><input type="checkbox" id="f-links" checked> links</label>
+<label><input type="checkbox" id="f-source" checked> source</label>
+<button type="button" id="g-fit">fit</button>
+<span id="g-stats"></span>
+</div>
+<div class="graph-main"><canvas id="graph-canvas"></canvas>
+<div id="g-empty">no wiki generated yet — run the wiki first</div></div>
+<script>` + graphJS + `</script>
+<script>` + graphBoot + `</script>
+</body></html>`))
+}
+
 // highlightHTML escapes a line and wraps case-insensitive needle matches in
 // <mark> tags for the search results page.
 func highlightHTML(line, needle string) string {
@@ -417,6 +458,7 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		homeClass += " active"
 	}
 	fmt.Fprintf(w, `<a class="%s" href="/">⌂ Overview</a>`, homeClass)
+	fmt.Fprintf(w, `<a class="home" href="/graph">◈ Graph</a>`)
 	for _, sec := range secs {
 		open, active := "", ""
 		if strings.HasPrefix(info.current, sec.Name+"/") {
@@ -821,3 +863,76 @@ mark{background:var(--mark);color:inherit;padding:.05em .2em;border-radius:3px}
   main{padding:26px 18px 72px}
   .pager{flex-direction:column}
 }`
+
+// graphStyles is the extra chrome for the full-bleed /graph page, on top of
+// the shared styles so the palette and the prefers-color-scheme switch are
+// exactly the ones the rest of the site uses.
+const graphStyles = `
+body.graph-page{display:block;height:100vh;overflow:hidden}
+.graph-main{position:relative;width:100%;height:100vh}
+#graph-canvas{display:block}
+.graph-back{position:fixed;top:14px;left:16px;z-index:5;font-size:13px;color:var(--dim);
+  text-decoration:none;background:var(--bg-side);border:1px solid var(--line);
+  border-radius:7px;padding:6px 12px;box-shadow:var(--shadow)}
+.graph-back:hover{color:var(--accent);border-color:var(--accent)}
+.graph-bar{position:fixed;top:14px;right:16px;z-index:5;display:flex;gap:12px;align-items:center;
+  background:var(--bg-side);border:1px solid var(--line);border-radius:9px;padding:7px 12px;
+  font-size:12px;color:var(--dim);box-shadow:var(--shadow)}
+.graph-bar label{display:flex;gap:4px;align-items:center;cursor:pointer;user-select:none}
+.graph-bar input{accent-color:var(--accent)}
+.graph-bar button{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);
+  background:none;border:1px solid var(--line);border-radius:5px;padding:3px 9px;cursor:pointer}
+.graph-bar button:hover{color:var(--accent);border-color:var(--accent)}
+#g-stats{font-size:11.5px}
+#g-empty{display:none;position:absolute;inset:0;align-items:center;justify-content:center;
+  color:var(--dim);font-size:14px}`
+
+// graphBoot wires the embedded engine to the page: fetch the payload, read
+// the palette off the CSS variables, and navigate on doc clicks.
+const graphBoot = `
+(function () {
+  var canvas = document.getElementById('graph-canvas');
+  var engine = new KaioGraph.GraphEngine();
+  engine.mount(canvas);
+
+  function colors() {
+    var s = getComputedStyle(document.documentElement);
+    var v = function (name, fb) { return (s.getPropertyValue(name).trim()) || fb; };
+    return {
+      background: 'transparent',
+      doc: v('--accent', '#d24317'),
+      file: v('--dim', '#666'),
+      section: v('--dim', '#666'),
+      edge: v('--line', '#e3e3e3'),
+      label: v('--dim', '#666'),
+      accent: v('--accent', '#d24317')
+    };
+  }
+  engine.setColors(colors());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+    engine.setColors(colors());
+  });
+
+  engine.onSelect = function (node) {
+    if (node.kind === 'doc' && node.rel) location.href = '/d/' + encodeURI(node.rel);
+    /* file nodes are inert: no editor to open into */
+  };
+
+  var filters = { files: true, kinds: { contains: true, links: true, source: true } };
+  function bind(id, apply) {
+    var el = document.getElementById(id);
+    el.addEventListener('change', function () { apply(el.checked); engine.setFilters(filters); });
+  }
+  bind('f-files', function (on) { filters.files = on; });
+  bind('f-contains', function (on) { filters.kinds.contains = on; });
+  bind('f-links', function (on) { filters.kinds.links = on; });
+  bind('f-source', function (on) { filters.kinds.source = on; });
+  document.getElementById('g-fit').addEventListener('click', function () { engine.fit(); });
+
+  fetch('/graph.json').then(function (r) { return r.json(); }).then(function (g) {
+    engine.setGraph(g);
+    document.getElementById('g-stats').textContent =
+      g.stats.docs + ' docs · ' + g.stats.files + ' files · ' + g.stats.edges + ' edges';
+    if (!g.nodes.length) document.getElementById('g-empty').style.display = 'flex';
+  });
+})();`

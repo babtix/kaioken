@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kaioken/internal/config"
+	"kaioken/internal/ext"
 )
 
 // seedDocs writes a fake generated-documentation tree into a repo.
@@ -251,5 +252,73 @@ func TestSystemPromptWithoutProjectInstructions(t *testing.T) {
 	prompt := SystemPrompt(PromptInput{Root: t.TempDir(), Mode: ModeBuild})
 	if strings.Contains(prompt, "Instructions from this repository's") {
 		t.Errorf("an empty repo produced an instructions section:\n%s", prompt)
+	}
+}
+
+// seedExtension hand-builds an installed extension in the per-user dir the
+// way ext.Install would leave it: files plus a lock entry.
+func seedExtension(t *testing.T) {
+	t.Helper()
+	t.Setenv(config.HomeEnv, t.TempDir())
+	dir := ext.InstallDir("alice.demo", "1.0.0")
+	write := func(rel, body string) {
+		t.Helper()
+		p := filepath.Join(dir, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("extension.yaml", "id: alice.demo\nname: Demo\nversion: 1.0.0\n")
+	write("skills/hello/SKILL.md",
+		"---\nname: hello\ndescription: Say hello properly.\n---\n\n# Hello\n\nGreet with context.\n")
+	lock := &ext.Lock{Extensions: []ext.Installed{{
+		ID: "alice.demo", Version: "1.0.0", Repo: "alice/kaioken-demo", Enabled: true,
+	}}}
+	if err := lock.Save(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Extension skills must reach the catalog with their provenance visible, and
+// read_knowledge must serve them — but only through ext.Resolve's fence.
+func TestKnowledgeCatalogSurfacesExtensionSkills(t *testing.T) {
+	seedExtension(t)
+	root := t.TempDir()
+
+	entries := knowledgeCatalog(root)
+	var hit *knowledgeEntry
+	for i := range entries {
+		if entries[i].Path == "ext/alice.demo/skills/hello" {
+			hit = &entries[i]
+			break
+		}
+	}
+	if hit == nil {
+		t.Fatalf("extension skill missing from catalog: %+v", entries)
+	}
+	if !strings.Contains(hit.Label, "Say hello properly.") || !strings.Contains(hit.Label, "[alice.demo]") {
+		t.Errorf("label should carry description and provenance: %q", hit.Label)
+	}
+
+	a := &Agent{Root: root, UI: fakeUI{}}
+	if got := a.readKnowledge("ext/alice.demo/skills/hello"); !strings.Contains(got, "Greet with context.") {
+		t.Errorf("read_knowledge could not open the extension skill: %q", got)
+	}
+
+	// Escapes and disabled extensions are refused.
+	if got := a.readKnowledge("ext/alice.demo/../../config.yaml"); !strings.HasPrefix(got, "error:") {
+		t.Errorf("escape attempt served: %q", got)
+	}
+	if err := ext.SetEnabled("alice.demo", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.readKnowledge("ext/alice.demo/skills/hello"); !strings.HasPrefix(got, "error:") {
+		t.Errorf("disabled extension served: %q", got)
+	}
+	if entries := knowledgeCatalog(root); len(entries) != 0 {
+		t.Errorf("disabled extension still in catalog: %+v", entries)
 	}
 }

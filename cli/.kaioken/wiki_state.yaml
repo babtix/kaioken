@@ -1,7 +1,7 @@
 # kaioken wiki baseline — the commit the generated wiki reflects.
 # `kaioken update` diffs the repo against this commit and revises only
 # the documents the change actually touches. Delete to re-baseline.
-commit: 0825a4b13b5117a0a7dd08d7e530765e357e4cc7
-generated_at: 2026-07-27T17:16:14.3711941Z
+commit: 27b4c1c9a90a2289b601fc8ba9e9b85e96904066
+generated_at: 2026-07-27T17:19:53.9600817Z
 model: nemotron-3-super:cloud
 multiplier: 3

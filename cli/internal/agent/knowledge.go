@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"kaioken/internal/config"
+	"kaioken/internal/ext"
 	"kaioken/internal/skills"
 )
 
@@ -59,6 +60,21 @@ func knowledgeCatalog(root string) []knowledgeEntry {
 				Label: label,
 			})
 		}
+	}
+
+	// Extension skills follow: contributed by installed extensions, so they
+	// apply across repositories. They are listed after the repo's own skills
+	// because project-specific knowledge beats generic knowledge, and the
+	// label carries the extension id so provenance is visible in the prompt.
+	for _, cs := range ext.Contributions() {
+		label := "extension skill: " + cs.Name + " [" + cs.ExtID + "]"
+		if cs.Description != "" {
+			label = "extension skill — " + cs.Description + " [" + cs.ExtID + "]"
+		}
+		entries = append(entries, knowledgeEntry{
+			Path:  path("ext", cs.ExtID, "skills", cs.Name),
+			Label: label,
+		})
 	}
 
 	cardsRoot := filepath.Join(root, config.Dir, "knowledge")
@@ -216,6 +232,9 @@ func (a *Agent) readKnowledge(doc string) string {
 	}
 
 	rel := strings.Trim(filepath.ToSlash(doc), "/")
+	if rel == "ext" || strings.HasPrefix(rel, "ext/") {
+		return readExtensionDoc(rel)
+	}
 	if !strings.HasPrefix(rel, config.Dir+"/") && rel != config.Dir {
 		// Accept a bare name like "wiki/Architecture" too.
 		rel = config.Dir + "/" + rel
@@ -232,9 +251,39 @@ func (a *Agent) readKnowledge(doc string) string {
 	if !info.IsDir() {
 		return readCapped(abs)
 	}
+	return readDocDir(rel, abs)
+}
 
-	// A directory: concatenate its markdown, which is how both cards and wiki
-	// chapters are meant to be read.
+// readExtensionDoc serves a document contributed by an installed extension.
+// The catalog lists them as ext/<id>/skills/<name>; resolution is delegated
+// to ext.Resolve, which only serves enabled extensions and refuses paths
+// escaping the extension's install directory.
+func readExtensionDoc(rel string) string {
+	parts := strings.SplitN(strings.TrimPrefix(rel, "ext/"), "/", 2)
+	if parts[0] == "" || parts[0] == "ext" {
+		return "error: name an extension document as ext/<id>/skills/<name>"
+	}
+	sub := ""
+	if len(parts) == 2 {
+		sub = parts[1]
+	}
+	abs, err := ext.Resolve(parts[0], sub)
+	if err != nil {
+		return "error: " + err.Error()
+	}
+	info, err := os.Stat(abs)
+	if err != nil {
+		return "error: no such document " + rel + " (read_knowledge with no argument lists what exists)"
+	}
+	if !info.IsDir() {
+		return readCapped(abs)
+	}
+	return readDocDir(rel, abs)
+}
+
+// readDocDir concatenates a directory's markdown, which is how cards, wiki
+// chapters and skill directories are meant to be read.
+func readDocDir(rel, abs string) string {
 	files, err := os.ReadDir(abs)
 	if err != nil {
 		return "error: " + err.Error()

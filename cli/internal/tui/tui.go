@@ -30,6 +30,7 @@ import (
 	"kaioken/internal/agent"
 	"kaioken/internal/agentsmd"
 	"kaioken/internal/config"
+	"kaioken/internal/ext"
 	"kaioken/internal/generate"
 	"kaioken/internal/gitx"
 	"kaioken/internal/llm"
@@ -73,6 +74,13 @@ type agentDoneMsg struct {
 type modelsFetchedMsg struct {
 	models []llm.ModelInfo
 	err    error
+}
+
+// extRegistryFetchedMsg carries the community extension index for the
+// browse picker.
+type extRegistryFetchedMsg struct {
+	entries []ext.RegistryEntry
+	err     error
 }
 type undoRecordMsg struct{ entry agent.UndoEntry }
 
@@ -144,6 +152,9 @@ type Model struct {
 	// provider's saved key after a /provider switch.
 	apiKeys map[string]string
 	client  *llm.Client
+	// budget shares the client's lifetime: it watches the client's cumulative
+	// spend, so both reset together on a /model or /provider switch.
+	budget *agent.BudgetGuard
 
 	conversation []llm.Message
 	autoApprove  bool
@@ -202,6 +213,9 @@ func Run(repo string) error {
 	if abs, err := filepath.Abs(repo); err == nil {
 		repo = abs
 	}
+	// Extension MCP servers are child processes; quitting the TUI must never
+	// leave them orphaned.
+	defer ext.ShutdownAll()
 	p := tea.NewProgram(New(repo), tea.WithAltScreen())
 	_, err := p.Run()
 	return err
@@ -433,6 +447,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = modePicker
 		return m, nil
 
+	case extRegistryFetchedMsg:
+		m.busy = false
+		if msg.err != nil {
+			m.appendLine(errStyle.Render("could not fetch the extension registry: " + msg.err.Error()))
+			m.appendLine(dimStyle.Render("direct install still works: /ext install owner/repo"))
+			return m, nil
+		}
+		items := make([]list.Item, 0, len(msg.entries))
+		for _, e := range msg.entries {
+			// The kill switch reaches the browse UI too: a flagged extension
+			// must not be offered, not merely refused later.
+			if extFlaggedMalicious(e) {
+				continue
+			}
+			items = append(items, extItem{id: e.ID, repo: e.Repo, tier: e.TierLabel(), desc: e.Description})
+		}
+		if len(items) == 0 {
+			m.appendLine(dimStyle.Render("the community registry has no extensions yet — /ext install owner/repo works directly"))
+			return m, nil
+		}
+		m.list.Title = "Browse community extensions — type to filter, enter to install, esc to cancel"
+		m.list.SetItems(items)
+		m.list.SetSize(m.width, m.height)
+		m.mode = modePicker
+		return m, nil
+
 	case serveStartedMsg:
 		m.serveURL = msg.url
 		m.appendLine(okStyle.Render("wiki browser: " + msg.url))
@@ -477,8 +517,8 @@ func (m Model) onKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = modeChat
 			return m, nil
 		case "enter":
-			// The picker is reused for models and sessions; the item type
-			// says which.
+			// The picker is reused for models, sessions and extensions; the
+			// item type says which.
 			switch it := m.list.SelectedItem().(type) {
 			case modelItem:
 				m.mode = modeChat
@@ -486,6 +526,9 @@ func (m Model) onKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			case sessionItem:
 				m.mode = modeChat
 				m.resumeSession(it.id)
+			case extItem:
+				m.mode = modeChat
+				return m.startExtInstall(it.repo)
 			}
 			return m, nil
 		default:
@@ -716,6 +759,9 @@ func (m Model) sessionStatus() string {
 	if m.client != nil {
 		if _, pt, ct := m.client.Usage(); pt+ct > 0 {
 			parts = append(parts, humanTokens(pt+ct)+" tok")
+		}
+		if usd, known := m.client.CostUSD(); known && usd > 0 {
+			parts = append(parts, fmt.Sprintf("$%.2f", usd))
 		}
 	}
 	out := hintStyle.Render(strings.Join(parts, " · "))
@@ -986,6 +1032,7 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 		MaxSteps:        25,
 		Mode:            m.agentMode,
 		MemoryDisabled:  m.cfg.Memory.Disable,
+		Budget:          m.budget,
 	}
 	conv := m.conversation
 	ch := m.events
@@ -1147,6 +1194,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		return m.startGenerate(args)
 	case "skills", "skill":
 		return m.startSkills(args)
+	case "ext", "extension", "extensions":
+		return m.doExt(args)
 	case "serve":
 		return m.startServe(args)
 	case "hook":
@@ -1457,7 +1506,8 @@ func (m Model) startDiff() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// showCost prints cumulative call/token counts for the active client.
+// showCost prints cumulative call/token counts — and, when the provider
+// reports it, real spend — for the active client.
 func (m *Model) showCost() {
 	if m.client == nil {
 		m.appendLine(dimStyle.Render("no active client"))
@@ -1466,6 +1516,16 @@ func (m *Model) showCost() {
 	calls, pt, ct := m.client.Usage()
 	m.appendLine(fmt.Sprintf("  calls: %d   prompt tokens: %d   completion tokens: %d   total: %d",
 		calls, pt, ct, pt+ct))
+	if usd, known := m.client.CostUSD(); known {
+		line := fmt.Sprintf("  spend: $%.4f", usd)
+		if m.cfg != nil && (m.cfg.Budget.WarnAt > 0 || m.cfg.Budget.HardStop > 0) {
+			line += dimStyle.Render(fmt.Sprintf("   (budget: warn $%.2f · stop $%.2f)",
+				m.cfg.Budget.WarnAt, m.cfg.Budget.HardStop))
+		}
+		m.appendLine(line)
+	} else if m.cfg != nil && (m.cfg.Budget.WarnAt > 0 || m.cfg.Budget.HardStop > 0) {
+		m.appendLine(dimStyle.Render("  budget set, but this provider reports no cost — guardrails inactive"))
+	}
 	m.appendLine(dimStyle.Render("resets when you switch /model or /provider"))
 }
 
@@ -2376,6 +2436,8 @@ func (m *Model) rebuildClient() string {
 	}
 	c.MaxTokens = m.cfg.MaxTokens
 	m.client = c
+	// A new client starts a new spend meter, so the guard restarts with it.
+	m.budget = agent.NewBudgetGuard(m.cfg.Budget.WarnAt, m.cfg.Budget.HardStop)
 	return ""
 }
 

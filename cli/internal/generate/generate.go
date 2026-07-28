@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"kaioken/internal/config"
+	"kaioken/internal/gitx"
 	"kaioken/internal/llm"
 	"kaioken/internal/plan"
 	"kaioken/internal/scan"
@@ -61,11 +62,15 @@ Return ONLY a JSON object:
 type Options struct {
 	// Only, when non-empty, restricts generation to these module ids.
 	Only []string
-	// Force regenerates even when the source hash is unchanged.
+	// Force regenerates even when the source hash is unchanged, and skips
+	// the diff-driven revision path.
 	Force bool
 	// OnStart/OnDone report progress; either may be nil.
 	OnStart func(id string)
 	OnDone  func(id string, err error, skipped bool)
+	// OnRevised reports that a module's cards were revised from the git diff
+	// rather than rebuilt from the full bundle. It fires before OnDone.
+	OnRevised func(id string)
 }
 
 // Run generates cards for all (or selected) modules and refreshes the index.
@@ -81,6 +86,13 @@ func Run(ctx context.Context, repo string, cfg *config.Config, client *llm.Clien
 	only := map[string]bool{}
 	for _, id := range opts.Only {
 		only[id] = true
+	}
+
+	// The HEAD commit becomes each regenerated module's diff baseline for the
+	// next run. Resolved once: it cannot change mid-run in a meaningful way.
+	head := ""
+	if gitx.IsRepo(repo) {
+		head, _ = gitx.Head(ctx, repo)
 	}
 
 	mods := p.Flatten()
@@ -119,7 +131,24 @@ func Run(ctx context.Context, repo string, cfg *config.Config, client *llm.Clien
 			if opts.OnStart != nil {
 				opts.OnStart(fm.ID)
 			}
-			err = generateModule(gctx, repo, cfg, client, fm, files, res)
+			// A changed module with a recorded baseline gets a revision first:
+			// existing cards + the diff is far cheaper than the full bundle.
+			// Any failure on this path falls through to the full rebuild — the
+			// revision is an optimization, never a new way to fail.
+			revised := false
+			if !opts.Force && seen {
+				if changed, ok := reviseWorthwhile(gctx, repo, prev.Commit, fm, files); ok {
+					if err := reviseModule(gctx, repo, cfg, client, fm, files, changed, prev.Commit, res); err == nil {
+						revised = true
+						if opts.OnRevised != nil {
+							opts.OnRevised(fm.ID)
+						}
+					}
+				}
+			}
+			if !revised {
+				err = generateModule(gctx, repo, cfg, client, fm, files, res)
+			}
 			if err == nil {
 				stMu.Lock()
 				st.Modules[fm.ID] = state.ModuleState{
@@ -127,6 +156,7 @@ func Run(ctx context.Context, repo string, cfg *config.Config, client *llm.Clien
 					Model:       client.Model,
 					GeneratedAt: time.Now().UTC(),
 					FileCount:   len(files),
+					Commit:      head,
 				}
 				stMu.Unlock()
 			}
@@ -170,6 +200,13 @@ func generateModule(ctx context.Context, repo string, cfg *config.Config,
 	if err := client.ChatJSON(ctx, cardSystem, user.String(), &c); err != nil {
 		return fmt.Errorf("module %s: %w", fm.ID, err)
 	}
+	return writeCards(repo, client.Model, fm, len(files), c)
+}
+
+// writeCards validates a card set and persists it: module meta plus one file
+// per card. Shared by the full-bundle and diff-revision paths so the on-disk
+// shape cannot drift between them.
+func writeCards(repo, model string, fm plan.FlatModule, fileCount int, c cards) error {
 	if strings.TrimSpace(c.Overview) == "" || strings.TrimSpace(c.Architecture) == "" {
 		return fmt.Errorf("module %s: model returned empty required cards", fm.ID)
 	}
@@ -184,9 +221,9 @@ func generateModule(ctx context.Context, repo string, cfg *config.Config,
 		"title":        fm.Title,
 		"description":  fm.Description,
 		"scope":        fm.Scope,
-		"model":        client.Model,
+		"model":        model,
 		"generated_at": time.Now().UTC().Format(time.RFC3339),
-		"file_count":   len(files),
+		"file_count":   fileCount,
 	}
 	metaRaw, err := yaml.Marshal(meta)
 	if err != nil {

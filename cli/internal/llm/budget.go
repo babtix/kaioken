@@ -109,6 +109,23 @@ func withMaxTokens(body []byte, n int) []byte {
 	return out
 }
 
+// withUsageAccounting rewrites a marshalled request body to ask OpenRouter
+// for its usage-accounting extension, which puts the request's exact USD
+// cost in the response's usage object. Same raw-JSON path as withMaxTokens,
+// same pass-through on anything unparseable.
+func withUsageAccounting(body []byte) []byte {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(body, &m); err != nil {
+		return body
+	}
+	m["usage"] = json.RawMessage(`{"include":true}`)
+	out, err := json.Marshal(m)
+	if err != nil {
+		return body
+	}
+	return out
+}
+
 // creditError turns a 402 into something a user can act on. The raw body is a
 // wall of nested JSON listing every upstream provider that declined, which
 // tells the reader nothing they can use.

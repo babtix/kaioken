@@ -22,6 +22,13 @@ type ModuleState struct {
 	Model       string    `json:"model"`
 	GeneratedAt time.Time `json:"generated_at"`
 	FileCount   int       `json:"file_count"`
+	// Commit is the HEAD the cards were generated at, when the repo is git.
+	// It is the diff baseline for incremental card revision: a changed module
+	// with a resolvable commit gets its cards revised against the diff
+	// instead of rebuilt from the full source bundle. Empty on non-git repos
+	// and on states written before the field existed — both fall back to a
+	// full rebuild.
+	Commit string `json:"commit,omitempty"`
 }
 
 // State is the persisted .ainow/state.json.

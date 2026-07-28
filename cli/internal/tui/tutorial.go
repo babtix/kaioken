@@ -73,8 +73,10 @@ var chapters = []chapter{
 			"which files to touch, in what order, following which local conventions.\n" +
 			"That is what an agent actually needs when it starts a task, and exactly\n" +
 			"what a general model cannot know about your project.\n\n" +
-			"Build them after a wiki or card run. They stay current through /update.",
-		commands: []string{"skills"},
+			"Build them after a wiki or card run. They stay current through /update.\n\n" +
+			"Community extensions add more skills from GitHub — installed per user,\n" +
+			"available in every repo, and never executing any code.",
+		commands: []string{"skills", "ext"},
 	},
 	{
 		name: "browse", title: "Browsing and automation",
