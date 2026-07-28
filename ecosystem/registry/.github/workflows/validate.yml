@@ -1,0 +1,26 @@
+name: validate registry
+
+on:
+  pull_request:
+    paths: ["community-extensions.json", "validate/**"]
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Unit-test the validator
+        run: go test ./validate/
+      - name: Validate the index (structural)
+        if: github.event_name == 'push'
+        run: go run ./validate
+      - name: Validate the index (structural + deep)
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: go run ./validate -deep

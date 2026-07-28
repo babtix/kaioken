@@ -1,0 +1,11 @@
+id: babtix.wasm-toolkit
+name: WASM Toolkit
+version: 0.1.0
+description: Example sandboxed WASM extension - word-count and workspace file inspection tools.
+author: babtix
+repo: babtix/kaioken-example-wasm
+type: wasm
+wasm:
+  entry: dist/plugin.wasm
+permissions:
+  - fs:read:workspace
