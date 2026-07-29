@@ -24,6 +24,7 @@ import (
 	"kaioken/internal/llm"
 	"kaioken/internal/plan"
 	"kaioken/internal/scan"
+	"kaioken/internal/selfupdate"
 	"kaioken/internal/serve"
 	"kaioken/internal/setup"
 	"kaioken/internal/skills"
@@ -62,6 +63,8 @@ Commands:
   serve      Browse the generated wiki in a browser (-port, default 7777)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
+  upgrade    Update kaioken itself to the latest GitHub release
+             (positional "check" only reports whether a newer version exists)
   logo       Print the KAIOKEN wordmark
   version    Print the version
 
@@ -80,6 +83,9 @@ Environment:
 `
 
 func main() {
+	// A previous `kaioken upgrade` may have left the replaced binary behind
+	// as *.old (Windows locks a running exe); remove it now, best-effort.
+	selfupdate.CleanupOld()
 	if len(os.Args) < 2 {
 		// Bare `ainow` launches the interactive TUI.
 		if err := tui.Run("."); err != nil {
@@ -122,6 +128,8 @@ func main() {
 		err = cmdHook(args)
 	case "daemon":
 		err = cmdDaemon(ctx, args)
+	case "upgrade", "self-update", "selfupdate":
+		err = cmdUpgrade(ctx, args)
 	case "status":
 		err = cmdStatus(args)
 	case "models":
@@ -718,6 +726,38 @@ func cmdDaemon(ctx context.Context, f flags) error {
 		addr = fmt.Sprintf("127.0.0.1:%d", f.port)
 	}
 	return daemon.Run(ctx, daemon.Options{Addr: addr, Token: token, ParentPID: parentPID})
+}
+
+// cmdUpgrade updates the kaioken binary itself from the latest GitHub
+// release. `kaioken upgrade check` only reports; `kaioken upgrade` applies.
+func cmdUpgrade(ctx context.Context, f flags) error {
+	rel, newer, err := selfupdate.Check(ctx, version.Version)
+	if err != nil {
+		return err
+	}
+	if rel == nil {
+		return fmt.Errorf("the latest release has no binary for %s/%s — build from source instead", runtime.GOOS, runtime.GOARCH)
+	}
+	if !newer {
+		fmt.Printf("kaioken %s is up to date (latest release: %s)\n", version.Version, rel.Version)
+		return nil
+	}
+	if strings.EqualFold(f.positional, "check") {
+		fmt.Printf("update available: %s → %s\n", version.Version, rel.Version)
+		fmt.Println("run `kaioken upgrade` to install it")
+		return nil
+	}
+	fmt.Printf("updating %s → %s (%s)…\n", version.Version, rel.Version, rel.AssetName)
+	if rel.ChecksumURL == "" {
+		fmt.Println("warning: release ships no checksums.txt — skipping integrity check")
+	}
+	path, err := selfupdate.Apply(ctx, rel)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("✓ installed kaioken %s at %s\n", rel.Version, path)
+	fmt.Println("the new version is used from your next invocation")
+	return nil
 }
 
 func splitComma(s string) []string {
