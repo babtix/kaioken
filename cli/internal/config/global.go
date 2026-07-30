@@ -18,6 +18,62 @@ type Global struct {
 	// ExtRegistry overrides the community extension registry index URL.
 	// Empty means the default public index.
 	ExtRegistry string `yaml:"ext_registry,omitempty"`
+	// SelfUpdate controls automatic self-update checks and behavior.
+	SelfUpdate SelfUpdate `yaml:"selfupdate,omitempty"`
+	// Research configures the `kaioken research` web pipeline.
+	Research Research `yaml:"research,omitempty"`
+	// Search sets the cross-repo default for knowledge retrieval. A repo's own
+	// config wins; this is where a user points every workspace at one local
+	// embedding server once instead of per repo.
+	Search Search `yaml:"search,omitempty"`
+	// Local lists user-defined local model endpoints (Ollama, LM Studio,
+	// llama.cpp, vLLM). They join the built-in provider registry at runtime so
+	// the rest of the system cannot tell a local endpoint from a hosted one.
+	Local []LocalEndpoint `yaml:"local,omitempty"`
+}
+
+// LocalEndpoint is one OpenAI-compatible server running on the user's own
+// machine or network. No API key is required or expected.
+type LocalEndpoint struct {
+	// Name is the provider name it registers under, e.g. "lmstudio".
+	Name string `yaml:"name"`
+	// BaseURL is the OpenAI-compatible root, e.g. "http://localhost:1234/v1".
+	BaseURL string `yaml:"base_url"`
+	// Label is an optional human name for the UI.
+	Label string `yaml:"label,omitempty"`
+}
+
+// Research configures web research. The search providers' API keys live in
+// the same Keys map as the LLM provider keys, under the provider's name
+// ("tavily", "firecrawl", "brave", "exa").
+type Research struct {
+	// SearchProvider picks the search backend(s). Empty, "auto", "both" or
+	// "all" fan out to every provider holding a key; a single name pins one;
+	// a comma-separated list ("tavily,firecrawl") names a subset. When the
+	// selection includes firecrawl, its scrape API also reads the pages.
+	SearchProvider string `yaml:"search_provider,omitempty"`
+	// MaxRounds overrides the search→read→reason→gap loop budget. Zero lets
+	// the ×N multiplier decide.
+	MaxRounds int `yaml:"max_rounds,omitempty"`
+}
+
+// SelfUpdate configures background checks for a newer kaioken release.
+// Checks only ever notify: installing is always the explicit `kaioken
+// upgrade` command, never something a background check does on its own.
+type SelfUpdate struct {
+	// Enabled turns background update checking on/off.
+	Enabled bool `yaml:"enabled"`
+	// Channel selects which release channel to track: stable, beta, nightly.
+	// Empty and unrecognised values fall back to stable.
+	Channel string `yaml:"channel"`
+	// IntervalHours is how often to check for updates (0 = only manual).
+	IntervalHours int `yaml:"interval_hours"`
+	// NotifyOnly is retained so existing configs keep parsing. Background
+	// checks notify unconditionally, so setting it false does not opt into
+	// an automatic install.
+	NotifyOnly bool `yaml:"notify_only"`
+	// ShowProgress prints download progress during `kaioken upgrade`.
+	ShowProgress bool `yaml:"show_progress"`
 }
 
 // HomeEnv overrides the directory holding the global config. Tests MUST set

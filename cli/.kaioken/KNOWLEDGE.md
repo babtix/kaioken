@@ -16,7 +16,7 @@ modules relevant to your task. Cards: `overview.md`, `architecture.md`,
     - **Wiki Generator** — Generates knowledge cards and wiki documentation. → [`knowledge/kaioken/knowledge_engine/wiki_generator/`](knowledge/kaioken/knowledge_engine/wiki_generator/) _(generated 2026-07-28)_
     - **Wiki Server** — Serves the generated wiki via a web interface. → [`knowledge/kaioken/knowledge_engine/wiki_serve/`](knowledge/kaioken/knowledge_engine/wiki_serve/) _(generated 2026-07-28)_
   - **Terminal User Interface** — Bubble Tea based terminal interface for the application. → [`knowledge/kaioken/tui/`](knowledge/kaioken/tui/) _(generated 2026-07-28)_
-  - **Command Entry Point** — Main function and command line setup. → [`knowledge/kaioken/cmd/`](knowledge/kaioken/cmd/) _(generated 2026-07-28)_
+  - **Command Entry Point** — Main function and command line setup. → [`knowledge/kaioken/cmd/`](knowledge/kaioken/cmd/) _(generated 2026-07-29)_
   - **Configuration** — Application configuration and global settings. → [`knowledge/kaioken/config/`](knowledge/kaioken/config/) _(generated 2026-07-28)_
   - **Git Operations** — Git repository interaction and hook management. → [`knowledge/kaioken/gitx/`](knowledge/kaioken/gitx/) _(generated 2026-07-28)_
   - **Version Information** — Version tracking and build information. → [`knowledge/kaioken/version/`](knowledge/kaioken/version/) _(generated 2026-07-28)_

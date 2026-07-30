@@ -2,10 +2,10 @@
 # `notes` are injected into every generation prompt: use them to teach
 # the model conventions, guardrails, and tribal knowledge.
 version: 1
-model: nemotron-3-super:cloud
-provider: ollama
+model: nvidia/nemotron-3-super-120b-a12b
+provider: nvidia
 base_url: ""
-concurrency: 2
+concurrency: 4
 max_module_tokens: 60000
 scope:
     include: []
@@ -17,3 +17,11 @@ scope:
         - '**/*.min.js'
         - '**/*.map'
 notes: []
+
+# Self-update configuration
+selfupdate:
+  enabled: true
+  channel: stable        # stable, beta, nightly
+  interval_hours: 24     # check interval (0 = only manual)
+  notify_only: true      # if true, only notify; don't auto-install
+  show_progress: true    # show download progress in TUI

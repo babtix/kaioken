@@ -13,6 +13,7 @@ import (
 
 	"kaioken/internal/config"
 	"kaioken/internal/plan"
+	"kaioken/internal/search"
 	"kaioken/internal/skills"
 	"kaioken/internal/wiki"
 
@@ -173,12 +174,17 @@ func (s *Server) handleWikiDoc(w http.ResponseWriter, r *http.Request) {
 // --- T046: Wiki search ---
 
 // GET /v1/workspaces/{id}/wiki/search
+//
+// Backed by internal/search: BM25 over heading-aware chunks, fused with vector
+// similarity when the workspace has an embedding model configured. The index
+// is opened per request — it rebuilds only when the corpus fingerprint moved,
+// so a repeat search is a file read and a scan, not a re-walk of the wiki.
 func (s *Server) handleWikiSearch(w http.ResponseWriter, r *http.Request) {
 	ws := s.workspaceFromRequest(w, r)
 	if ws == nil {
 		return
 	}
-	q := strings.ToLower(r.URL.Query().Get("q"))
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
 		writeJSON(w, http.StatusOK, map[string]any{"query": "", "hits": []any{}})
 		return
@@ -187,53 +193,46 @@ func (s *Server) handleWikiSearch(w http.ResponseWriter, r *http.Request) {
 	fmt.Sscanf(r.URL.Query().Get("limit"), "%d", &limit)
 
 	repo := filepath.FromSlash(ws.Path)
-	wikiDir := wiki.WikiDir(repo)
-	type hit struct {
-		Path    string `json:"path"`
-		Title   string `json:"title"`
-		Line    int    `json:"line"`
-		Snippet string `json:"snippet"`
-		Score   int    `json:"score"`
+	idx, err := search.Open(repo)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
+		return
 	}
-	var hits []hit
 
-	_ = filepath.WalkDir(wikiDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".md") {
-			return nil
+	query := search.Query{
+		Text:    q,
+		Section: r.URL.Query().Get("section"),
+		Limit:   limit,
+	}
+	for _, k := range strings.Split(r.URL.Query().Get("kind"), ",") {
+		if k = strings.TrimSpace(k); k != "" {
+			query.Kinds = append(query.Kinds, search.Kind(k))
 		}
-		raw, rerr := os.ReadFile(path)
-		if rerr != nil {
-			return nil
-		}
-		rel, _ := filepath.Rel(wikiDir, path)
-		rel = filepath.ToSlash(rel)
-		title := strings.TrimSuffix(d.Name(), ".md")
-		score := 0
-		firstLine := 0
-		var snippet string
-		for i, line := range strings.Split(string(raw), "\n") {
-			if strings.Contains(strings.ToLower(line), q) {
-				score++
-				if firstLine == 0 {
-					firstLine = i + 1
-					snippet = strings.TrimSpace(line)
-					if len(snippet) > 120 {
-						snippet = snippet[:120] + "…"
-					}
-				}
-			}
-		}
-		if score > 0 {
-			hits = append(hits, hit{Path: rel, Title: title, Line: firstLine, Snippet: snippet, Score: score})
-		}
-		return nil
+	}
+	if len(query.Kinds) == 0 {
+		// An endpoint named wiki/search returns wiki documents. Cards and
+		// skills live at paths a wiki reader cannot open, so they are opt-in
+		// via ?kind= rather than a surprise in the results list.
+		query.Kinds = []search.Kind{search.KindWiki}
+	}
+	// Embedding is opt-in per workspace; when it is off this stays nil and the
+	// search is pure BM25 with no network call on the request path.
+	query.Embedder, _ = search.NewEmbedder(search.EmbedConfigFor(repo))
+
+	hits, err := idx.Search(r.Context(), query)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
+		return
+	}
+	if hits == nil {
+		hits = []search.Result{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"query":    q,
+		"hits":     hits,
+		"semantic": idx.Semantic(),
+		"sections": idx.Sections(),
 	})
-
-	sort.Slice(hits, func(i, j int) bool { return hits[i].Score > hits[j].Score })
-	if len(hits) > limit {
-		hits = hits[:limit]
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"query": q, "hits": hits})
 }
 
 // --- Wiki graph ---

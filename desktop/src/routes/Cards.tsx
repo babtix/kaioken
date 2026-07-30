@@ -121,7 +121,7 @@ export default function Cards() {
           ) : (
             <div className="space-y-2">
               {modules.map((m) => (
-                <Card key={m.id} className="p-3">
+                <Card key={m.id} className="hud-corners p-3">
                   <p className="font-mono text-xs font-semibold text-kai-text">{m.id}</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {m.cards.map((c) => (
@@ -158,7 +158,7 @@ export default function Cards() {
                 key={s.name}
                 onClick={() => openSkill(s.name)}
                 className={cn(
-                  "block w-full rounded-lg border border-border bg-card p-3 text-left transition-colors outline-none",
+                  "hud-corners block w-full rounded-lg border border-border bg-card p-3 text-left transition-colors outline-none",
                   "hover:border-kai-orange/40 focus-visible:ring-2 focus-visible:ring-kai-orange/50"
                 )}
               >

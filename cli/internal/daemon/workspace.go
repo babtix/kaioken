@@ -288,6 +288,18 @@ func (ws *Workspace) MemoryDisabled() bool {
 	return ws.cfg == nil || ws.cfg.Memory.Disable
 }
 
+// ProviderName is the provider this workspace bills against, resolved the same
+// way Client does. Used by the spending ledger, which records the provider
+// even when no client was ever built.
+func (ws *Workspace) ProviderName() string {
+	ws.mu.RLock()
+	defer ws.mu.RUnlock()
+	if ws.cfg != nil && ws.cfg.Provider != "" {
+		return ws.cfg.Provider
+	}
+	return "openrouter"
+}
+
 // Client returns the LLM client, building it lazily using the same resolution
 // order as cmd/kaioken/main.go:newClient — repo config model/provider → global
 // saved key → provider env var. A missing key is an error only at call time.

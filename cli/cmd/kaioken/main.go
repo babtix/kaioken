@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -23,6 +24,7 @@ import (
 	"kaioken/internal/gitx"
 	"kaioken/internal/llm"
 	"kaioken/internal/plan"
+	"kaioken/internal/research"
 	"kaioken/internal/scan"
 	"kaioken/internal/selfupdate"
 	"kaioken/internal/serve"
@@ -31,6 +33,8 @@ import (
 	"kaioken/internal/state"
 	"kaioken/internal/tui"
 	"kaioken/internal/version"
+	"kaioken/internal/webfetch"
+	"kaioken/internal/websearch"
 	"kaioken/internal/wiki"
 )
 
@@ -60,6 +64,19 @@ Commands:
   ext        Manage community extensions installed from GitHub releases
              (install | dev | validate | remove | list | update | search |
              enable | disable | trust | untrust | tools)
+  mcp        Serve this repo's knowledge to any MCP client — Claude Desktop,
+             Claude Code, Cursor (serve | manifest | validate)
+  index      Build the search index over the generated wiki, cards and skills
+             (-force rebuilds from scratch; embeddings when configured)
+  search     Query that index from the terminal (positional: the query)
+  review     Review a diff against the repo's documented conventions and
+             skills (-base sets the baseline; -out writes the report)
+  research   Answer a question from the open web: plan subquestions, search,
+             read pages, then search again for whatever is still missing, and
+             write a cited report (positional: optional xN multiplier, then
+             the question; -out overrides the report path)
+  usage      Show what Kaioken has spent — by operation, model and workspace
+             (positional: a day count like "7d", or "refresh" / "prune")
   serve      Browse the generated wiki in a browser (-port, default 7777)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
@@ -86,8 +103,15 @@ func main() {
 	// A previous `kaioken upgrade` may have left the replaced binary behind
 	// as *.old (Windows locks a running exe); remove it now, best-effort.
 	selfupdate.CleanupOld()
+
+	// Bare `kaioken` and `kaioken tui` hand the terminal to the alt-screen,
+	// where a stray line of stderr corrupts the display — those runs refresh
+	// the update cache silently and let a later command print the notice.
+	interactive := len(os.Args) < 2 || os.Args[1] == "tui"
+	updateNotice(interactive)
+
 	if len(os.Args) < 2 {
-		// Bare `ainow` launches the interactive TUI.
+		// Bare `kaioken` launches the interactive TUI.
 		if err := tui.Run("."); err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
@@ -122,6 +146,18 @@ func main() {
 		err = cmdExport(args)
 	case "ext", "extension", "extensions":
 		err = cmdExt(ctx, args)
+	case "mcp":
+		err = cmdMCP(ctx, args, os.Args[2:])
+	case "index":
+		err = cmdIndex(ctx, args)
+	case "search":
+		err = cmdSearch(ctx, args)
+	case "review":
+		err = cmdReview(ctx, args)
+	case "usage", "cost":
+		err = cmdUsage(ctx, args)
+	case "research":
+		err = cmdResearch(ctx, args)
 	case "serve":
 		err = cmdServe(ctx, args)
 	case "hook":
@@ -145,6 +181,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "unknown command %q\n\n%s", cmd, usage)
 		os.Exit(2)
 	}
+
+	// Booked before the error branch on purpose: a run that failed halfway
+	// still spent what it spent, and os.Exit would skip a deferred call.
+	bookSpend(cmd, args.repo)
+
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
@@ -407,6 +448,13 @@ func cmdStatus(f flags) error {
 }
 
 func cmdModels(ctx context.Context, f flags) error {
+	// `kaioken models local` is the discovery path: probe every known local
+	// inference server and report what is actually running. It is the answer
+	// to "what can I use without a key", which the hosted catalog cannot give.
+	if f.positional == "local" {
+		return listLocalModels(ctx)
+	}
+
 	cfg, err := config.Load(f.repo)
 	if err != nil {
 		cfg = config.Default()
@@ -423,6 +471,47 @@ func cmdModels(ctx context.Context, f flags) error {
 		fmt.Printf("  %-50s %s\n", m.ID, m.Name)
 	}
 	fmt.Printf("%d models\n", len(models))
+	return nil
+}
+
+// listLocalModels probes the local inference servers and prints what each one
+// is serving, with the config line needed to use it.
+func listLocalModels(ctx context.Context) error {
+	found := llm.DiscoverLocal(ctx)
+
+	running := 0
+	for _, st := range found {
+		label := st.Label
+		if label == "" {
+			label = st.Name
+		}
+		if !st.Running {
+			fmt.Printf("  · %-12s %s\n", label, st.Error)
+			continue
+		}
+		running++
+		fmt.Printf("  ✓ %-12s %s (%dms)\n", label, st.BaseURL, st.LatencyMS)
+		for _, m := range st.Models {
+			fmt.Printf("      %s\n", m)
+		}
+		if len(st.Models) == 0 {
+			fmt.Printf("      (no models pulled yet)\n")
+		}
+	}
+
+	if running == 0 {
+		fmt.Println("\nno local inference server is running.")
+		fmt.Println("start one — Ollama, LM Studio, llama.cpp, vLLM or Jan — then run this again.")
+		return nil
+	}
+	fmt.Printf("\n%d local server(s) running. To use one, set in .kaioken/config.yaml:\n", running)
+	for _, st := range found {
+		if st.Running && len(st.Models) > 0 {
+			fmt.Printf("  provider: %s\n  model: %s\n", st.Name, st.Models[0])
+			break
+		}
+	}
+	fmt.Println("\nNo API key is needed for a local provider.")
 	return nil
 }
 
@@ -447,6 +536,10 @@ func newClient(cfg *config.Config, f flags) (*llm.Client, error) {
 		return nil, err
 	}
 	c.MaxTokens = cfg.MaxTokens
+	// Registering here rather than at each command's exit is what keeps the
+	// spending ledger complete: every model-using command builds its client
+	// through this function.
+	trackSpend(c, provider)
 	return c, nil
 }
 
@@ -730,34 +823,247 @@ func cmdDaemon(ctx context.Context, f flags) error {
 
 // cmdUpgrade updates the kaioken binary itself from the latest GitHub
 // release. `kaioken upgrade check` only reports; `kaioken upgrade` applies.
+// `kaioken upgrade rollback` restores the previous version.
 func cmdUpgrade(ctx context.Context, f flags) error {
-	rel, newer, err := selfupdate.Check(ctx, version.Version)
-	if err != nil {
+	// The positional argument is either a verb (check / rollback) or a
+	// channel name. They share one slot, so they must not be conflated:
+	// passing "check" through as a channel would query a channel nobody
+	// publishes to and report that no build exists for this machine.
+	var (
+		arg       = strings.ToLower(strings.TrimSpace(f.positional))
+		checkOnly bool
+		channel   string
+	)
+	switch arg {
+	case "":
+		// no argument: install from the configured channel
+	case "check":
+		checkOnly = true
+	case "rollback":
+		if err := selfupdate.Rollback(); err != nil {
+			return fmt.Errorf("rollback failed: %w", err)
+		}
+		fmt.Println("✓ rolled back to the previous version")
+		fmt.Println("the restored version is used from your next invocation")
+		return nil
+	case selfupdate.ChannelStable, selfupdate.ChannelBeta, selfupdate.ChannelNightly:
+		channel = arg
+	default:
+		fmt.Fprintf(os.Stderr, "unknown upgrade subcommand %q\n", f.positional)
+		fmt.Fprintln(os.Stderr, "usage: kaioken upgrade [check|stable|beta|nightly|rollback]")
+		os.Exit(2)
+	}
+
+	cfg := config.LoadGlobal()
+	if channel == "" {
+		channel = cfg.SelfUpdate.Channel
+	}
+	channel = selfupdate.NormalizeChannel(channel)
+
+	rel, newer, err := selfupdate.Check(ctx, version.Version, channel)
+	switch {
+	case errors.Is(err, selfupdate.ErrNoRelease):
+		return fmt.Errorf("nothing has been published on the %s channel yet", channel)
+	case errors.Is(err, selfupdate.ErrNoAssetForPlatform):
+		return fmt.Errorf("%w — build from source instead", err)
+	case err != nil:
 		return err
 	}
-	if rel == nil {
-		return fmt.Errorf("the latest release has no binary for %s/%s — build from source instead", runtime.GOOS, runtime.GOARCH)
-	}
 	if !newer {
-		fmt.Printf("kaioken %s is up to date (latest release: %s)\n", version.Version, rel.Version)
+		fmt.Printf("kaioken %s is up to date (latest %s release: %s)\n", version.Version, channel, rel.Version)
 		return nil
 	}
-	if strings.EqualFold(f.positional, "check") {
-		fmt.Printf("update available: %s → %s\n", version.Version, rel.Version)
+	if checkOnly {
+		fmt.Printf("update available: %s → %s (%s channel)\n", version.Version, rel.Version, channel)
 		fmt.Println("run `kaioken upgrade` to install it")
 		return nil
 	}
-	fmt.Printf("updating %s → %s (%s)…\n", version.Version, rel.Version, rel.AssetName)
+	fmt.Printf("updating %s → %s (%s, %s channel)…\n", version.Version, rel.Version, rel.AssetName, channel)
 	if rel.ChecksumURL == "" {
 		fmt.Println("warning: release ships no checksums.txt — skipping integrity check")
 	}
-	path, err := selfupdate.Apply(ctx, rel)
+	if rel.SigURL == "" {
+		fmt.Println("warning: release ships no signature — skipping signature verification")
+	}
+
+	// The progress line redraws itself with \r, so it needs a closing
+	// newline before the result — but only when it was actually drawn.
+	var progressFunc func(downloaded, total int64)
+	if cfg.SelfUpdate.ShowProgress {
+		progressFunc = func(downloaded, total int64) {
+			pct := float64(downloaded) / float64(total) * 100
+			fmt.Printf("\r  downloading: %.1f%% (%s / %s)", pct, formatBytes(downloaded), formatBytes(total))
+		}
+	}
+
+	path, err := selfupdate.Apply(ctx, rel, progressFunc)
 	if err != nil {
 		return err
+	}
+	if progressFunc != nil {
+		fmt.Println()
 	}
 	fmt.Printf("✓ installed kaioken %s at %s\n", rel.Version, path)
 	fmt.Println("the new version is used from your next invocation")
 	return nil
+}
+
+// cmdResearch answers a question from the open web: it plans subquestions,
+// searches, reads pages, reasons over them, then looks for what is still
+// missing and searches again. The positional argument may lead with a
+// multiplier like "x3"; everything after it is the question.
+func cmdResearch(ctx context.Context, f flags) error {
+	mult, question := parseResearchArgs(f.positionals)
+	if question == "" {
+		return fmt.Errorf("usage: kaioken research [xN] \"<question>\"")
+	}
+
+	cfg, err := config.Load(f.repo)
+	if err != nil {
+		// Research never reads the repository, so an uninitialised directory
+		// is no reason to refuse. Fall back to defaults plus whatever
+		// provider and model the user set globally.
+		cfg = config.Default()
+		g := config.LoadGlobal()
+		if g.DefaultProvider != "" {
+			cfg.Provider = g.DefaultProvider
+		}
+		if g.DefaultModel != "" {
+			cfg.Model = g.DefaultModel
+		}
+	}
+	client, err := newClient(cfg, f)
+	if err != nil {
+		return err
+	}
+
+	global := config.LoadGlobal()
+	provider, err := websearch.Resolve(global.Research.SearchProvider, global.Keys)
+	if err != nil {
+		return err
+	}
+
+	opts := research.Options{
+		Multiplier: mult,
+		MaxRounds:  global.Research.MaxRounds,
+	}
+	// Same rule as the daemon: Firecrawl in the active search set means its
+	// scrape API reads the pages too, with the built-in fetcher as fallback.
+	if strings.Contains(provider.Name(), "firecrawl") {
+		if fk := websearch.KeyFor("firecrawl", global.Keys); fk != "" {
+			opts.Fetcher = webfetch.NewFirecrawl(fk, nil)
+		}
+	}
+
+	limit, _ := cfg.EffectiveConcurrency(client.Model)
+	opts.Concurrency = limit
+	fmt.Printf("kaioken ×%d research with %s via %s (concurrency %d) …\n",
+		mult, client.Model, provider.Name(), limit)
+	fmt.Printf("  question: %s\n", question)
+
+	started := time.Now()
+	rep, err := research.Run(ctx, client, provider, question, opts, research.Progress{
+		Stage:  func(s string) { fmt.Println("  → " + s) },
+		Detail: func(s string) { fmt.Println("    " + s) },
+		Round:  func(n, of int) { fmt.Printf("  round %d/%d\n", n, of) },
+	})
+	if err != nil {
+		return err
+	}
+
+	out := f.out
+	if out == "" {
+		out = filepath.Join(f.repo, config.Dir, "research", slugify(question)+".md")
+	}
+	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(out, []byte(rep.Render()), 0o644); err != nil {
+		return err
+	}
+
+	// Keep the structured JSON twin in the repo's research directory so the
+	// run shows up in the saved history (daemon and desktop) even when the
+	// markdown itself went elsewhere via -out.
+	relOut, relErr := filepath.Rel(f.repo, out)
+	if relErr != nil || strings.HasPrefix(relOut, "..") {
+		relOut = ""
+	}
+	if _, err := research.Save(filepath.Join(f.repo, config.Dir, "research"), rep, filepath.ToSlash(relOut)); err != nil {
+		fmt.Printf("  warning: could not save research history: %v\n", err)
+	}
+
+	fmt.Printf("\nresearch done in %s → %s\n", time.Since(started).Round(time.Second), out)
+	fmt.Printf("  %d round(s), %d queries, %d sources read, %d cited\n",
+		rep.Rounds, rep.Searched, rep.Fetched, len(rep.Sources))
+	if rep.Incomplete {
+		fmt.Println("  note: some subquestions stayed thinly evidenced at the round limit")
+	}
+	calls, promptToks, completionToks := client.Usage()
+	fmt.Printf("  %d model calls, %d prompt + %d completion tokens", calls, promptToks, completionToks)
+	if usd, known := client.CostUSD(); known {
+		fmt.Printf(", $%.4f", usd)
+	}
+	fmt.Println()
+	return nil
+}
+
+// parseResearchArgs splits an optional leading ×N multiplier from the
+// question. The multiplier is only consumed when the whole word is "x" plus
+// digits: a question like "xbox exclusives 2025" must keep its first word.
+func parseResearchArgs(args []string) (mult int, question string) {
+	mult = 3 // x3 by default, matching the wiki pipeline
+	if len(args) > 0 {
+		if n, ok := parseMultiplier(args[0]); ok {
+			mult, args = n, args[1:]
+		}
+	}
+	return mult, strings.TrimSpace(strings.Join(args, " "))
+}
+
+// parseMultiplier recognises "x3", "X10" and nothing else.
+func parseMultiplier(s string) (int, bool) {
+	s = strings.ToLower(strings.TrimSpace(s))
+	if len(s) < 2 || s[0] != 'x' {
+		return 0, false
+	}
+	n := 0
+	for _, r := range s[1:] {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+		n = n*10 + int(r-'0')
+	}
+	if n < 1 {
+		return 0, false
+	}
+	return n, true
+}
+
+// slugify turns a question into a filename stem.
+func slugify(s string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(s) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			dash = false
+		default:
+			if !dash && b.Len() > 0 {
+				b.WriteByte('-')
+				dash = true
+			}
+		}
+		if b.Len() >= 60 {
+			break
+		}
+	}
+	out := strings.Trim(b.String(), "-")
+	if out == "" {
+		return "research"
+	}
+	return out
 }
 
 func splitComma(s string) []string {
@@ -787,4 +1093,39 @@ func splitAndTrim(s string, sep byte) []string {
 		}
 	}
 	return out
+}
+
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+// updateNotice prints the pending "update available" line from the last
+// background check, then starts the next check if the cached one has aged
+// past the configured interval. The check never prints anything itself: it
+// outlives nothing, races the command's own output, and would have to hold
+// up every invocation for a network round-trip to be worth reporting live.
+//
+// Checks only ever notify — kaioken does not replace its own binary behind
+// the user's back, so `upgrade` stays an explicit command.
+func updateNotice(interactive bool) {
+	su := config.LoadGlobal().SelfUpdate
+	if !su.Enabled || su.IntervalHours <= 0 {
+		return
+	}
+	if !interactive {
+		if msg, ok := selfupdate.CachedNotice(config.GlobalDir(), version.Version, su.Channel); ok {
+			fmt.Fprintln(os.Stderr, msg)
+		}
+	}
+	selfupdate.RefreshInBackground(config.GlobalDir(), version.Version, su.Channel,
+		time.Duration(su.IntervalHours)*time.Hour)
 }

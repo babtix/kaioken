@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeSlug from "rehype-slug"
-import { invoke } from "@tauri-apps/api/core"
+import { openInBrowser } from "@/lib/openInBrowser"
 import CodeBlock from "./CodeBlock"
 import Mermaid from "./Mermaid"
 import { cn } from "@/lib/utils"
@@ -64,14 +64,14 @@ export default function Markdown({
       a({ href, children: kids, ...props }: any) {
         const target = String(href ?? "")
 
-        // External links open in the real browser, never in the WebView.
+        // External links open in the in-app browser tab.
         if (/^https?:\/\//i.test(target)) {
           return (
             <a
               href={target}
               onClick={(e) => {
                 e.preventDefault()
-                invoke("open_external", { url: target }).catch(() => {})
+                openInBrowser(target)
               }}
               {...props}
             >

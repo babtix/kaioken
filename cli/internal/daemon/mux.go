@@ -77,6 +77,11 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("POST /v1/runs/{run_id}/cancel", s.handleCancelRun)
 	router.HandleFunc("POST /v1/runs/{run_id}/revert", s.handleRevertRun)
 
+	// Research history — saved deep-search reports
+	router.HandleFunc("GET /v1/workspaces/{id}/research", s.handleListResearch)
+	router.HandleFunc("GET /v1/workspaces/{id}/research/{slug}", s.handleGetResearch)
+	router.HandleFunc("DELETE /v1/workspaces/{id}/research/{slug}", s.handleDeleteResearch)
+
 	// Documents, wiki, cards, skills (T044–T056)
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/tree", s.handleWikiTree)
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/doc", s.handleWikiDoc)
@@ -102,6 +107,13 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("PUT /v1/settings/keys/{provider}", s.handlePutKey)
 	router.HandleFunc("DELETE /v1/settings/keys/{provider}", s.handleDeleteKey)
 	router.HandleFunc("POST /v1/settings/keys/{provider}/test", s.handleTestKey)
+	router.HandleFunc("GET /v1/settings/local", s.handleLocalProviders)
+	router.HandleFunc("POST /v1/settings/local", s.handleAddLocalProvider)
+	router.HandleFunc("PUT /v1/settings/embed", s.handlePutEmbed)
+
+	// Cost dashboard (per-user, like settings)
+	router.HandleFunc("GET /v1/usage", s.handleUsageLedger)
+	router.HandleFunc("POST /v1/usage/pricing/refresh", s.handleRefreshPricing)
 	router.HandleFunc("GET /v1/models", s.handleModels)
 
 	// Extensions (per-user, like settings)

@@ -157,8 +157,10 @@ export default function Graph() {
         />
         <GraphLegend stats={graph?.stats ?? null} />
 
+        {/* A readout floating over a canvas is the literal case the HUD
+            brackets were drawn for. */}
         {hovered && (
-          <div className="pointer-events-none absolute bottom-3 right-3 max-w-72 rounded border border-border bg-card/85 px-2.5 py-1.5 backdrop-blur">
+          <div className="hud-corners pointer-events-none absolute bottom-3 right-3 max-w-72 rounded border border-border bg-card/85 px-2.5 py-1.5 backdrop-blur">
             <p className="truncate font-mono text-[11px] text-kai-text">{hovered.label}</p>
             <p className="truncate font-mono text-[9px] text-kai-dim">
               {hovered.kind === "doc"

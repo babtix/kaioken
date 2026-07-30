@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   go-test:
@@ -13,7 +13,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          # Read from go.mod rather than pinning: the module requires a newer
+          # toolchain than any hard-coded value here stays in sync with.
+          go-version-file: cli/go.mod
           cache-dependency-path: cli/go.sum
       - name: Check (vet + test)
         working-directory: cli
@@ -31,12 +33,45 @@ jobs:
       - name: Install
         working-directory: desktop
         run: npm ci
+      # `tsc --noEmit` on the root config checks nothing: it is a solution file
+      # with "files": [], so the real sources are only reached through its
+      # project references. -b walks those; --force stops a cached .tsbuildinfo
+      # from reporting success without rechecking.
       - name: Typecheck
         working-directory: desktop
-        run: npx tsc --noEmit
+        run: npx tsc -b --force
       - name: Test
         working-directory: desktop
         run: npm test
+
+  clippy:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-clippy-${{ runner.os }}-${{ hashFiles('desktop/src-tauri/Cargo.lock') }}
+      # tauri-build copies the sidecar into place, so it must exist before the
+      # build script runs — clippy still compiles that script even though it
+      # never links the final binary.
+      - name: Build sidecar
+        working-directory: desktop
+        run: node scripts/build-sidecar.mjs
+      - name: Clippy
+        working-directory: desktop/src-tauri
+        run: cargo clippy --all-targets -- -D warnings
 
   tauri-build:
     runs-on: windows-latest
@@ -50,7 +85,9 @@ jobs:
           cache-dependency-path: desktop/package-lock.json
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          # Read from go.mod rather than pinning: the module requires a newer
+          # toolchain than any hard-coded value here stays in sync with.
+          go-version-file: cli/go.mod
           cache-dependency-path: cli/go.sum
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache Cargo

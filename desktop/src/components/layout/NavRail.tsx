@@ -1,21 +1,30 @@
 import { NavLink } from "react-router-dom"
-import { openUrl } from "@tauri-apps/plugin-opener"
-import { BookOpen, Code2, FolderOpen, Globe, Layers, MessageSquare, Puzzle, Settings, Store, Waypoints, Zap } from "lucide-react"
+import { openInBrowser } from "@/lib/openInBrowser"
+import { BookOpen, Code2, FolderOpen, Globe, Layers, MessageSquare, Puzzle, Radar, Settings, Store, Wallet, Waypoints, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { REGISTRY_WEB_URL } from "@/lib/links"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useRunsStore } from "@/store/runs"
 
+// Ordered by workflow: the ask surfaces (Chat for the repository, Research
+// for the web), then the three knowledge views the answers draw from
+// (Wiki, Graph, Cards), then hands-on tools, then runs and extensions.
+// Settings keeps Ctrl+, only — the number row stops at 9 and every other
+// route outranks it.
 const NAV_ITEMS = [
   { to: "/chat", icon: MessageSquare, label: "Chat", key: "1" },
-  { to: "/editor", icon: Code2, label: "Editor", key: "2" },
-  { to: "/browser", icon: Globe, label: "Browser", key: "3" },
-  { to: "/wiki", icon: BookOpen, label: "Wiki", key: "4" },
-  { to: "/graph", icon: Waypoints, label: "Graph", key: "5" },
-  { to: "/activity", icon: Zap, label: "Activity", key: "6" },
-  { to: "/cards", icon: Layers, label: "Cards", key: "7" },
-  { to: "/extensions", icon: Puzzle, label: "Ext", key: "8" },
-  { to: "/settings", icon: Settings, label: "Settings", key: "9" },
+  { to: "/research", icon: Radar, label: "Research", key: "2" },
+  { to: "/wiki", icon: BookOpen, label: "Wiki", key: "3" },
+  { to: "/graph", icon: Waypoints, label: "Graph", key: "4" },
+  { to: "/cards", icon: Layers, label: "Cards", key: "5" },
+  { to: "/editor", icon: Code2, label: "Editor", key: "6" },
+  { to: "/browser", icon: Globe, label: "Browser", key: "7" },
+  { to: "/activity", icon: Zap, label: "Activity", key: "8" },
+  { to: "/extensions", icon: Puzzle, label: "Ext", key: "9" },
+  // Cost gets no number: the row stops at 9, and a spending view is something
+  // you go looking for rather than flip to mid-task.
+  { to: "/cost", icon: Wallet, label: "Cost", key: "" },
+  { to: "/settings", icon: Settings, label: "Settings", key: "," },
 ] as const
 
 export default function NavRail() {
@@ -35,7 +44,7 @@ export default function NavRail() {
           to={item.to}
           icon={item.icon}
           label={item.label}
-          hint={`${item.label} · Ctrl+${item.key}`}
+          hint={item.key ? `${item.label} · Ctrl+${item.key}` : item.label}
           disabled={!active}
           badge={item.to === "/activity" && activeRuns > 0 ? activeRuns : undefined}
         />
@@ -82,24 +91,31 @@ function RailLink({
           disabled
             ? "pointer-events-none opacity-25"
             : isActive
-              ? "bg-accent text-kai-orange"
+              ? "hud-corners bg-accent text-kai-orange"
               : "text-kai-dim hover:bg-panel/60 hover:text-kai-text"
         )
       }
     >
       {({ isActive }) => (
         <>
-          {/* Active indicator bar, flush against the rail's left edge. */}
+          {/* Active indicator bar, flush against the rail's left edge. The
+              glow is the HUD cue: it fires only for the current route, so it
+              still reads as "you are here" rather than decoration. */}
           {isActive && (
             <span
-              className="absolute -left-2 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r bg-kai-orange"
+              className="absolute -left-2 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r bg-kai-orange
+                         shadow-[0_0_8px_-1px_var(--kai-orange)]"
               aria-hidden
             />
           )}
           <span className="relative">
             <Icon size={17} />
             {badge !== undefined && (
-              <span className="absolute -right-1.5 -top-1 flex size-3.5 items-center justify-center rounded-full bg-kai-orange font-mono text-[8px] font-bold text-primary-foreground">
+              <span
+                className="absolute -right-1.5 -top-1 flex size-3.5 items-center justify-center rounded-full
+                           bg-kai-orange font-mono text-[8px] font-bold text-primary-foreground
+                           shadow-[0_0_6px_-1px_var(--kai-orange)]"
+              >
                 {badge}
               </span>
             )}
@@ -128,7 +144,7 @@ function RailExternal({
     <button
       type="button"
       title={hint}
-      onClick={() => void openUrl(url).catch(() => {})}
+      onClick={() => openInBrowser(url)}
       className={cn(
         "group relative flex w-14 flex-col items-center gap-0.5 rounded-md py-1.5",
         "transition-colors outline-none focus-visible:ring-2 focus-visible:ring-kai-orange/50",

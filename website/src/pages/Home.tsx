@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Monitor } from "lucide-react"
 import GithubMark from "@/components/GithubMark"
 import Hero from "@/components/sections/Hero"
 import Features from "@/components/sections/Features"
@@ -9,6 +9,8 @@ import OutputTree from "@/components/sections/OutputTree"
 import Commands from "@/components/sections/Commands"
 import QuickStart from "@/components/sections/QuickStart"
 import LinkButton from "@/components/LinkButton"
+import AppWindow from "@/components/desktop/AppWindow"
+import SectionHeading from "@/components/SectionHeading"
 import { DESIGN_DECISIONS, GITHUB_URL, ROADMAP } from "@/data/content"
 
 export default function Home() {
@@ -22,6 +24,36 @@ export default function Home() {
       <Commands />
       <OutputTree />
       <QuickStart />
+
+      {/* desktop app teaser */}
+      <section className="border-t border-border py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <SectionHeading
+            index="09"
+            eyebrow="desktop"
+            title={
+              <>
+                Same engine,{" "}
+                <span className="text-kai-orange glow-orange">new surface</span>
+              </>
+            }
+            description="Everything the TUI does — chat, research, wiki, knowledge cards — in a window with diff approval you can read and runs you can watch concurrently."
+            align="center"
+          />
+
+          <div className="mx-auto mt-10 max-w-3xl">
+            <AppWindow size="sm" start="chat" />
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <LinkButton to="/desktop" size="lg">
+              <Monitor className="size-4" data-icon="inline-start" />
+              Explore the desktop app
+              <ArrowRight data-icon="inline-end" />
+            </LinkButton>
+          </div>
+        </div>
+      </section>
 
       {/* design decisions + roadmap, then the closing call to action */}
       <section className="border-t border-border py-20 sm:py-24">

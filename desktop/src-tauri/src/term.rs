@@ -107,7 +107,7 @@ pub fn term_create(
         cmd.env("TERM", "xterm-256color");
     }
 
-    let mut child = pty
+    let child = pty
         .slave
         .spawn_command(cmd)
         .map_err(|e| format!("spawn {shell}: {e}"))?;
@@ -282,7 +282,7 @@ pub fn term_kill(state: tauri::State<'_, TermState>, id: u32) -> Result<(), Stri
 pub fn kill_all(handle: &AppHandle) {
     let state = handle.state::<TermState>();
     let mut sessions = state.sessions.lock().unwrap();
-    for (_, s) in sessions.iter_mut() {
+    for s in sessions.values_mut() {
         let _ = s.killer.kill();
     }
     sessions.clear();

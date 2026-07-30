@@ -92,8 +92,12 @@ var Providers = map[string]Provider{
 }
 
 // NewForProvider builds a client for a named provider. baseURLOverride wins
-// over the provider default; apiKey must be non-empty.
+// over the provider default; apiKey must be non-empty — except for local
+// endpoints, which have nobody to bill and so require none.
 func NewForProvider(provName, baseURLOverride, model, apiKey string) (*Client, error) {
+	if IsLocal(provName) {
+		return NewLocal(provName, baseURLOverride, model)
+	}
 	base := baseURLOverride
 	keyEnv := "OPENROUTER_API_KEY"
 	var authHeader, protocol string

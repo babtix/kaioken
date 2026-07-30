@@ -106,6 +106,18 @@ export default function Browser() {
     return () => clearTimeout(id)
   }, [tab.id, tab.loading, isNewTab, url, reloadKey, setBlocked])
 
+  // The proxy injects a script that catches link clicks inside the iframe and
+  // sends them here via postMessage. Re-navigating through the store keeps the
+  // new page proxied, with back/forward intact.
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type !== "kai:navigate" || typeof e.data.url !== "string") return
+      navigate(e.data.url)
+    }
+    window.addEventListener("message", onMessage)
+    return () => window.removeEventListener("message", onMessage)
+  }, [navigate])
+
   // Falls back to loading the URL directly if the daemon is not up yet, so the
   // pane degrades to plain-iframe behaviour rather than rendering nothing.
   const frameSrc = useMemo(() => {
@@ -445,6 +457,9 @@ function LinkGroup({
           {label}
         </span>
       </div>
+      {/* overflow-hidden is load-bearing: each row's hover fill would bleed
+          past the rounded corners without it. That rules out hud-corners
+          here, whose brackets sit 1px outside the box and would be clipped. */}
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         {items.map((it, i) => (
           <button

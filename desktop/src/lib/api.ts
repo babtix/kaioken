@@ -1,6 +1,6 @@
 import { authHeaders, base } from "./daemon"
 import type { Graph as WikiGraph } from "./graph/types"
-import type { ErrorEnvelope, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, ModuleStatus, RepoFile, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
+import type { EmbedSettings, ErrorEnvelope, WikiSearchResponse, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, LocalProviderStatus, LocalProvidersResponse, ModuleStatus, RepoFile, ResearchReport, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, UsageResponse, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
 
 // Parses the §2.1 error envelope; carries enough for a component to branch
 // on err.code (e.g. "no_api_key") instead of printing a stack trace.
@@ -136,10 +136,25 @@ export const api = {
   estimate: (wsId: string, kind = "wiki", multiplier = 3) =>
     req<Estimate>("GET", `/workspaces/${wsId}/estimate?kind=${kind}&multiplier=${multiplier}`),
 
+  // Research history — saved deep-search reports
+  researchList: (wsId: string) => req<{ reports: ResearchReport[] }>("GET", `/workspaces/${wsId}/research`),
+  researchGet: (wsId: string, slug: string) =>
+    req<ResearchReport>("GET", `/workspaces/${wsId}/research/${encodeURIComponent(slug)}`),
+  researchDelete: (wsId: string, slug: string) =>
+    req<void>("DELETE", `/workspaces/${wsId}/research/${encodeURIComponent(slug)}`),
+
   // Wiki/docs (T044–T052)
   wikiTree: (wsId: string) => req<WikiTree>("GET", `/workspaces/${wsId}/wiki/tree`),
   wikiDoc: (wsId: string, path: string) => req<any>("GET", `/workspaces/${wsId}/wiki/doc?path=${encodeURIComponent(path)}`),
-  wikiSearch: (wsId: string, q: string) => req<any>("GET", `/workspaces/${wsId}/wiki/search?q=${encodeURIComponent(q)}`),
+  // kinds defaults to wiki documents server-side; pass ["wiki","card","skill"]
+  // to search the whole knowledge base.
+  wikiSearch: (wsId: string, q: string, kinds?: string[]) =>
+    req<WikiSearchResponse>(
+      "GET",
+      `/workspaces/${wsId}/wiki/search?q=${encodeURIComponent(q)}${
+        kinds?.length ? `&kind=${kinds.join(",")}` : ""
+      }`
+    ),
   wikiGraph: (wsId: string) => req<WikiGraph>("GET", `/workspaces/${wsId}/wiki/graph`),
   wikiPlan: (wsId: string) => req<any>("GET", `/workspaces/${wsId}/wiki/plan`),
   putWikiPlan: (wsId: string, yaml: string) => req<any>("PUT", `/workspaces/${wsId}/wiki/plan`, { yaml }),
@@ -176,6 +191,21 @@ export const api = {
   testKey: (provider: string) => req<any>("POST", `/settings/keys/${provider}/test`),
   models: (provider: string, filter?: string) =>
     req<any>("GET", `/models?provider=${provider}${filter ? `&filter=${encodeURIComponent(filter)}` : ""}`),
+
+  // Local inference servers. Probing touches the network, so this is a
+  // separate call from settings() — the settings page must render instantly
+  // whether or not five endpoints are refusing connections.
+  localProviders: () => req<LocalProvidersResponse>("GET", "/settings/local"),
+  addLocalProvider: (body: { name: string; base_url: string; label?: string }) =>
+    req<LocalProviderStatus>("POST", "/settings/local", body),
+  putEmbed: (body: { model: string; provider?: string; base_url?: string }) =>
+    req<EmbedSettings>("PUT", "/settings/embed", body),
+
+  // Cost dashboard. Named apart from usage() above, which reports one live
+  // client's counters; this is the durable cross-workspace history.
+  usageLedger: (days = 30, wsId?: string) =>
+    req<UsageResponse>("GET", `/usage?days=${days}${wsId ? `&workspace=${wsId}` : ""}`),
+  refreshPricing: () => req<{ models: number }>("POST", "/usage/pricing/refresh"),
 
   // Extensions (contract v4)
   listExtensions: () => req<{ extensions: ExtensionInfo[] }>("GET", "/extensions"),

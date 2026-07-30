@@ -1,12 +1,13 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
+  ArrowUp,
   Clock,
+  CornerDownLeft,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
-  Send,
   Square,
   Terminal,
   Trash2,
@@ -22,6 +23,7 @@ import Autocomplete, { detectTrigger, type Suggestion } from "@/components/chat/
 import { ToolCallCard, ToolResultCard } from "@/components/chat/ToolCallCard"
 import EmptyState from "@/components/EmptyState"
 import { Badge, Button, Kbd, SectionLabel, Skeleton } from "@/components/ui"
+import { LiveDot } from "@/components/hud"
 import { api } from "@/lib/api"
 import { humanize } from "@/lib/errors"
 import { cn } from "@/lib/utils"
@@ -173,7 +175,8 @@ export default function Chat() {
             {streamBuffer && <StreamingMessage text={streamBuffer} />}
 
             {isStreaming && !streamBuffer && (
-              <div className="my-3 space-y-2">
+              <div className="answer-surface hud-corners hud-rim my-3 space-y-2 px-4 py-3">
+                <LiveDot label="thinking" />
                 <Skeleton className="h-3 w-2/3" />
                 <Skeleton className="h-3 w-1/2" />
               </div>
@@ -396,8 +399,8 @@ const SUGGESTIONS = [
 
 function ChatIntro({ model, onPick }: { model: string; onPick: (t: string) => void }) {
   return (
-    <div className="animate-slide-up py-10">
-      <h1 className="font-mono text-lg font-bold text-kai-text">
+    <div className="animate-charge py-10">
+      <h1 className="font-mono text-lg font-bold text-kai-white">
         Ask about this repository
       </h1>
       <p className="mt-1 font-mono text-xs text-kai-dim">
@@ -409,19 +412,26 @@ function ChatIntro({ model, onPick }: { model: string; onPick: (t: string) => vo
           <Badge tone="orange">{model}</Badge>
         </div>
       )}
-      <div className="mt-6 space-y-1.5">
+      {/* Same chip treatment as the answer surface's follow-ups — the intro
+          suggestions and the follow-up questions are the same kind of object,
+          so they wear the same clothes. */}
+      <div className="mt-6 flex flex-wrap gap-1.5">
         {SUGGESTIONS.map((s) => (
           <button
             key={s}
             onClick={() => onPick(s)}
             className={cn(
-              "block w-full rounded-md border border-border bg-card px-3 py-2 text-left",
-              "font-mono text-[11px] text-kai-muted transition-colors outline-none",
-              "hover:border-kai-orange/40 hover:text-kai-text",
+              "group flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-card",
+              "px-2.5 py-1.5 text-left font-sans text-[12px] text-kai-text transition-colors outline-none",
+              "hover:border-kai-orange/40 hover:bg-accent hover:text-kai-white",
               "focus-visible:ring-2 focus-visible:ring-kai-orange/50"
             )}
           >
             {s}
+            <CornerDownLeft
+              size={11}
+              className="shrink-0 text-kai-dim opacity-0 transition-opacity group-hover:opacity-100"
+            />
           </button>
         ))}
       </div>
@@ -457,8 +467,10 @@ const MessageRow = memo(function MessageRow({ msg }: { msg: ChatMessage }) {
   if (msg.role === "tool") return <ToolResultCard content={msg.content} />
 
   if (msg.role === "assistant" && msg.content.trim()) {
+    // A completed reply is a small report, not a bubble — the Perplexity
+    // pattern from the showcase. The brackets frame it as a HUD surface.
     return (
-      <div className="animate-slide-up mb-4">
+      <div className="answer-surface hud-corners animate-charge mb-4 px-4 py-3">
         <Markdown variant="chat" className="text-kai-text">
           {msg.content}
         </Markdown>
@@ -471,10 +483,12 @@ const MessageRow = memo(function MessageRow({ msg }: { msg: ChatMessage }) {
 
 /** The live tail renders as pre-wrapped text, not markdown: half-written
  *  markdown renders badly (an unclosed fence swallows the rest), and
- *  re-parsing on every token is the app's biggest perf trap. */
+ *  re-parsing on every token is the app's biggest perf trap. The rim glow
+ *  marks it as the one live surface on screen; it moves to the committed
+ *  card's plain frame once the reply lands. */
 function StreamingMessage({ text }: { text: string }) {
   return (
-    <div className="mb-4">
+    <div className="answer-surface hud-corners hud-rim mb-4 px-4 py-3">
       <p className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-kai-text">
         {text}
         <span className="animate-caret ml-0.5 inline-block h-3.5 w-[7px] translate-y-0.5 bg-kai-orange" />
@@ -640,8 +654,11 @@ const Composer = memo(function Composer({
 
         <div
           className={cn(
-            "flex items-end gap-2 rounded-lg border border-border bg-card px-2.5 py-2",
-            "transition-colors focus-within:border-kai-orange/50"
+            "hud-corners flex items-end gap-2 rounded-[var(--radius)] border bg-card px-2.5 py-2",
+            "transition-shadow",
+            // The rim is the live cue: it glows while a reply streams, and on
+            // focus otherwise — same grammar as the showcase composer.
+            isStreaming ? "hud-rim border-kai-orange/40" : "hud-rim-focus border-input"
           )}
         >
           <textarea
@@ -668,16 +685,22 @@ const Composer = memo(function Composer({
               Stop
             </Button>
           ) : (
-            <Button
-              variant="primary"
-              size="sm"
+            <button
+              type="button"
               onClick={onSend}
               disabled={!value.trim()}
+              aria-label="Send"
               title="Send (Enter)"
+              className={cn(
+                "flex size-7 shrink-0 items-center justify-center rounded-[var(--radius)]",
+                "transition-all outline-none focus-visible:ring-2 focus-visible:ring-kai-orange/60",
+                value.trim()
+                  ? "hud-glow bg-kai-orange text-[var(--primary-foreground)] hover:brightness-110"
+                  : "cursor-not-allowed bg-muted text-kai-dim"
+              )}
             >
-              <Send size={12} />
-              Send
-            </Button>
+              <ArrowUp size={14} />
+            </button>
           )}
         </div>
 

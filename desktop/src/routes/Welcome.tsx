@@ -12,7 +12,8 @@ import {
   TriangleAlert,
 } from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
-import { Badge, Button, Card, SectionLabel, Skeleton } from "@/components/ui"
+import { Badge, Card, SectionLabel, Skeleton } from "@/components/ui"
+import { GlowButton } from "@/components/hud"
 import { cn } from "@/lib/utils"
 import { formatBytes } from "@/lib/format"
 import type { ScanResult } from "@/lib/types"
@@ -95,9 +96,10 @@ function WorkspaceOverview() {
         />
       </div>
 
-      {/* Nudge toward the next useful action when the repo is un-analysed. */}
+      {/* Nudge toward the next useful action when the repo is un-analysed.
+          The rim glow is earned here: this is the screen's one call to action. */}
       {k.wiki_docs === 0 && k.module_count === 0 && (
-        <Card className="mt-4 flex flex-wrap items-center gap-3 border-kai-orange/25 bg-accent/40 p-4">
+        <Card className="hud-corners hud-rim mt-4 flex flex-wrap items-center gap-3 rounded-[var(--radius)] bg-accent/40 p-4">
           <Sparkles size={15} className="shrink-0 text-kai-orange" />
           <div className="min-w-0 flex-1">
             <p className="font-mono text-xs text-kai-text">This repository has no knowledge yet</p>
@@ -105,9 +107,7 @@ function WorkspaceOverview() {
               Generate a wiki to turn it into linked chapters you (and the agent) can read.
             </p>
           </div>
-          <Button variant="primary" size="sm" onClick={() => navigate("/activity")}>
-            Generate
-          </Button>
+          <GlowButton onClick={() => navigate("/activity")}>Generate</GlowButton>
         </Card>
       )}
 
@@ -207,7 +207,7 @@ function StatTile({
     <button
       onClick={onClick}
       className={cn(
-        "group rounded-lg border border-border bg-card p-3 text-left transition-colors outline-none",
+        "group hud-panel hud-corners rounded-[var(--radius)] p-3 text-left transition-colors outline-none",
         "hover:border-kai-orange/40 focus-visible:ring-2 focus-visible:ring-kai-orange/50"
       )}
     >
@@ -274,11 +274,11 @@ function RepoPicker() {
         setDragging(false)
       }}
       className={cn(
-        "flex h-full flex-col items-center justify-center gap-7 p-8 transition-colors",
+        "hud-grid flex h-full flex-col items-center justify-center gap-7 p-8 transition-colors",
         dragging && "bg-accent/30"
       )}
     >
-      <div className="animate-slide-up text-center">
+      <div className="animate-charge text-center">
         <AsciiArt
           art={ASCII_LOGO}
           label="kaioken"
@@ -286,10 +286,12 @@ function RepoPicker() {
         />
       </div>
 
-      <Button variant="primary" onClick={pickFolder} loading={loading} className="h-11 px-6 text-sm">
-        <FolderOpen size={16} />
-        Open a repository
-      </Button>
+      <GlowButton onClick={pickFolder} busy={loading} className="px-6 py-2.5">
+        <span className="flex items-center gap-2">
+          <FolderOpen size={14} />
+          {loading ? "Opening…" : "Open a repository"}
+        </span>
+      </GlowButton>
 
       {error && (
         <p className="flex items-center gap-2 font-mono text-xs text-kai-rose">
@@ -299,7 +301,7 @@ function RepoPicker() {
       )}
 
       {(recents.length > 0 || list.length > 0) && (
-        <div className="w-full max-w-lg">
+        <div className="hud-panel hud-corners w-full max-w-lg rounded-[var(--radius)] p-3">
           <div className="mb-2 flex items-center gap-1.5">
             <Clock size={11} className="text-kai-dim" />
             <SectionLabel>Recent</SectionLabel>

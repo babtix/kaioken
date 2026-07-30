@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { openUrl } from "@tauri-apps/plugin-opener"
+import { openInBrowser } from "@/lib/openInBrowser"
 import { Download, ExternalLink, FolderGit2, Puzzle, RefreshCw, ShieldAlert, ShieldCheck, Trash2 } from "lucide-react"
 import { Badge, Button, Modal, SectionLabel, Spinner } from "@/components/ui"
 import { REGISTRY_LINKS, REGISTRY_WEB_URL } from "@/lib/links"
@@ -14,9 +14,9 @@ import type { ExtensionInfo } from "@/lib/types"
 
 const TYPE_TONE = { declarative: "sage", mcp: "amber", wasm: "blue" } as const
 
-/** Open a registry web page in the system browser (same pattern as Browser.tsx). */
+/** Open a registry web page in the in-app browser tab. */
 const openWeb = (url: string) => {
-  void openUrl(url).catch(() => {})
+  openInBrowser(url)
 }
 
 export default function Extensions() {

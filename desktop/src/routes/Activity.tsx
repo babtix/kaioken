@@ -59,6 +59,18 @@ const KIND_LABELS: Record<string, string> = {
   chat: "Chat",
 }
 
+// The pipeline behind the "Start wiki" button, in the order it runs — same
+// steps the website's quick start documents (init → scan → plan → generate →
+// wiki → update), so first-time users know what will happen before pressing go.
+const PIPELINE_STEPS = [
+  { cmd: "init", hint: "sets up .kaioken/config.yaml in your repo" },
+  { cmd: "scan", hint: "inventories the repo so you see what will be analyzed" },
+  { cmd: "plan", hint: "the LLM proposes modules.yaml — edit it if you like" },
+  { cmd: "generate", hint: "writes knowledge cards per module, in parallel" },
+  { cmd: "wiki", hint: "deep multi-pass wiki (×3 by default)" },
+  { cmd: "update", hint: "after code changes: refreshes only what the diff touched" },
+] as const
+
 const SECONDARY_RUNS = [
   { kind: "update", label: "Update", icon: RotateCw, hint: "Refresh only what changed since the last wiki" },
   { kind: "generate", label: "Cards", icon: FileStack, hint: "Knowledge cards per module" },
@@ -110,10 +122,37 @@ export default function Activity() {
     <div className="mx-auto max-w-4xl p-6">
       {/* Wiki launcher */}
       <Card className="p-4">
-        <div className="flex items-center gap-2">
-          <BookOpen size={14} className="text-kai-orange" />
-          <SectionLabel>Generate a wiki</SectionLabel>
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-kai-orange/30 bg-kai-orange/10">
+            <BookOpen size={14} className="text-kai-orange" />
+          </span>
+          <div>
+            <SectionLabel>Generate a wiki</SectionLabel>
+            <p className="mt-0.5 font-mono text-[10px] text-kai-dim">
+              Turn this repository into linked, readable chapters
+            </p>
+          </div>
         </div>
+
+        {/* Compact pipeline strip — hover a step for what it does. update is
+            the loop: every code change re-enters at wiki via a diff refresh. */}
+        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[10.5px] text-kai-dim">
+          {PIPELINE_STEPS.map((s, i) => (
+            <span key={s.cmd} className="flex items-center gap-x-1.5">
+              {i > 0 && <span aria-hidden>→</span>}
+              <span className="cursor-help font-semibold text-kai-orange" title={s.hint}>
+                {s.cmd}
+              </span>
+            </span>
+          ))}
+          <span
+            className="cursor-help text-kai-dim"
+            title="update loops back to wiki: each code change triggers a git-diff-driven refresh of only the affected chapters"
+          >
+            <span aria-hidden>↺</span> back to <span className="font-semibold">wiki</span> on every
+            code change
+          </span>
+        </p>
 
         <div className="mt-4 flex items-center gap-4">
           <div className="flex-1">
@@ -130,8 +169,12 @@ export default function Activity() {
               max={10}
               value={multiplier}
               onChange={(e) => setMultiplier(Number(e.target.value))}
-              className="mt-1.5 w-full accent-kai-orange"
+              className="mt-1.5 w-full cursor-pointer accent-kai-orange"
             />
+            <div className="flex justify-between font-mono text-[9px] text-kai-dim">
+              <span>×1 fast</span>
+              <span>×10 exhaustive</span>
+            </div>
             <p className="mt-1 h-8 font-mono text-[10px] leading-relaxed text-kai-dim">
               {MULTIPLIER_CAPTIONS[multiplier]}
             </p>
@@ -211,8 +254,10 @@ export default function Activity() {
 
       {/* Memory & Learning */}
       <Card className="mt-6 p-4">
-        <div className="flex items-center gap-2">
-          <Brain size={14} className="text-kai-orange" />
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-kai-orange/30 bg-kai-orange/10">
+            <Brain size={14} className="text-kai-orange" />
+          </span>
           <SectionLabel>Memory &amp; Learning</SectionLabel>
         </div>
         <p className="mt-2 font-mono text-[11px] leading-relaxed text-kai-dim">
@@ -307,9 +352,9 @@ function MemoryStats({ wsId }: { wsId: string }) {
 
 function StatBox({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded border border-border bg-panel/40 px-3 py-2">
+    <div className="rounded border border-border bg-panel/40 px-3 py-2 transition-colors hover:border-kai-line">
       <p className="font-mono text-[10px] text-kai-dim">{label}</p>
-      <p className="font-mono text-lg font-semibold text-kai-text">{value}</p>
+      <p className="font-mono text-lg font-semibold tabular-nums text-kai-text">{value}</p>
     </div>
   )
 }
@@ -336,10 +381,17 @@ function RunRow({
   const hasArtifacts = (run.artifacts?.length ?? 0) > 0
 
   return (
-    <Card className={cn("overflow-hidden", isActive && "border-kai-orange/30")}>
-      <div className="flex items-center gap-2 px-3 py-2">
+    <Card className={cn("overflow-hidden", isActive && "border-kai-orange/30", !open && "hover:border-kai-line")}>
+      {/* Whole header toggles the log panel — a bigger target than the chevron. */}
+      <div
+        className="flex cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-panel/40"
+        onClick={() => setOpen(!open)}
+      >
         <button
-          onClick={() => setOpen(!open)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setOpen(!open)
+          }}
           className="shrink-0 rounded text-kai-dim transition-colors outline-none hover:text-kai-text focus-visible:ring-2 focus-visible:ring-kai-orange/50"
           aria-label={open ? "Collapse" : "Expand"}
         >
@@ -376,7 +428,10 @@ function RunRow({
 
         {isActive && (
           <button
-            onClick={onCancel}
+            onClick={(e) => {
+              e.stopPropagation()
+              onCancel()
+            }}
             className="shrink-0 rounded p-1 text-kai-rose transition-colors outline-none hover:bg-kai-rose/10 focus-visible:ring-2 focus-visible:ring-kai-orange/50"
             title="Cancel run"
           >
@@ -387,7 +442,7 @@ function RunRow({
         {/* Revert: only for finished runs that wrote files */}
         {!isActive && hasArtifacts && (
           confirming ? (
-            <span className="flex shrink-0 items-center gap-1">
+            <span className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => { onRevert(); setConfirming(false) }}
                 className="rounded bg-kai-rose/20 px-1.5 py-0.5 font-mono text-[9px] text-kai-rose hover:bg-kai-rose/30"
@@ -403,7 +458,10 @@ function RunRow({
             </span>
           ) : (
             <button
-              onClick={() => setConfirming(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setConfirming(true)
+              }}
               className="shrink-0 rounded p-1 text-kai-dim transition-colors outline-none hover:bg-kai-amber/10 hover:text-kai-amber focus-visible:ring-2 focus-visible:ring-kai-orange/50"
               title="Revert: delete the files this run wrote"
             >

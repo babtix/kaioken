@@ -79,10 +79,14 @@ export default function WorkspaceSwitcher() {
       {isOpen && (
         <div
           role="menu"
-          className="animate-pop absolute left-0 top-full z-40 mt-1 w-80 overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
+          // -inset: the popover clips its rows, so brackets drawn at -1px
+          // would be cut away by that same overflow-hidden.
+          // max-h caps the menu to the viewport (header is h-11) so long
+          // Open/Recent lists scroll instead of running off the page.
+          className="hud-corners hud-corners-inset animate-pop absolute left-0 top-full z-40 mt-1 flex max-h-[calc(100vh-5rem)] w-80 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
         >
           {list.length > 0 && (
-            <div className="border-b border-border py-1">
+            <div className="max-h-56 shrink-0 overflow-auto border-b border-border py-1">
               <p className="px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-kai-dim">
                 Open
               </p>
@@ -125,7 +129,7 @@ export default function WorkspaceSwitcher() {
           )}
 
           {otherRecents.length > 0 && (
-            <div className="max-h-56 overflow-auto border-b border-border py-1">
+            <div className="min-h-0 flex-1 overflow-auto border-b border-border py-1">
               <p className="px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-kai-dim">
                 Recent
               </p>
@@ -161,7 +165,7 @@ export default function WorkspaceSwitcher() {
           <button
             role="menuitem"
             onClick={pickFolder}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] text-kai-orange transition-colors hover:bg-panel/60"
+            className="flex w-full shrink-0 items-center gap-2 px-3 py-2 text-left font-mono text-[11px] text-kai-orange transition-colors hover:bg-panel/60"
           >
             <FolderPlus size={12} />
             Open a repository…

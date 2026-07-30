@@ -130,7 +130,11 @@ export function Card({
   return (
     <div
       {...props}
-      className={cn("rounded-lg border border-border bg-card", className)}
+      className={cn(
+        "rounded-lg border border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.25)]",
+        "transition-colors duration-150",
+        className
+      )}
     >
       {children}
     </div>

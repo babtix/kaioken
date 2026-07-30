@@ -83,6 +83,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // Named "read", not "wiki", so it cannot be confused with the /wiki
   // command that *generates* one.
   { name: "read", aliases: ["docs", "wikiread"], summary: "open the wiki reader", group: "Go to", action: () => ({ kind: "navigate", to: "/wiki" }) },
+  { name: "research", aliases: ["deep"], summary: "deep web research with cited sources", group: "Go to", action: () => ({ kind: "navigate", to: "/research" }) },
   { name: "activity", aliases: ["runs"], summary: "open the run console", group: "Go to", action: () => ({ kind: "navigate", to: "/activity" }) },
   { name: "status", summary: "module freshness and knowledge cards", group: "Go to", action: () => ({ kind: "navigate", to: "/cards" }) },
   { name: "cost", aliases: ["usage"], summary: "token usage for this session", group: "Go to", action: () => ({ kind: "navigate", to: "/settings" }) },

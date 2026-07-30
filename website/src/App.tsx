@@ -5,6 +5,7 @@ import SiteFooter from "@/components/SiteFooter"
 import Home from "@/pages/Home"
 import Next from "@/pages/Next"
 import Showcase from "@/pages/Showcase"
+import Desktop from "@/pages/Desktop"
 import DocsLayout from "@/pages/docs/DocsLayout"
 import DocsIndex from "@/pages/docs/DocsIndex"
 import Install from "@/pages/docs/Install"
@@ -52,6 +53,7 @@ export default function App() {
         <React.Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/desktop" element={<Desktop />} />
             <Route path="/showcase" element={<Showcase />} />
             <Route path="/next" element={<Next />} />
             <Route path="/docs" element={<DocsLayout />}>

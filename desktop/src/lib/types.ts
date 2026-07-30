@@ -213,6 +213,24 @@ export type RunRecord = {
   summary: Record<string, unknown> | null
 }
 
+/**
+ * A saved deep-search report — the structured twin the daemon persists next
+ * to the rendered markdown in .kaioken/research. Listings arrive with
+ * `markdown` omitted; researchGet returns the full body.
+ */
+export type ResearchReport = {
+  slug: string
+  question: string
+  markdown?: string
+  sources: { n: number; url: string; title: string }[]
+  rounds: number
+  searched: number
+  fetched: number
+  incomplete: boolean
+  report_path?: string
+  created_at: string
+}
+
 export type Estimate = {
   kind: string
   multiplier: number
@@ -360,4 +378,94 @@ export type ExtRegistryEntry = {
   homepage?: string
   /** wasm only: what trusting the extension would grant. */
   permissions?: string[]
+}
+
+// --- Local inference servers ---
+
+export type LocalProviderStatus = {
+  name: string
+  label: string
+  base_url: string
+  docs?: string
+  /** Whether the endpoint answered a probe just now. */
+  running: boolean
+  models?: string[]
+  /** Why a probe failed, phrased for a user rather than a stack trace. */
+  error?: string
+  latency_ms?: number
+}
+
+export type LocalProvidersResponse = {
+  providers: LocalProviderStatus[]
+  running: number
+}
+
+export type EmbedSettings = {
+  model: string
+  provider: string
+  base_url: string
+  /** False means search runs on BM25 alone — a supported state, not a broken one. */
+  enabled: boolean
+}
+
+// --- Cost dashboard ---
+
+export type UsageBucket = {
+  key: string
+  calls: number
+  prompt_tokens: number
+  completion_tokens: number
+  cost_usd: number
+  /** Fraction of this bucket's cost that came from the price table rather
+   *  than from a provider. Surfaced so a reader knows how much to trust it. */
+  estimated_share: number
+}
+
+export type UsageSummary = {
+  from: string
+  to: string
+  calls: number
+  prompt_tokens: number
+  completion_tokens: number
+  cost_usd: number
+  /** The portion providers actually reported. The rest is estimated. */
+  known_cost_usd: number
+  local_calls: number
+  by_day: UsageBucket[]
+  by_model: UsageBucket[]
+  by_provider: UsageBucket[]
+  by_operation: UsageBucket[]
+  by_workspace: UsageBucket[]
+}
+
+export type UsageResponse = {
+  days: number
+  summary: UsageSummary
+  /** True when the price catalog is missing or old enough that estimates drift. */
+  pricing_stale: boolean
+}
+
+// --- Knowledge search ---
+
+export type SearchHit = {
+  path: string
+  kind: "wiki" | "card" | "skill"
+  section: string
+  title: string
+  /** Nearest enclosing heading — the passage's caption. */
+  heading: string
+  line: number
+  snippet: string
+  score: number
+  /** The two component ranks, exposed so a surprising result is explainable. */
+  lexical: number
+  semantic?: number
+}
+
+export type WikiSearchResponse = {
+  query: string
+  hits: SearchHit[]
+  /** True when the index carries embeddings, i.e. ranking is hybrid. */
+  semantic: boolean
+  sections: string[]
 }

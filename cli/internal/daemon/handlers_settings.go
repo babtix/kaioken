@@ -2,14 +2,17 @@ package daemon
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"kaioken/internal/config"
 	"kaioken/internal/llm"
+	"kaioken/internal/websearch"
 )
 
 // --- T061: Settings endpoints ---
@@ -19,9 +22,51 @@ type providerJSON struct {
 	BaseURL         string `json:"base_url"`
 	KeyEnv          string `json:"key_env"`
 	HasKey          bool   `json:"has_key"`
-	KeySource       string `json:"key_source"` // config | env | none
+	KeySource       string `json:"key_source"` // config | env | local | none
 	Hint            string `json:"hint,omitempty"`
 	RequiresBaseURL bool   `json:"requires_base_url,omitempty"`
+	// Local marks an endpoint running on the user's own machine: no key, no
+	// spend, and availability that depends on whether the server is up.
+	Local bool `json:"local,omitempty"`
+}
+
+// searchProviderJSON describes one web-search vendor for the settings UI.
+type searchProviderJSON struct {
+	Name      string `json:"name"`
+	KeyEnv    string `json:"key_env"`
+	Signup    string `json:"signup"`
+	HasKey    bool   `json:"has_key"`
+	KeySource string `json:"key_source"` // config | env | none
+	Hint      string `json:"hint,omitempty"`
+}
+
+// searchSettings builds the web-search section of GET /v1/settings.
+func searchSettings(g *config.Global) map[string]any {
+	names := make([]string, 0, len(websearch.Registry))
+	for name := range websearch.Registry {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	providers := make([]searchProviderJSON, 0, len(names))
+	for _, name := range names {
+		info := websearch.Registry[name]
+		sp := searchProviderJSON{Name: name, KeyEnv: info.KeyEnv, Signup: info.Signup, KeySource: "none"}
+		if key := g.Keys[name]; key != "" {
+			sp.HasKey = true
+			sp.KeySource = "config"
+			sp.Hint = keyHint(key)
+		} else if envKey := os.Getenv(info.KeyEnv); envKey != "" {
+			sp.HasKey = true
+			sp.KeySource = "env"
+			sp.Hint = keyHint(envKey)
+		}
+		providers = append(providers, sp)
+	}
+	return map[string]any{
+		"provider":  g.Research.SearchProvider,
+		"providers": providers,
+	}
 }
 
 // GET /v1/settings
@@ -32,9 +77,14 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 		pj := providerJSON{
 			Name: name, BaseURL: p.BaseURL, KeyEnv: p.KeyEnv, KeySource: "none",
 			RequiresBaseURL: p.RequiresBaseURL,
+			Local:           llm.IsLocal(name),
 		}
-		key := g.Keys[name]
-		if key != "" {
+		// A local endpoint needs no key, so the settings UI must not render it
+		// as unconfigured — it is ready as soon as the server is running.
+		if pj.Local {
+			pj.HasKey = true
+			pj.KeySource = "local"
+		} else if key := g.Keys[name]; key != "" {
 			pj.HasKey = true
 			pj.KeySource = "config"
 			pj.Hint = keyHint(key)
@@ -50,7 +100,110 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 		"default_model":    g.DefaultModel,
 		"config_path":      config.GlobalPath(),
 		"providers":        providers,
+		"search":           searchSettings(g),
+		"embed":            embedSettings(g),
 	})
+}
+
+// embedSettings reports the retrieval configuration, so the UI can say whether
+// search is hybrid or lexical and offer to make it hybrid.
+func embedSettings(g *config.Global) map[string]any {
+	return map[string]any{
+		"model":    g.Search.EmbedModel,
+		"provider": g.Search.EmbedProvider,
+		"base_url": g.Search.EmbedBaseURL,
+		"enabled":  strings.TrimSpace(g.Search.EmbedModel) != "",
+	}
+}
+
+// GET /v1/settings/local
+//
+// Probes every known local inference server in parallel and reports which are
+// running and what they serve. Separate from GET /v1/settings because it
+// touches the network: the settings page must render instantly whether or not
+// five endpoints are refusing connections.
+func (s *Server) handleLocalProviders(w http.ResponseWriter, r *http.Request) {
+	found := llm.DiscoverLocal(r.Context())
+	running := 0
+	for _, st := range found {
+		if st.Running {
+			running++
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"providers": found,
+		"running":   running,
+	})
+}
+
+// POST /v1/settings/local — register a custom local endpoint.
+func (s *Server) handleAddLocalProvider(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name    string `json:"name"`
+		BaseURL string `json:"base_url"`
+		Label   string `json:"label"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, codeBadRequest, "invalid JSON", "")
+		return
+	}
+	entry := config.LocalEndpoint{
+		Name:    strings.ToLower(strings.TrimSpace(body.Name)),
+		BaseURL: strings.TrimSpace(body.BaseURL),
+		Label:   strings.TrimSpace(body.Label),
+	}
+	if err := llm.RegisterLocal(llm.LocalProvider{
+		Name: entry.Name, BaseURL: entry.BaseURL, Label: entry.Label,
+	}); err != nil {
+		writeError(w, http.StatusBadRequest, codeBadRequest, err.Error(), "")
+		return
+	}
+
+	g := config.LoadGlobal()
+	replaced := false
+	for i, e := range g.Local {
+		if e.Name == entry.Name {
+			g.Local[i] = entry
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		g.Local = append(g.Local, entry)
+	}
+	if err := g.Save(); err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
+		return
+	}
+
+	st := llm.ProbeLocal(r.Context(), llm.LocalProvider{
+		Name: entry.Name, BaseURL: entry.BaseURL, Label: entry.Label,
+	})
+	writeJSON(w, http.StatusOK, st)
+}
+
+// PUT /v1/settings/embed — set the embedding model that upgrades search from
+// BM25 to hybrid. An empty model turns the semantic half back off, which is a
+// supported state rather than a broken one.
+func (s *Server) handlePutEmbed(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Model    string `json:"model"`
+		Provider string `json:"provider"`
+		BaseURL  string `json:"base_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, codeBadRequest, "invalid JSON", "")
+		return
+	}
+	g := config.LoadGlobal()
+	g.Search.EmbedModel = strings.TrimSpace(body.Model)
+	g.Search.EmbedProvider = strings.TrimSpace(body.Provider)
+	g.Search.EmbedBaseURL = strings.TrimSpace(body.BaseURL)
+	if err := g.Save(); err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
+		return
+	}
+	writeJSON(w, http.StatusOK, embedSettings(g))
 }
 
 // PUT /v1/settings
@@ -58,6 +211,9 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		DefaultProvider string `json:"default_provider"`
 		DefaultModel    string `json:"default_model"`
+		// Pointer, because "" is a meaningful value here: it resets the
+		// search selection back to "every provider with a key".
+		SearchProvider *string `json:"search_provider"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, codeBadRequest, "invalid JSON", "")
@@ -70,11 +226,40 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	if body.DefaultModel != "" {
 		g.DefaultModel = body.DefaultModel
 	}
+	if body.SearchProvider != nil {
+		sel, err := validSearchSelection(*body.SearchProvider)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, codeBadRequest, err.Error(), "")
+			return
+		}
+		g.Research.SearchProvider = sel
+	}
 	if err := g.Save(); err != nil {
 		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"default_provider": g.DefaultProvider, "default_model": g.DefaultModel})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"default_provider": g.DefaultProvider,
+		"default_model":    g.DefaultModel,
+		"search_provider":  g.Research.SearchProvider,
+	})
+}
+
+// validSearchSelection normalises and validates a search_provider value:
+// empty/auto/both/all pass through, anything else must be a comma/plus list
+// of registered vendor names.
+func validSearchSelection(sel string) (string, error) {
+	sel = strings.ToLower(strings.TrimSpace(sel))
+	switch sel {
+	case "", "auto", "both", "all":
+		return sel, nil
+	}
+	for _, name := range strings.FieldsFunc(sel, func(r rune) bool { return r == ',' || r == '+' || r == ' ' }) {
+		if _, ok := websearch.Registry[name]; !ok {
+			return "", fmt.Errorf("unknown search provider %q", name)
+		}
+	}
+	return sel, nil
 }
 
 // PUT /v1/settings/keys/{provider}
@@ -111,6 +296,29 @@ func (s *Server) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 // POST /v1/settings/keys/{provider}/test
 func (s *Server) handleTestKey(w http.ResponseWriter, r *http.Request) {
 	prov := r.PathValue("provider")
+
+	// Search vendors are tested with a probe search — llm.NewForProvider
+	// knows nothing about them.
+	if _, isSearch := websearch.Registry[prov]; isSearch {
+		g := config.LoadGlobal()
+		if websearch.KeyFor(prov, g.Keys) == "" {
+			writeError(w, http.StatusConflict, codeNoAPIKey, "no key configured for "+prov, "")
+			return
+		}
+		p, err := websearch.Resolve(prov, g.Keys)
+		if err != nil {
+			writeError(w, http.StatusConflict, codeNoAPIKey, err.Error(), "")
+			return
+		}
+		hits, err := p.Search(r.Context(), "kaioken", 1)
+		if err != nil {
+			writeError(w, http.StatusBadGateway, codeProviderError, err.Error(), "")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "results": len(hits)})
+		return
+	}
+
 	g := config.LoadGlobal()
 	key := g.Keys[prov]
 	if key == "" {

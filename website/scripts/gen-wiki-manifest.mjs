@@ -19,6 +19,30 @@ const slug = (s) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
 
+/**
+ * Sections appear in the nav in reading order: setup first, then core
+ * concepts, then features, then reference. Unlisted sections sort last,
+ * alphabetically.
+ */
+const SECTION_ORDER = [
+  "Getting Started",
+  "Architecture Overview",
+  "Chat Agent",
+  "Knowledge Engine",
+  "Terminal User Interface (TUI)",
+  "Skills System",
+  "Git Integration",
+  "Code Mapping and Indexing",
+  "Serving the Generated Wiki",
+  "Configuration",
+  "Development Guide",
+]
+
+const sectionRank = (dir) => {
+  const i = SECTION_ORDER.indexOf(dir)
+  return i === -1 ? SECTION_ORDER.length : i
+}
+
 /** Pull the first H1, falling back to the filename. */
 function titleOf(body, file) {
   const m = body.match(/^#\s+(.+)$/m)
@@ -70,6 +94,10 @@ for (const dir of readdirSync(WIKI).sort()) {
 
   sections.push({ slug: slug(dir), dir, title: dir, docs })
 }
+
+sections.sort(
+  (a, b) => sectionRank(a.dir) - sectionRank(b.dir) || a.dir.localeCompare(b.dir)
+)
 
 // The wiki's own index page lives at the root rather than inside a section.
 let readme = null

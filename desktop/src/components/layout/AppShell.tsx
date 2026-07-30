@@ -16,7 +16,7 @@ import { useWorkspaceStore } from "@/store/workspace"
 import { useExplorerStore } from "@/store/explorer"
 import { cn } from "@/lib/utils"
 
-const NAV_ROUTES = ["/chat", "/editor", "/browser", "/wiki", "/graph", "/activity", "/cards", "/extensions", "/settings"]
+const NAV_ROUTES = ["/chat", "/research", "/wiki", "/graph", "/cards", "/editor", "/browser", "/activity", "/extensions"]
 
 export default function AppShell() {
   const active = useWorkspaceStore((s) => s.active)
@@ -59,8 +59,14 @@ export default function AppShell() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-    {/* Full-width titlebar across the top */}
-    <header className="titlebar-drag flex h-11 shrink-0 items-center gap-2 border-b border-border px-3 select-none">
+    {/* Full-width titlebar across the top. Scanlines are the HUD texture —
+        alpha sits at the threshold of perception, so it reads as depth, not
+        pattern. */}
+    {/* z-40: hud-scanlines isolates the header's stacking context, so the
+        workspace dropdown would otherwise paint underneath the body row that
+        follows it in the DOM. Lifting the header keeps popovers above routes
+        while staying below fixed z-50 overlays (palette, dialogs, toasts). */}
+    <header className="titlebar-drag hud-scanlines z-40 flex h-11 shrink-0 items-center gap-2 border-b border-border bg-card/60 px-3 select-none">
       {/* Logo */}
       <button
         onClick={() => navigate("/")}
@@ -90,9 +96,9 @@ export default function AppShell() {
       <button
         onClick={() => setPaletteOpen(true)}
         className={cn(
-          "titlebar-no-drag ml-auto flex shrink-0 items-center gap-2 rounded-md border border-border bg-card px-2 py-1",
+          "titlebar-no-drag hud-corners ml-auto flex shrink-0 items-center gap-2 rounded-[var(--radius)] border border-border bg-card px-2 py-1",
           "font-mono text-[10px] text-kai-dim transition-colors outline-none",
-          "hover:border-kai-line hover:text-kai-text focus-visible:ring-2 focus-visible:ring-kai-orange/50"
+          "hover:border-kai-orange/40 hover:text-kai-text focus-visible:ring-2 focus-visible:ring-kai-orange/50"
         )}
       >
         <Search size={11} />

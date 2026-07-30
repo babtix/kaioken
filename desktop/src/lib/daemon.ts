@@ -17,7 +17,29 @@ export const EXPECTED_CONTRACT = 4
 
 let current: DaemonInfo | null = null
 
+/**
+ * Point the UI at a manually-run daemon: `?port=7788&token=…`.
+ *
+ * Dev builds only — `import.meta.env.DEV` is a compile-time constant, so this
+ * whole branch is dropped from a production bundle rather than shipping a way
+ * to redirect the app at an arbitrary endpoint. It exists so the showcase
+ * entry and a plain browser can exercise real endpoints without Tauri.
+ */
+function devOverride(): DaemonInfo | null {
+  if (!import.meta.env.DEV) return null
+  const q = new URLSearchParams(window.location.search)
+  const port = Number(q.get("port"))
+  const token = q.get("token")
+  if (!port || !token) return null
+  return { port, token, version: "dev" }
+}
+
 export async function bootstrap(): Promise<DaemonInfo> {
+  const override = devOverride()
+  if (override) {
+    current = override
+    return current
+  }
   current = await invoke<DaemonInfo>("daemon_info")
   return current
 }

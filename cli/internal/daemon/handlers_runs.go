@@ -7,11 +7,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"kaioken/internal/config"
 	"kaioken/internal/generate"
 	"kaioken/internal/plan"
+	"kaioken/internal/research"
 	"kaioken/internal/skills"
+	"kaioken/internal/webfetch"
+	"kaioken/internal/websearch"
 	"kaioken/internal/wiki"
 )
 
@@ -56,7 +60,7 @@ func (s *Server) handleStartRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	run := s.runs.Start(ws, body.Kind, body.Params, fn)
+	run := s.runs.Start(ws, body.Kind, body.Params, s.bookRunSpend(ws, body.Kind, fn))
 	writeJSON(w, http.StatusAccepted, run)
 }
 
@@ -345,6 +349,109 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 			written, err := skills.Run(ctx, repo, cfg, client, res, opts, pg)
 			r.finishSummary = map[string]any{"written": len(written)}
 			return err
+		}, nil
+
+	case "research":
+		// Validation and provider resolution happen here, at request time, so
+		// a missing question or search key is a 400 the user sees immediately
+		// rather than a run that starts and dies asynchronously.
+		question := strings.TrimSpace(stringParam(params, "question"))
+		if question == "" {
+			return nil, fmt.Errorf("research requires a question param")
+		}
+		global := config.LoadGlobal()
+		provider, err := websearch.Resolve(global.Research.SearchProvider, global.Keys)
+		if err != nil {
+			return nil, err
+		}
+		return func(ctx context.Context, r *RunRecord) error {
+			client, err := ws.Client()
+			if err != nil {
+				return err
+			}
+			cfg := ws.Config()
+			if cfg == nil {
+				// Research never reads the repository, so an uninitialised
+				// workspace is no reason to refuse.
+				cfg = defaultCfg()
+			}
+			multiplier := intParam(params, "multiplier", 3)
+			limit, _ := cfg.EffectiveConcurrency(client.Model)
+
+			opts := research.Options{
+				Multiplier:  multiplier,
+				MaxRounds:   global.Research.MaxRounds,
+				Concurrency: limit,
+			}
+			// Firecrawl in the active search set means its scrape API reads
+			// the pages too (with the built-in fetcher as per-URL fallback).
+			// Pinning "tavily" therefore means zero Firecrawl calls at all.
+			if strings.Contains(provider.Name(), "firecrawl") {
+				if fk := websearch.KeyFor("firecrawl", global.Keys); fk != "" {
+					opts.Fetcher = webfetch.NewFirecrawl(fk, nil)
+				}
+			}
+
+			// SetProgress alone only mutates the record — the hub publish is
+			// what makes the desktop's research timeline move live.
+			stage := func(msg string, done, total int) {
+				r.SetProgress("research", msg, done, total)
+				s.hub.RunProgress(ws.ID, r.ID, "research", msg, done, total)
+			}
+
+			stage("starting", 0, 0)
+			rep, err := research.Run(ctx, client, provider, question, opts, research.Progress{
+				Stage:  func(t string) { stage(t, 0, 0) },
+				Detail: func(t string) { s.hub.RunLog(ws.ID, r.ID, "info", t) },
+				Round:  func(n, of int) { stage(fmt.Sprintf("round %d of %d", n, of), n, of) },
+			})
+			if err != nil {
+				return err
+			}
+
+			// Persist the rendered report alongside the wiki so the run
+			// leaves the same kind of durable artifact the CLI command does,
+			// plus the structured JSON twin the history endpoints serve —
+			// that is what lets the user reopen this answer later.
+			slug := research.Slug(question)
+			rel := filepath.ToSlash(filepath.Join(config.Dir, "research", slug+".md"))
+			abs, err := safeJoin(repo, rel)
+			if err == nil {
+				if err := os.MkdirAll(filepath.Dir(abs), 0o755); err == nil {
+					rendered := rep.Render()
+					if err := os.WriteFile(abs, []byte(rendered), 0o644); err == nil {
+						lines := strings.Count(rendered, "\n") + 1
+						r.AddArtifact(rel, lines, "research_report")
+						s.hub.RunArtifact(ws.ID, r.ID, rel, lines, "research_report")
+					}
+					if _, err := research.Save(filepath.Dir(abs), rep, rel); err != nil {
+						s.hub.RunLog(ws.ID, r.ID, "error", "saving research history: "+err.Error())
+					}
+				}
+			}
+
+			// The whole report rides in the summary: run.finished is the only
+			// event the desktop needs to render the answer surface.
+			sources := make([]map[string]any, 0, len(rep.Sources))
+			for _, src := range rep.Sources {
+				sources = append(sources, map[string]any{"n": src.N, "url": src.URL, "title": src.Title})
+			}
+			calls, promptToks, completionToks := client.Usage()
+			r.finishSummary = map[string]any{
+				"question":    rep.Question,
+				"markdown":    rep.Markdown,
+				"sources":     sources,
+				"rounds":      rep.Rounds,
+				"searched":    rep.Searched,
+				"fetched":     rep.Fetched,
+				"incomplete":  rep.Incomplete,
+				"report_path": rel,
+				"slug":        slug,
+				"providers":   provider.Name(),
+				"calls":       calls,
+				"tokens":      promptToks + completionToks,
+			}
+			return nil
 		}, nil
 
 	default:

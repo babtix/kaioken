@@ -51,6 +51,24 @@ func Head(ctx context.Context, repo string) (string, error) {
 	return run(ctx, repo, "rev-parse", "HEAD")
 }
 
+// Root returns the git work tree root containing repo.
+//
+// It matters because git reports diff paths relative to the root but resolves
+// pathspecs relative to the working directory. Running both from the root is
+// what keeps a path that came out of Changes usable as an argument to Patch —
+// otherwise pointing any of this at a subdirectory silently yields an empty
+// diff. Falls back to repo when it is not a work tree.
+func Root(ctx context.Context, repo string) string {
+	out, err := run(ctx, repo, "rev-parse", "--show-toplevel")
+	if err != nil {
+		return repo
+	}
+	if root := strings.TrimSpace(out); root != "" {
+		return filepath.FromSlash(root)
+	}
+	return repo
+}
+
 // Short abbreviates a SHA for display.
 func Short(sha string) string {
 	if len(sha) > 8 {

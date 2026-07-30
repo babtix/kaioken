@@ -23,6 +23,16 @@ func skipIfUnsupported(t *testing.T) {
 // unblocks its Read shortly after, so it does not leak past the test.
 func readUntil(t *testing.T, p PTY, marker string, timeout time.Duration) string {
 	t.Helper()
+	return readUntilN(t, p, marker, 1, timeout)
+}
+
+// readUntilN is readUntil, but waits for marker to appear at least want times.
+// Waiting for a single occurrence is not enough when the caller needs both the
+// shell's keystroke echo and the command's own output: the echo alone satisfies
+// a count of one, so the read stops early and the second occurrence is only
+// ever seen when it happens to land in the same chunk.
+func readUntilN(t *testing.T, p PTY, marker string, want int, timeout time.Duration) string {
+	t.Helper()
 	type chunk struct {
 		b   []byte
 		err error
@@ -96,7 +106,7 @@ func TestStartRunsACommand(t *testing.T) {
 	if _, err := p.Write([]byte("echo kaioken-run-marker\r")); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
-	got := readUntil(t, p, "kaioken-run-marker", 15*time.Second)
+	got := readUntilN(t, p, "kaioken-run-marker", 2, 15*time.Second)
 	// The marker must appear at least twice: once as the shell echoes the
 	// keystrokes, once as the actual command output.
 	if strings.Count(got, "kaioken-run-marker") < 2 {

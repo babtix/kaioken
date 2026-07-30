@@ -3,6 +3,10 @@ cli/kaioken.exe
 cli/kaioken.exe.old
 cli/kaioken.exe~
 cli/kaioken_new.exe
+cli/kaioken-test
+
+# GoReleaser output (snapshot and release builds)
+/dist/
 
 # Session and state (local-only)
 .kaioken/sessions/
@@ -47,3 +51,11 @@ cli/PRISM_RAG/
 web-news/node_modules/
 web-news/dist/
 web-news/.vercel/
+
+# Per-repo generated caches. The wiki and knowledge cards are committed on
+# purpose — these are not: the search index is a rebuildable derivative that
+# churns on every generation, mcp.json embeds an absolute binary path, and the
+# MCP bearer token is a credential.
+**/.kaioken/search_index.json
+**/.kaioken/mcp.json
+**/.kaioken/mcp_token

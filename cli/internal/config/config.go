@@ -46,6 +46,25 @@ type Config struct {
 	// values disable them. Spend is only known when the provider reports it
 	// (OpenRouter does); elsewhere the guardrails stay inert.
 	Budget Budget `yaml:"budget,omitempty"`
+	// Search configures knowledge retrieval. Zero values leave search purely
+	// lexical, which needs no model, no key and no network.
+	Search Search `yaml:"search,omitempty"`
+}
+
+// Search configures how the generated knowledge is retrieved. Naming an
+// embedding model upgrades search from BM25 to hybrid ranking; leaving it
+// empty is a supported permanent state, not a half-configured one.
+type Search struct {
+	// EmbedModel is the embedding model id, e.g. "nomic-embed-text" on a local
+	// Ollama or "text-embedding-3-small" on OpenAI. Empty disables the
+	// semantic half.
+	EmbedModel string `yaml:"embed_model,omitempty"`
+	// EmbedProvider names an entry in llm.Providers, supplying the endpoint
+	// and key env for the embedding calls. Empty means use EmbedBaseURL alone.
+	EmbedProvider string `yaml:"embed_provider,omitempty"`
+	// EmbedBaseURL overrides the provider endpoint — the escape hatch for a
+	// self-hosted gateway or a non-default Ollama port.
+	EmbedBaseURL string `yaml:"embed_base_url,omitempty"`
 }
 
 // Budget is the per-session spending guardrail. Both thresholds are USD;

@@ -7,6 +7,89 @@
   },
   "sections": [
     {
+      "slug": "getting-started",
+      "dir": "Getting Started",
+      "title": "Getting Started",
+      "docs": [
+        {
+          "slug": "getting-started",
+          "file": "Getting Started.md",
+          "title": "Getting Started",
+          "words": 901,
+          "hasMermaid": false,
+          "sources": [
+            "README.md",
+            "Makefile",
+            "go.mod",
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "basic-cli-commands-overview",
+          "file": "Basic CLI Commands Overview.md",
+          "title": "Basic CLI Commands Overview",
+          "words": 1155,
+          "hasMermaid": false,
+          "sources": [
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "building-the-binary",
+          "file": "Building the Binary.md",
+          "title": "Building the Binary",
+          "words": 288,
+          "hasMermaid": false,
+          "sources": [
+            "Makefile",
+            "go.mod"
+          ]
+        },
+        {
+          "slug": "initializing-a-repository",
+          "file": "Initializing a Repository.md",
+          "title": "Initializing a Repository",
+          "words": 521,
+          "hasMermaid": false,
+          "sources": [
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "installation",
+          "file": "Installation.md",
+          "title": "Installation",
+          "words": 365,
+          "hasMermaid": false,
+          "sources": [
+            "README.md",
+            "go.mod"
+          ]
+        },
+        {
+          "slug": "serving-the-generated-wiki",
+          "file": "Serving the Generated Wiki.md",
+          "title": "Serving the Generated Wiki",
+          "words": 815,
+          "hasMermaid": false,
+          "sources": [
+            "cmd/kaioken/main.go",
+            "README.md"
+          ]
+        },
+        {
+          "slug": "using-the-terminal-user-interface-tui",
+          "file": "Using the Terminal User Interface (TUI).md",
+          "title": "Using the Terminal User Interface (TUI)",
+          "words": 820,
+          "hasMermaid": false,
+          "sources": [
+            "README.md"
+          ]
+        }
+      ]
+    },
+    {
       "slug": "architecture-overview",
       "dir": "Architecture Overview",
       "title": "Architecture Overview",
@@ -142,6 +225,328 @@
       ]
     },
     {
+      "slug": "knowledge-engine",
+      "dir": "Knowledge Engine",
+      "title": "Knowledge Engine",
+      "docs": [
+        {
+          "slug": "knowledge-engine",
+          "file": "Knowledge Engine.md",
+          "title": "Knowledge Engine",
+          "words": 2723,
+          "hasMermaid": true,
+          "sources": [
+            "internal/wiki/wiki.go",
+            "internal/plan/plan.go",
+            "internal/scan/scan.go",
+            "internal/state/state.go",
+            "internal/wiki/passes.go",
+            "internal/wiki/update.go"
+          ]
+        },
+        {
+          "slug": "incremental-wiki-updates",
+          "file": "Incremental Wiki Updates.md",
+          "title": "Incremental Wiki Updates",
+          "words": 1344,
+          "hasMermaid": false,
+          "sources": [
+            "internal/wiki/update.go",
+            "internal/state/state.go",
+            "internal/scan/scan.go",
+            "internal/wiki/wiki.go"
+          ]
+        },
+        {
+          "slug": "knowledge-card-generation-and-refinement",
+          "file": "Knowledge Card Generation and Refinement.md",
+          "title": "Knowledge Card Generation and Refinement",
+          "words": 1723,
+          "hasMermaid": false,
+          "sources": [
+            "internal/wiki/wiki.go",
+            "internal/wiki/passes.go"
+          ]
+        },
+        {
+          "slug": "module-planning",
+          "file": "Module Planning.md",
+          "title": "Module Planning",
+          "words": 1751,
+          "hasMermaid": true,
+          "sources": [
+            "internal/plan/plan.go"
+          ]
+        },
+        {
+          "slug": "repository-scanning",
+          "file": "Repository Scanning.md",
+          "title": "Repository Scanning",
+          "words": 1474,
+          "hasMermaid": true,
+          "sources": [
+            "internal/scan/scan.go"
+          ]
+        },
+        {
+          "slug": "state-management-for-incremental-updates",
+          "file": "State Management for Incremental Updates.md",
+          "title": "State Management for Incremental Updates",
+          "words": 1021,
+          "hasMermaid": false,
+          "sources": [
+            "internal/state/state.go"
+          ]
+        },
+        {
+          "slug": "wiki-outline-planning",
+          "file": "Wiki Outline Planning.md",
+          "title": "Wiki Outline Planning",
+          "words": 1440,
+          "hasMermaid": true,
+          "sources": [
+            "internal/wiki/wiki.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "terminal-user-interface-tui",
+      "dir": "Terminal User Interface (TUI)",
+      "title": "Terminal User Interface (TUI)",
+      "docs": [
+        {
+          "slug": "terminal-user-interface-tui",
+          "file": "Terminal User Interface (TUI).md",
+          "title": "Terminal User Interface (TUI)",
+          "words": 1231,
+          "hasMermaid": true,
+          "sources": [
+            "internal/tui/tui.go",
+            "internal/tui/palette.go",
+            "internal/tui/markdown.go",
+            "internal/tui/tutorial.go"
+          ]
+        },
+        {
+          "slug": "approval-workflow",
+          "file": "Approval Workflow.md",
+          "title": "Approval Workflow",
+          "words": 897,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "built-in-tutorial",
+          "file": "Built-in Tutorial.md",
+          "title": "Built-in Tutorial",
+          "words": 2678,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tutorial.go",
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "command-palette",
+          "file": "Command Palette.md",
+          "title": "Command Palette",
+          "words": 1887,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/palette.go",
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "keybindings-and-input-handling",
+          "file": "Keybindings and Input Handling.md",
+          "title": "Keybindings and Input Handling",
+          "words": 777,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "markdown-rendering",
+          "file": "Markdown Rendering.md",
+          "title": "Markdown Rendering",
+          "words": 698,
+          "hasMermaid": true,
+          "sources": [
+            "internal/tui/markdown.go",
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "session-management",
+          "file": "Session Management.md",
+          "title": "Session Management",
+          "words": 1504,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "status-line-and-footer",
+          "file": "Status Line and Footer.md",
+          "title": "Status Line and Footer",
+          "words": 1428,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "tui-structure-and-main-loop",
+          "file": "TUI Structure and Main Loop.md",
+          "title": "TUI Structure and Main Loop",
+          "words": 2951,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "skills-system",
+      "dir": "Skills System",
+      "title": "Skills System",
+      "docs": [
+        {
+          "slug": "skills-system",
+          "file": "Skills System.md",
+          "title": "Skills System",
+          "words": 3319,
+          "hasMermaid": true,
+          "sources": [
+            "internal/skills/skills.go",
+            "internal/skills/generate.go",
+            "internal/skills/skills_test.go"
+          ]
+        },
+        {
+          "slug": "skill-generation",
+          "file": "Skill Generation.md",
+          "title": "Skill Generation",
+          "words": 2484,
+          "hasMermaid": true,
+          "sources": [
+            "internal/skills/generate.go",
+            "internal/skills/skills.go"
+          ]
+        },
+        {
+          "slug": "skill-refreshing-and-invalidation",
+          "file": "Skill Refreshing and Invalidation.md",
+          "title": "Skill Refreshing and Invalidation",
+          "words": 1995,
+          "hasMermaid": true,
+          "sources": [
+            "internal/skills/skills.go",
+            "internal/skills/generate.go"
+          ]
+        },
+        {
+          "slug": "skill-storage-loading-and-indexing",
+          "file": "Skill Storage, Loading, and Indexing.md",
+          "title": "Skill Storage, Loading, and Indexing",
+          "words": 1577,
+          "hasMermaid": true,
+          "sources": [
+            "internal/skills/skills.go",
+            "internal/skills/skills_test.go"
+          ]
+        },
+        {
+          "slug": "skill-structure-and-format",
+          "file": "Skill Structure and Format.md",
+          "title": "Skill Structure and Format",
+          "words": 1387,
+          "hasMermaid": false,
+          "sources": [
+            "internal/skills/skills.go",
+            "internal/skills/skills_test.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "git-integration",
+      "dir": "Git Integration",
+      "title": "Git Integration",
+      "docs": [
+        {
+          "slug": "git-integration",
+          "file": "Git Integration.md",
+          "title": "Git Integration",
+          "words": 1400,
+          "hasMermaid": false,
+          "sources": [
+            "internal/gitx/gitx.go",
+            "internal/gitx/hook.go",
+            "internal/agent/diff.go"
+          ]
+        },
+        {
+          "slug": "automatic-update-hooks",
+          "file": "Automatic Update Hooks.md",
+          "title": "Automatic Update Hooks",
+          "words": 1433,
+          "hasMermaid": true,
+          "sources": [
+            "internal/gitx/hook.go"
+          ]
+        },
+        {
+          "slug": "detecting-changes-since-last-build",
+          "file": "Detecting Changes Since Last Build.md",
+          "title": "Detecting Changes Since Last Build",
+          "words": 1868,
+          "hasMermaid": true,
+          "sources": [
+            "internal/gitx/gitx.go"
+          ]
+        },
+        {
+          "slug": "generating-diff-patches-and-previews",
+          "file": "Generating Diff Patches and Previews.md",
+          "title": "Generating Diff Patches and Previews",
+          "words": 825,
+          "hasMermaid": false,
+          "sources": [
+            "internal/gitx/gitx.go",
+            "internal/agent/diff.go"
+          ]
+        },
+        {
+          "slug": "git-repository-detection-and-basics",
+          "file": "Git Repository Detection and Basics.md",
+          "title": "Git Repository Detection and Basics",
+          "words": 1048,
+          "hasMermaid": false,
+          "sources": [
+            "internal/gitx/gitx.go"
+          ]
+        },
+        {
+          "slug": "viewing-commit-history",
+          "file": "Viewing Commit History.md",
+          "title": "Viewing Commit History",
+          "words": 404,
+          "hasMermaid": false,
+          "sources": [
+            "internal/gitx/gitx.go"
+          ]
+        }
+      ]
+    },
+    {
       "slug": "code-mapping-and-indexing",
       "dir": "Code Mapping and Indexing",
       "title": "Code Mapping and Indexing",
@@ -214,6 +619,64 @@
             "internal/codemap/codemap.go",
             "internal/codemap/parse_go.go",
             "internal/codemap/parse_lines.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "serving-the-generated-wiki",
+      "dir": "Serving the Generated Wiki",
+      "title": "Serving the Generated Wiki",
+      "docs": [
+        {
+          "slug": "serving-the-generated-wiki",
+          "file": "Serving the Generated Wiki.md",
+          "title": "Serving the Generated Wiki",
+          "words": 2424,
+          "hasMermaid": false,
+          "sources": [
+            "internal/serve/serve.go",
+            "internal/serve/serve_test.go"
+          ]
+        },
+        {
+          "slug": "rendering-and-navigating-documentation",
+          "file": "Rendering and Navigating Documentation.md",
+          "title": "Rendering and Navigating Documentation",
+          "words": 1447,
+          "hasMermaid": false,
+          "sources": [
+            "internal/serve/serve.go"
+          ]
+        },
+        {
+          "slug": "searching-the-wiki",
+          "file": "Searching the Wiki.md",
+          "title": "Searching the Wiki",
+          "words": 1001,
+          "hasMermaid": false,
+          "sources": [
+            "internal/serve/serve.go"
+          ]
+        },
+        {
+          "slug": "server-routing-and-request-handling",
+          "file": "Server Routing and Request Handling.md",
+          "title": "Server Routing and Request Handling",
+          "words": 2175,
+          "hasMermaid": true,
+          "sources": [
+            "internal/serve/serve.go"
+          ]
+        },
+        {
+          "slug": "starting-the-wiki-server",
+          "file": "Starting the Wiki Server.md",
+          "title": "Starting the Wiki Server",
+          "words": 554,
+          "hasMermaid": false,
+          "sources": [
+            "internal/serve/serve.go"
           ]
         }
       ]
@@ -385,469 +848,6 @@
           "sources": [
             ".gitignore",
             "Makefile"
-          ]
-        }
-      ]
-    },
-    {
-      "slug": "getting-started",
-      "dir": "Getting Started",
-      "title": "Getting Started",
-      "docs": [
-        {
-          "slug": "getting-started",
-          "file": "Getting Started.md",
-          "title": "Getting Started",
-          "words": 901,
-          "hasMermaid": false,
-          "sources": [
-            "README.md",
-            "Makefile",
-            "go.mod",
-            "cmd/kaioken/main.go"
-          ]
-        },
-        {
-          "slug": "basic-cli-commands-overview",
-          "file": "Basic CLI Commands Overview.md",
-          "title": "Basic CLI Commands Overview",
-          "words": 1155,
-          "hasMermaid": false,
-          "sources": [
-            "cmd/kaioken/main.go"
-          ]
-        },
-        {
-          "slug": "building-the-binary",
-          "file": "Building the Binary.md",
-          "title": "Building the Binary",
-          "words": 288,
-          "hasMermaid": false,
-          "sources": [
-            "Makefile",
-            "go.mod"
-          ]
-        },
-        {
-          "slug": "initializing-a-repository",
-          "file": "Initializing a Repository.md",
-          "title": "Initializing a Repository",
-          "words": 521,
-          "hasMermaid": false,
-          "sources": [
-            "cmd/kaioken/main.go"
-          ]
-        },
-        {
-          "slug": "installation",
-          "file": "Installation.md",
-          "title": "Installation",
-          "words": 365,
-          "hasMermaid": false,
-          "sources": [
-            "README.md",
-            "go.mod"
-          ]
-        },
-        {
-          "slug": "serving-the-generated-wiki",
-          "file": "Serving the Generated Wiki.md",
-          "title": "Serving the Generated Wiki",
-          "words": 815,
-          "hasMermaid": false,
-          "sources": [
-            "cmd/kaioken/main.go",
-            "README.md"
-          ]
-        },
-        {
-          "slug": "using-the-terminal-user-interface-tui",
-          "file": "Using the Terminal User Interface (TUI).md",
-          "title": "Using the Terminal User Interface (TUI)",
-          "words": 820,
-          "hasMermaid": false,
-          "sources": [
-            "README.md"
-          ]
-        }
-      ]
-    },
-    {
-      "slug": "git-integration",
-      "dir": "Git Integration",
-      "title": "Git Integration",
-      "docs": [
-        {
-          "slug": "git-integration",
-          "file": "Git Integration.md",
-          "title": "Git Integration",
-          "words": 1400,
-          "hasMermaid": false,
-          "sources": [
-            "internal/gitx/gitx.go",
-            "internal/gitx/hook.go",
-            "internal/agent/diff.go"
-          ]
-        },
-        {
-          "slug": "automatic-update-hooks",
-          "file": "Automatic Update Hooks.md",
-          "title": "Automatic Update Hooks",
-          "words": 1433,
-          "hasMermaid": true,
-          "sources": [
-            "internal/gitx/hook.go"
-          ]
-        },
-        {
-          "slug": "detecting-changes-since-last-build",
-          "file": "Detecting Changes Since Last Build.md",
-          "title": "Detecting Changes Since Last Build",
-          "words": 1868,
-          "hasMermaid": true,
-          "sources": [
-            "internal/gitx/gitx.go"
-          ]
-        },
-        {
-          "slug": "generating-diff-patches-and-previews",
-          "file": "Generating Diff Patches and Previews.md",
-          "title": "Generating Diff Patches and Previews",
-          "words": 825,
-          "hasMermaid": false,
-          "sources": [
-            "internal/gitx/gitx.go",
-            "internal/agent/diff.go"
-          ]
-        },
-        {
-          "slug": "git-repository-detection-and-basics",
-          "file": "Git Repository Detection and Basics.md",
-          "title": "Git Repository Detection and Basics",
-          "words": 1048,
-          "hasMermaid": false,
-          "sources": [
-            "internal/gitx/gitx.go"
-          ]
-        },
-        {
-          "slug": "viewing-commit-history",
-          "file": "Viewing Commit History.md",
-          "title": "Viewing Commit History",
-          "words": 404,
-          "hasMermaid": false,
-          "sources": [
-            "internal/gitx/gitx.go"
-          ]
-        }
-      ]
-    },
-    {
-      "slug": "knowledge-engine",
-      "dir": "Knowledge Engine",
-      "title": "Knowledge Engine",
-      "docs": [
-        {
-          "slug": "knowledge-engine",
-          "file": "Knowledge Engine.md",
-          "title": "Knowledge Engine",
-          "words": 2723,
-          "hasMermaid": true,
-          "sources": [
-            "internal/wiki/wiki.go",
-            "internal/plan/plan.go",
-            "internal/scan/scan.go",
-            "internal/state/state.go",
-            "internal/wiki/passes.go",
-            "internal/wiki/update.go"
-          ]
-        },
-        {
-          "slug": "incremental-wiki-updates",
-          "file": "Incremental Wiki Updates.md",
-          "title": "Incremental Wiki Updates",
-          "words": 1344,
-          "hasMermaid": false,
-          "sources": [
-            "internal/wiki/update.go",
-            "internal/state/state.go",
-            "internal/scan/scan.go",
-            "internal/wiki/wiki.go"
-          ]
-        },
-        {
-          "slug": "knowledge-card-generation-and-refinement",
-          "file": "Knowledge Card Generation and Refinement.md",
-          "title": "Knowledge Card Generation and Refinement",
-          "words": 1723,
-          "hasMermaid": false,
-          "sources": [
-            "internal/wiki/wiki.go",
-            "internal/wiki/passes.go"
-          ]
-        },
-        {
-          "slug": "module-planning",
-          "file": "Module Planning.md",
-          "title": "Module Planning",
-          "words": 1751,
-          "hasMermaid": true,
-          "sources": [
-            "internal/plan/plan.go"
-          ]
-        },
-        {
-          "slug": "repository-scanning",
-          "file": "Repository Scanning.md",
-          "title": "Repository Scanning",
-          "words": 1474,
-          "hasMermaid": true,
-          "sources": [
-            "internal/scan/scan.go"
-          ]
-        },
-        {
-          "slug": "state-management-for-incremental-updates",
-          "file": "State Management for Incremental Updates.md",
-          "title": "State Management for Incremental Updates",
-          "words": 1021,
-          "hasMermaid": false,
-          "sources": [
-            "internal/state/state.go"
-          ]
-        },
-        {
-          "slug": "wiki-outline-planning",
-          "file": "Wiki Outline Planning.md",
-          "title": "Wiki Outline Planning",
-          "words": 1440,
-          "hasMermaid": true,
-          "sources": [
-            "internal/wiki/wiki.go"
-          ]
-        }
-      ]
-    },
-    {
-      "slug": "serving-the-generated-wiki",
-      "dir": "Serving the Generated Wiki",
-      "title": "Serving the Generated Wiki",
-      "docs": [
-        {
-          "slug": "serving-the-generated-wiki",
-          "file": "Serving the Generated Wiki.md",
-          "title": "Serving the Generated Wiki",
-          "words": 2424,
-          "hasMermaid": false,
-          "sources": [
-            "internal/serve/serve.go",
-            "internal/serve/serve_test.go"
-          ]
-        },
-        {
-          "slug": "rendering-and-navigating-documentation",
-          "file": "Rendering and Navigating Documentation.md",
-          "title": "Rendering and Navigating Documentation",
-          "words": 1447,
-          "hasMermaid": false,
-          "sources": [
-            "internal/serve/serve.go"
-          ]
-        },
-        {
-          "slug": "searching-the-wiki",
-          "file": "Searching the Wiki.md",
-          "title": "Searching the Wiki",
-          "words": 1001,
-          "hasMermaid": false,
-          "sources": [
-            "internal/serve/serve.go"
-          ]
-        },
-        {
-          "slug": "server-routing-and-request-handling",
-          "file": "Server Routing and Request Handling.md",
-          "title": "Server Routing and Request Handling",
-          "words": 2175,
-          "hasMermaid": true,
-          "sources": [
-            "internal/serve/serve.go"
-          ]
-        },
-        {
-          "slug": "starting-the-wiki-server",
-          "file": "Starting the Wiki Server.md",
-          "title": "Starting the Wiki Server",
-          "words": 554,
-          "hasMermaid": false,
-          "sources": [
-            "internal/serve/serve.go"
-          ]
-        }
-      ]
-    },
-    {
-      "slug": "skills-system",
-      "dir": "Skills System",
-      "title": "Skills System",
-      "docs": [
-        {
-          "slug": "skills-system",
-          "file": "Skills System.md",
-          "title": "Skills System",
-          "words": 3319,
-          "hasMermaid": true,
-          "sources": [
-            "internal/skills/skills.go",
-            "internal/skills/generate.go",
-            "internal/skills/skills_test.go"
-          ]
-        },
-        {
-          "slug": "skill-generation",
-          "file": "Skill Generation.md",
-          "title": "Skill Generation",
-          "words": 2484,
-          "hasMermaid": true,
-          "sources": [
-            "internal/skills/generate.go",
-            "internal/skills/skills.go"
-          ]
-        },
-        {
-          "slug": "skill-refreshing-and-invalidation",
-          "file": "Skill Refreshing and Invalidation.md",
-          "title": "Skill Refreshing and Invalidation",
-          "words": 1995,
-          "hasMermaid": true,
-          "sources": [
-            "internal/skills/skills.go",
-            "internal/skills/generate.go"
-          ]
-        },
-        {
-          "slug": "skill-storage-loading-and-indexing",
-          "file": "Skill Storage, Loading, and Indexing.md",
-          "title": "Skill Storage, Loading, and Indexing",
-          "words": 1577,
-          "hasMermaid": true,
-          "sources": [
-            "internal/skills/skills.go",
-            "internal/skills/skills_test.go"
-          ]
-        },
-        {
-          "slug": "skill-structure-and-format",
-          "file": "Skill Structure and Format.md",
-          "title": "Skill Structure and Format",
-          "words": 1387,
-          "hasMermaid": false,
-          "sources": [
-            "internal/skills/skills.go",
-            "internal/skills/skills_test.go"
-          ]
-        }
-      ]
-    },
-    {
-      "slug": "terminal-user-interface-tui",
-      "dir": "Terminal User Interface (TUI)",
-      "title": "Terminal User Interface (TUI)",
-      "docs": [
-        {
-          "slug": "terminal-user-interface-tui",
-          "file": "Terminal User Interface (TUI).md",
-          "title": "Terminal User Interface (TUI)",
-          "words": 1231,
-          "hasMermaid": true,
-          "sources": [
-            "internal/tui/tui.go",
-            "internal/tui/palette.go",
-            "internal/tui/markdown.go",
-            "internal/tui/tutorial.go"
-          ]
-        },
-        {
-          "slug": "approval-workflow",
-          "file": "Approval Workflow.md",
-          "title": "Approval Workflow",
-          "words": 897,
-          "hasMermaid": false,
-          "sources": [
-            "internal/tui/tui.go"
-          ]
-        },
-        {
-          "slug": "built-in-tutorial",
-          "file": "Built-in Tutorial.md",
-          "title": "Built-in Tutorial",
-          "words": 2678,
-          "hasMermaid": false,
-          "sources": [
-            "internal/tui/tutorial.go",
-            "internal/tui/tui.go"
-          ]
-        },
-        {
-          "slug": "command-palette",
-          "file": "Command Palette.md",
-          "title": "Command Palette",
-          "words": 1887,
-          "hasMermaid": false,
-          "sources": [
-            "internal/tui/palette.go",
-            "internal/tui/tui.go"
-          ]
-        },
-        {
-          "slug": "keybindings-and-input-handling",
-          "file": "Keybindings and Input Handling.md",
-          "title": "Keybindings and Input Handling",
-          "words": 777,
-          "hasMermaid": false,
-          "sources": [
-            "internal/tui/tui.go"
-          ]
-        },
-        {
-          "slug": "markdown-rendering",
-          "file": "Markdown Rendering.md",
-          "title": "Markdown Rendering",
-          "words": 698,
-          "hasMermaid": true,
-          "sources": [
-            "internal/tui/markdown.go",
-            "internal/tui/tui.go"
-          ]
-        },
-        {
-          "slug": "session-management",
-          "file": "Session Management.md",
-          "title": "Session Management",
-          "words": 1504,
-          "hasMermaid": false,
-          "sources": [
-            "internal/tui/tui.go"
-          ]
-        },
-        {
-          "slug": "status-line-and-footer",
-          "file": "Status Line and Footer.md",
-          "title": "Status Line and Footer",
-          "words": 1428,
-          "hasMermaid": false,
-          "sources": [
-            "internal/tui/tui.go"
-          ]
-        },
-        {
-          "slug": "tui-structure-and-main-loop",
-          "file": "TUI Structure and Main Loop.md",
-          "title": "TUI Structure and Main Loop",
-          "words": 2951,
-          "hasMermaid": false,
-          "sources": [
-            "internal/tui/tui.go"
           ]
         }
       ]

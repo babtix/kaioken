@@ -155,3 +155,54 @@ func TestShort(t *testing.T) {
 		t.Errorf("Short should pass through short input, got %q", got)
 	}
 }
+
+// Git reports diff paths relative to the work tree root but resolves
+// pathspecs relative to the working directory. Root() reconciles the two.
+// Without it, a caller pointed at a subdirectory gets a populated file list
+// from Changes and an empty diff from Patch — a silent, confusing no-op.
+func TestRootReconcilesSubdirectoryPaths(t *testing.T) {
+	repo, _ := newRepo(t)
+	sub := filepath.Join(repo, "cli")
+	ctx := context.Background()
+
+	write(t, repo, "cli/main.go", "package main\n")
+	gitIn(t, repo, "add", ".")
+	gitIn(t, repo, "commit", "-qm", "add cli")
+	write(t, repo, "cli/main.go", "package main\n\nfunc main() {}\n")
+
+	root := Root(ctx, sub)
+	if filepath.Clean(root) != filepath.Clean(repo) {
+		t.Fatalf("Root(%s) = %s, want %s", sub, root, repo)
+	}
+
+	// Paths come back relative to the work tree root even though git ran from
+	// the subdirectory — that asymmetry is the whole reason Root exists.
+	changes, err := Changes(ctx, sub, "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 1 || changes[0].Path != "cli/main.go" {
+		t.Fatalf("Changes from a subdirectory = %+v, want cli/main.go", changes)
+	}
+
+	patch, err := Patch(ctx, root, "HEAD", []string{changes[0].Path}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(patch, "func main()") {
+		t.Errorf("patch from the git root is empty or wrong:\n%s", patch)
+	}
+}
+
+// gitIn runs a git command inside repo, failing the test on error.
+func gitIn(t *testing.T, repo string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=k", "GIT_AUTHOR_EMAIL=k@example.com",
+		"GIT_COMMITTER_NAME=k", "GIT_COMMITTER_EMAIL=k@example.com")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
+

@@ -26,6 +26,7 @@ const COLUMNS: { heading: string; links: { label: string; to: string; external?:
   {
     heading: "project",
     links: [
+      { label: "Desktop app", to: "/desktop" },
       { label: "News", to: NEWS_URL, external: true },
       { label: "Generated output", to: "/preview" },
       { label: "Showcase", to: "/showcase" },

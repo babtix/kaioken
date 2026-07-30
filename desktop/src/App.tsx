@@ -6,6 +6,7 @@ import { connectEvents } from "@/lib/events"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useChatStore } from "@/store/chat"
 import { useRunsStore } from "@/store/runs"
+import { useResearchStore } from "@/store/research"
 import { useConnStore } from "@/store/conn"
 import type { KaiEvent } from "@/lib/types"
 
@@ -23,6 +24,8 @@ const Graph = lazy(() => import("@/routes/Graph"))
 const Cards = lazy(() => import("@/routes/Cards"))
 const Extensions = lazy(() => import("@/routes/Extensions"))
 const Settings = lazy(() => import("@/routes/Settings"))
+const Research = lazy(() => import("@/routes/Research"))
+const Cost = lazy(() => import("@/routes/Cost"))
 
 export default function App() {
   const handleEvent = useWorkspaceStore((s) => s.handleEvent)
@@ -41,6 +44,7 @@ export default function App() {
       handleEvent(ev)
       useChatStore.getState().handleEvent(ev)
       useRunsStore.getState().handleEvent(ev)
+      useResearchStore.getState().handleEvent(ev)
     }
     const disconnect = connectEvents(dispatch, useConnStore.getState().setStatus)
     return disconnect
@@ -51,6 +55,7 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route index element={<Welcome />} />
         <Route path="chat" element={<Chat />} />
+        <Route path="research" element={<Research />} />
         <Route path="editor" element={<Editor />} />
         <Route path="browser" element={<Browser />} />
         <Route path="wiki" element={<Wiki />} />
@@ -58,6 +63,7 @@ export default function App() {
         <Route path="activity" element={<Activity />} />
         <Route path="cards" element={<Cards />} />
         <Route path="extensions" element={<Extensions />} />
+        <Route path="cost" element={<Cost />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

@@ -12,10 +12,20 @@ import { useWorkspaceStore } from "@/store/workspace"
 import type { ConnStatus, Usage } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
+// A healthy link gets a steady lit dot; the unhealthy states pulse. Motion
+// marks the state that wants attention, never the resting one.
 const DOT: Record<ConnStatus, { className: string; label: string }> = {
-  open: { className: "bg-kai-green", label: "connected" },
+  open: {
+    className: "bg-kai-green shadow-[0_0_6px_-1px_var(--kai-green)]",
+    label: "connected",
+  },
   connecting: { className: "bg-kai-amber animate-pulse", label: "connecting" },
   reconnecting: { className: "bg-kai-amber animate-pulse", label: "reconnecting" },
+}
+
+/** Hairline rule separating readout groups, the way a HUD segments a bar. */
+function Sep() {
+  return <span aria-hidden className="h-2.5 w-px shrink-0 bg-border" />
 }
 
 export default function StatusBar() {
@@ -58,7 +68,9 @@ export default function StatusBar() {
   const usage = useUsage(ws?.id ?? null, activeRuns.length)
 
   return (
-    <footer className="flex h-6 shrink-0 items-center gap-2 border-t border-border bg-card px-3 font-mono text-[10px] text-kai-dim">
+    // Scanlines match the titlebar: the two bars frame the app, so they wear
+    // the same texture or the frame reads as lopsided.
+    <footer className="hud-scanlines flex h-6 shrink-0 items-center gap-2 border-t border-border bg-card px-3 font-mono text-[10px] text-kai-dim">
       <span
         className={cn("size-2 shrink-0 rounded-full", dot.className)}
         title={dot.label}
@@ -74,7 +86,12 @@ export default function StatusBar() {
 
       {activeRuns.length > 0 && (
         <span className="flex items-center gap-1.5 text-kai-orange">
-          <span className="size-1 rounded-full bg-kai-orange" />
+          {/* The pulse marks a run genuinely in flight — the one place in the
+              status bar that earns motion under the HUD rules. */}
+          <span className="relative flex size-1.5">
+            <span className="animate-energy absolute inline-flex size-full rounded-full bg-kai-orange" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-kai-orange" />
+          </span>
           {activeRuns.length} run{activeRuns.length > 1 ? "s" : ""} active
           {activeRuns[0]?.progress?.message && (
             <span className="max-w-64 truncate text-kai-dim">
@@ -90,6 +107,7 @@ export default function StatusBar() {
         </span>
       )}
 
+      {ws && usage && usage.calls > 0 && <Sep />}
       {ws && usage && usage.calls > 0 && (
         <span
           className="flex shrink-0 items-center gap-1 text-kai-muted"
@@ -99,6 +117,10 @@ export default function StatusBar() {
           {formatTokens(usage.prompt_tokens + usage.completion_tokens)} tok · {usage.calls} calls
         </span>
       )}
+
+      {/* Only when a workspace is open: without one the terminal button takes
+          `ml-auto` and a separator here would be left stranded mid-bar. */}
+      {ws && <Sep />}
 
       <button
         onClick={openTerminal}

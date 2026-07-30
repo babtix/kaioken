@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search } from "lucide-react"
-import { openUrl } from "@tauri-apps/plugin-opener"
+import { openInBrowser } from "@/lib/openInBrowser"
 import { REGISTRY_LINKS } from "@/lib/links"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useRunsStore } from "@/store/runs"
@@ -39,9 +39,10 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
     const out: PaletteItem[] = []
     // Navigation
     const nav = [
-      { to: "/chat", label: "Chat" }, { to: "/wiki", label: "Wiki" },
+      { to: "/chat", label: "Chat" }, { to: "/research", label: "Research" },
+      { to: "/wiki", label: "Wiki" },
       { to: "/graph", label: "Graph" },
-      { to: "/activity", label: "Activity" }, { to: "/cards", label: "Cards" },
+      { to: "/cards", label: "Cards" }, { to: "/activity", label: "Activity" },
       { to: "/extensions", label: "Extensions" },
       { to: "/settings", label: "Settings" },
     ]
@@ -69,7 +70,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
     }
     // Registry website — external links, workspace not required (like Navigation).
     for (const l of REGISTRY_LINKS) {
-      out.push({ id: `web-${l.url}`, label: l.label, sub: l.description, group: "Registry (web)", action: () => { void openUrl(l.url).catch(() => {}); onClose() } })
+      out.push({ id: `web-${l.url}`, label: l.label, sub: l.description, group: "Registry (web)", action: () => { openInBrowser(l.url); onClose() } })
     }
     return out
   }, [ws, recents, navigate, onClose, startRun, newSession, openWs])
