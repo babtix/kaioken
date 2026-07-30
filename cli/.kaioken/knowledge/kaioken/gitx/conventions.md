@@ -1,7 +1,8 @@
-- Functions that execute git commands return an error if the command fails, with the run function (in gitx.go) centralizing command execution and error formatting.
-- Long-running git operations accept a context.Context for cancellation (e.g., Head, Resolve, Changes, Patch, Subjects, Stage, Unstage, Discard, Commit, FileDiff, LineStats, Upstream).
-- File paths are normalized to use forward slashes via filepath.ToSlash for cross-platform compatibility, especially in hook scripts.
-- Hook scripts are generated with delimiters (# >>> kaioken >>> and # <<< kaioken <<<) and the binary and repo paths are single-quoted to be safely interpreted by sh.
-- Tests use a newRepo helper to create a temporary git repository with an initial commit and clean up with t.TempDir().
-- Specific error conditions are represented by exported error variables (e.g., ErrNoPaths for empty path lists in staging operations).
-- Function names are descriptive and follow the pattern of the git operation they perform (e.g., IsRepo, Head, Branch, Changes, Patch, Subjects, InstallPostCommit, RemovePostCommit, Status, Stage, Unstage, Discard, Commit, FileDiff, LineStats, Upstream).
+- Use the `run` helper function (in gitx.go) for executing git commands, which returns trimmed stdout or an error.
+- Convert paths to slash-separated using `filepath.ToSlash` for consistency in Git output.
+- In hook management, use the delimiters `# >>> kaioken >>>` and `# <<< kaioken <<<` to identify Kaioken's block in hook files.
+- Write hook scripts with a `#!/bin/sh` shebang and single-quote paths (using `shellQuote`) to ensure compatibility with Git's bundled shell.
+- Make hook files executable (0o755) on non-Windows systems.
+- Functions that take a path list must return `ErrNoPaths` if the list is empty (enforced in Stage, Unstage, Discard).
+- Context is used for cancellation in long-running git operations (where applicable).
+- Tests use the `newRepo` helper to create a temporary git repository with an initial commit.

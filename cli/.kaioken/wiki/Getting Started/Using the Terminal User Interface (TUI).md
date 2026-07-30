@@ -38,6 +38,8 @@ kaioken -repo path/to/repo   # launches TUI for specified repository
 
 The TUI initializes by loading repository configuration, session history, and any existing knowledge artifacts (wiki, skills) from the `.kaioken` directory.
 
+New features such as research mode, MCP server integration, and local model support are accessible via slash-commands within the TUI.
+
 ## Navigating the Interface
 
 The TUI consists of the following main areas:
@@ -52,6 +54,7 @@ Key navigation features:
 - **Workspace Explorer navigation**: Use arrow keys to navigate the file tree, press `Enter` to open a file in the chat or view its contents, and use standard tree navigation shortcuts (e.g., `left`/`right` to collapse/expand, `home`/`end` to go to start/end)
 - **Session persistence**: Conversations are automatically saved per repository in `.kaioken/sessions/` and can be resumed later
 - **Progress reporting**: Long operations (wiki generation, skill building) show live progress bars in the status line without freezing the UI; `Ctrl+C` cancels in-flight operations
+- **UI enhancements**: Various improvements to the interface including new visual feedback, improved responsiveness, and additional accessibility features
 
 ## Starting a Chat Session
 
@@ -92,9 +95,9 @@ All TUI functionality is accessed via slash-commands. Type `/` to open the comma
 | `/plan` | Generate proposed `modules.yaml` for knowledge engine planning phase |
 | `/cards [force\|id]` | Generate knowledge cards for modules; `force` rebuilds all, `id` builds specific module |
 | `/status` | Show freshness status of all knowledge modules |
-| `/models [filter]` | List available LLM models (optional filter for provider-specific models) |
+| `/models [filter]` | List available LLM models (optional filter for provider-specific models). When the local provider is active, this will list locally available models. |
 | `/model <id>` | Set active generation model |
-| `/provider <name>` | Switch API provider (e.g., openrouter, openai, groq) |
+| `/provider <name>` | Switch API provider (e.g., openrouter, openai, groq, local). When set to 'local', the system will use locally hosted models (e.g., via Ollama or similar). |
 | `/key [value]` | Set API key in-memory (blank value triggers secure prompt) |
 | `/repo <path>` | Change active repository context |
 | `/notes [add <t>\|clear]` | View/edit steering notes injected into LLM prompts |
@@ -108,6 +111,8 @@ All TUI functionality is accessed via slash-commands. Type `/` to open the comma
 | `/clear` | Clear chat display |
 | `/help` | Show interactive help overlay |
 | `/quit` | Exit TUI application |
+
+*New features*: Slash-commands for research mode and MCP server have been added. Use `/help` to see the full list of available commands.
 
 ## Referenced Files
 - README.md

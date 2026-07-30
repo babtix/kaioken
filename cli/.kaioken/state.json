@@ -29,11 +29,11 @@
       "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
     },
     "kaioken/chat_agent/llm_integration": {
-      "source_hash": "7692fe0b3f8afa207a229684d7ea481de5fed773ca222c7b6a1186a5b3dd15e8",
-      "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-28T10:10:53.7386465Z",
-      "file_count": 11,
-      "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
+      "source_hash": "9d3e25e18fb59bec1456985de66ce8ef793efe4114509ee6670dfe5e58a96bb2",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-30T22:22:38.2170081Z",
+      "file_count": 13,
+      "commit": "4ce793339fa54c81057cc2b4c5596f8f4cb3f591"
     },
     "kaioken/cmd": {
       "source_hash": "a3cd0fbf8ee31c197491ad8fe30f9ebfb1b5d187e2c544d8d7997b91dc021a1f",
@@ -43,18 +43,18 @@
       "commit": "d3e6576243a025303a4832185fa3f71e20ac7867"
     },
     "kaioken/config": {
-      "source_hash": "8b49215e22bf7b8ded0d62a1188b6a41de86a87f141af5627f4de4fcbf4d29f2",
-      "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-28T10:21:27.5690388Z",
+      "source_hash": "ef3860261b880095e3076bae660b7164a91ebe714acc3f554ec020101bb35e08",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-30T22:22:32.2287946Z",
       "file_count": 4,
-      "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
+      "commit": "4ce793339fa54c81057cc2b4c5596f8f4cb3f591"
     },
     "kaioken/gitx": {
-      "source_hash": "747e5f9d42b3a750110330cc96693f6001795dc56166a7d73930025d87892c7e",
-      "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-28T10:22:28.8625294Z",
+      "source_hash": "f559664a62e22a30cea714ccc4614e6d103b492c37b4c3729b12972f5fb84bbc",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-30T22:23:00.426239Z",
       "file_count": 8,
-      "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
+      "commit": "4ce793339fa54c81057cc2b4c5596f8f4cb3f591"
     },
     "kaioken/knowledge_engine/codemap": {
       "source_hash": "24d93f26b655cd8362e1614a1e73ac57c374b1cb3b162c006479254c42af0cb4",

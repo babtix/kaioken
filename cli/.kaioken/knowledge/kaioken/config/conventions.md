@@ -1,10 +1,10 @@
-- Use yaml struct tags for field mapping (e.g., `yaml:"version"`)
-- Initialize nil maps (e.g., Global.Keys) to empty map after unmarshaling
-- Set directory permissions: 0o755 for repo config dir, 0o700 for global config dir
-- Set file permissions: 0o644 for repo config, 0o600 for global config
-- Prepend header comments when saving config files
-- Validate config values on load (e.g., concurrency ≥1, maxModuleTokens ≥4000)
-- Return error for missing repo config (suggesting `kaioken init`), but return empty struct for missing global config
-- Use filepath.Join for path construction
-- Test environment isolation via HomeEnv (KAIOKEN_HOME) in TestMain
-- Test files named *_test.go in same directory, using t.TempDir() for sandboxing
+- Use YAML struct tags for all configurable fields (e.g., `yaml:"version"`).
+- Provide a Default() function returning initialized Config with sensible defaults.
+- When loading a missing config file: return descriptive error for repo config (suggesting `kaioken init`); return empty/default struct for global config.
+- Before saving, ensure config directory exists with proper permissions: 0o755 for repo config dir, 0o700 for global config dir and 0o600 for global config file.
+- Include header comments in saved configs: repo config explains notes usage; global config warns against committing due to API keys.
+- Initialize maps (e.g., Global.Keys) to avoid nil when unmarshaling YAML.
+- Use constants for fixed values (Dir, FreeModelConcurrency).
+- Derive values through methods on config structs (LearnThreshold, EffectiveConcurrency, LearnAtSessionEnd, LearnPerTurn).
+- Perform case-insensitive, trimmed string comparisons for model IDs (e.g., IsFreeModel).
+- In tests, sandbox global config by setting KAIOKEN_HOME to a temporary directory (via TestMain or t.Setenv).

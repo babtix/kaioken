@@ -2,6 +2,178 @@
 
 What Kaioken revised, and why.
 
+## 2026-07-30 22:22 — d3e65762 → 4ce79333
+
+153 files changed · 2 documents updated
+
+- Added a research mode subsystem (corpus, evidence, steps, store, handlers, tests) enabling multi‑step local and web‑based research with MCP‑style tool integration.  
+- Implemented an MCP server (handlers, manifest, prompts, resources, tools, stdio/http transports) and exposed it via new CLI commands and desktop UI components.  
+- Introduced local LLM support (local.go) and usage tracking/pricing modules, plus webfetch and websearch integrations for external data retrieval.  
+- Updated UI across desktop and website (new routes, components, state stores, logo assets) and refreshed CI/CD workflows (added release.yaml, removed release.yml, updated ci.yml and goreleaser config).
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Using the Terminal User Interface (TUI).md
+- .kaioken/wiki/Development Guide/Development Guide.md
+
+<details><summary>Changed files</summary>
+
+- `M` .github/workflows/ci.yml
+- `A` .github/workflows/release.yaml
+- `D` .github/workflows/release.yml
+- `M` .gitignore
+- `A` .goreleaser.yaml
+- `A` SPEC_MCP_SERVER.md
+- `M` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/config.yaml
+- `M` cli/.kaioken/knowledge/kaioken/cmd/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/cmd/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/tech_stack.md
+- `A` cli/.kaioken/research/is-solar-cheaper-than-nuclear-in-europe.md
+- `A` cli/.kaioken/research/what-changed-in-go-1-24-garbage-collection.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.digest.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.json
+- `M` cli/.kaioken/state.json
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `A` cli/cmd/kaioken/index.go
+- `M` cli/cmd/kaioken/main.go
+- `A` cli/cmd/kaioken/mcp.go
+- `A` cli/cmd/kaioken/research_test.go
+- `A` cli/cmd/kaioken/review.go
+- `A` cli/cmd/kaioken/usage.go
+- `M` cli/go.mod
+- `M` cli/go.sum
+- `M` cli/internal/config/config.go
+- `M` cli/internal/config/global.go
+- `M` cli/internal/daemon/handlers_browser.go
+- `M` cli/internal/daemon/handlers_docs.go
+- `A` cli/internal/daemon/handlers_research.go
+- `A` cli/internal/daemon/handlers_research_test.go
+- `M` cli/internal/daemon/handlers_runs.go
+- `M` cli/internal/daemon/handlers_settings.go
+- `A` cli/internal/daemon/handlers_usage.go
+- `M` cli/internal/daemon/mux.go
+- `M` cli/internal/daemon/workspace.go
+- `M` cli/internal/gitx/gitx.go
+- `M` cli/internal/gitx/gitx_test.go
+- `A` cli/internal/llm/local.go
+- `A` cli/internal/llm/local_test.go
+- `M` cli/internal/llm/openrouter.go
+- `A` cli/internal/mcp/http.go
+- `A` cli/internal/mcp/logging.go
+- `A` cli/internal/mcp/manifest.go
+- `A` cli/internal/mcp/prompts.go
+- `A` cli/internal/mcp/resources.go
+- `A` cli/internal/mcp/schema.go
+- `A` cli/internal/mcp/server.go
+- `A` cli/internal/mcp/server_test.go
+- `A` cli/internal/mcp/stdio.go
+- `A` cli/internal/mcp/tools_repo.go
+- `A` cli/internal/mcp/tools_research.go
+- `A` cli/internal/mcp/tools_skills.go
+- `A` cli/internal/mcp/tools_wiki.go
+- `A` cli/internal/mcp/types.go
+- `A` cli/internal/research/corpus.go
+- `A` cli/internal/research/corpus_test.go
+- `A` cli/internal/research/evidence.go
+- `A` cli/internal/research/evidence_test.go
+- `A` cli/internal/research/research.go
+- `A` cli/internal/research/research_test.go
+- `A` cli/internal/research/steps.go
+- `A` cli/internal/research/store.go
+- `A` cli/internal/research/store_test.go
+- `A` cli/internal/review/review.go
+- `A` cli/internal/review/review_test.go
+- `A` cli/internal/review/sarif.go
+- `A` cli/internal/search/corpus.go
+- `A` cli/internal/search/embed.go
+- `A` cli/internal/search/index.go
+- `A` cli/internal/search/lexical.go
+- `A` cli/internal/search/search_test.go
+- `M` cli/internal/selfupdate/selfupdate.go
+- `M` cli/internal/selfupdate/selfupdate_test.go
+- `M` cli/internal/termpty/termpty_windows_test.go
+- `A` cli/internal/usage/pricing.go
+- `A` cli/internal/usage/record.go
+- `A` cli/internal/usage/usage.go
+- `A` cli/internal/usage/usage_test.go
+- `A` cli/internal/webfetch/extract.go
+- `A` cli/internal/webfetch/firecrawl.go
+- `A` cli/internal/webfetch/webfetch.go
+- `A` cli/internal/webfetch/webfetch_test.go
+- `A` cli/internal/websearch/multi.go
+- `A` cli/internal/websearch/websearch.go
+- `A` cli/internal/websearch/websearch_test.go
+- `A` desktop/devshell.html
+- `A` desktop/overview.html
+- `A` desktop/showcase.html
+- `M` desktop/src-tauri/src/term.rs
+- `M` desktop/src/App.tsx
+- `M` desktop/src/components/CommandPalette.tsx
+- `A` desktop/src/components/LocalModels.tsx
+- `A` desktop/src/components/SearchProviderPicker.tsx
+- `A` desktop/src/components/answer/AnswerCard.tsx
+- `A` desktop/src/components/answer/AskComposer.tsx
+- `A` desktop/src/components/answer/ResearchSteps.tsx
+- `A` desktop/src/components/answer/SourceChip.tsx
+- `A` desktop/src/components/answer/types.ts
+- `M` desktop/src/components/common/Markdown.tsx
+- `A` desktop/src/components/hud/index.tsx
+- `M` desktop/src/components/layout/AppShell.tsx
+- `M` desktop/src/components/layout/NavRail.tsx
+- `M` desktop/src/components/layout/StatusBar.tsx
+- `M` desktop/src/components/layout/WorkspaceSwitcher.tsx
+- `A` desktop/src/components/overview/AppWindow.tsx
+- `A` desktop/src/components/overview/panes.tsx
+- `M` desktop/src/components/ui/index.tsx
+- `A` desktop/src/devshell.tsx
+- `M` desktop/src/index.css
+- `M` desktop/src/lib/api.ts
+- `M` desktop/src/lib/daemon.ts
+- `A` desktop/src/lib/motion.ts
+- `A` desktop/src/lib/openInBrowser.ts
+- `M` desktop/src/lib/shortcuts.ts
+- `M` desktop/src/lib/slash.ts
+- `M` desktop/src/lib/types.ts
+- `A` desktop/src/overview.tsx
+- `M` desktop/src/routes/Activity.tsx
+- `M` desktop/src/routes/Browser.tsx
+- `M` desktop/src/routes/Cards.tsx
+- `M` desktop/src/routes/Chat.tsx
+- `A` desktop/src/routes/Cost.tsx
+- `M` desktop/src/routes/Extensions.tsx
+- `M` desktop/src/routes/Graph.tsx
+- `A` desktop/src/routes/Research.tsx
+- `M` desktop/src/routes/Settings.tsx
+- `M` desktop/src/routes/Welcome.tsx
+- `A` desktop/src/showcase.tsx
+- `A` desktop/src/store/__tests__/theme.test.ts
+- `A` desktop/src/store/research.ts
+- `M` desktop/src/store/theme.ts
+- `A` project_status.md
+- `A` APP-logo.html
+- `A` website/KAIOKEN-logo.html
+- `A` website/public/shots/graph.png
+- `M` website/scripts/gen-wiki-manifest.mjs
+- `M` website/src/App.tsx
+- `M` website/src/components/Icon.tsx
+- `M` website/src/components/SiteFooter.tsx
+- `M` website/src/components/SiteHeader.tsx
+- `A` website/src/components/desktop/AppWindow.tsx
+- `A` website/src/components/desktop/panes.tsx
+- `M` website/src/components/sections/Hero.tsx
+- `A` website/src/data/desktop.ts
+- `M` website/src/data/wiki-manifest.json
+- `A` website/src/lib/motion.ts
+- `A` website/src/pages/Desktop.tsx
+- `M` website/src/pages/Home.tsx
+- `M` wiki
+
+</details>
+
 ## 2026-07-29 05:20 — 27b4c1c9 → d3e65762
 
 291 files changed · 1 documents updated

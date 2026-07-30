@@ -182,6 +182,19 @@ export const SURFACES: Surface[] = [
     ],
     tone: "blue",
   },
+  {
+    icon: "FolderOpen",
+    label: "Repos",
+    key: "Ctrl+O",
+    headline: "Open, switch, drop",
+    body: "The workspace picker shows recent repos, their scan stats, and how stale each knowledge base is. Drop a folder onto the window or pick from recents.",
+    points: [
+      "Recent workspaces with module counts and freshness",
+      "Repository scan with language breakdown",
+      "Drag-and-drop a folder to open it instantly",
+    ],
+    tone: "sage",
+  },
 ]
 
 /* ── architecture ───────────────────────────────────────────────────────── */
