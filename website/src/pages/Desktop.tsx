@@ -14,7 +14,6 @@ import {
   PLATFORMS,
   DESKTOP_STATS,
   DESKTOP_REPO_PATH,
-  DISTRIBUTION_NOTE,
   BUILD_STEPS,
   CURL_PROOF,
 } from "@/data/desktop"
@@ -37,34 +36,31 @@ const toneText: Record<string, string> = {
   sage: "text-kai-sage",
 }
 
-/* ── page ────────────────────────────────────────────────────────────────── */
-
 export default function Desktop() {
   return (
     <>
-      {/* ── hero with the interactive app window ──────────────────────────── */}
+      {/* ── hero ──────────────────────────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden pt-14">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-kai-orange/[0.03] via-background to-background" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-kai-orange/[0.04] via-background to-background" />
 
         <div className="mx-auto max-w-6xl px-4 pt-14 pb-12 sm:px-6 sm:pt-20 sm:pb-16">
           <div className="animate-rise text-center">
-            <p className="font-mono text-[11px] tracking-[0.3em] text-kai-dim uppercase">
-              same engine · new surface
-            </p>
-            <h1 className="mx-auto mt-4 max-w-3xl text-balance font-mono text-[26px] leading-tight font-bold tracking-tight text-foreground sm:text-4xl md:text-[42px]">
-              The <span className="text-kai-orange glow-orange">desktop app</span>
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl font-sans text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-              Everything the CLI does — chat, research, wiki, knowledge cards, skills — in a window
-              with diff approval you can read, a wiki you can browse, and runs you can watch
-              concurrently.
+            {/* Colored ASCII logo — exact HTML from DESKTOP APP-logo.html */}
+            <div
+              className="mx-auto inline-block max-w-full overflow-hidden text-center"
+              aria-label="DESKTOP APP"
+              dangerouslySetInnerHTML={{ __html: `<div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:clamp(5px,1.1vw,14px);line-height:1.25;font-weight:800;white-space:pre;display:inline-block"><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span><span style="color:#663600"> </span> <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span> <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span> <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span><span style="color:#ff8700"> </span><span style="color:#ff8700"> </span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span> <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span>  <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span><span style="color:#663600"> </span> <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span><span style="color:#663600"> </span>      <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span>  <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span><span style="color:#663600"> </span> <span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#ff8700">█</span><span style="color:#663600">╗</span><span style="color:#663600"> </span>\n<span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╗</span> <span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#662b00">╝</span> <span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#662b00">╝</span> <span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">║</span><span style="color:#ff6c00"> </span><span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">╝</span> <span style="color:#662b00">╚</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#662b00">╝</span> <span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╗</span> <span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╗</span>     <span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╗</span> <span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╗</span> <span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╔</span><span style="color:#662b00">═</span><span style="color:#662b00">═</span><span style="color:#ff6c00">█</span><span style="color:#ff6c00">█</span><span style="color:#662b00">╗</span>\n<span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">║</span><span style="color:#ff5100"> </span><span style="color:#ff5100"> </span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">║</span> <span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">╗</span><span style="color:#662000"> </span><span style="color:#662000"> </span> <span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">╗</span> <span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">╔</span><span style="color:#662000">╝</span><span style="color:#662000"> </span> <span style="color:#ff5100"> </span><span style="color:#ff5100"> </span><span style="color:#ff5100"> </span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">║</span><span style="color:#662000"> </span><span style="color:#662000"> </span><span style="color:#662000"> </span> <span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">║</span><span style="color:#ff5100"> </span><span style="color:#ff5100"> </span><span style="color:#ff5100"> </span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">║</span> <span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">╔</span><span style="color:#662000">╝</span>     <span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">║</span> <span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">╔</span><span style="color:#662000">╝</span> <span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#ff5100">█</span><span style="color:#662000">╔</span><span style="color:#662000">╝</span>\n<span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">║</span><span style="color:#ff3600"> </span><span style="color:#ff3600"> </span><span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">║</span> <span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">╔</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">╝</span><span style="color:#661600"> </span><span style="color:#661600"> </span> <span style="color:#661600">╚</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">║</span> <span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">╔</span><span style="color:#661600">═</span><span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">╗</span><span style="color:#661600"> </span> <span style="color:#ff3600"> </span><span style="color:#ff3600"> </span><span style="color:#ff3600"> </span><span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">║</span><span style="color:#661600"> </span><span style="color:#661600"> </span><span style="color:#661600"> </span> <span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">║</span><span style="color:#ff3600"> </span><span style="color:#ff3600"> </span><span style="color:#ff3600"> </span><span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">║</span> <span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">╔</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">╝</span><span style="color:#661600"> </span>     <span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">╔</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">║</span> <span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">╔</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">╝</span><span style="color:#661600"> </span> <span style="color:#ff3600">█</span><span style="color:#ff3600">█</span><span style="color:#661600">╔</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">═</span><span style="color:#661600">╝</span><span style="color:#661600"> </span>\n<span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">╔</span><span style="color:#660b00">╝</span> <span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">╗</span> <span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">║</span> <span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">║</span><span style="color:#ff1b00"> </span><span style="color:#ff1b00"> </span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">╗</span> <span style="color:#ff1b00"> </span><span style="color:#ff1b00"> </span><span style="color:#ff1b00"> </span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">║</span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span> <span style="color:#660b00">╚</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">╔</span><span style="color:#660b00">╝</span> <span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">║</span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span>     <span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">║</span><span style="color:#ff1b00"> </span><span style="color:#ff1b00"> </span><span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">║</span> <span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">║</span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span> <span style="color:#ff1b00">█</span><span style="color:#ff1b00">█</span><span style="color:#660b00">║</span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span><span style="color:#660b00"> </span>\n<span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">╝</span><span style="color:#660000"> </span> <span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">╝</span> <span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">╝</span> <span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">╝</span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">╝</span> <span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">╝</span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span> <span style="color:#660000"> </span><span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">═</span><span style="color:#660000">╝</span><span style="color:#660000"> </span> <span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">╝</span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span>     <span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">╝</span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">╝</span> <span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">╝</span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span> <span style="color:#660000">╚</span><span style="color:#660000">═</span><span style="color:#660000">╝</span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span><span style="color:#660000"> </span></div><div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:clamp(5px,1.1vw,14px);white-space:pre;opacity:0.4;color:#ff4400">═════════════════════════════════════════════════════════════════════════════════════════════</div>` }}
+            />
+
+            <p className="mx-auto mt-6 max-w-lg font-sans text-[15px] leading-relaxed text-muted-foreground">
+              The CLI in a window. Diffs you can read, a wiki you can browse, runs you can watch.
             </p>
 
             {/* stats row */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-8">
               {DESKTOP_STATS.map((s) => (
                 <div key={s.label} className="text-center">
-                  <span className="block font-mono text-2xl font-bold text-kai-orange">{s.value}</span>
+                  <span className="block font-mono text-3xl font-bold text-kai-orange">{s.value}</span>
                   <span className="font-mono text-[11px] text-kai-dim">{s.label}</span>
                 </div>
               ))}
@@ -82,126 +78,64 @@ export default function Desktop() {
             </div>
           </div>
 
-          {/* The centrepiece: a working recreation of the window */}
-          <div className="animate-rise mx-auto mt-12 max-w-4xl" style={{ animationDelay: "0.2s" }}>
+          {/* interactive window */}
+          <div className="animate-rise mx-auto mt-14 max-w-4xl" style={{ animationDelay: "0.2s" }}>
             <AppWindow size="lg" start="chat" />
           </div>
         </div>
       </section>
 
-      {/* ── surfaces grid ─────────────────────────────────────────────────── */}
-      <section className="border-t border-border py-20 sm:py-24">
+      {/* ── surfaces — compact cards ──────────────────────────────────────── */}
+      <section className="border-t border-border py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <SectionHeading
             index="01"
             eyebrow="surfaces"
-            title={
-              <>
-                Twelve screens,{" "}
-                <span className="text-kai-orange glow-orange">one rail click away</span>
-              </>
-            }
-            description="Every capability the TUI has, re-surfaced for a screen where you can actually see what's happening."
+            title={<>Twelve screens, <span className="text-kai-orange glow-orange">one rail</span></>}
           />
 
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {SURFACES.map((s) => (
               <div
                 key={s.label}
                 className={cn(
-                  "group relative overflow-hidden rounded-md border p-5 transition-colors hover:bg-accent/40",
+                  "rounded-md border p-4 transition-colors hover:bg-accent/40",
                   toneBg[s.tone]
                 )}
               >
-                <div className="flex items-start gap-3">
-                  <div className={cn("mt-0.5 shrink-0", toneText[s.tone])}>
-                    <Icon name={s.icon} className="size-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="font-mono text-sm font-bold text-foreground">{s.label}</h3>
-                      {s.key ? (
-                        <span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] text-kai-dim">
-                          {s.key}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-0.5 font-mono text-[12px] font-semibold text-kai-amber">
-                      {s.headline}
-                    </p>
-                    <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{s.body}</p>
-                    <ul className="mt-3 space-y-1.5">
-                      {s.points.map((pt) => (
-                        <li
-                          key={pt}
-                          className="flex items-start gap-1.5 font-mono text-[11px] leading-relaxed text-kai-muted"
-                        >
-                          <span className={cn("mt-px shrink-0", toneText[s.tone])} aria-hidden>
-                            ▸
-                          </span>
-                          <span>{pt}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Icon name={s.icon} className={cn("size-4", toneText[s.tone])} />
+                  <h3 className="font-mono text-[13px] font-bold text-foreground">{s.label}</h3>
+                  {s.key ? (
+                    <kbd className="ml-auto rounded-sm border border-border px-1 py-px text-[9px] text-kai-dim">{s.key}</kbd>
+                  ) : null}
                 </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{s.headline}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── architecture layers ───────────────────────────────────────────── */}
-      <section className="border-t border-border py-20 sm:py-24">
+      {/* ── architecture — horizontal stack ───────────────────────────────── */}
+      <section className="border-t border-border py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <SectionHeading
             index="02"
             eyebrow="architecture"
-            title={
-              <>
-                Four layers,{" "}
-                <span className="text-kai-orange glow-orange">no engine rewrite</span>
-              </>
-            }
-            description="The desktop app is a new surface on the existing Go engine — not a rewrite. The Rust shell is thin on purpose."
+            title={<>Four layers, <span className="text-kai-orange glow-orange">no rewrite</span></>}
           />
 
-          <div className="mt-12 space-y-4">
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {LAYERS.map((layer, i) => (
-              <div
-                key={layer.id}
-                className={cn(
-                  "rounded-md border p-5 transition-colors",
-                  toneBg[layer.tone]
-                )}
-              >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="flex size-8 items-center justify-center rounded-sm border border-border bg-card font-mono text-sm font-bold text-kai-amber">
-                      {i + 1}
-                    </span>
-                    <div>
-                      <h3 className="font-mono text-sm font-bold text-foreground">{layer.title}</h3>
-                      <p className="font-mono text-[11px] text-kai-dim">{layer.subtitle}</p>
-                    </div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] leading-relaxed text-muted-foreground">{layer.detail}</p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {layer.parts.map((p) => (
-                        <span
-                          key={p}
-                          className={cn(
-                            "rounded-sm border px-1.5 py-0.5 font-mono text-[10px]",
-                            toneBg[layer.tone],
-                            toneText[layer.tone]
-                          )}
-                        >
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+              <div key={layer.id} className={cn("rounded-md border p-4", toneBg[layer.tone])}>
+                <span className={cn("font-mono text-2xl font-bold", toneText[layer.tone])}>{i + 1}</span>
+                <h3 className="mt-1 font-mono text-[13px] font-bold text-foreground">{layer.title}</h3>
+                <p className="mt-0.5 font-mono text-[10px] text-kai-dim">{layer.subtitle}</p>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {layer.parts.map((p) => (
+                    <span key={p} className={cn("rounded-sm border px-1 py-px font-mono text-[9px]", toneBg[layer.tone], toneText[layer.tone])}>{p}</span>
+                  ))}
                 </div>
               </div>
             ))}
@@ -209,58 +143,33 @@ export default function Desktop() {
         </div>
       </section>
 
-      {/* ── TUI vs Desktop comparison ─────────────────────────────────────── */}
-      <section className="border-t border-border py-20 sm:py-24">
+      {/* ── comparison table ───────────────────────────────────────────────── */}
+      <section className="border-t border-border py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <SectionHeading
             index="03"
             eyebrow="honestly"
-            title={
-              <>
-                When the GUI wins —{" "}
-                <span className="text-kai-orange glow-orange">and when it doesn't</span>
-              </>
-            }
-            description="The TUI is not deprecated. Some jobs are better in a terminal. Here's the honest split."
+            title={<>GUI wins — <span className="text-kai-orange glow-orange">and when it doesn't</span></>}
           />
 
-          <div className="mt-12 overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-sm">
+          <div className="mt-10 overflow-x-auto">
+            <table className="w-full min-w-[580px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="py-3 pr-4 text-left font-mono text-[11px] tracking-[0.18em] text-kai-dim uppercase">
-                    Job
-                  </th>
-                  <th className="px-4 py-3 text-left font-mono text-[11px] tracking-[0.18em] text-kai-dim uppercase">
-                    TUI
-                  </th>
-                  <th className="px-4 py-3 text-left font-mono text-[11px] tracking-[0.18em] text-kai-dim uppercase">
-                    Desktop
-                  </th>
-                  <th className="py-3 pl-4 text-right font-mono text-[11px] tracking-[0.18em] text-kai-dim uppercase">
-                    Winner
-                  </th>
+                  <th className="py-2.5 pr-3 text-left font-mono text-[10px] tracking-wider text-kai-dim uppercase">Job</th>
+                  <th className="px-3 py-2.5 text-left font-mono text-[10px] tracking-wider text-kai-dim uppercase">TUI</th>
+                  <th className="px-3 py-2.5 text-left font-mono text-[10px] tracking-wider text-kai-dim uppercase">Desktop</th>
+                  <th className="py-2.5 pl-3 text-right font-mono text-[10px] tracking-wider text-kai-dim uppercase">Wins</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARISON.map((row) => (
-                  <tr key={row.job} className="border-b border-border/60">
-                    <td className="py-3 pr-4 font-mono text-[12px] font-semibold text-foreground">
-                      {row.job}
-                    </td>
-                    <td className="px-4 py-3 text-[12.5px] text-muted-foreground">{row.tui}</td>
-                    <td className="px-4 py-3 text-[12.5px] text-muted-foreground">{row.desktop}</td>
-                    <td className="py-3 pl-4 text-right">
-                      <span
-                        className={cn(
-                          "inline-block rounded-sm border px-1.5 py-0.5 font-mono text-[10px]",
-                          row.winner === "desktop" && "border-kai-orange/40 text-kai-orange",
-                          row.winner === "tui" && "border-kai-green/40 text-kai-green",
-                          row.winner === "tie" && "border-border text-kai-dim"
-                        )}
-                      >
-                        {row.winner}
-                      </span>
+                  <tr key={row.job} className="border-b border-border/50">
+                    <td className="py-2.5 pr-3 font-mono text-[11px] font-semibold text-foreground">{row.job}</td>
+                    <td className="px-3 py-2.5 text-[12px] text-muted-foreground">{row.tui}</td>
+                    <td className="px-3 py-2.5 text-[12px] text-muted-foreground">{row.desktop}</td>
+                    <td className="py-2.5 pl-3 text-right">
+                      <span className={cn("rounded-sm border px-1.5 py-px font-mono text-[9px]", row.winner === "desktop" ? "border-kai-orange/40 text-kai-orange" : row.winner === "tui" ? "border-kai-green/40 text-kai-green" : "border-border text-kai-dim")}>{row.winner}</span>
                     </td>
                   </tr>
                 ))}
@@ -270,110 +179,75 @@ export default function Desktop() {
         </div>
       </section>
 
-      {/* ── principles ────────────────────────────────────────────────────── */}
-      <section className="border-t border-border py-20 sm:py-24">
+      {/* ── principles + shortcuts side by side ───────────────────────────── */}
+      <section className="border-t border-border py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <SectionHeading
-            index="04"
-            eyebrow="principles"
-            title={
-              <>
-                Built <span className="text-kai-orange glow-orange">this way</span> on purpose
-              </>
-            }
-          />
-
-          <div className="mt-12 grid gap-6 sm:grid-cols-2">
-            {PRINCIPLES.map((p) => (
-              <div
-                key={p.title}
-                className="group rounded-md border border-border bg-card/60 p-5 transition-colors hover:border-kai-orange/30"
-              >
-                <div className="flex items-start gap-3">
-                  <Icon name={p.icon} className="mt-0.5 size-5 shrink-0 text-kai-orange" />
-                  <div>
-                    <h3 className="font-mono text-sm font-bold text-foreground">{p.title}</h3>
-                    <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{p.body}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── keyboard shortcuts ─────────────────────────────────────────────── */}
-      <section className="border-t border-border py-20 sm:py-24">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <SectionHeading
-            index="05"
-            eyebrow="shortcuts"
-            title={
-              <>
-                <span className="text-kai-orange glow-orange">Keyboard-first</span>, always
-              </>
-            }
-            description="Everything reachable by mouse is also reachable without one. The bindings mirror VS Code where they can."
-          />
-
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {SHORTCUT_GROUPS.map((g) => (
-              <div key={g.group} className="rounded-md border border-border bg-card/60 p-4">
-                <h4 className="font-mono text-[11px] tracking-[0.2em] text-kai-amber uppercase">
-                  {g.group}
-                </h4>
-                <div className="mt-3 divide-y divide-border/60">
-                  {g.items.map((item) => (
-                    <div key={item.keys} className="flex items-center justify-between py-1.5">
-                      <span className="text-[12.5px] text-muted-foreground">{item.label}</span>
-                      <kbd className="shrink-0 rounded-sm border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-kai-dim">
-                        {item.keys}
-                      </kbd>
+          <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr]">
+            {/* principles */}
+            <div>
+              <SectionHeading index="04" eyebrow="principles" title={<>Built <span className="text-kai-orange glow-orange">this way</span></>} />
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                {PRINCIPLES.map((p) => (
+                  <div key={p.title} className="rounded-md border border-border bg-card/60 p-4 transition-colors hover:border-kai-orange/30">
+                    <div className="flex items-center gap-2">
+                      <Icon name={p.icon} className="size-4 text-kai-orange" />
+                      <h3 className="font-mono text-[12px] font-bold text-foreground">{p.title}</h3>
                     </div>
-                  ))}
-                </div>
+                    <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{p.body}</p>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* shortcuts */}
+            <div>
+              <SectionHeading index="05" eyebrow="shortcuts" title={<><span className="text-kai-orange glow-orange">Keyboard-first</span></>} />
+              <div className="mt-8 space-y-3">
+                {SHORTCUT_GROUPS.map((g) => (
+                  <div key={g.group} className="rounded-md border border-border bg-card/60 p-3">
+                    <h4 className="font-mono text-[10px] tracking-wider text-kai-amber uppercase">{g.group}</h4>
+                    <div className="mt-2 divide-y divide-border/50">
+                      {g.items.map((item) => (
+                        <div key={item.keys} className="flex items-center justify-between py-1">
+                          <span className="text-[11px] text-muted-foreground">{item.label}</span>
+                          <kbd className="rounded-sm border border-border bg-background px-1 py-px font-mono text-[9px] text-kai-dim">{item.keys}</kbd>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── platforms + build ──────────────────────────────────────────────── */}
-      <section className="border-t border-border py-20 sm:py-24">
+      <section className="border-t border-border py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <SectionHeading
             index="06"
             eyebrow="platforms"
-            title={
-              <>
-                <span className="text-kai-orange glow-orange">Three platforms</span>, three
-                commands
-              </>
-            }
-            description={DISTRIBUTION_NOTE}
+            title={<><span className="text-kai-orange glow-orange">Three platforms</span>, three commands</>}
           />
 
-          <div className="mt-12 grid gap-4 sm:grid-cols-3">
+          <div className="mt-10 grid gap-3 sm:grid-cols-3">
             {PLATFORMS.map((p) => (
-              <div key={p.id} className="rounded-md border border-border bg-card/60 p-5">
+              <div key={p.id} className="rounded-md border border-border bg-card/60 p-4">
                 <h3 className="font-mono text-sm font-bold text-foreground">{p.label}</h3>
                 <p className="mt-1 font-mono text-[11px] text-kai-amber">{p.artifacts}</p>
-                <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">{p.note}</p>
+                <p className="mt-2 text-[12px] text-muted-foreground">{p.note}</p>
               </div>
             ))}
           </div>
 
           <div className="mt-8 grid gap-4 lg:grid-cols-2">
             <div>
-              <p className="mb-2 font-mono text-[11px] tracking-[0.18em] text-kai-dim uppercase">
-                build it yourself
-              </p>
+              <p className="mb-2 font-mono text-[10px] tracking-wider text-kai-dim uppercase">build it yourself</p>
               <CodeBlock code={BUILD_STEPS} title="build" prompt />
             </div>
             <div>
-              <p className="mb-2 font-mono text-[11px] tracking-[0.18em] text-kai-dim uppercase">
-                proof it's just HTTP
-              </p>
+              <p className="mb-2 font-mono text-[10px] tracking-wider text-kai-dim uppercase">proof it's just HTTP</p>
               <CodeBlock code={CURL_PROOF} title="curl" prompt />
             </div>
           </div>
@@ -383,19 +257,11 @@ export default function Desktop() {
       {/* ── closing CTA ───────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-t border-border">
         <div className="rule-sweep absolute inset-x-0 top-0 h-px" aria-hidden />
-        <div className="mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-24">
-          <p className="font-mono text-[11px] tracking-[0.3em] text-kai-dim uppercase">
-            same binary · new window
-          </p>
-          <h2 className="mx-auto mt-4 max-w-2xl text-balance font-mono text-2xl font-bold text-foreground sm:text-3xl">
-            A surface worth{" "}
-            <span className="text-kai-orange glow-orange">looking at</span>
+        <div className="mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 sm:py-20">
+          <h2 className="font-mono text-2xl font-bold text-foreground sm:text-3xl">
+            A surface worth <span className="text-kai-orange glow-orange">looking at</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-xl font-sans text-[15px] leading-relaxed text-muted-foreground">
-            The TUI stays the first citizen — it is the engine. The desktop app is the lens that
-            makes the wiki readable, the diffs reviewable, and the cost visible without asking.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <LinkButton href={DESKTOP_REPO_PATH} size="lg">
               <Monitor className="size-4" data-icon="inline-start" />
               Source on GitHub
