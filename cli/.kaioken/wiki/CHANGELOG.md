@@ -2,6 +2,51 @@
 
 What Kaioken revised, and why.
 
+## 2026-07-30 22:35 — 4ce79333 → 985cb9d3
+
+27 files changed · 1 documents updated
+
+- Added a new Repos card to the `/desktop` page UI, updating the desktop data source (`website/src/data/desktop.ts`).  
+- Expanded the knowledge base: added `setup_commands.md` files for the `llm_integration` and `gitx` modules and updated related documentation (architecture, conventions, overview, tech_stack, `_module.yaml`).  
+- Updated wiki-related files (`CHANGELOG.md`, `wiki_state.yaml`, `state.json`) to reflect the new card and documentation changes.  
+- Bumped the internal version in `cli/internal/version/version.go` to track the release.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Using the Terminal User Interface (TUI).md
+
+<details><summary>Changed files</summary>
+
+- `M` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/setup_commands.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/config/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/config/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/config/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/config/overview.md
+- `D` cli/.kaioken/knowledge/kaioken/config/setup_commands.md
+- `M` cli/.kaioken/knowledge/kaioken/config/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/gitx/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/gitx/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/gitx/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/gitx/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/gitx/setup_commands.md
+- `M` cli/.kaioken/knowledge/kaioken/gitx/tech_stack.md
+- `M` cli/.kaioken/state.json
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` Guide.md
+- `M` (TUI).md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` cli/internal/version/version.go
+- `M` website/src/data/desktop.ts
+- `M` wiki
+
+</details>
+
 ## 2026-07-30 22:22 — d3e65762 → 4ce79333
 
 153 files changed · 2 documents updated

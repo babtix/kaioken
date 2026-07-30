@@ -1,8 +1,8 @@
 description: Version tracking and build information.
 file_count: 1
-generated_at: "2026-07-28T10:22:15Z"
+generated_at: "2026-07-30T22:35:45Z"
 id: kaioken/version
-model: nemotron-3-super:cloud
+model: nvidia/nemotron-3-super-120b-a12b
 scope:
     - internal/version
 title: Version Information

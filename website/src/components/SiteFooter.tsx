@@ -97,6 +97,48 @@ export default function SiteFooter() {
             label={BUILDER_NAME}
             className="mt-3 text-[4px] sm:text-[8px] md:text-[10px] lg:text-[13px]"
           />
+          {/* contact links */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="https://github.com/babtix"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1.5 font-mono text-[11px] text-kai-dim transition-colors hover:border-kai-orange/40 hover:text-kai-orange"
+            >
+              <GithubMark className="size-3" />
+              GitHub
+            </a>
+            <a
+              href="mailto:babtichelhabib@gmail.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1.5 font-mono text-[11px] text-kai-dim transition-colors hover:border-kai-orange/40 hover:text-kai-orange"
+            >
+              ✉ Email
+            </a>
+            <a
+              href="https://eh.linkedin.com/in/babtich-el-habib-890a47362"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1.5 font-mono text-[11px] text-kai-dim transition-colors hover:border-kai-blue/40 hover:text-kai-blue"
+            >
+              in LinkedIn
+            </a>
+            <a
+              href="https://www.instagram.com/pap1tx0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1.5 font-mono text-[11px] text-kai-dim transition-colors hover:border-kai-rose/40 hover:text-kai-rose"
+            >
+              ○ Instagram
+            </a>
+            <span
+              className="flex items-center gap-1.5 rounded-sm border border-dashed border-border px-2.5 py-1.5 font-mono text-[11px] text-kai-dim cursor-default"
+              title="Coming soon"
+            >
+              ○ Portfolio
+            </span>
+          </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">

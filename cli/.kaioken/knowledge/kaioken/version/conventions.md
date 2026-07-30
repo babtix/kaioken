@@ -1,6 +1,5 @@
-Use a package-level var (not const) for Version to permit override via -ldflags.
-Keep ContractVersion as a const because it is compile‑time only and never overridden.
-Export both identifiers with PascalCase (Version, ContractVersion).
-Document the purpose and override mechanism in package‑level comments.
-Do not add init() functions or side‑effects; the package is purely data.
-Consumers should import "kaioken/internal/version" and access the fields directly.
+- Export `Version` as a `var` (not `const`) to allow override with `-ldflags` during builds.
+- Export `ContractVersion` as a typed `const` (int) for API contract versioning.
+- Use PascalCase for exported identifiers.
+- Keep the package free of logic; only declare version constants/variables.
+- Import this package wherever version information is needed, without side effects.

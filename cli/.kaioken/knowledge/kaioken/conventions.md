@@ -1,8 +1,8 @@
-- Keep all Go source under the standard layout (`./cmd/kaioken` for the main application, internal packages under `./internal` or similar).
-- Run unit tests with `go test ./... -count=1` (as defined in the `test` Makefile target).
-- Perform static analysis via `go vet ./...` (`vet` target).
-- If `golangci-lint` is installed, execute `golangci-lint run ./...` (`lint` target).
-- Build the binary using `go build -o kaioken.exe ./cmd/kaioken` (`build` target); the Makefile also builds the default `go build ./...`.
-- Clean build artifacts with `make clean` (removes `kaioken.exe`).
-- Store configuration in JSON files named `Kaioken-settings-logo.json` and `.claude/settings.local.json`; do not commit binaries or sensitive settings.
-- Follow Go formatting conventions (gofmt/goimports) and dependency versioning as declared in `go.mod`.
+- Unit tests reside in *_test.go files and are executed with `go test ./... -count=1` (see Makefile test target).
+- Static analysis is run via `go vet ./...` (Makefile vet target) and optionally golangci-lint (Makefile lint target).
+- The binary is built with `go build ./...` and a specific output `go build -o kaioken.exe ./cmd/kaioken` (Makefile build target).
+- Cleaning removes the artifact `kaioken.exe` via the Makefile clean target.
+- Dependency management follows Go modules; the go.mod file pins versions as shown.
+- Error handling follows idiomatic Go: functions return error values that are checked and propagated upstream.
+- Configuration files are expected in YAML format and decoded with yaml.v3.
+- The project uses a Makefile for common development tasks; new contributions should add targets there if they introduce new build or test steps.

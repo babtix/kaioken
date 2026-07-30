@@ -1,8 +1,8 @@
 description: Main function and command line setup.
-file_count: 2
-generated_at: "2026-07-29T05:21:41Z"
+file_count: 7
+generated_at: "2026-07-30T22:36:31Z"
 id: kaioken/cmd
-model: nemotron-3-super:cloud
+model: nvidia/nemotron-3-super-120b-a12b
 scope:
     - cmd/kaioken
 title: Command Entry Point

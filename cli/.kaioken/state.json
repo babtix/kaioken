@@ -1,11 +1,11 @@
 {
   "modules": {
     "kaioken": {
-      "source_hash": "a0d1ad7f84ede6a1ffc5e92a5da19adaa113d4f1d2bf04ffd8e561c53ca5072a",
-      "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-28T10:09:49.8566279Z",
+      "source_hash": "7f0fdc46b7ac9c76e8f475f55365effc0d60b21ccd534f67073f4259673f5d3c",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-30T22:35:59.0797997Z",
       "file_count": 3,
-      "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
+      "commit": "ad5b089de891b90aaa5ef71af8cf50c139c3fdb3"
     },
     "kaioken/chat_agent/agent_core": {
       "source_hash": "551b49d7f71f78718430bcfa1a7d7a345a2d4831a1777927ad19f77970ea8374",
@@ -36,11 +36,11 @@
       "commit": "4ce793339fa54c81057cc2b4c5596f8f4cb3f591"
     },
     "kaioken/cmd": {
-      "source_hash": "a3cd0fbf8ee31c197491ad8fe30f9ebfb1b5d187e2c544d8d7997b91dc021a1f",
-      "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-29T05:21:41.4264154Z",
-      "file_count": 2,
-      "commit": "d3e6576243a025303a4832185fa3f71e20ac7867"
+      "source_hash": "429c9949b1cad15df0e57346f2810be141338fbe47ca131341ab3601c305c9d0",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-30T22:36:31.2218655Z",
+      "file_count": 7,
+      "commit": "ad5b089de891b90aaa5ef71af8cf50c139c3fdb3"
     },
     "kaioken/config": {
       "source_hash": "ef3860261b880095e3076bae660b7164a91ebe714acc3f554ec020101bb35e08",
@@ -90,11 +90,11 @@
       "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
     },
     "kaioken/version": {
-      "source_hash": "c17eae5346ab2a4d867ff93aef7b4f9502b26fe6ebe93e8c1713a959baa97883",
-      "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-28T10:22:15.2756248Z",
+      "source_hash": "dd8e9fdd47a724d3c894f3370059165be7724ba51f00a9099e136dce5f46d77f",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "generated_at": "2026-07-30T22:35:45.0572003Z",
       "file_count": 1,
-      "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
+      "commit": "ad5b089de891b90aaa5ef71af8cf50c139c3fdb3"
     }
   }
 }

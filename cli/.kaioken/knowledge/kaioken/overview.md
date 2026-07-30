@@ -1,1 +1,1 @@
-Kaioken is a terminal‑based AI coding assistant written in Go that provides an interactive knowledge engine and code assistance through a Charmbracelet Bubbletea user interface.
+Kaioken is a terminal-based AI coding assistant and knowledge engine written in Go. It provides an interactive TUI for interacting with AI models, managing code context, and executing shell commands.

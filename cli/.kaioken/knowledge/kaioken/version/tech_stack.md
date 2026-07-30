@@ -1,1 +1,1 @@
-Go (standard library only). The module relies on the Go toolchain's -ldflags feature for version injection.
+Written in Go; uses only the Go standard library.
