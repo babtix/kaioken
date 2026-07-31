@@ -1,8 +1,8 @@
 description: Application configuration and global settings.
 file_count: 4
-generated_at: "2026-07-30T22:22:32Z"
+generated_at: "2026-07-31T09:36:51Z"
 id: kaioken/config
-model: nvidia/nemotron-3-super-120b-a12b
+model: nemotron-3-super:cloud
 scope:
     - internal/config
 title: Configuration

@@ -33,7 +33,7 @@ func TestWriteReadEdit(t *testing.T) {
 	if got := a.readFile("sub/a.txt"); got != "hello world" {
 		t.Fatalf("readFile: %q", got)
 	}
-	if got := a.editFile("sub/a.txt", "world", "gophers"); !strings.HasPrefix(got, "edited") {
+	if got := a.editFile("sub/a.txt", []Edit{{Old: "world", New: "gophers"}}); !strings.HasPrefix(got, "edited") {
 		t.Fatalf("editFile: %q", got)
 	}
 	if got := a.readFile("sub/a.txt"); got != "hello gophers" {
@@ -44,7 +44,7 @@ func TestWriteReadEdit(t *testing.T) {
 func TestEditRejectsAmbiguous(t *testing.T) {
 	a := newAgent(t, true)
 	a.writeFile("b.txt", "x x x")
-	if got := a.editFile("b.txt", "x", "y"); !strings.Contains(got, "matches 3 times") {
+	if got := a.editFile("b.txt", []Edit{{Old: "x", New: "y"}}); !strings.Contains(got, "3 occurrences") {
 		t.Fatalf("expected ambiguity error, got %q", got)
 	}
 }
@@ -84,7 +84,7 @@ func TestSearch(t *testing.T) {
 
 func TestRunCommand(t *testing.T) {
 	a := newAgent(t, true)
-	out := a.runCommand(context.Background(), "echo ainow_ok")
+	out := a.runCommand(context.Background(), "echo ainow_ok", "call_test")
 	if !strings.Contains(out, "ainow_ok") {
 		t.Fatalf("run_command: %q", out)
 	}

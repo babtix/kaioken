@@ -73,6 +73,30 @@ func SystemPrompt(in PromptInput) string {
 	return strings.Join(parts, "\n\n") + "\n"
 }
 
+// RenderContextMap returns a map of source name -> rendered content string.
+func RenderContextMap(in PromptInput) map[string]string {
+	res := make(map[string]string)
+	for _, src := range contextSources {
+		if section := strings.TrimRight(src.render(in), "\n"); section != "" {
+			res[src.name] = section
+		}
+	}
+	return res
+}
+
+// InitializeEpoch creates a new ContextEpoch with current prompt inputs and returns the epoch and baseline system prompt.
+func InitializeEpoch(in PromptInput) (*ContextEpoch, string) {
+	sources := RenderContextMap(in)
+	baseline := SystemPrompt(in)
+	snapshots := make(map[string]string)
+	for k, v := range sources {
+		snapshots[k] = hashString(v)
+	}
+	epoch := NewContextEpoch(baseline, snapshots)
+	return epoch, baseline
+}
+
+
 func renderIdentity(in PromptInput) string {
 	return "You are Kaioken, an AI coding assistant embedded in a terminal, working inside the " +
 		"repository at:\n  " + in.Root

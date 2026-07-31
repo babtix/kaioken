@@ -698,7 +698,9 @@ type tocEntry struct {
 
 // extractTOC scans for ATX headings outside fenced code blocks.
 func extractTOC(md string) []tocEntry {
-	var toc []tocEntry
+	// Non-nil so a headingless doc serializes as [] not null — clients index
+	// straight into this field.
+	toc := []tocEntry{}
 	inFence := false
 	for _, line := range strings.Split(md, "\n") {
 		trimmed := strings.TrimSpace(line)

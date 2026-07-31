@@ -123,8 +123,18 @@ func TestAnthropicChatWithToolsEndToEnd(t *testing.T) {
 	if gotHeaders.Get("Authorization") != "" {
 		t.Error("must not send Authorization: Bearer for Anthropic")
 	}
-	if gotBody.System != "sys" {
-		t.Errorf("system = %q, want %q", gotBody.System, "sys")
+	// The system prompt is sent as a cacheable block array: its text must
+	// survive, and the block must carry the ephemeral cache breakpoint.
+	sysBlocks, ok := gotBody.System.([]any)
+	if !ok || len(sysBlocks) != 1 {
+		t.Fatalf("system = %#v, want one cacheable block", gotBody.System)
+	}
+	sysBlock, _ := sysBlocks[0].(map[string]any)
+	if sysBlock["text"] != "sys" {
+		t.Errorf("system text = %v, want %q", sysBlock["text"], "sys")
+	}
+	if cc, _ := sysBlock["cache_control"].(map[string]any); cc["type"] != "ephemeral" {
+		t.Errorf("system cache_control = %v, want ephemeral", sysBlock["cache_control"])
 	}
 	if msg.Content != "ok" {
 		t.Errorf("content = %q", msg.Content)

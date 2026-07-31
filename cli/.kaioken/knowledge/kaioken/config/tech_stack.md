@@ -1,1 +1,1 @@
-The module uses Go, the gopkg.in/yaml.v3 package for YAML serialization, and the Go standard library (os, path/filepath, strings, fmt).
+The config package uses the Go standard library (os, path/filepath, strings, fmt) and gopkg.in/yaml.v3 for YAML serialization. It has no external framework or infrastructure dependencies beyond the local filesystem.

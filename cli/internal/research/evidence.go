@@ -2,6 +2,7 @@ package research
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"unicode"
@@ -153,11 +154,62 @@ var stopWords = map[string]bool{
 	"if": true, "no": true, "so": true, "we": true, "do": true, "up": true,
 }
 
+// lexicon holds how common each term is across the corpus, so scoring can tell
+// a term that distinguishes passages from one that appears everywhere.
+//
+// Without this, "what is the levelized cost of decommissioning nuclear plants"
+// scores "cost" and "nuclear" — which every page in a nuclear-cost corpus
+// contains — exactly as heavily as "decommissioning", which only the passage
+// that answers the question contains. Coverage-based scoring then rates
+// hundreds of near-identical passages the same and the ranking degenerates to
+// whatever order they arrived in.
+type lexicon struct {
+	df    map[string]int // term → number of chunks containing it
+	total int
+}
+
+// newLexicon indexes the corpus as it stands. It is rebuilt each round because
+// each round adds pages, and a term's rarity is only meaningful relative to
+// what has been collected so far.
+func newLexicon(chunks []Chunk) *lexicon {
+	lx := &lexicon{df: make(map[string]int), total: len(chunks)}
+	for _, ch := range chunks {
+		seen := map[string]bool{}
+		for _, t := range tokenize(ch.Text) {
+			if seen[t] {
+				continue
+			}
+			seen[t] = true
+			lx.df[t]++
+		}
+	}
+	return lx
+}
+
+// weight returns the inverse document frequency of a term, floored so that a
+// term appearing in every chunk still counts for something — a passage that
+// covers all the query's terms should beat one that covers half of them, even
+// when the terms it covers are common.
+func (l *lexicon) weight(term string) float64 {
+	if l == nil || l.total == 0 {
+		return 1
+	}
+	df := l.df[term]
+	if df <= 0 {
+		return 1
+	}
+	w := math.Log(1 + float64(l.total)/float64(df))
+	if w < 0.15 {
+		return 0.15
+	}
+	return w
+}
+
 // keywordScore rates a chunk against a query by weighted term coverage.
-// Coverage — how many distinct query terms appear at all — dominates raw
-// frequency, so a passage mentioning every term once beats one repeating a
-// single term ten times.
-func keywordScore(chunkText, query string) float64 {
+// Coverage — how much of the query's distinguishing vocabulary appears at all
+// — dominates raw frequency, so a passage mentioning every term once beats one
+// repeating a single term ten times. A nil lexicon weights every term equally.
+func keywordScore(chunkText, query string, lx *lexicon) float64 {
 	qTerms := tokenize(query)
 	if len(qTerms) == 0 {
 		return 0
@@ -167,20 +219,24 @@ func keywordScore(chunkText, query string) float64 {
 		counts[t]++
 	}
 	seen := map[string]bool{}
-	var covered, freq float64
+	var covered, freq, total float64
 	for _, q := range qTerms {
 		if seen[q] {
 			continue
 		}
 		seen[q] = true
+		w := lx.weight(q)
+		total += w
 		if n := counts[q]; n > 0 {
-			covered++
+			covered += w
 			// Diminishing returns on repetition.
-			freq += 1 - 1/float64(1+n)
+			freq += w * (1 - 1/float64(1+n))
 		}
 	}
-	distinct := float64(len(seen))
-	return (covered/distinct)*0.8 + (freq/distinct)*0.2
+	if total == 0 {
+		return 0
+	}
+	return (covered/total)*0.8 + (freq/total)*0.2
 }
 
 // rrfFuse merges ranked lists by Reciprocal Rank Fusion: an item's score is
@@ -213,14 +269,22 @@ func rrfFuse(lists [][]int, k int) []int {
 // rankChunks orders chunks for a question by fusing two signals: how well the
 // text matches the question, and how highly the search engine ranked the page
 // it came from. pageRank maps a citation number to its best search position.
-func rankChunks(chunks []Chunk, question string, pageRank map[int]int, topK int) []Chunk {
+//
+// maxPerSource caps how many passages one page may contribute, so the evidence
+// put in front of the model comes from several sources rather than from
+// whichever page repeated the question's words most often. Corroboration is
+// the point of reading more than one page; a selection drawn entirely from one
+// site cannot produce it, and worse, it reads as agreement. Zero means no cap.
+// The cap is relaxed rather than enforced to the point of returning less
+// evidence: if diversity cannot fill topK, the best remaining passages do.
+func rankChunks(chunks []Chunk, question string, pageRank map[int]int, lx *lexicon, topK, maxPerSource int) []Chunk {
 	if len(chunks) == 0 {
 		return nil
 	}
 	scored := make([]Chunk, len(chunks))
 	copy(scored, chunks)
 	for i := range scored {
-		scored[i].score = keywordScore(scored[i].Text, question)
+		scored[i].score = keywordScore(scored[i].Text, question, lx)
 	}
 
 	byKeyword := make([]int, len(scored))
@@ -246,19 +310,59 @@ func rankChunks(chunks []Chunk, question string, pageRank map[int]int, topK int)
 	})
 
 	order := rrfFuse([][]int{byKeyword, bySource}, 60)
+
 	out := make([]Chunk, 0, min(topK, len(order)))
-	for _, idx := range order {
-		// A chunk matching none of the question's terms is noise, however
-		// well its page ranked.
-		if scored[idx].score <= 0 {
-			continue
-		}
-		out = append(out, scored[idx])
-		if len(out) >= topK {
-			break
+	taken := map[int]int{}   // citation number → passages already selected
+	used := map[int]bool{}   // fused-order index → already selected
+	seenText := map[string]bool{}
+
+	pass := func(perSource int) {
+		for _, idx := range order {
+			if len(out) >= topK {
+				return
+			}
+			if used[idx] {
+				continue
+			}
+			// A chunk matching none of the question's terms is noise, however
+			// well its page ranked.
+			if scored[idx].score <= 0 {
+				continue
+			}
+			// Overlapping chunks and boilerplate repeated across a site mean
+			// the same sentences can arrive several times; paying context for
+			// the second copy buys nothing.
+			key := chunkKey(scored[idx].Text)
+			if seenText[key] {
+				used[idx] = true
+				continue
+			}
+			if perSource > 0 && taken[scored[idx].SourceN] >= perSource {
+				continue
+			}
+			taken[scored[idx].SourceN]++
+			seenText[key] = true
+			used[idx] = true
+			out = append(out, scored[idx])
 		}
 	}
+
+	pass(maxPerSource)
+	if len(out) < topK && maxPerSource > 0 {
+		pass(0) // diversity could not fill the slots; quality takes the rest
+	}
 	return out
+}
+
+// chunkKey identifies a passage by its opening words, which is enough to catch
+// the duplicates that actually occur: overlapping chunks from one page, and
+// navigation or cookie boilerplate repeated across a site.
+func chunkKey(text string) string {
+	terms := tokenize(text)
+	if len(terms) > 12 {
+		terms = terms[:12]
+	}
+	return strings.Join(terms, " ")
 }
 
 // fenceUntrusted wraps fetched page text for a prompt.
@@ -277,11 +381,15 @@ func fenceUntrusted(n int, url, title, text string) string {
 
 // budgetChunks concatenates fenced passages up to a character ceiling, so a
 // single round cannot blow the model's context window.
+//
+// One oversized passage skips rather than ends the packing: passages are
+// ordered by relevance, not by length, and stopping at the first one that does
+// not fit would throw away every good passage behind a single long one.
 func budgetChunks(parts []string, maxChars int) string {
 	var b strings.Builder
 	for _, p := range parts {
 		if b.Len()+len(p) > maxChars {
-			break
+			continue
 		}
 		if b.Len() > 0 {
 			b.WriteString("\n\n")

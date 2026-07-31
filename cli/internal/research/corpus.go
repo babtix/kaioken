@@ -17,6 +17,13 @@ type Source struct {
 	// Rank is the best position this page reached in any search result list;
 	// it feeds the fusion ranking.
 	Rank int
+	// Snippet is the teaser the search engine returned. It is never evidence —
+	// it is written to sell a click — but it is the only thing known about a
+	// page before paying to fetch it, so it decides which pages get fetched.
+	Snippet string
+	// Tier is the domain-quality prior: 0 institutional, 1 ordinary, 2 low
+	// signal. See hostTier.
+	Tier int
 	// Fetched reports whether the page body was actually retrieved. An
 	// unfetched source contributes nothing and is never cited.
 	Fetched bool
@@ -76,17 +83,25 @@ func normalizeURL(raw string) string {
 // addHits records search results, returning the URLs newly worth fetching.
 // Duplicates and hosts already at their quota are dropped here rather than
 // after a wasted download.
-func (c *corpus) addHits(hits []websearch.Result, maxNew int) []string {
-	// Best rank first, so the per-host quota is spent on the strongest hits.
-	ordered := make([]websearch.Result, len(hits))
-	copy(ordered, hits)
-	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].Rank < ordered[j].Rank })
-
-	var fresh []string
-	for _, h := range ordered {
-		if len(fresh) >= maxNew {
-			break
-		}
+//
+// Which hits make the cut matters more than anything downstream: a round can
+// only afford to read a fraction of what the searches returned, and a page
+// that is never fetched can never be cited no matter how well it would have
+// answered the question. Search rank alone is a weak signal for that choice —
+// it answers "what matches these keywords", not "what would settle this
+// question" — so three signals are fused instead:
+//
+//   - the engine's own ranking, which knows about authority and freshness;
+//   - how well the title and snippet speak to focus, the question and its
+//     subquestions, which is the only preview of the page available before
+//     paying to download it;
+//   - a domain-quality prior, so a statistics office outranks a forum post
+//     that happens to use the same words.
+func (c *corpus) addHits(hits []websearch.Result, maxNew int, focus string) []string {
+	// Fold repeat sightings into what is already known, and keep only the hits
+	// that are actually fetchable candidates.
+	var cand []websearch.Result
+	for _, h := range hits {
 		norm := normalizeURL(h.URL)
 		if norm == "" {
 			continue
@@ -96,10 +111,30 @@ func (c *corpus) addHits(hits []websearch.Result, maxNew int) []string {
 			if h.Rank > 0 && h.Rank < c.sources[idx].Rank {
 				c.sources[idx].Rank = h.Rank
 			}
+			if c.sources[idx].Snippet == "" {
+				c.sources[idx].Snippet = h.Snippet
+			}
 			continue
 		}
 		if err := webfetch.ValidateURL(h.URL); err != nil {
 			continue // refuse it now; no point queueing a fetch that must fail
+		}
+		cand = append(cand, h)
+	}
+	if len(cand) == 0 {
+		return nil
+	}
+
+	var fresh []string
+	for _, idx := range fuseHits(cand, focus) {
+		if len(fresh) >= maxNew {
+			break
+		}
+		h := cand[idx]
+		norm := normalizeURL(h.URL)
+		// The same URL can appear twice inside one merged hit list.
+		if _, seen := c.byURL[norm]; seen {
+			continue
 		}
 		host := hostOf(norm)
 		if c.perHost[host] >= c.maxPerHost {
@@ -113,11 +148,56 @@ func (c *corpus) addHits(hits []websearch.Result, maxNew int) []string {
 		}
 		c.sources = append(c.sources, Source{
 			N: len(c.sources) + 1, URL: h.URL, Title: h.Title, Rank: rank,
+			Snippet: h.Snippet, Tier: hostTier(host),
 		})
 		c.byURL[norm] = len(c.sources) - 1
 		fresh = append(fresh, h.URL)
 	}
 	return fresh
+}
+
+// fuseHits orders candidate hits by fusing search rank, snippet relevance and
+// domain quality. It returns indices into cand, best first.
+func fuseHits(cand []websearch.Result, focus string) []int {
+	byRank := make([]int, len(cand))
+	for i := range cand {
+		byRank[i] = i
+	}
+	sort.SliceStable(byRank, func(a, b int) bool {
+		ra, rb := cand[byRank[a]].Rank, cand[byRank[b]].Rank
+		if ra <= 0 {
+			ra = 1 << 20
+		}
+		if rb <= 0 {
+			rb = 1 << 20
+		}
+		return ra < rb
+	})
+
+	byTier := make([]int, len(cand))
+	copy(byTier, byRank)
+	sort.SliceStable(byTier, func(a, b int) bool {
+		return hostTier(hostOf(cand[byTier[a]].URL)) < hostTier(hostOf(cand[byTier[b]].URL))
+	})
+
+	lists := [][]int{byRank, byTier}
+
+	if strings.TrimSpace(focus) != "" {
+		scores := make([]float64, len(cand))
+		for i, h := range cand {
+			// Title and snippet together: a title carries the topic, a snippet
+			// carries the specifics, and either alone loses half the signal.
+			scores[i] = keywordScore(h.Title+" \n "+h.Snippet, focus, nil)
+		}
+		byText := make([]int, len(cand))
+		copy(byText, byRank)
+		sort.SliceStable(byText, func(a, b int) bool {
+			return scores[byText[a]] > scores[byText[b]]
+		})
+		lists = append(lists, byText)
+	}
+
+	return rrfFuse(lists, 60)
 }
 
 // addPages files fetched bodies against their sources and chunks them.
@@ -168,4 +248,72 @@ func hostOf(raw string) string {
 		return strings.ToLower(u.Hostname())
 	}
 	return raw
+}
+
+// ------------------------------------------------------------ domain quality
+
+// Tiers are a prior, not a verdict. A government statistics page can be wrong
+// and a forum post can contain the only correct answer on the internet; what
+// the tier decides is only which pages are worth spending a fetch on when the
+// budget allows ten out of forty. The lists are deliberately short: every
+// entry is a domain whose relationship to primary evidence is unambiguous, and
+// anything unlisted lands in the ordinary middle where the other two ranking
+// signals decide.
+const (
+	tierPrimary  = 0 // statistics offices, standards bodies, journals, official filings
+	tierOrdinary = 1 // the rest of the web
+	tierLow      = 2 // user-generated feeds and content farms
+)
+
+// primarySuffixes are domain endings that indicate an official or academic
+// publisher in most of the world.
+var primarySuffixes = []string{
+	".gov", ".gov.uk", ".mil", ".int", ".edu", ".ac.uk", ".edu.au", ".europa.eu",
+}
+
+// primaryHosts are institutions whose domains carry no such suffix.
+var primaryHosts = []string{
+	"iea.org", "irena.org", "iaea.org", "oecd.org", "worldbank.org", "imf.org",
+	"un.org", "who.int", "wto.org", "bis.org", "ecb.europa.eu",
+	"nature.com", "science.org", "sciencedirect.com", "arxiv.org", "pubmed.ncbi.nlm.nih.gov",
+	"jstor.org", "springer.com", "wiley.com", "bmj.com", "thelancet.com",
+	"ourworldindata.org", "statcan.gc.ca", "ons.gov.uk", "census.gov", "eia.gov",
+}
+
+// lowHosts are places where the text is user-generated, aggregated, or written
+// for ad impressions. Reddit and Stack Exchange are deliberately absent: their
+// answers are user-generated but frequently the best available source on
+// practical questions.
+var lowHosts = []string{
+	"facebook.com", "instagram.com", "tiktok.com", "pinterest.com", "x.com",
+	"twitter.com", "threads.net", "linkedin.com", "quora.com", "answers.com",
+	"medium.com", "blogspot.com", "wordpress.com", "wixsite.com", "substack.com",
+	"scribd.com", "coursehero.com", "studocu.com", "slideshare.net", "fandom.com",
+	"ezinearticles.com", "buzzfeed.com",
+}
+
+// hostTier classifies a hostname. Matching is on the registrable-domain
+// suffix, so "www.energy.ec.europa.eu" and "ec.europa.eu" land together and a
+// lookalike like "facebook.com.phish.example" does not.
+func hostTier(host string) int {
+	host = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(host), "www."))
+	if host == "" {
+		return tierOrdinary
+	}
+	for _, s := range primarySuffixes {
+		if strings.HasSuffix(host, s) {
+			return tierPrimary
+		}
+	}
+	for _, h := range primaryHosts {
+		if host == h || strings.HasSuffix(host, "."+h) {
+			return tierPrimary
+		}
+	}
+	for _, h := range lowHosts {
+		if host == h || strings.HasSuffix(host, "."+h) {
+			return tierLow
+		}
+	}
+	return tierOrdinary
 }

@@ -120,6 +120,9 @@ func (a *Agent) runTask(ctx context.Context, description, prompt, modeArg string
 		// The same client bills both agents, so the same guard watches both:
 		// a delegated investigation must not out-spend the session's budget.
 		Budget: a.Budget,
+		// The parent's bus observes the delegate too; subscribers separate the
+		// streams by Event.Depth.
+		Events: a.bus(),
 		// A sub-agent never streams: its prose would interleave with the
 		// parent's in the front-end's live region, and nobody is reading it
 		// token by token anyway.

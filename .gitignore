@@ -3,6 +3,8 @@ cli/kaioken.exe
 cli/kaioken.exe.old
 cli/kaioken.exe~
 cli/kaioken_new.exe
+cli/kaioken-new.exe
+*.exe
 cli/kaioken-test
 
 # GoReleaser output (snapshot and release builds)

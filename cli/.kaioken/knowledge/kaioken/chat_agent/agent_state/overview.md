@@ -1,1 +1,1 @@
-The agent_state module manages persistent chat sessions and tracks module source hashes for incremental updates. It comprises two internal packages: session for conversation persistence (saving/loading JSON files per chat turn) and state for recording file hashes to determine which modules require regeneration during `ainow update`.
+The agent_state module manages chat sessions and build state. It provides persistent storage for conversations with support for forking and importing transcripts, and tracks file hashes to determine which modules need regeneration.

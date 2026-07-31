@@ -1,5 +1,26 @@
 # kaioken — a terminal AI coding assistant + knowledge engine
 
+## Table of Contents
+- [Repository layout](#repository-layout)
+- [Overview](#overview)
+- [Chat + agent](#chat--agent)
+- [Two ways to use it](#two-ways-to-use-it)
+- [Interactive TUI (recommended)](#interactive-tui-recommended)
+- [Scriptable CLI](#scriptable-cli)
+- [Incremental updates (`kaioken update`)](#incremental-updates-kaioken-update)
+- [Skills (`kaioken skills`)](#skills-kaioken-skills)
+- [Browsing the wiki (`kaioken serve`)](#browsing-the-wiki-kaioken-serve)
+- [How output quality is engineered](#how-output-quality-is-engineered)
+- [Output layout (inside the target repo)](#output-layout-inside-the-target-repo)
+- [Quick start](#quick-start)
+- [The steering-notes channel](#the-steering-notes-channel)
+- [Wiring into an AI agent](#wiring-into-an-ai-agent)
+- [Design decisions](#design-decisions)
+- [Roadmap (not yet built)](#roadmap-not-yet-built)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Repository layout
 
 ```
@@ -9,6 +30,8 @@
 
 - **cli/** — build with `cd cli && go build -o kaioken.exe ./cmd/kaioken`
 - **website/** — run with `cd website && npm install && npm run dev`
+
+## Overview
 
 `kaioken` is a single Go binary with two faces:
 
@@ -52,7 +75,7 @@ declined action never touches disk, and `edit_file` refuses non-unique matches.
 
 ## Two ways to use it
 
-**Interactive TUI** (recommended) — an in-terminal app like Claude Code / OpenCode:
+### Interactive TUI (recommended) — an in-terminal app like Claude Code / OpenCode:
 
 ```powershell
 kaioken            # bare command launches the TUI
@@ -89,12 +112,12 @@ Drive everything with slash-commands from inside it:
 Long operations stream progress live and never freeze the UI; `ctrl+c`
 cancels an in-flight run.
 
-**Scriptable CLI** — the same pipeline as subcommands (for CI / automation):
+### Scriptable CLI — the same pipeline as subcommands (for CI / automation):
 
 ```
 kaioken init  →  kaioken scan  →  kaioken plan  →  [edit modules.yaml]  →  kaioken generate
 
-kaioken wiki                 first full run — records the commit it documents
+kaioken wiki                 # first full run — records the commit it documents
         │
 kaioken update  ←  later: git-diffs the repo against that commit and rewrites
                    only the chapters the change actually touches
@@ -311,6 +334,82 @@ kaioken update               # after code changes: git-diff-driven wiki refresh
 kaioken models claude        # discover OpenRouter model ids
 ```
 
+### Detailed Quick Start Steps
+
+1. **Build the binary**
+   ```powershell
+   cd cli
+   go build -o kaioken.exe ./cmd/kaioken
+   ```
+   This compiles the Go source into a single executable named `kaioken.exe`.
+
+2. **Configure your API key**
+   ```powershell
+   $env:OPENROUTER_API_KEY = "sk-or-..."
+   ```
+   Get your API key from [OpenRouter](https://openrouter.ai/keys) or another supported provider.
+   Kaioken supports multiple providers via the `/provider` command.
+
+3. **Initialize a repository**
+   ```powershell
+   cd path\to\your\repo
+   kaioken init
+   ```
+   This creates `.kaioken/config.yaml` in your repository. Review the generated
+   configuration to ensure the model and provider settings are correct for your
+   use case.
+
+4. **Scan the repository**
+   ```powershell
+   kaioken scan
+   ```
+   This command analyzes your repository structure to understand what files and
+   directories are present, helping Kaioken plan the knowledge generation process.
+
+5. **Plan the module structure**
+   ```powershell
+   kaioken plan
+   ```
+   Kaioken uses an LLM to propose a module breakdown in `modules.yaml`. Review
+   and edit this file to define how your codebase should be partitioned into
+   logical modules for documentation.
+
+6. **Generate knowledge cards**
+   ```powershell
+   kaioken generate
+   ```
+   This creates per-module knowledge cards in `.kaioken/knowledge/` based on the
+   module plan. Each module gets overview, architecture, conventions, tech stack,
+   and setup commands documentation.
+
+7. **Check freshness**
+   ```powershell
+   kaioken status
+   ```
+   See which modules have up-to-date knowledge cards and which need regeneration
+   due to source changes.
+
+8. **Generate the full wiki**
+   ```powershell
+   kaioken wiki
+   ```
+   This creates a comprehensive, multi-pass wiki in `.kaioken/wiki/` with
+   detailed sections, diagrams, and cross-references. By default, it uses a 3x
+   multiplier for exhaustive coverage.
+
+9. **Update after code changes**
+   ```powershell
+   kaioken update
+   ```
+   After modifying your code, run this to incrementally update only the
+   affected parts of the wiki and skills, saving time and resources.
+
+10. **Explore available models**
+    ```powershell
+    kaioken models claude
+    ```
+    Discover available model IDs for your chosen provider (e.g., OpenRouter).
+
 ## The steering-notes channel
 
 The most valuable idea borrowed from Qoder's `wiki_plan.yaml`: `notes` in
@@ -337,7 +436,7 @@ relevant chapter in `.kaioken/wiki/`.
 ```
 
 Kaioken's own chat agent does this automatically: skills lead its knowledge
-catalog and it is instructed to open a matching one before starting work.
+catalog and it is instructed to open a matching one *before* starting a task.
 
 ## Design decisions
 
@@ -372,3 +471,101 @@ catalog and it is instructed to open a matching one before starting work.
 - Conversation-memory extraction and card self-iteration
 - Diff-driven updates for knowledge **cards** (today `update` covers the wiki)
 - Export targets (`--export qoder`, `--export claude-md`)
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### "API key not found" error
+- **Solution**: Ensure you've set the appropriate API key environment variable
+  (e.g., `OPENROUTER_API_KEY`) or use the `/key` command in the TUI to set it
+  interactively.
+
+#### "Model not found" error
+- **Solution**: Use `/models` to list available models for your provider, then
+  `/model <id>` to select a valid model.
+
+#### Wiki generation fails or is too slow
+- **Solutions**:
+  1. Reduce the multiplier: `kaioken wiki -scale 1` for faster, less detailed output
+  2. Check your API rate limits and consider upgrading your plan
+  3. Exclude large or irrelevant directories in `.kaioken/config.yaml` under
+     `scope.excludes`
+  4. Ensure you have a stable internet connection for API calls
+
+#### "Permission denied" when running commands
+- **Solution**: On Unix-like systems, you may need to make the binary executable:
+  ```bash
+  chmod +x kaioken
+  ```
+  On Windows, ensure your antivirus isn't blocking the executable.
+
+#### Generated documentation seems incomplete
+- **Solutions**:
+  1. Run `kaioken plan` and review/edit `modules.yaml` to ensure all important
+     directories are included
+  2. Increase the multiplier: `kaioken wiki -scale 4` for more thorough coverage
+  3. Check `.kaioken/wiki_state.yaml` for any failed sections that may need
+     manual intervention
+
+#### Skills not being generated or updated
+- **Solutions**:
+  1. Run `kaioken skills -force` to regenerate all skills from scratch
+  2. Ensure your repository has recognizable patterns for common tasks (like
+     adding API endpoints or writing tests)
+  3. Check that `.kaioken/skills/README.md` exists and is readable
+
+## Contributing
+
+We welcome contributions to kaioken! Here's how you can help:
+
+### Reporting Issues
+- Use the GitHub issue tracker to report bugs or request features
+- Include your operating system, kaioken version, and steps to reproduce
+- For bugs, include relevant log output and screenshots if applicable
+
+### Submitting Changes
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes
+4. Commit your changes: `git commit -m 'Add amazing feature'`
+5. Push to the branch: `git push origin feature/amazing-feature`
+6. Open a pull request
+
+### Development Setup
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/kaioken.git
+cd kaioken
+
+# Install Go dependencies (for CLI)
+cd cli
+go mod download
+
+# Install Node.js dependencies (for website)
+cd ../website
+npm install
+
+# Build the CLI
+cd ../cli
+go build -o kaioken ./cmd/kaioken
+
+# Run the website for development
+cd ../website
+npm run dev
+```
+
+### Code Style
+- Follow the existing code style in the repository
+- Go code should pass `golangci-lint` (run `make lint`)
+- JavaScript/TypeScript should follow ESLint configuration in the website/
+- Write clear, descriptive commit messages
+
+### Documentation
+- Update the README.md if you change functionality
+- Add or update knowledge cards if you add significant features
+- Consider adding skills for common tasks related to your contribution
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -149,10 +149,18 @@ type Client struct {
 	// reply would be short. See budget.go.
 	MaxTokens int
 
+	// Thinking is the requested reasoning level (off/low/medium/high). Empty
+	// and "off" send nothing; other values are translated per endpoint by
+	// withThinking. See thinking.go.
+	Thinking string
+
 	usageMu      sync.Mutex
 	calls        int
 	promptToks   int
 	completeToks int
+	billedToks   int     // prompt tokens minus cache reads folded into them
+	cacheReadIn  int     // tokens served from the provider's prompt cache
+	cacheWriteIn int     // tokens written to the prompt cache (Anthropic)
 	costUSD      float64 // cumulative spend, when the provider reports it
 	costKnown    bool    // whether any response carried a cost figure
 
@@ -172,16 +180,34 @@ type usage struct {
 	PromptTokens     int      `json:"prompt_tokens"`
 	CompletionTokens int      `json:"completion_tokens"`
 	Cost             *float64 `json:"cost"`
+	// PromptTokensDetails carries the OpenAI-style cache report: cached
+	// tokens are included in PromptTokens but billed at the cache-read rate.
+	PromptTokensDetails *struct {
+		CachedTokens int `json:"cached_tokens"`
+	} `json:"prompt_tokens_details"`
+	// Anthropic reports cache traffic outside input_tokens; its translation
+	// layer fills these directly.
+	cacheRead  int
+	cacheWrite int
 }
 
 func (c *Client) recordUsage(u *usage) {
 	if u == nil {
 		return
 	}
+	cacheRead, billed := u.cacheRead, u.PromptTokens
+	if u.PromptTokensDetails != nil && u.PromptTokensDetails.CachedTokens > 0 {
+		// OpenAI-style: the cached tokens are part of prompt_tokens.
+		cacheRead = u.PromptTokensDetails.CachedTokens
+		billed -= cacheRead
+	}
 	c.usageMu.Lock()
 	c.calls++
 	c.promptToks += u.PromptTokens
 	c.completeToks += u.CompletionTokens
+	c.billedToks += billed
+	c.cacheReadIn += cacheRead
+	c.cacheWriteIn += u.cacheWrite
 	if u.Cost != nil {
 		c.costUSD += *u.Cost
 		c.costKnown = true
@@ -200,11 +226,37 @@ func (c *Client) Usage() (calls, promptTokens, completionTokens int) {
 // CostUSD returns the session's cumulative spend in USD and whether that
 // figure is real. known is false until a provider reports cost — in practice
 // only OpenRouter does, via its usage-accounting extension — so callers must
-// treat (0, false) as "unknown", not "free".
+// treat (0, false) as "unknown", not "free". For a figure that falls back to
+// catalog estimation, use SpendUSD.
 func (c *Client) CostUSD() (usd float64, known bool) {
 	c.usageMu.Lock()
 	defer c.usageMu.Unlock()
 	return c.costUSD, c.costKnown
+}
+
+// SpendUSD is the budget-guard view of this client's spend: the provider's
+// exact figure when one was reported (exact=true), otherwise a catalog
+// estimate priced from the token counts (exact=false). known is false only
+// when neither exists — no reported cost and an unpriced model.
+func (c *Client) SpendUSD() (usd float64, exact, known bool) {
+	c.usageMu.Lock()
+	defer c.usageMu.Unlock()
+	if c.costKnown {
+		return c.costUSD, true, true
+	}
+	est, ok := EstimateCostUSD(c.Model, c.billedToks, c.cacheReadIn, c.cacheWriteIn, c.completeToks)
+	if !ok {
+		return 0, false, false
+	}
+	return est, false, true
+}
+
+// CacheUsage reports cumulative prompt-cache traffic: tokens served from
+// cache and tokens written to it.
+func (c *Client) CacheUsage() (read, write int) {
+	c.usageMu.Lock()
+	defer c.usageMu.Unlock()
+	return c.cacheReadIn, c.cacheWriteIn
 }
 
 // wantsCostAccounting reports whether the endpoint understands OpenRouter's
@@ -292,6 +344,7 @@ func (c *Client) Chat(ctx context.Context, system, user string) (string, error) 
 func (c *Client) rawChat(ctx context.Context, body []byte) ([]byte, error) {
 	ceiling := c.tokenCeiling()
 	body = withMaxTokens(body, ceiling)
+	body = c.withThinking(body, ceiling)
 	if c.wantsCostAccounting() {
 		body = withUsageAccounting(body)
 	}

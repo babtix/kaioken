@@ -105,6 +105,7 @@ func (c *Client) ChatWithToolsStream(ctx context.Context, messages []Message, to
 func (c *Client) stream(ctx context.Context, body []byte, onDelta func(string)) (Message, error) {
 	ceiling := c.tokenCeiling()
 	body = withMaxTokens(body, ceiling)
+	body = c.withThinking(body, ceiling)
 	if c.wantsCostAccounting() {
 		body = withUsageAccounting(body)
 	}

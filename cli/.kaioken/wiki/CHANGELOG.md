@@ -2,6 +2,570 @@
 
 What Kaioken revised, and why.
 
+## 2026-07-31 10:13 — 80219965 → f462f806
+
+118 files changed · 2 documents updated
+
+- Changed the phone site's top and tab bars from a frosted glass appearance to a solid opaque background by updating the CSS in `website/src/index.css`.  
+- Removed the `backdrop-filter` and related blur properties that produced the frosted effect, replacing them with explicit background colors.  
+- Adjusted color tokens and contrast settings to ensure text and icons remain legible against the new opaque bars.  
+- Updated related documentation files (`README.md`, `Overview.md`, etc.) to note the visual change in the phone site UI.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Getting Started.md
+- .kaioken/wiki/Architecture Overview/Architecture Overview.md
+
+<details><summary>Changed files</summary>
+
+- `M` README.md
+- `M` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/config.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/cmd/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/config/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/config/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/config/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/config/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/config/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/tui/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/version/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/version/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/version/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/version/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/version/tech_stack.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.digest.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.json
+- `M` cli/.kaioken/state.json
+- `M` Overview.md
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` cli/cmd/kaioken/main.go
+- `M` cli/go.mod
+- `M` cli/internal/agent/agent.go
+- `M` cli/internal/agent/agent_test.go
+- `M` cli/internal/agent/compact.go
+- `M` cli/internal/agent/context.go
+- `M` cli/internal/agent/mode.go
+- `M` cli/internal/agent/reminders.go
+- `M` cli/internal/agent/task.go
+- `M` cli/internal/agent/tools.go
+- `M` cli/internal/config/config.go
+- `M` cli/internal/daemon/handlers_docs.go
+- `M` cli/internal/ext/manifest.go
+- `M` cli/internal/llm/anthropic.go
+- `M` cli/internal/llm/anthropic_test.go
+- `M` cli/internal/llm/openrouter.go
+- `M` cli/internal/llm/stream.go
+- `M` cli/internal/session/session.go
+- `M` cli/internal/tui/commands.go
+- `M` cli/internal/tui/tui.go
+- `M` cli/internal/tui/tutorial.go
+- `M` cli/internal/version/version.go
+- `M` desktop/package.json
+- `M` desktop/src-tauri/Cargo.lock
+- `M` desktop/src-tauri/Cargo.toml
+- `M` desktop/src-tauri/tauri.conf.json
+- `M` desktop/src/components/CommandPalette.tsx
+- `M` desktop/src/components/answer/SourceChip.tsx
+- `M` desktop/src/lib/slash.ts
+- `M` desktop/src/routes/Chat.tsx
+- `M` desktop/src/routes/Wiki.tsx
+- `M` desktop/src/store/chat.ts
+- `M` website/src/index.css
+- `?` cmd/kaioken/impact.go
+- `?` cmd/kaioken/run.go
+- `?` internal/agent/agent_run_test.go
+- `?` internal/agent/editmatch.go
+- `?` internal/agent/editmatch_test.go
+- `?` internal/agent/epoch.go
+- `?` internal/agent/events.go
+- `?` internal/agent/events/bus.go
+- `?` internal/agent/events/bus_test.go
+- `?` internal/agent/events/types.go
+- `?` internal/agent/events_test.go
+- `?` internal/agent/fileops.go
+- `?` internal/agent/retry.go
+- `?` internal/agent/retry_test.go
+- `?` internal/agent/tool_executor.go
+- `?` internal/agent/tool_executor_test.go
+- `?` internal/agent/tool_registry.go
+- `?` internal/agent/tool_registry_test.go
+- `?` internal/agent/tool_store.go
+- `?` internal/agent/tool_store_test.go
+- `?` internal/ext/hooks.go
+- `?` internal/impact/evidence.go
+- `?` internal/impact/evidence_test.go
+- `?` internal/impact/impact.go
+- `?` internal/impact/impact_test.go
+- `?` internal/impact/render.go
+- `?` internal/impact/store.go
+- `?` internal/llm/catalog.go
+- `?` internal/llm/catalog_test.go
+- `?` internal/llm/thinking.go
+- `?` internal/rpc/rpc.go
+- `?` internal/rpc/rpc_test.go
+- `?` internal/session/fork.go
+- `?` internal/session/fork_test.go
+- `?` internal/session/tree.go
+- `?` internal/session/tree_test.go
+- `?` internal/templates/templates.go
+- `?` internal/templates/templates_test.go
+- `?` internal/tui/impact.go
+- `?` internal/tui/impacttree.go
+- `?` internal/tui/impacttree_test.go
+- `?` internal/tui/research.go
+- `?` internal/tui/sessions_ext.go
+- `?` internal/tui/theme.go
+- `?` internal/tui/tree.go
+- `?` internal/tui/xcmd.go
+- `?` kaioken-new.exe
+
+</details>
+
+## 2026-07-31 09:46 — 345c2ab3 → 80219965
+
+122 files changed · 2 documents updated
+
+- Added a new `FitText` component (`website/src/mobile/components/FitText.tsx`) that dynamically scales text to fit its container.  
+- Updated mobile screens (`Home.tsx`, `DesktopScreen.tsx`, `More.tsx`, `MobileApp.tsx`) to use `FitText` for the ASCII wordmark, preventing overflow on real devices.  
+- Adjusted related styles and layout in the mobile app to accommodate the responsive text sizing.  
+- Updated dependency lockfiles (`desktop/package.json`, `desktop/src-tauri/Cargo.lock`) to reflect any new packages required for the FitText implementation.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Getting Started.md
+- .kaioken/wiki/Architecture Overview/Architecture Overview.md
+
+<details><summary>Changed files</summary>
+
+- `M` README.md
+- `M` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/config.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/cmd/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/config/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/config/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/config/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/config/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/config/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/tui/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/version/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/version/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/version/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/version/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/version/tech_stack.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.digest.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.json
+- `M` cli/.kaioken/state.json
+- `M` Overview.md
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` cli/cmd/kaioken/main.go
+- `M` cli/go.mod
+- `M` cli/internal/agent/agent.go
+- `M` cli/internal/agent/agent_test.go
+- `M` cli/internal/agent/compact.go
+- `M` cli/internal/agent/context.go
+- `M` cli/internal/agent/mode.go
+- `M` cli/internal/agent/reminders.go
+- `M` cli/internal/agent/task.go
+- `M` cli/internal/agent/tools.go
+- `M` cli/internal/config/config.go
+- `M` cli/internal/daemon/handlers_docs.go
+- `M` cli/internal/ext/manifest.go
+- `M` cli/internal/llm/anthropic.go
+- `M` cli/internal/llm/anthropic_test.go
+- `M` cli/internal/llm/openrouter.go
+- `M` cli/internal/llm/stream.go
+- `M` cli/internal/session/session.go
+- `M` cli/internal/tui/commands.go
+- `M` cli/internal/tui/tui.go
+- `M` cli/internal/tui/tutorial.go
+- `M` cli/internal/version/version.go
+- `M` desktop/package.json
+- `M` desktop/src-tauri/Cargo.lock
+- `M` desktop/src-tauri/Cargo.toml
+- `M` desktop/src-tauri/tauri.conf.json
+- `M` desktop/src/components/CommandPalette.tsx
+- `M` desktop/src/components/answer/SourceChip.tsx
+- `M` desktop/src/lib/slash.ts
+- `M` desktop/src/routes/Chat.tsx
+- `M` desktop/src/routes/Wiki.tsx
+- `M` desktop/src/store/chat.ts
+- `M` website/src/mobile/MobileApp.tsx
+- `A` website/src/mobile/components/FitText.tsx
+- `M` website/src/mobile/screens/DesktopScreen.tsx
+- `M` website/src/mobile/screens/Home.tsx
+- `M` website/src/mobile/screens/More.tsx
+- `?` cmd/kaioken/impact.go
+- `?` cmd/kaioken/run.go
+- `?` internal/agent/agent_run_test.go
+- `?` internal/agent/editmatch.go
+- `?` internal/agent/editmatch_test.go
+- `?` internal/agent/epoch.go
+- `?` internal/agent/events.go
+- `?` internal/agent/events/bus.go
+- `?` internal/agent/events/bus_test.go
+- `?` internal/agent/events/types.go
+- `?` internal/agent/events_test.go
+- `?` internal/agent/fileops.go
+- `?` internal/agent/retry.go
+- `?` internal/agent/retry_test.go
+- `?` internal/agent/tool_executor.go
+- `?` internal/agent/tool_executor_test.go
+- `?` internal/agent/tool_registry.go
+- `?` internal/agent/tool_registry_test.go
+- `?` internal/agent/tool_store.go
+- `?` internal/agent/tool_store_test.go
+- `?` internal/ext/hooks.go
+- `?` internal/impact/evidence.go
+- `?` internal/impact/evidence_test.go
+- `?` internal/impact/impact.go
+- `?` internal/impact/impact_test.go
+- `?` internal/impact/render.go
+- `?` internal/impact/store.go
+- `?` internal/llm/catalog.go
+- `?` internal/llm/catalog_test.go
+- `?` internal/llm/thinking.go
+- `?` internal/rpc/rpc.go
+- `?` internal/rpc/rpc_test.go
+- `?` internal/session/fork.go
+- `?` internal/session/fork_test.go
+- `?` internal/session/tree.go
+- `?` internal/session/tree_test.go
+- `?` internal/templates/templates.go
+- `?` internal/templates/templates_test.go
+- `?` internal/tui/impact.go
+- `?` internal/tui/impacttree.go
+- `?` internal/tui/impacttree_test.go
+- `?` internal/tui/research.go
+- `?` internal/tui/sessions_ext.go
+- `?` internal/tui/theme.go
+- `?` internal/tui/tree.go
+- `?` internal/tui/xcmd.go
+- `?` kaioken-new.exe
+
+</details>
+
+## 2026-07-31 09:36 — 9d4214ab → 345c2ab3
+
+97 files changed · 2 documents updated
+
+- Relocated stack principles and shortcut definitions from the paired‑location documentation to the `/desktop` section, updating README.md, knowledge files, and config.yaml to reference the new path.  
+- Modified CLI and agent code (main.go, agent.go, config.go, etc.) to load stack principles and shortcuts from the desktop configuration instead of the previous pairing logic.  
+- Updated desktop frontend (CommandPalette.tsx, routes/Chat.tsx, routes/Wiki.tsx, store/chat.ts, src/lib/slash.ts, and website Desktop.tsx) to expose and handle the shortcuts via the new desktop stack.  
+- Added a set of new impact‑related source files (impact.go, evidence.go, render.go, store.go, catalog.go, etc.) and corresponding test files, reflecting the concurrent addition of an impact tracking subsystem alongside the desktop shortcut changes.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Getting Started.md
+- .kaioken/wiki/Architecture Overview/Architecture Overview.md
+
+<details><summary>Changed files</summary>
+
+- `M` README.md
+- `M` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/config.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/cmd/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/tech_stack.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.digest.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.json
+- `M` cli/.kaioken/state.json
+- `M` Overview.md
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` cli/cmd/kaioken/main.go
+- `M` cli/go.mod
+- `M` cli/internal/agent/agent.go
+- `M` cli/internal/agent/agent_test.go
+- `M` cli/internal/agent/compact.go
+- `M` cli/internal/agent/context.go
+- `M` cli/internal/agent/mode.go
+- `M` cli/internal/agent/reminders.go
+- `M` cli/internal/agent/task.go
+- `M` cli/internal/agent/tools.go
+- `M` cli/internal/config/config.go
+- `M` cli/internal/daemon/handlers_docs.go
+- `M` cli/internal/ext/manifest.go
+- `M` cli/internal/llm/anthropic.go
+- `M` cli/internal/llm/anthropic_test.go
+- `M` cli/internal/llm/openrouter.go
+- `M` cli/internal/llm/stream.go
+- `M` cli/internal/session/session.go
+- `M` cli/internal/tui/commands.go
+- `M` cli/internal/tui/tui.go
+- `M` cli/internal/tui/tutorial.go
+- `M` cli/internal/version/version.go
+- `M` desktop/package.json
+- `M` desktop/src-tauri/Cargo.lock
+- `M` desktop/src-tauri/Cargo.toml
+- `M` desktop/src-tauri/tauri.conf.json
+- `M` desktop/src/components/CommandPalette.tsx
+- `M` desktop/src/components/answer/SourceChip.tsx
+- `M` desktop/src/lib/slash.ts
+- `M` desktop/src/routes/Chat.tsx
+- `M` desktop/src/routes/Wiki.tsx
+- `M` desktop/src/store/chat.ts
+- `M` website/src/pages/Desktop.tsx
+- `?` cmd/kaioken/impact.go
+- `?` cmd/kaioken/run.go
+- `?` internal/agent/agent_run_test.go
+- `?` internal/agent/editmatch.go
+- `?` internal/agent/editmatch_test.go
+- `?` internal/agent/epoch.go
+- `?` internal/agent/events.go
+- `?` internal/agent/events/bus.go
+- `?` internal/agent/events/bus_test.go
+- `?` internal/agent/events/types.go
+- `?` internal/agent/events_test.go
+- `?` internal/agent/fileops.go
+- `?` internal/agent/retry.go
+- `?` internal/agent/retry_test.go
+- `?` internal/agent/tool_executor.go
+- `?` internal/agent/tool_executor_test.go
+- `?` internal/agent/tool_registry.go
+- `?` internal/agent/tool_registry_test.go
+- `?` internal/agent/tool_store.go
+- `?` internal/agent/tool_store_test.go
+- `?` internal/ext/hooks.go
+- `?` internal/impact/evidence.go
+- `?` internal/impact/evidence_test.go
+- `?` internal/impact/impact.go
+- `?` internal/impact/impact_test.go
+- `?` internal/impact/render.go
+- `?` internal/impact/store.go
+- `?` internal/llm/catalog.go
+- `?` internal/llm/catalog_test.go
+- `?` internal/llm/thinking.go
+- `?` internal/rpc/rpc.go
+- `?` internal/rpc/rpc_test.go
+- `?` internal/session/fork.go
+- `?` internal/session/fork_test.go
+- `?` internal/session/tree.go
+- `?` internal/session/tree_test.go
+- `?` internal/templates/templates.go
+- `?` internal/templates/templates_test.go
+- `?` internal/tui/impact.go
+- `?` internal/tui/impacttree.go
+- `?` internal/tui/impacttree_test.go
+- `?` internal/tui/research.go
+- `?` internal/tui/sessions_ext.go
+- `?` internal/tui/theme.go
+- `?` internal/tui/tree.go
+- `?` internal/tui/xcmd.go
+- `?` kaioken-new.exe
+
+</details>
+
+## 2026-07-31 09:31 — 8284104f → 9d4214ab
+
+151 files changed · 2 documents updated
+
+- Added a mobile‑first website implementation: new mobile components, screens, lib utilities, and a DesktopApp.tsx entry point alongside existing desktop site files.  
+- Updated the .kaioken knowledge base and related documentation (markdown/YAML files, wiki, changelog, guide) and adjusted CLI configuration files.  
+- Refactored CLI internals (agent logic, config handling, TUI, daemon, LLM integrations, versioning) and introduced a new impact/evidence subsystem with supporting code and tests.  
+- Updated the desktop Tauri app (package.json, Cargo files, tauri.conf.json, component tweaks) and refreshed the registry‑web UI (pages, styles) while applying main‑website UI fixes.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Getting Started.md
+- .kaioken/wiki/Architecture Overview/Architecture Overview.md
+
+<details><summary>Changed files</summary>
+
+- `M` README.md
+- `M` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/config.yaml
+- `M` cli/.kaioken/knowledge/kaioken/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/cmd/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/overview.md
+- `D` cli/.kaioken/knowledge/kaioken/setup_commands.md
+- `M` cli/.kaioken/knowledge/kaioken/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/tui/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/tech_stack.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.digest.md
+- `M` cli/.kaioken/sessions/20260728-051910-5210.json
+- `M` cli/.kaioken/state.json
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` Guide.md
+- `M` (TUI).md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` cli/cmd/kaioken/main.go
+- `M` cli/go.mod
+- `M` cli/internal/agent/agent.go
+- `M` cli/internal/agent/agent_test.go
+- `M` cli/internal/agent/compact.go
+- `M` cli/internal/agent/context.go
+- `M` cli/internal/agent/mode.go
+- `M` cli/internal/agent/reminders.go
+- `M` cli/internal/agent/task.go
+- `M` cli/internal/agent/tools.go
+- `M` cli/internal/config/config.go
+- `M` cli/internal/daemon/handlers_docs.go
+- `M` cli/internal/ext/manifest.go
+- `M` cli/internal/llm/anthropic.go
+- `M` cli/internal/llm/anthropic_test.go
+- `M` cli/internal/llm/openrouter.go
+- `M` cli/internal/llm/stream.go
+- `M` cli/internal/session/session.go
+- `M` cli/internal/tui/commands.go
+- `M` cli/internal/tui/tui.go
+- `M` cli/internal/tui/tutorial.go
+- `M` cli/internal/version/version.go
+- `M` desktop/package.json
+- `M` desktop/src-tauri/Cargo.lock
+- `M` desktop/src-tauri/Cargo.toml
+- `M` desktop/src-tauri/tauri.conf.json
+- `M` desktop/src/components/CommandPalette.tsx
+- `M` desktop/src/components/answer/SourceChip.tsx
+- `M` desktop/src/lib/slash.ts
+- `M` desktop/src/routes/Chat.tsx
+- `M` desktop/src/routes/Wiki.tsx
+- `M` desktop/src/store/chat.ts
+- `M` registry-web/index.html
+- `M` registry-web/src/App.tsx
+- `M` registry-web/src/pages/Browse.tsx
+- `M` registry-web/src/pages/Detail.tsx
+- `M` registry-web/src/pages/Docs.tsx
+- `M` registry-web/src/pages/Home.tsx
+- `M` registry-web/src/pages/Submit.tsx
+- `M` registry-web/src/styles.css
+- `M` website/index.html
+- `M` website/src/App.tsx
+- `A` website/src/DesktopApp.tsx
+- `M` website/src/components/CodeBlock.tsx
+- `M` website/src/components/SiteFooter.tsx
+- `M` website/src/components/docs/parts.tsx
+- `M` website/src/data/desktop.ts
+- `M` website/src/index.css
+- `A` website/src/lib/doc-chrome.ts
+- `A` website/src/lib/shell.tsx
+- `A` website/src/lib/viewport.ts
+- `A` website/src/mobile/MobileApp.tsx
+- `A` website/src/mobile/components/Accordion.tsx
+- `A` website/src/mobile/components/Code.tsx
+- `A` website/src/mobile/components/TabBar.tsx
+- `A` website/src/mobile/components/TerminalPeek.tsx
+- `A` website/src/mobile/components/TopBar.tsx
+- `A` website/src/mobile/components/primitives.tsx
+- `A` website/src/mobile/lib/chrome.tsx
+- `A` website/src/mobile/lib/tone.ts
+- `A` website/src/mobile/screens/DesktopScreen.tsx
+- `A` website/src/mobile/screens/DocScreen.tsx
+- `A` website/src/mobile/screens/DocsIndex.tsx
+- `A` website/src/mobile/screens/Home.tsx
+- `A` website/src/mobile/screens/More.tsx
+- `A` website/src/mobile/screens/Next.tsx
+- `A` website/src/mobile/screens/Output.tsx
+- `A` website/src/mobile/screens/OutputDoc.tsx
+- `A` website/src/mobile/screens/Showcase.tsx
+- `?` cmd/kaioken/impact.go
+- `?` cmd/kaioken/run.go
+- `?` internal/agent/agent_run_test.go
+- `?` internal/agent/editmatch.go
+- `?` internal/agent/editmatch_test.go
+- `?` internal/agent/epoch.go
+- `?` internal/agent/events.go
+- `?` internal/agent/events/bus.go
+- `?` internal/agent/events/bus_test.go
+- `?` internal/agent/events/types.go
+- `?` internal/agent/events_test.go
+- `?` internal/agent/fileops.go
+- `?` internal/agent/retry.go
+- `?` internal/agent/retry_test.go
+- `?` internal/agent/tool_executor.go
+- `?` internal/agent/tool_executor_test.go
+- `?` internal/agent/tool_registry.go
+- `?` internal/agent/tool_registry_test.go
+- `?` internal/agent/tool_store.go
+- `?` internal/agent/tool_store_test.go
+- `?` internal/ext/hooks.go
+- `?` internal/impact/evidence.go
+- `?` internal/impact/evidence_test.go
+- `?` internal/impact/impact.go
+- `?` internal/impact/impact_test.go
+- `?` internal/impact/render.go
+- `?` internal/impact/store.go
+- `?` internal/llm/catalog.go
+- `?` internal/llm/catalog_test.go
+- `?` internal/llm/thinking.go
+- `?` internal/rpc/rpc.go
+- `?` internal/rpc/rpc_test.go
+- `?` internal/session/fork.go
+- `?` internal/session/fork_test.go
+- `?` internal/session/tree.go
+- `?` internal/session/tree_test.go
+- `?` internal/templates/templates.go
+- `?` internal/templates/templates_test.go
+- `?` internal/tui/impact.go
+- `?` internal/tui/impacttree.go
+- `?` internal/tui/impacttree_test.go
+- `?` internal/tui/research.go
+- `?` internal/tui/sessions_ext.go
+- `?` internal/tui/theme.go
+- `?` internal/tui/tree.go
+- `?` internal/tui/xcmd.go
+- `?` kaioken-new.exe
+
+</details>
+
 ## 2026-07-31 05:35 — 91c6fcc4 → d4c949b0
 
 31 files changed · 1 documents updated

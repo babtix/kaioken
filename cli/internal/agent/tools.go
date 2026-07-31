@@ -16,7 +16,9 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
+	"kaioken/internal/agent/events"
 	"kaioken/internal/ext"
 	"kaioken/internal/llm"
 	"kaioken/internal/memory"
@@ -78,6 +80,15 @@ type Agent struct {
 	// shared with sub-agents (they bill the same client) and outlive the
 	// per-turn Agent value — see BudgetGuard.
 	Budget *BudgetGuard
+	// Events receives the run's lifecycle events. Nil means the process-wide
+	// events.Default bus; tests and sub-agents set their own for isolation.
+	Events *events.Bus
+
+	// qmu guards the steering and follow-up queues, which the front-end
+	// goroutine fills via Steer/FollowUp while Run drains them between turns.
+	qmu       sync.Mutex
+	steering  []string
+	followUps []string
 }
 
 // Tools returns the tool schemas offered to the model.
@@ -135,14 +146,20 @@ func (a *Agent) Tools() []llm.Tool {
 				"content":{"type":"string"}},
 				"required":["path","content"]}`),
 		}}, llm.Tool{Type: "function", Function: llm.FunctionDef{
-			Name:        "edit_file",
-			Description: "Replace the first exact occurrence of old_string with new_string in a file. " +
-				"old_string must match uniquely. Requires user approval.",
+			Name: "edit_file",
+			Description: "Replace old_string with new_string in a file. old_string must match uniquely; " +
+				"minor differences in smart quotes, dashes, and trailing whitespace are tolerated. " +
+				"Batch several replacements to the same file with edits. Requires user approval.",
 			Parameters: raw(`{"type":"object","properties":{
 				"path":{"type":"string"},
 				"old_string":{"type":"string"},
-				"new_string":{"type":"string"}},
-				"required":["path","old_string","new_string"]}`),
+				"new_string":{"type":"string"},
+				"edits":{"type":"array","description":"batch of replacements applied together; use instead of old_string/new_string",
+					"items":{"type":"object","properties":{
+						"old_string":{"type":"string"},
+						"new_string":{"type":"string"}},
+						"required":["old_string","new_string"]}}},
+				"required":["path"]}`),
 		}})
 		if !a.MemoryDisabled {
 			tools = append(tools, llm.Tool{Type: "function", Function: llm.FunctionDef{
@@ -204,6 +221,11 @@ func (a *Agent) Tools() []llm.Tool {
 	if a.Depth < maxSubAgentDepth {
 		tools = append(tools, taskTool(), todoTool())
 	}
+	// Runtime-registered tools follow extension rules: only the top-level
+	// agent sees them, filtered by the current mode's permissions.
+	if a.Depth == 0 {
+		tools = append(tools, registeredSchemas(a.Mode)...)
+	}
 	return tools
 }
 
@@ -229,55 +251,75 @@ func (a *Agent) execTool(ctx context.Context, tc llm.ToolCall) string {
 		return false
 	}
 
+	var rawResult string
 	switch tc.Function.Name {
 	case "read_file":
-		return a.readFile(getStr("path"))
+		rawResult = a.readFile(getStr("path"))
 	case "list_files":
 		p := getStr("path")
 		if p == "" {
 			p = "."
 		}
-		return a.listFiles(p)
+		rawResult = a.listFiles(p)
 	case "search":
-		return a.search(getStr("query"))
+		rawResult = a.search(getStr("query"))
 	case "read_knowledge":
-		return a.readKnowledge(getStr("doc"))
+		rawResult = a.readKnowledge(getStr("doc"))
 	case "recall":
-		return a.recall(getStr("query"))
+		rawResult = a.recall(getStr("query"))
 	case "write_file":
 		if !PermissionsFor(a.Mode).CanWrite {
 			return a.modeDenied("write_file")
 		}
-		return a.writeFile(getStr("path"), getStr("content"))
+		rawResult = a.writeFile(getStr("path"), getStr("content"))
 	case "edit_file":
 		if !PermissionsFor(a.Mode).CanWrite {
 			return a.modeDenied("edit_file")
 		}
-		return a.editFile(getStr("path"), getStr("old_string"), getStr("new_string"))
+		// Parsed from the raw arguments: the batch form is structured, and the
+		// decoded map would lose the item types json.Unmarshal already checked.
+		edits, perr := parseEditArgs(tc.Function.Arguments)
+		if perr != nil {
+			return "error: " + perr.Error()
+		}
+		rawResult = a.editFile(getStr("path"), edits)
 	case "remember":
 		if !PermissionsFor(a.Mode).CanWrite {
 			return a.modeDenied("remember")
 		}
-		return a.remember(getStr("content"), getBool("rewrite"), getStr("scope"))
+		rawResult = a.remember(getStr("content"), getBool("rewrite"), getStr("scope"))
 	case "run_command":
 		if !PermissionsFor(a.Mode).CanRun {
 			return a.modeDenied("run_command")
 		}
-		return a.runCommand(ctx, getStr("command"))
+		rawResult = a.runCommand(ctx, getStr("command"), tc.ID)
 	case "task":
-		return a.runTask(ctx, getStr("description"), getStr("prompt"), getStr("mode"))
+		rawResult = a.runTask(ctx, getStr("description"), getStr("prompt"), getStr("mode"))
 	case "todo":
 		// Parsed from the raw arguments rather than the decoded map: the items
 		// are structured, and re-deriving them from map[string]any would mean
 		// hand-rolling the type checks json.Unmarshal already does.
-		return a.updateTodos(tc.Function.Arguments)
+		rawResult = a.updateTodos(tc.Function.Arguments)
 	default:
-		if mt, ok := ext.LookupTool(tc.Function.Name); ok {
-			return a.callExtTool(ctx, mt, tc.Function.Arguments)
+		if rt, ok := lookupRegistered(tc.Function.Name); ok {
+			if !rt.ReadOnly && !PermissionsFor(a.Mode).CanRun {
+				return a.modeDenied(tc.Function.Name)
+			}
+			rawResult = rt.Run(ctx, a, tc.Function.Arguments)
+		} else if mt, ok := ext.LookupTool(tc.Function.Name); ok {
+			rawResult = a.callExtTool(ctx, mt, tc.Function.Arguments)
+		} else {
+			return "error: unknown tool " + tc.Function.Name
 		}
-		return "error: unknown tool " + tc.Function.Name
 	}
+
+	boundRes, err := BoundOutput(a.Root, tc.ID, tc.Function.Name, rawResult, nil)
+	if err != nil || !boundRes.WasTruncated {
+		return rawResult
+	}
+	return boundRes.BoundedText
 }
+
 
 // extInvoke is the extension-tool dispatch, a variable so tests can stub the
 // plugin machinery away.
@@ -451,7 +493,34 @@ func (a *Agent) writeFile(path, content string) string {
 	return "wrote " + path + fmt.Sprintf(" (%d bytes)", len(content))
 }
 
-func (a *Agent) editFile(path, oldStr, newStr string) string {
+// parseEditArgs accepts either the single old_string/new_string pair or the
+// batched edits array, normalizing both to []Edit.
+func parseEditArgs(argsJSON string) ([]Edit, error) {
+	var p struct {
+		Old   string `json:"old_string"`
+		New   string `json:"new_string"`
+		Edits []struct {
+			Old string `json:"old_string"`
+			New string `json:"new_string"`
+		} `json:"edits"`
+	}
+	if err := json.Unmarshal([]byte(argsJSON), &p); err != nil {
+		return nil, fmt.Errorf("could not parse tool arguments: %w", err)
+	}
+	if len(p.Edits) > 0 {
+		out := make([]Edit, len(p.Edits))
+		for i, e := range p.Edits {
+			out[i] = Edit{Old: e.Old, New: e.New}
+		}
+		return out, nil
+	}
+	if p.Old == "" {
+		return nil, fmt.Errorf("edit_file needs old_string/new_string or a non-empty edits array")
+	}
+	return []Edit{{Old: p.Old, New: p.New}}, nil
+}
+
+func (a *Agent) editFile(path string, edits []Edit) string {
 	abs, err := a.resolve(path)
 	if err != nil {
 		return "error: " + err.Error()
@@ -460,24 +529,43 @@ func (a *Agent) editFile(path, oldStr, newStr string) string {
 	if err != nil {
 		return "error: " + err.Error()
 	}
-	content := string(data)
-	n := strings.Count(content, oldStr)
-	if n == 0 {
-		return "error: old_string not found in " + path
+	// Match in a BOM-free, LF-only view; restore both on write so the file
+	// keeps its original encoding details.
+	original := string(data)
+	bom, text := stripBOM(original)
+	ending := detectLineEnding(text)
+	updated, usedFuzzy, applyErr := applyEdits(normalizeToLF(text), edits, path)
+	if applyErr != nil {
+		return "error: " + applyErr.Error()
 	}
-	if n > 1 {
-		return fmt.Sprintf("error: old_string matches %d times in %s; make it unique", n, path)
+	preview := editsPreview(edits)
+	if usedFuzzy {
+		preview += "(fuzzy-matched: quote/dash/trailing-whitespace differences were tolerated)\n"
 	}
-	preview := hunkPreview(oldStr, newStr)
 	if !a.approve("edit", path, preview) {
 		return "user declined to edit " + path
 	}
-	updated := strings.Replace(content, oldStr, newStr, 1)
-	if err := os.WriteFile(abs, []byte(updated), 0o644); err != nil {
+	if err := os.WriteFile(abs, []byte(bom+restoreLineEndings(updated, ending)), 0o644); err != nil {
 		return "error: " + err.Error()
 	}
-	a.UI.RecordUndo(UndoEntry{Path: path, HadPrevious: true, PreviousContent: content})
+	a.UI.RecordUndo(UndoEntry{Path: path, HadPrevious: true, PreviousContent: original})
+	if len(edits) > 1 {
+		return fmt.Sprintf("edited %s (%d replacements)", path, len(edits))
+	}
 	return "edited " + path
+}
+
+// editsPreview renders the approval preview for an edit batch: one hunk per
+// replacement, numbered when there is more than one.
+func editsPreview(edits []Edit) string {
+	var b strings.Builder
+	for i, e := range edits {
+		if len(edits) > 1 {
+			fmt.Fprintf(&b, "edit %d of %d:\n", i+1, len(edits))
+		}
+		b.WriteString(hunkPreview(e.Old, e.New))
+	}
+	return b.String()
 }
 
 // Restore reverts a file to the state captured in an UndoEntry: the previous
@@ -491,7 +579,7 @@ func Restore(root string, e UndoEntry) error {
 	return os.Remove(abs)
 }
 
-func (a *Agent) runCommand(ctx context.Context, command string) string {
+func (a *Agent) runCommand(ctx context.Context, command, callID string) string {
 	if strings.TrimSpace(command) == "" {
 		return "error: empty command"
 	}
@@ -505,8 +593,20 @@ func (a *Agent) runCommand(ctx context.Context, command string) string {
 		cmd = exec.CommandContext(ctx, "sh", "-c", command)
 	}
 	cmd.Dir = a.Root
-	out, err := cmd.CombinedOutput()
-	result := string(out)
+	// Output streams to the bus as it arrives, so a front-end can show a
+	// long build scrolling. Stdout and Stderr share the writer; os/exec
+	// serializes Write calls when both are the same value.
+	out := &liveWriter{}
+	if bus := a.bus(); bus.HasHandlers(events.ToolExecutionUpdate) {
+		out.emit = func(chunk string) {
+			bus.Emit(&events.Event{Type: events.ToolExecutionUpdate, Depth: a.Depth,
+				ToolName: "run_command", ToolCallID: callID, Partial: chunk})
+		}
+	}
+	cmd.Stdout = out
+	cmd.Stderr = out
+	err := cmd.Run()
+	result := out.String()
 	if len(result) > maxReadBytes {
 		result = result[:maxReadBytes] + "\n… [output truncated]"
 	}

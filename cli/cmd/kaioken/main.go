@@ -44,6 +44,13 @@ Usage: kaioken <command> [flags]
 
 Commands:
   tui        Launch the interactive terminal UI (also the default with no args)
+  run        Run the agent headless on one prompt and exit: -p "..." gives the
+             prompt, -mode picks the permission preset (default build), -json
+             emits typed events as JSON lines, -approve sets the policy for
+             state-changing actions (never | edits | all; default never)
+  rpc        Drive the agent over JSON-RPC 2.0 on stdio — methods like
+             agent.prompt/steer/approve, events as notifications (for editors,
+             scripts and other processes embedding kaioken)
   init       Full first-run setup: create .kaioken/config.yaml, scan the repo, and
              write AGENTS.md — the instruction file agents read before editing
              (-force rewrites an existing AGENTS.md)
@@ -58,6 +65,10 @@ Commands:
              then revise the knowledge cards of changed modules
   skills     Build task-oriented skills an AI agent loads while working in the
              repo (positional: "list", or a skill name; -force to rewrite)
+  impact     Predict the blast radius of a proposed change before editing:
+             affected symbols, files, modules, wiki docs, skills and tests
+             (positional: the change description; -format markdown|json,
+             -out writes the report to a file)
   export     Flatten the generated knowledge into another tool's context file
              (claude-md | agents-md | cursor-rules | context-md; -out overrides
              the path, -force overwrites, -full inlines wiki chapters)
@@ -128,6 +139,10 @@ func main() {
 	switch cmd {
 	case "tui":
 		err = tui.Run(args.repo)
+	case "run":
+		err = cmdRun(ctx, args)
+	case "rpc":
+		err = cmdRPC(ctx, args)
 	case "init":
 		err = cmdInit(ctx, args)
 	case "scan":
@@ -142,6 +157,8 @@ func main() {
 		err = cmdGenerate(ctx, args)
 	case "skills", "skill":
 		err = cmdSkills(ctx, args)
+	case "impact":
+		err = cmdImpact(ctx, args)
 	case "export":
 		err = cmdExport(args)
 	case "ext", "extension", "extensions":
@@ -210,6 +227,12 @@ type flags struct {
 	positionals []string
 	token       string
 	tokenStdin  bool
+	// run/rpc flags: the headless prompt, permission mode, approval policy,
+	// and JSON event output.
+	prompt  string
+	mode    string
+	approve string
+	jsonOut bool
 }
 
 func parseFlags(argv []string) flags {
@@ -257,6 +280,23 @@ func parseFlags(argv []string) flags {
 			}
 		case "-token-stdin", "--token-stdin":
 			f.tokenStdin = true
+		case "-p", "-prompt", "--prompt":
+			if i+1 < len(argv) {
+				i++
+				f.prompt = argv[i]
+			}
+		case "-mode", "--mode":
+			if i+1 < len(argv) {
+				i++
+				f.mode = argv[i]
+			}
+		case "-approve", "--approve":
+			if i+1 < len(argv) {
+				i++
+				f.approve = argv[i]
+			}
+		case "-json", "--json":
+			f.jsonOut = true
 		default:
 			f.positional = argv[i]
 			f.positionals = append(f.positionals, argv[i])

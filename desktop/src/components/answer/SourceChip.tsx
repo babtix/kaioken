@@ -158,7 +158,11 @@ export function SourceCard({
     <button
       type="button"
       onClick={() => onOpen?.(source)}
-      className="hud-corners group flex w-full items-start gap-2.5 rounded-[var(--radius)] border border-border
+      // min-w-0 matters: as a grid item the button's automatic minimum size
+      // is its content width, so one source with a long unbreakable title or
+      // URL would stretch every card past the answer surface. Zeroing it lets
+      // the card stay at track width and the inner truncate spans do the rest.
+      className="hud-corners group flex w-full min-w-0 items-start gap-2.5 rounded-[var(--radius)] border border-border
                  bg-card p-2.5 text-left transition-colors hover:border-kai-orange/40 hover:bg-accent
                  outline-none focus-visible:ring-2 focus-visible:ring-kai-orange/50"
     >

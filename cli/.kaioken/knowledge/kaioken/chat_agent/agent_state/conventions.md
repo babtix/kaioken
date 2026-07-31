@@ -1,9 +1,7 @@
-- Session IDs use format "20060102-150405-<rand4>" (timestamp + random 4-digit).
-- Session titles derive from first user message via deriveTitle (truncated to 64 runes, ellipsis if truncated) and set only on first Record if empty.
-- Empty sessions (zero user turns) are skipped by Save but saved unconditionally by SaveForce.
-- Session files written with 0o644 permissions after creating sessions dir with 0o755.
-- DurableInput.Delivery uses PromptDeliveryMode enum ("steer" or "queue").
-- Epochs record context changes with Kind: "mode_switch" or "compaction".
-- State.json written as indented JSON (mkdir 0o755 for .ainow dir).
-- HashFiles sorts scan.File by Path, hashes path\x00+content\x00 per file via SHA256.
-- State.Load returns empty State (Modules map initialized) if state.json missing.
+- Session IDs must follow the format "YYYYMMDD-HHMMSS-NNNN" (with NNNN a random 4-digit number) as generated in session.New().
+- When saving a session, if it contains no user turns (session.Empty() returns true), the session.Save() function skips writing to disk.
+- The session tree structure must be updated by calling session.syncTree() after any modification to session.Messages (as done in session.Record()).
+- Forking a session via session.ForkAt() must not modify the source session.
+- Importing a transcript via session.Import() requires saving the new session before returning it.
+- The state.HashFiles() function must sort input files by path and hash each file's path and content with a null byte separator for deterministic results.
+- The state package writes its state.json file using json.MarshalIndent for human-readable indentation.

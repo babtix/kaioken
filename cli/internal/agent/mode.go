@@ -25,6 +25,8 @@ const (
 	// ModeExplore is read-only like plan, but oriented toward searching and
 	// explaining the codebase rather than drafting changes.
 	ModeExplore Mode = "explore"
+	// ModeReview is read-only, focused on code review, security audits, and diff analysis.
+	ModeReview Mode = "review"
 )
 
 // Permissions describes what a mode lets the agent do.
@@ -38,7 +40,7 @@ type Permissions struct {
 // are treated as build so that a zero-value Agent keeps today's behavior.
 func PermissionsFor(m Mode) Permissions {
 	switch m {
-	case ModePlan, ModeExplore:
+	case ModePlan, ModeExplore, ModeReview:
 		return Permissions{CanWrite: false, CanRun: false, ForceApproval: false}
 	case ModeGeneral:
 		return Permissions{CanWrite: true, CanRun: true, ForceApproval: true}
@@ -62,8 +64,10 @@ func ParseMode(s string) (Mode, error) {
 		return ModeGeneral, nil
 	case ModeExplore:
 		return ModeExplore, nil
+	case ModeReview:
+		return ModeReview, nil
 	}
-	return "", fmt.Errorf("unknown mode %q (valid modes: build, plan, general, explore)", s)
+	return "", fmt.Errorf("unknown mode %q (valid modes: build, plan, general, explore, review)", s)
 }
 
 // PromptGuidance returns a mode-specific snippet appended to the system
@@ -79,6 +83,9 @@ func (m Mode) PromptGuidance() string {
 	case ModeExplore:
 		return "You are in explore mode: focus on reading, searching, and explaining the " +
 			"codebase. You cannot modify files or run commands."
+	case ModeReview:
+		return "You are in review mode: focus on code review, security analysis, architectural consistency, " +
+			"and identifying potential bugs or regressions. You cannot modify files or run commands."
 	default:
 		return ""
 	}
@@ -87,7 +94,7 @@ func (m Mode) PromptGuidance() string {
 // Valid reports whether m is one of the recognized modes.
 func (m Mode) Valid() bool {
 	switch m {
-	case ModeBuild, ModePlan, ModeGeneral, ModeExplore:
+	case ModeBuild, ModePlan, ModeGeneral, ModeExplore, ModeReview:
 		return true
 	}
 	return false
@@ -95,5 +102,6 @@ func (m Mode) Valid() bool {
 
 // AllModes lists the recognized modes in display order.
 func AllModes() []Mode {
-	return []Mode{ModeBuild, ModePlan, ModeGeneral, ModeExplore}
+	return []Mode{ModeBuild, ModePlan, ModeGeneral, ModeExplore, ModeReview}
 }
+

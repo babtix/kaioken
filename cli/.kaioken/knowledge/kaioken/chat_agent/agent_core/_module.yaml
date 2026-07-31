@@ -1,8 +1,8 @@
 description: Core agent implementation including file operations and command execution.
-file_count: 27
-generated_at: "2026-07-31T06:44:21Z"
+file_count: 38
+generated_at: "2026-07-31T09:34:38Z"
 id: kaioken/chat_agent/agent_core
-model: nvidia/nemotron-3-super-120b-a12b
+model: nemotron-3-super:cloud
 scope:
     - internal/agent
 title: Agent Core

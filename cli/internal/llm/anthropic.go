@@ -28,7 +28,7 @@ const anthropicVersion = "2023-06-01"
 type anthropicRequest struct {
 	Model       string             `json:"model"`
 	MaxTokens   int                `json:"max_tokens"`
-	System      string             `json:"system,omitempty"`
+	System      any                `json:"system,omitempty"`
 	Messages    []anthropicMessage `json:"messages"`
 	Tools       []anthropicTool    `json:"tools,omitempty"`
 	Temperature float64            `json:"temperature,omitempty"`
@@ -51,6 +51,39 @@ type anthropicContentBlock struct {
 	Input     json.RawMessage `json:"input,omitempty"`
 	ToolUseID string          `json:"tool_use_id,omitempty"`
 	Content   string          `json:"content,omitempty"`
+	// CacheControl marks a prompt-cache breakpoint: everything up to this
+	// block is cached by the provider and billed at the cache-read rate on
+	// the next request that shares the prefix.
+	CacheControl json.RawMessage `json:"cache_control,omitempty"`
+}
+
+// cacheEphemeral is the only cache_control Anthropic currently accepts.
+var cacheEphemeral = json.RawMessage(`{"type":"ephemeral"}`)
+
+// anthropicSystem renders the folded system prompt as a cacheable block.
+// The system prompt is the largest stable prefix a session has — knowledge
+// cards, skills, project instructions — so caching it pays for itself on
+// the second turn.
+func anthropicSystem(system string) any {
+	if system == "" {
+		return nil
+	}
+	return []anthropicContentBlock{{Type: "text", Text: system, CacheControl: cacheEphemeral}}
+}
+
+// applyCacheBreakpoints marks the final block of the last two non-assistant
+// messages. Together with the system breakpoint that caches the whole
+// conversation prefix: turn N reads the cache written at turn N-1 and
+// extends it by one turn's worth of writes.
+func applyCacheBreakpoints(msgs []anthropicMessage) {
+	marked := 0
+	for i := len(msgs) - 1; i >= 0 && marked < 2; i-- {
+		if msgs[i].Role != "user" || len(msgs[i].Content) == 0 {
+			continue
+		}
+		msgs[i].Content[len(msgs[i].Content)-1].CacheControl = cacheEphemeral
+		marked++
+	}
 }
 
 type anthropicTool struct {
@@ -63,8 +96,10 @@ type anthropicResponse struct {
 	Content    []anthropicContentBlock `json:"content"`
 	StopReason string                  `json:"stop_reason"`
 	Usage      struct {
-		InputTokens  int `json:"input_tokens"`
-		OutputTokens int `json:"output_tokens"`
+		InputTokens              int `json:"input_tokens"`
+		OutputTokens             int `json:"output_tokens"`
+		CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+		CacheReadInputTokens     int `json:"cache_read_input_tokens"`
 	} `json:"usage"`
 	Error *struct {
 		Type    string `json:"type"`
@@ -192,13 +227,14 @@ func (c *Client) anthropicChat(ctx context.Context, system, user string) (string
 
 func (c *Client) anthropicChatWithTools(ctx context.Context, messages []Message, tools []Tool) (Message, error) {
 	system, msgs := toAnthropicMessages(messages)
+	applyCacheBreakpoints(msgs)
 	return c.anthropicSend(ctx, system, msgs, toAnthropicTools(tools))
 }
 
 func (c *Client) anthropicSend(ctx context.Context, system string, messages []anthropicMessage, tools []anthropicTool) (Message, error) {
 	body, err := json.Marshal(anthropicRequest{
 		Model:       c.Model,
-		System:      system,
+		System:      anthropicSystem(system),
 		Messages:    messages,
 		Tools:       tools,
 		Temperature: 0.3,
@@ -217,16 +253,22 @@ func (c *Client) anthropicSend(ctx context.Context, system string, messages []an
 	if ar.Error != nil {
 		return Message{}, fmt.Errorf("provider error: %s", ar.Error.Message)
 	}
-	c.recordUsage(&usage{PromptTokens: ar.Usage.InputTokens, CompletionTokens: ar.Usage.OutputTokens})
+	c.recordUsage(&usage{
+		PromptTokens:     ar.Usage.InputTokens,
+		CompletionTokens: ar.Usage.OutputTokens,
+		cacheRead:        ar.Usage.CacheReadInputTokens,
+		cacheWrite:       ar.Usage.CacheCreationInputTokens,
+	})
 	return fromAnthropicResponse(ar.Content), nil
 }
 
 // anthropicStreamBody builds the streaming request body for ChatWithToolsStream.
 func anthropicStreamBody(model string, messages []Message, tools []Tool) ([]byte, error) {
 	system, msgs := toAnthropicMessages(messages)
+	applyCacheBreakpoints(msgs)
 	return json.Marshal(anthropicRequest{
 		Model:       model,
-		System:      system,
+		System:      anthropicSystem(system),
 		Messages:    msgs,
 		Tools:       toAnthropicTools(tools),
 		Temperature: 0.3,
@@ -243,7 +285,9 @@ type anthropicSSEEvent struct {
 	Index   int    `json:"index"`
 	Message *struct {
 		Usage struct {
-			InputTokens int `json:"input_tokens"`
+			InputTokens              int `json:"input_tokens"`
+			CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+			CacheReadInputTokens     int `json:"cache_read_input_tokens"`
 		} `json:"usage"`
 	} `json:"message"`
 	ContentBlock *anthropicContentBlock `json:"content_block"`
@@ -281,7 +325,7 @@ func parseAnthropicSSE(ctx context.Context, r io.Reader, onDelta func(string), r
 	blocks := map[int]*anthropicBlock{}
 	var order []int
 	var emitted bool
-	var inputTokens, outputTokens int
+	var inputTokens, outputTokens, cacheReadToks, cacheWriteToks int
 
 	for {
 		if ctx.Err() != nil {
@@ -297,6 +341,8 @@ func parseAnthropicSSE(ctx context.Context, r io.Reader, onDelta func(string), r
 				case "message_start":
 					if ev.Message != nil {
 						inputTokens = ev.Message.Usage.InputTokens
+						cacheReadToks = ev.Message.Usage.CacheReadInputTokens
+						cacheWriteToks = ev.Message.Usage.CacheCreationInputTokens
 					}
 				case "content_block_start":
 					if ev.ContentBlock != nil {
@@ -339,7 +385,12 @@ func parseAnthropicSSE(ctx context.Context, r io.Reader, onDelta func(string), r
 	}
 
 	if record != nil {
-		record(&usage{PromptTokens: inputTokens, CompletionTokens: outputTokens})
+		record(&usage{
+			PromptTokens:     inputTokens,
+			CompletionTokens: outputTokens,
+			cacheRead:        cacheReadToks,
+			cacheWrite:       cacheWriteToks,
+		})
 	}
 
 	sort.Ints(order)

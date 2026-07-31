@@ -1,0 +1,518 @@
+{
+  "slug": "last-cloud-llm-at-ollama",
+  "question": "last cloud llm at ollama",
+  "markdown": "## Short answer\nThe most recent cloud‑hosted LLM available through Ollama is **kimi‑k3**【4】. In Ollama’s terminology, “last” (or “latest”) refers to the newest version/update of a model【63】.\n\n## What the evidence shows\n- Ollama’s official model library page for cloud models lists kimi‑k3 as the most recently added cloud LLM, noting it was “Updated 3 days ago”【4】.  \n- The term “last” in Ollama tags (e.g., `gemma4:latest`) points to the most recent version or update of a model, confirming that “last” means the newest release【63】.  \n- Other cloud models such as Kimi K3, minimax‑m2.5, deepseek‑v3.1, devstral‑2, and ministral‑3 are also supported, but kimi‑k3 is the one most recently added【4】【3】.\n\n## Where sources disagree\nNo disagreement appears in the provided sources regarding which cloud LLM is the most recent; all point to kimi‑k3 as the latest addition.\n\n## Limitations\nThe evidence does not include an explicit changelog or announcement post for kimi‑k3, so the recency is inferred solely from the library’s update timestamp. Additionally, the exact version number or release date for kimi‑k3 is not specified in the sources, so we cannot confirm whether it is a stable release or a preview build. More detailed release notes or a formal Ollama blog entry would settle these points.",
+  "sources": [
+    {
+      "n": 1,
+      "url": "https://docs.ollama.com/cloud",
+      "title": "Cloud - Ollama"
+    },
+    {
+      "n": 2,
+      "url": "https://ollama.com/",
+      "title": "Ollama"
+    },
+    {
+      "n": 3,
+      "url": "https://ollama.com/library",
+      "title": "library"
+    },
+    {
+      "n": 4,
+      "url": "https://ollama.com/search?c=cloud",
+      "title": "Cloud models · Ollama"
+    },
+    {
+      "n": 5,
+      "url": "https://ollama.com/blog",
+      "title": "Blog · Ollama"
+    },
+    {
+      "n": 6,
+      "url": "https://ollama.com/pricing",
+      "title": "Pricing · Ollama"
+    },
+    {
+      "n": 7,
+      "url": "https://medium.com/@arumeysanur07/the-rise-of-large-language-models-the-role-of-ollama-and-llama-3-ad069720b259",
+      "title": "The Rise of Large Language Models: The Role of OLLama and LLaMA 3 | by Rümeysa Nur Arık | Medium"
+    },
+    {
+      "n": 8,
+      "url": "https://www.reddit.com/r/ollama/comments/1skkaue/local_llm_and_cloud_api_together/",
+      "title": "Reddit - Please wait for verification"
+    },
+    {
+      "n": 9,
+      "url": "https://github.com/ollama/ollama",
+      "title": "GitHub - ollama/ollama: Get up and running with Kimi-K2.6, GLM-5.2, MiniMax, DeepSeek, gpt-oss, Qwen, Gemma and other models. · GitHub"
+    },
+    {
+      "n": 10,
+      "url": "https://medium.com/@luongnv89/run-claude-code-on-local-cloud-models-in-5-minutes-ollama-openrouter-llama-cpp-6dfeaee03cda",
+      "title": "Medium"
+    },
+    {
+      "n": 12,
+      "url": "https://www.reddit.com/r/ollama/comments/1ghifbc/guide_to_choosing_base_models/",
+      "title": "Reddit - Please wait for verification"
+    },
+    {
+      "n": 13,
+      "url": "https://www.reddit.com/r/ollama/comments/1ri4lfn/whats_the_best_cloubd_based_llms_available_in/",
+      "title": "Reddit - Please wait for verification"
+    },
+    {
+      "n": 14,
+      "url": "https://medium.com/@tahirbalarabe2/what-is-ollama-running-large-language-models-locally-e917ca40defe",
+      "title": "Medium"
+    },
+    {
+      "n": 15,
+      "url": "https://en.wikipedia.org/wiki/Ollama",
+      "title": "Ollama - Wikipedia"
+    },
+    {
+      "n": 16,
+      "url": "https://www.reddit.com/r/ollama/comments/1oj6q9w/ollama_models_why_only_cloud/",
+      "title": "Reddit - Please wait for verification"
+    },
+    {
+      "n": 17,
+      "url": "https://docs.ollama.com/integrations/claude-code",
+      "title": "Claude Code - Ollama"
+    },
+    {
+      "n": 18,
+      "url": "https://github.com/ollama/ollama/issues/10777",
+      "title": "Understand the technical differences between Ollama and HuggingFace implementation for better model performance · Issue #10777 · ollama/ollama · GitHub"
+    },
+    {
+      "n": 19,
+      "url": "https://www.youtube.com/watch?v=8jd5hURk2Jg",
+      "title": "Ollama Cloud: The FASTEST Way to Build \u0026 Test LLM Apps Locally - YouTube"
+    },
+    {
+      "n": 20,
+      "url": "https://www.youtube.com/watch?v=Ai5yk-znpCs",
+      "title": "Run ANY AI Model on Your Machine WITHOUT a GPU! (Ollama Cloud) - YouTube"
+    },
+    {
+      "n": 21,
+      "url": "https://www.civo.com/learn/hosting-llm-with-ollama-and-civo",
+      "title": "A Step-by-Step Guide to Hosting an LLM with Ollama and Civo | Civo"
+    },
+    {
+      "n": 22,
+      "url": "https://www.reddit.com/r/LocalLLaMA/comments/1hss2ln/model_size_increase_in_ollama_when_context_size/",
+      "title": "Reddit - Please wait for verification"
+    },
+    {
+      "n": 23,
+      "url": "https://www.bluecrystal.com.au/news/tech/ollama-vs-gpt/",
+      "title": "Ollama vs GPT: Comparing AI Models for Secure Deployment | Blue Crystal Solutions 2026"
+    },
+    {
+      "n": 24,
+      "url": "https://www.alonsoruibal.com/ollama-the-easiest-way-to-run-local-and-cloud-llm-models/",
+      "title": "Ollama: The easiest way to run local and cloud LLM models - Alberto Ruibal"
+    },
+    {
+      "n": 25,
+      "url": "https://x.com/ollama?lang=en",
+      "title": "ollama (@ollama) / X"
+    },
+    {
+      "n": 26,
+      "url": "https://www.thundercompute.com/blog/what-is-ollama-run-ai-models-locally",
+      "title": "What is Ollama: Run AI Models Locally in July 2026 | Thunder Compute"
+    },
+    {
+      "n": 27,
+      "url": "https://collabnix.com/best-ollama-models-in-2025-complete-performance-comparison/",
+      "title": "Best Ollama Models 2025: Complete Performance Guide"
+    },
+    {
+      "n": 28,
+      "url": "https://notes.kodekloud.com/docs/Running-Local-LLMs-With-Ollama/Getting-Started-With-Ollama/Models-and-Model-Parameters/page",
+      "title": "Models and Model Parameters - KodeKloud"
+    },
+    {
+      "n": 29,
+      "url": "https://dev.to/coderforfun/a-beginners-guide-to-ollama-cloud-models-3lc2",
+      "title": "A Beginner's Guide to Ollama Cloud Models - DEV Community"
+    },
+    {
+      "n": 30,
+      "url": "https://www.geeksforgeeks.org/artificial-intelligence/what-is-ollama/",
+      "title": "What is Ollama - GeeksforGeeks"
+    },
+    {
+      "n": 31,
+      "url": "https://medium.com/@PowerUpSkills/ollama-cloud-models-the-local-llm-revolution-just-went-datacenter-9882c024f38f",
+      "title": "Medium"
+    },
+    {
+      "n": 32,
+      "url": "https://www.youtube.com/watch?v=Y3oe0QTSJgE",
+      "title": "Claude Code + Ollama: FREE Local AI Coding FOREVER (Step-by-Step Tutorial) - YouTube"
+    },
+    {
+      "n": 33,
+      "url": "https://note.com/zephel01/n/n250a7ecd880c?hl=en",
+      "title": "Ollama Cloud In-Depth Comparison | How usable are Free / Pro / Max? All available LLMs revealed (May 2026 Edition)｜zephel01"
+    },
+    {
+      "n": 34,
+      "url": "https://www.perarduaconsulting.com/post/a-comparison-of-claude-ollama-and-chat-gpt-llm-exploring-core-differences-in-functionality-and-pe",
+      "title": "A Comparison of Claude, Ollama, and Chat GPT LLM: Exploring Core Differences in Functionality and Performance"
+    },
+    {
+      "n": 35,
+      "url": "https://dev.to/coderforfun/build-your-own-chat-application-with-ollama-cloud-models-and-chainlit-15co",
+      "title": "How to Build Your Own AI Platform with Ollama Cloud Models - DEV Community"
+    },
+    {
+      "n": 36,
+      "url": "https://blog.udemy.com/what-is-ollama/",
+      "title": "What is Ollama? A Beginner’s Guide To This Platform"
+    },
+    {
+      "n": 37,
+      "url": "https://www.milesweb.com/blog/hosting/ollama-models-list/",
+      "title": "Ollama Models List: Top AI Models You Can Run Locally"
+    },
+    {
+      "n": 38,
+      "url": "https://computingforgeeks.com/ollama-models-cheat-sheet/",
+      "title": "Ollama Models Cheat Sheet 2026 | ComputingForGeeks"
+    },
+    {
+      "n": 39,
+      "url": "https://northflank.com/blog/vllm-vs-ollama-and-how-to-run-them",
+      "title": "vLLM vs Ollama: Key differences, performance, and how to run them | Blog — Northflank"
+    },
+    {
+      "n": 40,
+      "url": "https://github.com/simonw/llm/issues/1283",
+      "title": "Add Ollama Cloud API Support · Issue #1283 · simonw/llm"
+    },
+    {
+      "n": 41,
+      "url": "https://x.com/ollama/status/2081771120173408767",
+      "title": "Kimi K3 is now available on Ollama's cloud. To use it with Claude Code, run"
+    },
+    {
+      "n": 42,
+      "url": "https://www.youtube.com/watch?v=wYq5kR9ds8U",
+      "title": "Ollama + Kimi K3 is INSANE! 🤯 - YouTube"
+    },
+    {
+      "n": 43,
+      "url": "https://github.com/ollama/ollama/releases",
+      "title": "Releases · ollama/ollama"
+    },
+    {
+      "n": 44,
+      "url": "https://www.kimi.com/blog/kimi-k3",
+      "title": "Kimi K3 Tech Blog: Open Frontier Intelligence"
+    },
+    {
+      "n": 45,
+      "url": "https://www.facebook.com/groups/claudecommunity/posts/1073354295205235/",
+      "title": "Claude Community | 🚨 28 minutes ago, the most powerful Open Source AI models on the planet just published"
+    },
+    {
+      "n": 46,
+      "url": "https://releasebot.io/updates/ollama",
+      "title": "\n    Ollama Release Notes - July 2026 Latest Updates\n    - Releasebot\n  "
+    },
+    {
+      "n": 47,
+      "url": "https://northflank.com/blog/what-is-kimi-k3-self-hosting",
+      "title": "Kimi K3: benchmarks, pricing, hardware requirements, and self-hosting | Blog — Northflank"
+    },
+    {
+      "n": 48,
+      "url": "https://forum.cloudron.io/topic/14470/ollama-package-updates/59",
+      "title": "Ollama - Package Updates | Cloudron Forum"
+    },
+    {
+      "n": 49,
+      "url": "https://github.com/ollama/ollama/issues/17235",
+      "title": "Model request: Kimi K3 Cloud · Issue #17235 · ollama/ollama"
+    },
+    {
+      "n": 50,
+      "url": "https://www.milesweb.ae/blog/hosting/ollama-models-list/",
+      "title": "Ollama Models List: Top AI Models You Can Run Locally"
+    },
+    {
+      "n": 51,
+      "url": "https://medium.com/data-science-collective/kimi-k3-is-the-biggest-open-source-model-ever-almost-no-one-can-run-it-39c1b1435100",
+      "title": "Medium"
+    },
+    {
+      "n": 52,
+      "url": "https://www.youtube.com/watch?v=ytUr9IX1cIA",
+      "title": "Ollama's Newest Release and Model Breakdown - YouTube"
+    },
+    {
+      "n": 53,
+      "url": "https://www.linkedin.com/posts/manuel-alejandro-calvino-76109b143_kimi-k3-arriving-on-ollama-cloud-22h-ago-activity-7487875446911442945-jsQN",
+      "title": "Kimi K3 on Ollama Cloud: Access to Multiple Frontier Models | Manuel C. posted on the topic | LinkedIn"
+    },
+    {
+      "n": 55,
+      "url": "https://simonwillison.net/2026/Jul/16/kimi-k3/",
+      "title": "Kimi K3, and what we can still learn from the pelican benchmark"
+    },
+    {
+      "n": 56,
+      "url": "https://collabnix.com/best-ollama-models-for-developers-complete-2025-guide-with-code-examples/",
+      "title": "Top 10 Best Ollama Models for Developers in 2025"
+    },
+    {
+      "n": 57,
+      "url": "https://oneuptime.com/blog/post/2026-02-02-ollama-model-management/view",
+      "title": "Ollama Models: How to Pull, List, Update, and Manage Local LLMs"
+    },
+    {
+      "n": 58,
+      "url": "https://openrouter.ai/moonshotai/kimi-k3",
+      "title": "Kimi K3 - API Pricing \u0026 Benchmarks | OpenRouter"
+    },
+    {
+      "n": 59,
+      "url": "https://www.thundercompute.com/blog/kimi-k2-ollama",
+      "title": "How to run Kimi K2 models with Ollama (July 2026) | Thunder Compute"
+    },
+    {
+      "n": 60,
+      "url": "https://www.layer3labs.io/open-weights/kimi-k3-open-weights-guide",
+      "title": "Kimi K3 Open Weights: Guide for Regulated Business"
+    },
+    {
+      "n": 61,
+      "url": "https://openlm.ai/kimi-k3/",
+      "title": "Kimi K3 | OpenLM.ai"
+    },
+    {
+      "n": 62,
+      "url": "https://vllm.ai/blog/2026-07-22-kimi-k3-preview",
+      "title": "A Preview of Production-Scale Kimi K3 Support on vLLM | vLLM Blog"
+    },
+    {
+      "n": 63,
+      "url": "https://docs.ollama.com/context-length",
+      "title": "Context length - Ollama"
+    },
+    {
+      "n": 64,
+      "url": "https://sebastianpdw.medium.com/common-mistakes-in-local-llm-deployments-03e7d574256b",
+      "title": "Common mistakes in local LLM deployments — an Ollama example | by Sebastian Panman de Wit | Medium"
+    },
+    {
+      "n": 65,
+      "url": "https://developers.redhat.com/articles/2025/08/08/ollama-vs-vllm-deep-dive-performance-benchmarking",
+      "title": "Ollama vs. vLLM: A deep dive into performance benchmarking | Red Hat Developer"
+    },
+    {
+      "n": 66,
+      "url": "https://blog.gopenai.com/why-you-should-completely-avoid-ollama-in-2026-6135d9e8591e",
+      "title": "Medium"
+    },
+    {
+      "n": 67,
+      "url": "https://robert-mcdermott.medium.com/performance-vs-practicality-a-comparison-of-vllm-and-ollama-104acad250fd",
+      "title": "Medium"
+    },
+    {
+      "n": 68,
+      "url": "https://developers.llamaindex.ai/python/framework/integrations/llm/ollama/",
+      "title": "Ollama LLM\n | Developer Documentation"
+    },
+    {
+      "n": 69,
+      "url": "https://www.igeeksblog.com/kimi-k3-open-weights/",
+      "title": "Kimi K3’s open weights are here, but your Mac probably can’t run them – iGeeksBlog"
+    },
+    {
+      "n": 70,
+      "url": "https://www.arsturn.com/blog/beyond-the-model-understanding-benchmarking-the-performance-overhead-of-ollama",
+      "title": "Understanding Ollama Performance: Benchmarking \u0026 Overhead"
+    },
+    {
+      "n": 71,
+      "url": "https://www.facebook.com/groups/1577315533418837/posts/1637333600750363/",
+      "title": "OpenClaw Community | Ollama Cloud OC Update"
+    },
+    {
+      "n": 72,
+      "url": "https://ollama-9269c548.mintlify.app/context-length",
+      "title": "Context length - Ollama"
+    },
+    {
+      "n": 73,
+      "url": "https://gist.github.com/sing1ee/63fd32629e594ab57e65de1f91fa025e",
+      "title": "kimi-k3-vs-glm-5-2-2026-en.md · GitHub"
+    },
+    {
+      "n": 74,
+      "url": "https://explainx.ai/blog/kimi-k3-open-weights-2-8-trillion-parameters-july-2026",
+      "title": "Kimi K3 Open Weights: 2.8T Params, Day-0 Hosting (2026) | explainx.ai Blog | explainx.ai"
+    },
+    {
+      "n": 75,
+      "url": "https://blog.threatresearcher.com/ollama-performance-comparison-chart/",
+      "title": "Ollama Performance and Detailed Comparison Insights"
+    },
+    {
+      "n": 76,
+      "url": "https://models.litellm.ai/",
+      "title": "LiteLLM Providers \u0026 Models"
+    },
+    {
+      "n": 77,
+      "url": "https://x.com/ollama/with_replies?lang=en",
+      "title": "Replies by ollama (@ollama) / X"
+    },
+    {
+      "n": 78,
+      "url": "https://pub.towardsai.net/kimi-k3-is-the-biggest-open-source-model-ever-almost-no-one-can-run-it-39c1b1435100",
+      "title": "Medium"
+    },
+    {
+      "n": 79,
+      "url": "https://news.ycombinator.com/item?id=48630183",
+      "title": "Take a look at Ollama Cloud: https://ollama.com/pricing You get access to a whol... | Hacker News"
+    },
+    {
+      "n": 80,
+      "url": "https://roo.beehiiv.com/p/kimi-k3-open-weights-license-benchmarks",
+      "title": "Kimi K3 Open Weights Are Live: 2.8T Parameters, 1M Context, and a License Nobody Actually Read"
+    },
+    {
+      "n": 81,
+      "url": "https://dev.to/pooyagolchian/local-ai-in-2026-running-production-llms-on-your-own-hardware-with-ollama-54d0",
+      "title": "Local AI in 2026: Ollama Benchmarks, $0 Inference, and the End of Per-Token Pricing - DEV Community"
+    },
+    {
+      "n": 82,
+      "url": "https://blog.gopenai.com/ollama-cloud-models-run-massive-ai-models-without-local-hardware-6448d813d61b",
+      "title": "Ollama Cloud Models: Run Massive AI Models Without Local Hardware | by Akash Gaur | GoPenAI"
+    },
+    {
+      "n": 83,
+      "url": "https://read.theaimerge.com/p/the-complete-guide-to-ollama-local",
+      "title": "The Complete Guide to Ollama: Local LLM Inference Made Simple (VIDEO)"
+    },
+    {
+      "n": 84,
+      "url": "https://www.facebook.com/danielsasserII/posts/not-long-nowkimi-k3-will-be-available-via-ollama-once-the-weights-are-made-publi/27997102586572775/",
+      "title": "Not long now!\n\nKimi K3 will be... - Daniel T Sasser II"
+    },
+    {
+      "n": 85,
+      "url": "https://www.linkedin.com/pulse/moonshot-ai-launches-kimi-k3-what-open-weight-model-means-kumar-l-tlcsf",
+      "title": "Is Kimi K3 the Largest Open-Weight AI Model Yet?"
+    },
+    {
+      "n": 86,
+      "url": "https://www.runpod.io/blog/benchmark-local-llm-inference-performance",
+      "title": "How to Benchmark Local LLM Inference for Speed and Cost Efficiency"
+    },
+    {
+      "n": 87,
+      "url": "https://www.hostinger.com/tutorials/what-is-ollama/",
+      "title": "What is Ollama? Introduction to the AI model management tool"
+    },
+    {
+      "n": 88,
+      "url": "https://www.facebook.com/groups/1577315533418837/posts/1729616091522113/",
+      "title": "OpenClaw Community | [UPDATED AT BOTTOM] 👇🚨 28 minutes ago, the most powerful Open Source AI models on the planet just published"
+    },
+    {
+      "n": 89,
+      "url": "https://platform.kimi.ai/docs/guide/kimi-k3-quickstart",
+      "title": "Kimi K3 - Kimi API Platform"
+    },
+    {
+      "n": 90,
+      "url": "https://www.webreactiva.com/blog/modelos-ollama-cloud",
+      "title": "Modelos de Ollama Cloud en 2026: GLM-5.2, Kimi K2.7 y MiniMax M3"
+    },
+    {
+      "n": 91,
+      "url": "https://kimi-k2.org/blog/34-kimi-k3-vram-ollama-local-requirements",
+      "title": "Kimi K3 Ollama \u0026 VRAM: Can You Run It Locally Yet?"
+    },
+    {
+      "n": 92,
+      "url": "https://arxiv.org/html/2604.24785v1",
+      "title": "Cloud to Edge: Benchmarking LLM Inference on Hardware-Accelerated Single-Board Computers"
+    },
+    {
+      "n": 93,
+      "url": "https://daily.dev/posts/moonshot-ai-releases-kimi-k3-weights-a-2-8t-open-weight-model-that-tops-the-frontend-code-arena-dxt19nyw1",
+      "title": "Moonshot AI releases Kimi K3 weights: a 2.8T open-weight..."
+    },
+    {
+      "n": 94,
+      "url": "https://www.promptquorum.com/local-llms/top-open-source-models-ollama",
+      "title": "Ollama July 2026: v0.32.0 Update + Best Models by Use Case"
+    },
+    {
+      "n": 95,
+      "url": "https://pandeyparul.medium.com/three-ways-in-which-ollama-makes-trying-new-models-much-easier-now-a089d0ec18f7",
+      "title": "Three ways in which Ollama makes trying new models much easier now | by Parul Pandey | Medium"
+    },
+    {
+      "n": 96,
+      "url": "https://docs.ollama.com/faq",
+      "title": "FAQ - Ollama"
+    },
+    {
+      "n": 97,
+      "url": "https://community.n8n.io/t/ollama-models-not-showing-up/63490?tl=en",
+      "title": "Ollama models not showing up - Questions - n8n Community"
+    },
+    {
+      "n": 98,
+      "url": "https://threatfrontier.com/articles/ollama-cloud-slowdown-hosted-open-model-performance",
+      "title": "Ollama Cloud Slowdown Raises Questions About Hosted Open-Model Performance — ThreatFrontier.com"
+    },
+    {
+      "n": 99,
+      "url": "https://datawookie.dev/blog/2026-05-10-ollama-cloud/",
+      "title": "Ollama Cloud: Local Workflow, Remote Model – datawookie"
+    },
+    {
+      "n": 100,
+      "url": "https://skywork.ai/blog/llm/ollama-models-list-2025-100-models-compared/",
+      "title": "Ollama Models List 2025: 100+ Models Compared - Skywork"
+    },
+    {
+      "n": 101,
+      "url": "https://www.bentoml.com/blog/from-ollama-to-openllm-running-llms-in-the-cloud",
+      "title": "From Ollama to OpenLLM: Running LLMs in the Cloud"
+    },
+    {
+      "n": 102,
+      "url": "https://news.ycombinator.com/item?id=45602269",
+      "title": "Been disappointed to see Ollama list models that are supported by the cloud prod... | Hacker News"
+    },
+    {
+      "n": 103,
+      "url": "https://docs.openclaw.ai/providers/ollama",
+      "title": "Ollama - OpenClaw"
+    }
+  ],
+  "rounds": 4,
+  "searched": 38,
+  "fetched": 101,
+  "incomplete": true,
+  "report_path": ".kaioken/research/last-cloud-llm-at-ollama.md",
+  "created_at": "2026-07-31T09:06:28.8876213Z"
+}

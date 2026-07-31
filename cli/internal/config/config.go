@@ -49,7 +49,35 @@ type Config struct {
 	// Search configures knowledge retrieval. Zero values leave search purely
 	// lexical, which needs no model, no key and no network.
 	Search Search `yaml:"search,omitempty"`
+	// Compaction tunes automatic context compaction. Zero values keep the
+	// built-in behavior: enabled, with window-derived budgets.
+	Compaction Compaction `yaml:"compaction,omitempty"`
+	// ScopedModels is the ctrl+p cycling list: model ids the user flips
+	// between mid-session without opening the picker. Empty disables
+	// cycling. The active model does not have to be on the list — the first
+	// press jumps to the list's start.
+	ScopedModels []string `yaml:"scoped_models,omitempty"`
+	// Theme names the TUI colour palette: "default", "light", or
+	// "highcontrast". Anything else leaves the default.
+	Theme string `yaml:"theme,omitempty"`
 }
+
+// Compaction tunes the automatic pre-turn context compaction.
+type Compaction struct {
+	// Enabled toggles auto-compaction. Unset (nil) means enabled; manual
+	// /compact keeps working either way.
+	Enabled *bool `yaml:"enabled,omitempty"`
+	// ReserveTokens is how much of the context window is held back for the
+	// reply before compaction triggers. Zero derives it from the reply
+	// ceiling and window size.
+	ReserveTokens int `yaml:"reserve_tokens,omitempty"`
+	// KeepRecentTokens is the budget for recent turns kept verbatim across a
+	// compaction. Zero uses the built-in clamp (2k–8k by window size).
+	KeepRecentTokens int `yaml:"keep_recent_tokens,omitempty"`
+}
+
+// IsEnabled resolves the tri-state Enabled flag: unset means enabled.
+func (c Compaction) IsEnabled() bool { return c.Enabled == nil || *c.Enabled }
 
 // Search configures how the generated knowledge is retrieved. Naming an
 // embedding model upgrades search from BM25 to hybrid ranking; leaving it

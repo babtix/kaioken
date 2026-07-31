@@ -1,1 +1,1 @@
-Session uses Go stdlib (encoding/json, fmt, math/rand, os, path/filepath, sort, strings, time) and internal packages config, llm. State uses stdlib (crypto/sha256, encoding/hex, encoding/json, fmt, os, path/filepath, sort, time) and internal packages config, scan.
+The module uses the Go standard library (encoding/json, os, path/filepath, sort, strings, time, crypto/sha256, encoding/hex, bufio, bytes) and internal packages (kaioken/internal/config, kaioken/internal/llm for session; kaioken/internal/scan for state).

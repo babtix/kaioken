@@ -92,33 +92,6 @@ The CLI entry point defines all user-facing commands and orchestrates high-level
 
 | Declaration | Line Range | Description |
 |-------------|------------|-------------|
-| `func main()` | Not in source block | Entry point; parses command-line arguments and dispatches to subcommand handlers. |
-| `func initCmd()` | Not in source block | Handles `kaioken init` command to create default configuration. |
-| `func scanCmd()` | Not in source block | Handles `kaioken scan` to inventory repository files. |
-| `func planCmd()` | Not in source block | Handles `kaioken plan` to generate module plan. |
-| `func generateCmd()` | Not in source block | Handles `kaioken generate` to create knowledge cards. |
-| `func wikiCmd()` | Not in source block | Handles `kaioken wiki`/`/wiki` to run knowledge generation pipeline. |
-| `func updateCmd()` | Not in source block | Handles `kaioken update`/`/update` for incremental wiki updates. |
-| `func modelsCmd()` | Not in source block | Handles `kaioken models` to list available LLM models. |
-| `func statusCmd()` | Not in source block | Handles `kaioken status` to check module freshness. |
-| `func skillsCmd()` | Not in source block | Handles `kaioken skills` to build/task guides. |
-| `func hookCmd()` | Not in source block | Handles `kaioken hook` to manage Git post-commit hooks. |
-| `func serveCmd()` | Not in source block | Handles `kaioken serve`/`/serve` to start wiki browser. |
-
-### Terminal User Interface (`cli/internal/tui/tui.go`)
-
-The TUI built with Bubble Tea manages the interactive chat interface, command palette, and live updates. It orchestrates interactions with all core components and now includes a workspace explorer for file and symbol navigation.
-
-Exported declarations from source:
-
-| Declaration | Line Range | Description |
-|-------------|------------|-------------|
-| `func Run(repo string) error` | L188-195 | Starts the TUI event loop for a repository. Resolves absolute path and runs Bubble Tea program. |
-| `func New(repo string) Model` | L201-264 | Constructs initial TUI state: loads configuration, initializes UI components (textarea, spinner, list), sets up event channels, and resets conversation. |
-| `func (m *Model) resetConversation()` | L266-272 | Clears conversation history to initial system prompt and creates new session object. |
-| `func (m *Model) saveSession()` | L277-285 | Persists current conversation to session storage; reports save failures via status line. |
-| `func (m Model) Init() tea.Cmd` | L287-289 | Returns initial commands: cursor blink and event listener setup. |
-| `func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd)` | L291-431 | Main state update handler: processes window resizes, key presses, async messages (logs, busy states, approvals, agent responses, etc.). |
-| `func (m Model) onKey(msg tea.KeyMsg) (tea.Model, tea.Cmd)` | L433-572 | Handles keyboard input: manages
+| | | |
 
 <!-- kaioken:files internal/tui/tui.go,internal/agent/agent.go,internal/wiki/wiki.go -->

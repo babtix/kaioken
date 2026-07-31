@@ -181,6 +181,56 @@ var commands = []command{
 			{"/stop", "cancel the current run"},
 		},
 	},
+	{
+		name: "queue", args: "[clear]",
+		summary: "show or clear queued steering messages",
+		detail: "While the agent is working, anything you type is queued and joins the " +
+			"conversation after its current step. /queue shows how many messages are " +
+			"waiting; /queue clear drops them before the agent reads them.",
+		guide: "Steering replaces cancel-and-retype: when you see the agent head down the " +
+			"wrong path, just type the correction and press enter. It queues, and joins " +
+			"the conversation after the current step completes — the agent reads it " +
+			"before deciding what to do next. /queue shows what is waiting; /queue clear " +
+			"drops it if you changed your mind. To abandon the whole turn instead, use " +
+			"/stop.",
+		examples: []example{
+			{"/queue", "how many messages are queued"},
+			{"/queue clear", "drop the queued messages"},
+		},
+	},
+	{
+		name: "fork", args: "[turns]",
+		summary: "rewind the conversation to retry a different way",
+		detail: "Rewinds the active branch by the given number of user turns (default 1). " +
+			"Nothing is deleted: the rewound turns stay in the session tree, and the " +
+			"next message you send grows a sibling branch instead.",
+		guide: "Use /fork when an approach went wrong and re-explaining would poison the " +
+			"context: rewind past the bad turns and ask again. The abandoned turns are " +
+			"still there — /tree lists every branch and switches between them, so a fork " +
+			"is an experiment, not a deletion.",
+		examples: []example{
+			{"/fork", "rewind the last turn"},
+			{"/fork 3", "rewind the last three turns"},
+		},
+	},
+	{
+		name: "tree", args: "[n [summarize]]",
+		summary: "list conversation branches and switch between them",
+		detail: "Every /fork, compaction, or retry leaves a branch in the session tree. " +
+			"/tree lists the branch tips; /tree <n> makes one of them the active " +
+			"conversation. Adding summarize also briefs the model on the branch you " +
+			"are leaving, so its lessons carry over.",
+		guide: "Branches accumulate whenever history diverges — a /fork, an auto-compaction, " +
+			"a retried approach. /tree shows each tip with its newest prompt and age; the " +
+			"active one is starred. Switching replays the transcript so you can see where " +
+			"that branch stands. Use the summarize variant when the abandoned branch " +
+			"learned something the new one should know — it costs one model call.",
+		examples: []example{
+			{"/tree", "list the branches"},
+			{"/tree 2", "switch to branch 2"},
+			{"/tree 2 summarize", "switch and brief the model on the branch left behind"},
+		},
+	},
 
 	// ---- sessions ----
 	{
@@ -199,6 +249,36 @@ var commands = []command{
 		examples: []example{
 			{"/resume", "pick from a searchable list"},
 			{"/resume 20260724-153012-4821", "jump straight to one"},
+		},
+	},
+	{
+		name: "switch", args: "[id]",
+		summary: "save this session and open another",
+		detail: "Like /resume, but the current conversation is saved first and extensions get " +
+			"a chance to veto the change (a hook holding unflushed state can say no). " +
+			"No id opens the picker.",
+		guide: "Use /switch when you are hopping between two live conversations — a refactor " +
+			"in one session, a bug hunt in another — and want both preserved as you move. " +
+			"/resume alone reopens a session; /switch also saves the one you are leaving and " +
+			"lets extension hooks veto the move, which matters once hooks hold in-flight state. " +
+			"Sessions created by /import or forking show their lineage in /sessions.",
+		examples: []example{
+			{"/switch", "save, then pick a session"},
+			{"/switch 20260724-153012-4821", "save, then open that one"},
+		},
+	},
+	{
+		name: "import", args: "<path>",
+		summary: "bring an external transcript in as a new session",
+		detail: "Reads a saved session file, a JSON array of messages, or JSONL with one " +
+			"message per line, stores it as a new session in this repo, and opens it. " +
+			"Lines that are not messages are skipped, so other tools' event logs import too.",
+		guide: "Use /import to continue a conversation that started somewhere else: a session " +
+			"file copied from another repo, a transcript exported by another tool, or a JSONL " +
+			"event log. The import becomes a normal session — saved, listed, resumable — and " +
+			"the conversation you were in is saved before the switch, so nothing is lost.",
+		examples: []example{
+			{"/import C:\\tmp\\transcript.jsonl", "import and open a transcript"},
 		},
 	},
 	{
@@ -279,6 +359,24 @@ var commands = []command{
 		},
 	},
 	{
+		name: "thinking", args: "[off|low|medium|high]",
+		summary: "set the model's reasoning depth",
+		detail: "Reasoning models can spend extra tokens thinking before they answer. " +
+			"This sets how much: off sends nothing, low/medium/high request increasing " +
+			"depth. Applied where the endpoint supports it — OpenRouter, OpenAI, and " +
+			"Anthropic; other hosts are left untouched rather than risking a rejected " +
+			"request.",
+		guide: "Depth is a cost dial, not a quality switch: a rename needs none, an " +
+			"architecture question benefits from high. The level applies to the active " +
+			"client and resets on /model or /provider switches. With no argument the " +
+			"current level is shown.",
+		examples: []example{
+			{"/thinking", "show the current level"},
+			{"/thinking high", "maximum reasoning depth"},
+			{"/thinking off", "back to plain replies"},
+		},
+	},
+	{
 		name: "provider", args: "[name|list]",
 		summary: "switch API provider (no arg = list all)",
 		detail: "Any OpenAI-compatible endpoint works: openrouter, openai, groq, together, " +
@@ -303,6 +401,32 @@ var commands = []command{
 		summary: "show the active configuration",
 		examples: []example{
 			{"/config", "model, provider, repo, scope and notes"},
+		},
+	},
+	{
+		name: "theme", args: "[default|light|highcontrast]",
+		summary: "switch the colour palette",
+		detail: "Three palettes ship built-in: default (for dark terminals), light (for white " +
+			"backgrounds), and highcontrast (for accessibility or projectors). The choice " +
+			"is saved in .kaioken/config.yaml and applies on the next start.",
+		guide: "Use /theme with no argument to see what is active; give a name to switch. " +
+			"Switching is instant: every style in the terminal updates immediately, so a " +
+			"quick flip between default and light tells you which suits your current ambient.",
+		examples: []example{
+			{"/theme", "show the active theme"},
+			{"/theme light", "switch and save"},
+		},
+	},
+	{
+		name:    "session",
+		summary: "stats for the current session",
+		detail: "Shows the active session's id, title, turn count, model, token estimates, " +
+			"cost (when the provider reports it), epoch count, and lineage if forked.",
+		guide: "/session is a quick health check: how long is this conversation, how much " +
+			"has it cost, and how close is it to triggering compaction. Useful before a " +
+			"long task to decide whether to /compact or /new first.",
+		examples: []example{
+			{"/session", "show stats for the current session"},
 		},
 	},
 	{
@@ -364,6 +488,46 @@ var commands = []command{
 		},
 	},
 	{
+		name: "impact", aliases: []string{"imp"}, args: "<description of the change>",
+		summary: "predict what a change would touch",
+		detail: "Describe a refactor in plain words and Kaioken maps its blast radius before " +
+			"you edit anything: the symbols and files involved, the modules they belong to, " +
+			"the wiki documents and skills that would go stale, and the tests to re-run. " +
+			"Every claim is verified against the symbol index; anything the index cannot " +
+			"confirm is listed separately as unverified.",
+		guide: "Run it before a refactor, not after. Name the symbols you intend to touch — " +
+			"the more precisely the intent names real identifiers, the sharper the " +
+			"prediction. The report opens as a navigable tree: arrows move, enter folds a " +
+			"group, f cycles the kind filter, and q closes it into the transcript. Each run " +
+			"is saved under .kaioken/impact/ for later reference. Results are richest " +
+			"after /plan, /wiki and /skills have run, but only the intent is required.",
+		examples: []example{
+			{"/impact rename parseArgs to parseCLIArgs", "map every caller, doc and skill a rename touches"},
+			{"/impact change the return type of Load to (*Plan, error)", "gauge an interface change before committing to it"},
+		},
+	},
+	{
+		name: "research", args: "[xN] <question>",
+		summary: "deep web search with a cited report",
+		detail: "Answers a question from the open web: plans subquestions, searches, reads " +
+			"pages, then searches again for whatever is still missing, and writes a cited " +
+			"report to .kaioken/research/. The same runs power the desktop app's Deep " +
+			"Search history. Needs a web-search API key (tavily, firecrawl, brave or exa) " +
+			"in ~/.kaioken/config.yaml on top of the LLM key.",
+		guide: "Research never reads the repository — it is for questions the code cannot " +
+			"answer: library comparisons, release notes, current best practice. The " +
+			"leading xN multiplier is the usual Kaioken dial: x1 is a quick look, x3 the " +
+			"default, higher digs deeper at real cost in searches and model calls. Every " +
+			"claim in the report cites a numbered source that was actually read. Reports " +
+			"land in .kaioken/research/<slug>.md and rerunning the same question " +
+			"overwrites its predecessor.",
+		examples: []example{
+			{"/research what changed in Go 1.24 garbage collection?", "the default ×3 run"},
+			{"/research x1 is htmx still maintained?", "a quick, shallow look"},
+			{"/research x5 compare tauri and electron for a Go sidecar app", "dig deeper"},
+		},
+	},
+	{
 		name: "ext", aliases: []string{"extension", "extensions"},
 		args:    "[list|install|remove|update|search|trust|tools|…]",
 		summary: "manage community extensions",
@@ -392,6 +556,41 @@ var commands = []command{
 			{"/ext install alice/kaioken-git-flow", "install one from its GitHub releases"},
 			{"/ext trust alice.git-flow", "review what an mcp extension would run"},
 			{"/ext update", "check every extension for a newer release"},
+		},
+	},
+	{
+		name: "x", args: "[ext command [args]]",
+		summary: "run a command a wasm extension contributed",
+		detail: "Trusted wasm extensions may declare named commands in their manifest. " +
+			"/x alone lists them; /x <ext> <command> runs one in the sandbox and prints " +
+			"what it returns. The extension id may be shortened to its name part when " +
+			"unambiguous.",
+		guide: "Extension commands are how a plugin talks to you instead of the model: a " +
+			"status report, a generated checklist, a lint summary. They run in the same " +
+			"wasm sandbox as extension tools — no network, read-only workspace at most — " +
+			"and only for extensions you explicitly trusted. A command may also offer a " +
+			"steering message; if an agent run is active it joins the queue, otherwise it " +
+			"is dropped with a note.",
+		examples: []example{
+			{"/x", "list available extension commands"},
+			{"/x alice.git-flow status", "run git-flow's status command"},
+			{"/x git-flow status", "same, short id (when unambiguous)"},
+		},
+	},
+	{
+		name: "templates", aliases: []string{"template"},
+		summary: "list prompt templates (/t:<name> runs one)",
+		detail: "Templates are parameterized prompts in .kaioken/templates/<name>.md. " +
+			"{{placeholders}} are filled from key=value arguments; leftover words land in " +
+			"{{args}}. /t:<name> expands the file and sends it as a normal chat message.",
+		guide: "A template captures a request you keep retyping — \"review X for Y\", \"write " +
+			"a migration for Z\" — as a versioned file the whole team shares. Write " +
+			".kaioken/templates/review.md containing 'Review {{file}} focusing on {{args}}', " +
+			"then /t:review file=main.go error handling sends the expanded prompt. " +
+			"Placeholders left unfilled stop the send and are named, so a half-filled " +
+			"prompt never reaches the model silently.",
+		examples: []example{
+			{"/templates", "list templates and their placeholders — then /t:<name> [key=value…] sends one"},
 		},
 	},
 	{

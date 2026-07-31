@@ -1,8 +1,8 @@
 description: Integration with various LLM providers (OpenRouter, etc.).
-file_count: 13
-generated_at: "2026-07-30T22:22:38Z"
+file_count: 16
+generated_at: "2026-07-31T09:33:05Z"
 id: kaioken/chat_agent/llm_integration
-model: nvidia/nemotron-3-super-120b-a12b
+model: nemotron-3-super:cloud
 scope:
     - internal/llm
 title: LLM Integration

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"kaioken/internal/agent/events"
 	"kaioken/internal/llm"
 )
 
@@ -22,11 +23,38 @@ import (
 // CompactSystem instructs the summarizing model. It is phrased around what a
 // replacement assistant would need, because that is literally the job — the
 // text it produces is all the next turn will know about everything before it.
-const CompactSystem = `Summarize the following coding-assistant conversation into a concise
-brief a new assistant could use to seamlessly continue the task: what the user wants, key
-facts learned about the codebase, files touched, decisions made, and anything still pending.
-Be factual and terse — this replaces the full transcript, so keep everything load-bearing.
-Output plain text, no preamble, no markdown headers.`
+// The structure is fixed so that what survives is predictable: goals and
+// decisions always make it, prose color never does.
+const CompactSystem = `Summarize the following coding-assistant conversation into a structured
+brief a new assistant could use to seamlessly continue the task. Use exactly these markdown
+sections, omitting any that would be empty:
+
+## Goal
+[what the user is trying to accomplish]
+
+## Constraints & Preferences
+- [requirements the user stated]
+
+## Progress
+### Done
+- [completed work]
+### In Progress
+- [current work]
+### Blocked
+- [issues, if any]
+
+## Key Decisions
+- **[decision]**: [rationale]
+
+## Next Steps
+1. [what should happen next]
+
+## Critical Context
+- [facts needed to continue: commands, gotchas, code details]
+
+Be factual and terse — this replaces the full transcript, so keep everything load-bearing and
+nothing else. Do not list files read or modified; that is tracked separately. Output only the
+sections, no preamble.`
 
 // SummaryPrefix marks the injected summary message. Compaction is not hidden
 // from the model: it is told that history was condensed, so it asks rather
@@ -54,8 +82,30 @@ const minCompactMessages = 6
 
 // toolResultPreview caps how much of each tool result is shown to the
 // summarizer. The full text is what made the conversation large; the first
-// few hundred characters are enough to establish what was looked at.
-const toolResultPreview = 300
+// couple of thousand characters establish what was looked at and what it
+// said, without re-reading it.
+const toolResultPreview = 2000
+
+// Settings, injectable from config. Zero values mean the built-in behavior;
+// the front-end applies .kaioken/config.yaml once at startup rather than the
+// agent package importing config.
+var (
+	compactionEnabled = true
+	reserveOverride   = 0 // tokens held back for the reply; 0 = derive
+	tailOverride      = 0 // verbatim tail budget; 0 = clamp by window
+)
+
+// SetCompactionSettings applies the user's compaction config. reserve and
+// keepRecent of zero keep the built-in derivation.
+func SetCompactionSettings(enabled bool, reserve, keepRecent int) {
+	compactionEnabled = enabled
+	reserveOverride = reserve
+	tailOverride = keepRecent
+}
+
+// CompactionEnabled reports whether automatic compaction should run. Manual
+// compaction ignores it.
+func CompactionEnabled() bool { return compactionEnabled }
 
 // Usable reports how much of a model's context window a conversation may
 // occupy before the next turn is at risk.
@@ -75,6 +125,9 @@ func Usable(model string, replyCeiling int) int {
 	reserve := replyCeiling
 	if slack := window / 10; slack > reserve {
 		reserve = slack
+	}
+	if reserveOverride > 0 {
+		reserve = reserveOverride
 	}
 	// The reserve may never take more than half the window. On a small model
 	// the reply ceiling can equal or exceed the whole context — gpt-4 is 8k
@@ -101,6 +154,9 @@ func ShouldCompact(conv []llm.Message, model string, replyCeiling int) (bool, in
 // tailBudget is how many tokens of recent conversation survive a compaction
 // verbatim.
 func tailBudget(model string, replyCeiling int) int {
+	if tailOverride > 0 {
+		return tailOverride
+	}
 	budget := int(float64(Usable(model, replyCeiling)) * keepRecentRatio)
 	if budget < minTailTokens {
 		return minTailTokens
@@ -117,7 +173,13 @@ func tailBudget(model string, replyCeiling int) int {
 //
 // It also returns a one-line note describing what happened, suitable for
 // showing the user and for storing on the session epoch.
-func Compact(ctx context.Context, client *llm.Client, conv []llm.Message, model string, replyCeiling int) ([]llm.Message, string, error) {
+//
+// Compaction is reported on the default event bus: compaction has no agent
+// — the TUI and daemon both invoke it directly — so the process-wide bus is
+// the one place every caller's subscribers already listen.
+func Compact(ctx context.Context, client *llm.Client, conv []llm.Message, model string, replyCeiling int) (_ []llm.Message, _ string, err error) {
+	events.Default.Emit(&events.Event{Type: events.CompactionStart})
+	defer func() { events.Default.Emit(&events.Event{Type: events.CompactionEnd, Err: err}) }()
 	if len(conv) < minCompactMessages {
 		return conv, "", fmt.Errorf("conversation is too short to compact")
 	}
@@ -131,6 +193,12 @@ func Compact(ctx context.Context, client *llm.Client, conv []llm.Message, model 
 	if err != nil {
 		return conv, "", err
 	}
+	// File tracking is deterministic, not delegated to the summarizer: the
+	// paths come from the tool calls themselves, merged with whatever earlier
+	// summaries already tracked, so the lists stay cumulative across repeated
+	// compactions.
+	reads, mods := fileOps(head)
+	summary = withFileBlocks(summary, reads, mods)
 
 	kept := make([]llm.Message, 0, len(tail)+3)
 	if len(conv) > 0 && conv[0].Role == "system" {
@@ -225,16 +293,20 @@ func Summarize(ctx context.Context, client *llm.Client, conv []llm.Message) (str
 			// Reminders are stripped: they are Kaioken's own text, regenerated
 			// every turn, and summarizing them would put the model's standing
 			// instructions into the record as though the user had said them.
-			b.WriteString("User: " + stripReminders(msg.Content) + "\n")
+			b.WriteString("[User]: " + stripReminders(msg.Content) + "\n")
 		case "assistant":
 			if strings.TrimSpace(msg.Content) != "" {
-				b.WriteString("Assistant: " + msg.Content + "\n")
+				b.WriteString("[Assistant]: " + msg.Content + "\n")
 			}
-			for _, tc := range msg.ToolCalls {
-				b.WriteString("Assistant used tool " + tc.Function.Name + "(" + tc.Function.Arguments + ")\n")
+			if len(msg.ToolCalls) > 0 {
+				calls := make([]string, 0, len(msg.ToolCalls))
+				for _, tc := range msg.ToolCalls {
+					calls = append(calls, tc.Function.Name+"("+clipLine(tc.Function.Arguments, 200)+")")
+				}
+				b.WriteString("[Assistant tool calls]: " + strings.Join(calls, "; ") + "\n")
 			}
 		case "tool":
-			b.WriteString("Tool result [" + msg.Name + "]: " + clipLine(msg.Content, toolResultPreview) + "\n")
+			b.WriteString("[Tool result " + msg.Name + "]: " + clipLine(msg.Content, toolResultPreview) + "\n")
 		}
 	}
 	if strings.TrimSpace(b.String()) == "" {

@@ -41,20 +41,20 @@ var chapters = []chapter{
 			"Replies stream as they arrive and render as markdown. The composer is\n" +
 			"multi-line: alt+enter (or ctrl+j) adds a newline, so pasting a stack\n" +
 			"trace works.",
-		commands: []string{"yolo", "mode", "undo", "diff", "stop"},
+		commands: []string{"yolo", "mode", "undo", "diff", "stop", "queue"},
 	},
 	{
 		name: "sessions", title: "Sessions and context",
 		intro: "Conversations are saved per repo after every reply, so nothing is lost\n" +
 			"when you quit. When a session gets long, compact it rather than losing\n" +
 			"the thread.",
-		commands: []string{"sessions", "resume", "new", "compact", "learn", "copy", "cost", "clear"},
+		commands: []string{"sessions", "session", "resume", "switch", "import", "new", "fork", "tree", "compact", "learn", "copy", "cost", "clear"},
 	},
 	{
 		name: "model", title: "Models, providers and steering",
 		intro: "Kaioken works with any OpenAI-compatible endpoint. Notes are the most\n" +
 			"valuable setting here: they are injected into every generation prompt.",
-		commands: []string{"model", "models", "provider", "repo", "config", "notes"},
+		commands: []string{"model", "models", "thinking", "theme", "provider", "repo", "config", "notes"},
 	},
 	{
 		name: "knowledge", title: "The knowledge engine",
@@ -65,7 +65,7 @@ var chapters = []chapter{
 			"  fed to an AI agent cheaply before it touches code.\n\n" +
 			"They are independent — run either, or both. Once a wiki exists, /update\n" +
 			"keeps it current from the git diff instead of regenerating everything.",
-		commands: []string{"wiki", "update", "scan", "plan", "cards", "status"},
+		commands: []string{"wiki", "update", "scan", "plan", "cards", "status", "impact", "research"},
 	},
 	{
 		name: "skills", title: "Skills: teaching an agent your project",
@@ -76,7 +76,7 @@ var chapters = []chapter{
 			"Build them after a wiki or card run. They stay current through /update.\n\n" +
 			"Community extensions add more skills from GitHub — installed per user,\n" +
 			"available in every repo, and never executing any code.",
-		commands: []string{"skills", "ext"},
+		commands: []string{"skills", "ext", "x", "templates"},
 	},
 	{
 		name: "browse", title: "Browsing and automation",

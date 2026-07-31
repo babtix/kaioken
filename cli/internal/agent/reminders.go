@@ -69,19 +69,34 @@ func ApplyReminders(conv []llm.Message, mode Mode) []llm.Message {
 		return conv
 	}
 
-	base := stripReminders(conv[last].Content)
-	text := reminderFor(conv, mode)
-	if text == "" && base == conv[last].Content {
-		return conv // nothing to add and nothing stale to remove
+	// Strip stale blocks from every user message, not just the newest one:
+	// steering moves the last-user position mid-run, so the previous holder
+	// of the reminder is no longer where lastUserIndex points.
+	//
+	// Copy before the first mutation: the caller's slice is the live
+	// conversation, and the session may be persisting it concurrently.
+	out := conv
+	copied := false
+	ensure := func() {
+		if !copied {
+			c := make([]llm.Message, len(conv))
+			copy(c, conv)
+			out = c
+			copied = true
+		}
 	}
-
-	// Copy: the caller's slice is the live conversation, and the session may
-	// be persisting it concurrently.
-	out := make([]llm.Message, len(conv))
-	copy(out, conv)
-	out[last].Content = base
-	if text != "" {
-		out[last].Content = base + "\n\n" + reminderOpen + "\n" + text + "\n" + reminderClose
+	for i := 0; i <= last; i++ {
+		if conv[i].Role != "user" {
+			continue
+		}
+		if base := stripReminders(conv[i].Content); base != conv[i].Content {
+			ensure()
+			out[i].Content = base
+		}
+	}
+	if text := reminderFor(conv, mode); text != "" {
+		ensure()
+		out[last].Content = out[last].Content + "\n\n" + reminderOpen + "\n" + text + "\n" + reminderClose
 	}
 	return out
 }

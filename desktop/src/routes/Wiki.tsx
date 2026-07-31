@@ -59,7 +59,9 @@ export default function Wiki() {
       setLoading(true)
       try {
         const d = await api.wikiDoc(ws.id, rel)
-        setDoc(d)
+        // Older daemons marshal empty Go slices as null; normalize so the
+        // reader can index into these without guards.
+        setDoc({ ...d, toc: d.toc ?? [], provenance: d.provenance ?? [] })
         setActiveSlug(null)
         readerRef.current?.scrollTo({ top: 0 })
       } catch {

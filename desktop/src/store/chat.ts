@@ -26,6 +26,8 @@ type ChatState = {
   deleteSession: (wsId: string, sid: string) => Promise<void>
   send: (wsId: string, content: string, opts?: { auto_approve?: boolean; allow_run?: boolean }) => Promise<void>
   cancel: (runId: string) => Promise<void>
+  /** Wipe the transcript from view only — the session on the server is untouched. */
+  clearView: () => void
   resolveApproval: (decision: "approve" | "deny" | "approve_all") => Promise<void>
 
   // Event handling
@@ -160,6 +162,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       useToastStore.getState().push("error", h.title, h.body, h.action)
       set({ isStreaming: false, error: h.title })
     }
+  },
+
+  clearView: () => {
+    set({ messages: [], streamBuffer: "", error: null })
   },
 
   cancel: async (runId: string) => {

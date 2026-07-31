@@ -17,6 +17,7 @@ import { useWorkspaceStore } from "@/store/workspace"
 import { useChatStore } from "@/store/chat"
 import { useRunsStore } from "@/store/runs"
 import { useToastStore } from "@/store/toast"
+import { useThemeStore } from "@/store/theme"
 import Markdown from "@/components/common/Markdown"
 import ApprovalDialog from "@/components/chat/ApprovalDialog"
 import Autocomplete, { detectTrigger, type Suggestion } from "@/components/chat/Autocomplete"
@@ -33,9 +34,10 @@ import type { ChatMessage, RepoFile } from "@/lib/types"
 
 export default function Chat() {
   const ws = useWorkspaceStore((s) => s.active)
+  const openWorkspace = useWorkspaceStore((s) => s.open)
   const {
     sessions, activeSessionId, messages, streamBuffer, isStreaming, approval, error,
-    loadSessions, newSession, openSession, deleteSession, send, cancel, resolveApproval, activeRunId,
+    loadSessions, newSession, openSession, deleteSession, send, cancel, clearView, resolveApproval, activeRunId,
   } = useChatStore()
 
   const startRun = useRunsStore((s) => s.start)
@@ -82,7 +84,7 @@ export default function Chat() {
     switch (action.kind) {
       case "run":
         await startRun(ws!.id, action.runKind, action.params)
-        navigate("/activity")
+        navigate(action.goto ?? "/activity")
         break
       case "session":
         if (action.op === "new") {
@@ -121,6 +123,87 @@ export default function Chat() {
       case "help":
         // The shortcut sheet is owned by AppShell's global "?" handler.
         window.dispatchEvent(new KeyboardEvent("keydown", { key: "?" }))
+        break
+      case "stop":
+        if (activeRunId) await cancel(activeRunId)
+        else pushToast("info", "Nothing is running")
+        break
+      case "clear":
+        clearView()
+        break
+      case "copy": {
+        const last = [...(messages || [])].reverse().find((m) => m.role === "assistant" && m.content)
+        if (!last) { pushToast("info", "Nothing to copy", "The model has not replied yet."); break }
+        try {
+          await navigator.clipboard.writeText(last.content)
+          pushToast("success", "Copied to clipboard")
+        } catch {
+          pushToast("error", "Clipboard unavailable")
+        }
+        break
+      }
+      case "theme": {
+        const t = useThemeStore.getState()
+        if (!action.to || action.to !== t.theme) t.toggle()
+        break
+      }
+      case "init":
+        try {
+          await api.initWorkspace(ws!.id)
+          pushToast("success", "Workspace initialized", "Config written and repository scanned.")
+        } catch (err) {
+          const h = humanize(err)
+          pushToast("error", h.title, h.body, h.action)
+        }
+        break
+      case "hook":
+        if (action.op === "status") {
+          pushToast("info", "Git hook", "Use /hook install or /hook remove.")
+          break
+        }
+        try {
+          const res = await api.hook(ws!.id, action.op)
+          pushToast("success", res.installed ? "Post-commit hook installed" : "Post-commit hook removed", res.path)
+        } catch (err) {
+          const h = humanize(err)
+          pushToast("error", h.title, h.body, h.action)
+        }
+        break
+      case "repo":
+        if (!action.path) { navigate("/"); break }
+        try {
+          await openWorkspace(action.path)
+          navigate("/chat")
+        } catch (err) {
+          const h = humanize(err)
+          pushToast("error", h.title, h.body, h.action)
+        }
+        break
+      case "version":
+        try {
+          const h = await api.health()
+          pushToast("info", `Kaioken ${h.version}`, `${h.go_version} · ${h.os}/${h.arch} · contract v${h.contract}`)
+        } catch (err) {
+          const e = humanize(err)
+          pushToast("error", e.title, e.body, e.action)
+        }
+        break
+      case "sessioninfo": {
+        const meta = (sessions || []).find((s) => s.id === activeSessionId)
+        if (!meta) { pushToast("info", "No active session"); break }
+        pushToast("info", meta.title || meta.id, `${(messages || []).length} messages · ${ws!.model}`)
+        break
+      }
+      case "quit":
+        try {
+          const { getCurrentWindow } = await import("@tauri-apps/api/window")
+          await getCurrentWindow().close()
+        } catch {
+          window.close()
+        }
+        break
+      case "note":
+        pushToast("info", action.title, action.body)
         break
     }
   }

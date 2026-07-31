@@ -1,8 +1,8 @@
 description: Bubble Tea based terminal interface for the application.
-file_count: 18
-generated_at: "2026-07-31T06:44:10Z"
+file_count: 26
+generated_at: "2026-07-31T09:33:36Z"
 id: kaioken/tui
-model: nvidia/nemotron-3-super-120b-a12b
+model: nemotron-3-super:cloud
 scope:
     - internal/tui
 title: Terminal User Interface

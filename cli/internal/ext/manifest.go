@@ -61,6 +61,13 @@ type WasmConfig struct {
 	Entry string `yaml:"entry"`
 }
 
+// CommandDecl is one user-invokable command a wasm extension contributes,
+// surfaced in the TUI as /x <ext> <name>.
+type CommandDecl struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description,omitempty"`
+}
+
 // Manifest describes one extension. It lives at the root of the extension's
 // repository and travels inside every release archive, so the installed copy
 // always states what it is and what it needs.
@@ -98,6 +105,12 @@ type Manifest struct {
 	// extension needs, checked again at load through the lock entry's
 	// installed manifest.
 	MinKaiokenVersion string `yaml:"minKaiokenVersion,omitempty"`
+	// Hooks are agent lifecycle events the extension wants forwarded into
+	// the sandbox (tool_call, tool_result, agent_end, …). Wasm only, and
+	// only dispatched once the installed version is trusted.
+	Hooks []string `yaml:"hooks,omitempty"`
+	// Commands are user-invokable entry points, run via /x. Wasm only.
+	Commands []CommandDecl `yaml:"commands,omitempty"`
 }
 
 // LoadManifest reads and validates dir/extension.yaml.
@@ -172,6 +185,22 @@ func (m *Manifest) Validate() error {
 	if strings.TrimSpace(m.MinKaiokenVersion) != "" {
 		if _, err := parseSemver(m.MinKaiokenVersion); err != nil {
 			return fmt.Errorf("extension %s: invalid minKaiokenVersion: %w", m.ID, err)
+		}
+	}
+	if len(m.Hooks) > 0 && m.Type != TypeWasm {
+		return fmt.Errorf("extension %s: hooks require a wasm extension in this version", m.ID)
+	}
+	for _, h := range m.Hooks {
+		if !validHookName(h) {
+			return fmt.Errorf("extension %s: unknown hook %q", m.ID, h)
+		}
+	}
+	if len(m.Commands) > 0 && m.Type != TypeWasm {
+		return fmt.Errorf("extension %s: commands require a wasm extension in this version", m.ID)
+	}
+	for _, c := range m.Commands {
+		if !kebab(c.Name) {
+			return fmt.Errorf("extension %s: command name %q must be lowercase kebab-case", m.ID, c.Name)
 		}
 	}
 	return nil

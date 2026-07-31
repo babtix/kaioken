@@ -20,17 +20,49 @@ import (
 // maxTitle caps the derived title length.
 const maxTitle = 64
 
+type PromptDeliveryMode string
+
+const (
+	DeliverySteer PromptDeliveryMode = "steer"
+	DeliveryQueue PromptDeliveryMode = "queue"
+)
+
+// DurableInput represents a prompt admitted to the durable inbox prior to promotion.
+type DurableInput struct {
+	ID        string             `json:"id"`
+	Content   string             `json:"content"`
+	Delivery  PromptDeliveryMode `json:"delivery"`
+	CreatedAt time.Time          `json:"created_at"`
+	Promoted  bool               `json:"promoted"`
+}
+
 // Session is one saved conversation.
 type Session struct {
-	ID       string        `json:"id"`
-	Title    string        `json:"title"`
-	Model    string        `json:"model"`
-	Provider string        `json:"provider"`
-	Created  time.Time     `json:"created"`
-	Updated  time.Time     `json:"updated"`
-	Mode     string        `json:"mode,omitempty"`
-	Epochs   []Epoch       `json:"epochs,omitempty"`
-	Messages []llm.Message `json:"messages"`
+	ID       string         `json:"id"`
+	Title    string         `json:"title"`
+	Model    string         `json:"model"`
+	Provider string         `json:"provider"`
+	Created  time.Time      `json:"created"`
+	Updated  time.Time      `json:"updated"`
+	Mode     string         `json:"mode,omitempty"`
+	// Thinking is the reasoning level in force when the session was last
+	// saved, so a resume restores the depth the conversation was had at.
+	Thinking string `json:"thinking,omitempty"`
+	// ParentID and ForkedAt record lineage: this session was created by
+	// forking ParentID, keeping its first ForkedAt messages. Zero values
+	// mean the session was started fresh.
+	ParentID string         `json:"parent_id,omitempty"`
+	ForkedAt int            `json:"forked_at,omitempty"`
+	Epochs   []Epoch        `json:"epochs,omitempty"`
+	Inbox    []DurableInput `json:"inbox,omitempty"`
+	Messages []llm.Message  `json:"messages"`
+
+	// Entries is the full session tree in file order, and Leaf the tip of
+	// the active branch — Messages is always the root→Leaf path. Maintained
+	// by Record via syncTree; persisted in the JSONL v2 format, not in the
+	// legacy JSON one.
+	Entries []Entry `json:"-"`
+	Leaf    string  `json:"-"`
 }
 
 // Epoch marks a point where the conversation's context changed shape. Kind is
@@ -47,13 +79,54 @@ func (s *Session) AddEpoch(kind, mode, note string) {
 	s.Epochs = append(s.Epochs, Epoch{Kind: kind, Mode: mode, Note: note, At: time.Now()})
 }
 
+// AdmitInput adds a prompt to the durable inbox.
+func (s *Session) AdmitInput(content string, mode PromptDeliveryMode) DurableInput {
+	if mode == "" {
+		mode = DeliverySteer
+	}
+	input := DurableInput{
+		ID:        fmt.Sprintf("inp_%d", time.Now().UnixNano()),
+		Content:   content,
+		Delivery:  mode,
+		CreatedAt: time.Now(),
+		Promoted:  false,
+	}
+	s.Inbox = append(s.Inbox, input)
+	return input
+}
+
+// PendingInputs returns unpromoted inbox entries matching the delivery mode.
+func (s *Session) PendingInputs(mode PromptDeliveryMode) []DurableInput {
+	var res []DurableInput
+	for _, in := range s.Inbox {
+		if !in.Promoted && (mode == "" || in.Delivery == mode) {
+			res = append(res, in)
+		}
+	}
+	return res
+}
+
+// PromotePending marks matching pending inputs as promoted.
+func (s *Session) PromotePending(mode PromptDeliveryMode) []DurableInput {
+	var promoted []DurableInput
+	for i := range s.Inbox {
+		if !s.Inbox[i].Promoted && (mode == "" || s.Inbox[i].Delivery == mode) {
+			s.Inbox[i].Promoted = true
+			promoted = append(promoted, s.Inbox[i])
+		}
+	}
+	return promoted
+}
+
+
 // Meta is a session summary for listings — everything but the transcript.
 type Meta struct {
-	ID      string
-	Title   string
-	Model   string
-	Updated time.Time
-	Turns   int
+	ID       string
+	Title    string
+	Model    string
+	Updated  time.Time
+	Turns    int
+	ParentID string
 }
 
 // Dir is where a repository's sessions are stored.
@@ -63,6 +136,10 @@ func Dir(repo string) string {
 
 func path(repo, id string) string {
 	return filepath.Join(Dir(repo), id+".json")
+}
+
+func pathJSONL(repo, id string) string {
+	return filepath.Join(Dir(repo), id+".jsonl")
 }
 
 // New starts an empty session with a time-ordered id.
@@ -84,6 +161,7 @@ func (s *Session) Record(messages []llm.Message) {
 	if s.Title == "" {
 		s.Title = deriveTitle(messages)
 	}
+	s.syncTree()
 }
 
 // Turns counts user messages — a rough measure of conversation length.
@@ -117,15 +195,30 @@ func (s *Session) SaveForce(repo string) error {
 	if err := os.MkdirAll(Dir(repo), 0o755); err != nil {
 		return err
 	}
-	raw, err := json.MarshalIndent(s, "", "  ")
+	// A session loaded from the legacy format has messages but no tree yet;
+	// build one so the v2 write is complete.
+	if len(s.Entries) == 0 && len(s.Messages) > 0 {
+		s.syncTree()
+	}
+	raw, err := encodeJSONL(s)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path(repo, s.ID), raw, 0o644)
+	if err := os.WriteFile(pathJSONL(repo, s.ID), raw, 0o644); err != nil {
+		return err
+	}
+	// The write above supersedes any legacy flat file for the same id —
+	// leaving it behind would double-list the session.
+	_ = os.Remove(path(repo, s.ID))
+	return nil
 }
 
-// Load reads one session by id.
+// Load reads one session by id, in either format. Legacy flat files migrate
+// to the tree in memory; the next save writes v2.
 func Load(repo, id string) (*Session, error) {
+	if raw, err := os.ReadFile(pathJSONL(repo, id)); err == nil {
+		return decodeJSONL(raw)
+	}
 	raw, err := os.ReadFile(path(repo, id))
 	if err != nil {
 		return nil, err
@@ -134,11 +227,19 @@ func Load(repo, id string) (*Session, error) {
 	if err := json.Unmarshal(raw, &s); err != nil {
 		return nil, fmt.Errorf("parsing session %s: %w", id, err)
 	}
+	s.syncTree()
 	return &s, nil
 }
 
-// Delete removes a saved session.
-func Delete(repo, id string) error { return os.Remove(path(repo, id)) }
+// Delete removes a saved session in whichever format it exists.
+func Delete(repo, id string) error {
+	errJSONL := os.Remove(pathJSONL(repo, id))
+	errJSON := os.Remove(path(repo, id))
+	if errJSONL != nil && errJSON != nil {
+		return errJSONL
+	}
+	return nil
+}
 
 // List returns session summaries, newest first. A missing directory is not an
 // error — it just means nothing has been saved yet.
@@ -151,18 +252,32 @@ func List(repo string) ([]Meta, error) {
 		return nil, err
 	}
 	var metas []Meta
+	seen := map[string]bool{}
 	for _, e := range entries {
 		name := e.Name()
-		if e.IsDir() || !strings.HasSuffix(name, ".json") {
+		if e.IsDir() {
 			continue
 		}
-		s, err := Load(repo, strings.TrimSuffix(name, ".json"))
+		var id string
+		switch {
+		case strings.HasSuffix(name, ".jsonl"):
+			id = strings.TrimSuffix(name, ".jsonl")
+		case strings.HasSuffix(name, ".json"):
+			id = strings.TrimSuffix(name, ".json")
+		default:
+			continue
+		}
+		if seen[id] {
+			continue // both formats on disk: Load prefers the v2 file
+		}
+		seen[id] = true
+		s, err := Load(repo, id)
 		if err != nil {
 			continue // a corrupt file must not hide the rest
 		}
 		metas = append(metas, Meta{
 			ID: s.ID, Title: s.Title, Model: s.Model,
-			Updated: s.Updated, Turns: s.Turns(),
+			Updated: s.Updated, Turns: s.Turns(), ParentID: s.ParentID,
 		})
 	}
 	sort.Slice(metas, func(i, j int) bool { return metas[i].Updated.After(metas[j].Updated) })

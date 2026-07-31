@@ -28,11 +28,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"kaioken/internal/agent"
+	agentevents "kaioken/internal/agent/events"
 	"kaioken/internal/agentsmd"
 	"kaioken/internal/config"
 	"kaioken/internal/ext"
 	"kaioken/internal/generate"
 	"kaioken/internal/gitx"
+	"kaioken/internal/impact"
 	"kaioken/internal/llm"
 	"kaioken/internal/memory"
 	"kaioken/internal/plan"
@@ -53,6 +55,7 @@ type mode int
 const (
 	modeChat mode = iota
 	modePicker
+	modeImpact
 )
 
 // ---- async messages ----
@@ -87,12 +90,24 @@ type undoRecordMsg struct{ entry agent.UndoEntry }
 // streamDeltaMsg is one chunk of assistant prose arriving from the model.
 type streamDeltaMsg struct{ text string }
 
+// toolProgressMsg is a chunk of live tool output (a long build scrolling by).
+// It repaints the busy status line rather than the transcript — the full
+// result still arrives as one logMsg when the tool finishes.
+type toolProgressMsg struct {
+	name  string
+	chunk string
+}
+
 // assistantMsg carries a completed assistant turn: the live streamed region is
 // replaced by this final, fully-rendered text.
 type assistantMsg struct{ text string }
 
 type serveStartedMsg struct{ url string }
 type serveStoppedMsg struct{}
+
+// impactMsg carries a finished impact prediction; receiving it opens the
+// interactive tree view.
+type impactMsg struct{ report *impact.Report }
 // compactedMsg carries a rebuilt conversation back from a compaction. The
 // history is assembled off the UI goroutine and swapped in whole, so the
 // automatic and the /compact paths converge on one piece of state handling.
@@ -193,10 +208,16 @@ type Model struct {
 	mode      mode
 
 	pal             palette // slash-command completion menu
+	// impactTree is the interactive /impact report view, live while the
+	// model is in modeImpact.
+	impactTree      *impactTree
 	pendingKey      bool
 	pendingApproval bool
 	approval        agent.ApprovalRequest
 	cancel          context.CancelFunc
+	// runningAgent is the agent behind the current chat turn, kept so input
+	// typed while it works can be queued as steering instead of bounced.
+	runningAgent *agent.Agent
 
 	// The wiki browser runs alongside the chat rather than blocking it.
 	serveCancel context.CancelFunc
@@ -216,6 +237,9 @@ func Run(repo string) error {
 	// Extension MCP servers are child processes; quitting the TUI must never
 	// leave them orphaned.
 	defer ext.ShutdownAll()
+	// Trusted wasm extensions that declared hooks start observing the agent
+	// now, before the first turn can run.
+	ext.ActivateHooks(repo, func(msg string) { fmt.Fprintln(os.Stderr, msg) })
 	p := tea.NewProgram(New(repo), tea.WithAltScreen())
 	_, err := p.Run()
 	return err
@@ -284,6 +308,24 @@ func New(repo string) Model {
 	m.resetConversation()
 	m.rebuildClient()
 	m.configMissing = missing
+	// Apply the configured theme before any rendering.
+	if t := LookupTheme(cfg.Theme); t != nil {
+		applyTheme(*t)
+	}
+	// Compaction budgets are the user's to tune; apply them once so every
+	// auto-compaction this session uses the same thresholds.
+	agent.SetCompactionSettings(cfg.Compaction.IsEnabled(),
+		cfg.Compaction.ReserveTokens, cfg.Compaction.KeepRecentTokens)
+	// Live tool output (run_command chunks) streams in over the agent's
+	// event bus. The send never blocks: a dropped progress frame costs
+	// nothing, a blocked bus handler would stall the whole agent.
+	ch := m.events
+	agentevents.Default.Subscribe(agentevents.ToolExecutionUpdate, func(e *agentevents.Event) {
+		select {
+		case ch <- toolProgressMsg{name: e.ToolName, chunk: e.Partial}:
+		default:
+		}
+	})
 	return m
 }
 
@@ -308,6 +350,10 @@ func (m *Model) resetConversation() {
 func (m *Model) saveSession() {
 	if m.sess == nil {
 		return
+	}
+	// The reasoning level travels with the session, so a resume restores it.
+	if m.client != nil {
+		m.sess.Thinking = m.client.Thinking
 	}
 	m.sess.Record(m.conversation)
 	if err := m.sess.Save(m.repo); err != nil {
@@ -380,6 +426,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.refreshViewport()
 		return m, listen(m.events)
 
+	case toolProgressMsg:
+		// The newest non-empty output line becomes the status text, so a
+		// two-minute build reads as motion instead of a frozen spinner.
+		if m.busy {
+			if line := lastOutputLine(msg.chunk); line != "" {
+				m.busyText = msg.name + ": " + clip(line, 64)
+			}
+		}
+		return m, listen(m.events)
+
 	case assistantMsg:
 		// The live region showed raw tokens as they arrived; replace it with
 		// the markdown-rendered version now that the reply is complete.
@@ -396,6 +452,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, m.spin.Tick)
 		} else {
 			m.cancel = nil
+			m.runningAgent = nil
 		}
 		return m, tea.Batch(cmds...)
 
@@ -414,6 +471,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case approvalReqMsg:
 		m.showApproval(msg.req)
+		return m, listen(m.events)
+
+	case branchSummaryMsg:
+		m.applyBranchSummary(msg)
 		return m, listen(m.events)
 
 	case agentDoneMsg:
@@ -479,6 +540,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.appendLine(dimStyle.Render("open it in a browser · /serve stop to end it"))
 		return m, listen(m.events)
 
+	case impactMsg:
+		m.openImpactTree(msg.report)
+		return m, listen(m.events)
+
 	case serveStoppedMsg:
 		m.serveCancel = nil
 		m.serveURL = ""
@@ -536,6 +601,11 @@ func (m Model) onKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.list, c = m.list.Update(msg)
 			return m, c
 		}
+	}
+
+	// Impact tree view: all keys drive the tree until it is closed.
+	if m.mode == modeImpact {
+		return m.onImpactKey(key)
 	}
 
 	// Approval prompt.
@@ -626,6 +696,11 @@ func (m Model) onKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "enter":
 		return m.onEnter()
+	case "ctrl+p":
+		// Cycle through the configured scoped models. The palette owns ctrl+p
+		// while it is open (handled above), so this only fires in plain chat.
+		m.cycleModel()
+		return m, nil
 	case "pgup", "pgdown":
 		var c tea.Cmd
 		m.vp, c = m.vp.Update(msg)
@@ -648,6 +723,27 @@ func (m Model) onKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.refreshPalette()
 		m.syncLayout()
 		return m, c
+	}
+}
+
+// doQueue reports or clears the steering messages queued behind a running
+// chat turn.
+func (m *Model) doQueue(arg string) {
+	if m.runningAgent == nil {
+		m.appendLine(dimStyle.Render("no chat turn is running — nothing is queued"))
+		return
+	}
+	n := m.runningAgent.QueuedCount()
+	if strings.EqualFold(strings.TrimSpace(arg), "clear") {
+		m.runningAgent.ClearQueues()
+		m.appendLine(okStyle.Render(fmt.Sprintf("dropped %d queued message(s)", n)))
+		return
+	}
+	switch n {
+	case 0:
+		m.appendLine(dimStyle.Render("queue is empty — type while the agent works to steer it"))
+	default:
+		m.appendLine(dimStyle.Render(fmt.Sprintf("%d message(s) queued — /queue clear to drop them", n)))
 	}
 }
 
@@ -678,6 +774,9 @@ func (m Model) View() string {
 	}
 	if m.mode == modePicker {
 		return m.list.View()
+	}
+	if m.mode == modeImpact {
+		return m.impactView()
 	}
 	// The wordmark + status panel is a sticky top block (rebuilt on resize
 	// and on /model, /provider, /key changes), so repo/model/provider/key stay
@@ -1004,6 +1103,22 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 		return m.needKey()
 	}
 	if m.busy {
+		// A chat turn is running: queue the message as steering — it reaches
+		// the model after the current step, no cancel required. Other busy
+		// work (wiki, scan, …) has no conversation to steer.
+		if m.runningAgent != nil {
+			m.runningAgent.Steer(text)
+			m.appendLine("")
+			for i, l := range strings.Split(text, "\n") {
+				prefix := busyPromptStyle.Render("» ")
+				if i > 0 {
+					prefix = gutterStyle.Render("  ")
+				}
+				m.appendLine(prefix + userStyle.Render(l))
+			}
+			m.appendLine(dimStyle.Render("  queued — reaches the agent after its current step"))
+			return m, nil
+		}
 		m.appendLine(warnStyle.Render("busy — wait, or /stop (esc/ctrl+c) to cancel"))
 		return m, nil
 	}
@@ -1036,6 +1151,7 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 	}
 	conv := m.conversation
 	ch := m.events
+	m.runningAgent = ag
 	client, model, ceiling := m.client, m.cfg.Model, m.cfg.MaxTokens
 	go func() {
 		// Shrink the context before the turn rather than after a provider
@@ -1047,7 +1163,7 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 		// Two steps, cheapest first. Pruning erases the bodies of stale tool
 		// results for free and keeps the whole conversation; summarizing costs
 		// a model call and replaces it. Most turns never need the second.
-		if need, used := agent.ShouldCompact(conv, model, ceiling); need {
+		if need, used := agent.ShouldCompact(conv, model, ceiling); need && agent.CompactionEnabled() {
 			if pruned, freed, note := agent.Prune(conv, model, ceiling); freed > 0 {
 				conv = pruned
 				ch <- compactedMsg{history: pruned, note: note, auto: true}
@@ -1094,6 +1210,12 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		m.appendLine(userStyle.Render("› " + raw))
 	}
 
+	// /t:<name> is the template family, not a fixed command — the name after
+	// the colon selects the file.
+	if strings.HasPrefix(name, "t:") {
+		return m.runTemplate(strings.TrimPrefix(name, "t:"), rest)
+	}
+
 	switch name {
 	case "tutorial", "guide", "manual":
 		for _, l := range tutorialLines(rest) {
@@ -1120,13 +1242,29 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		m.appendLine(dimStyle.Render("new session started — /resume to reopen the previous one"))
 	case "sessions":
 		m.listSessions()
+	case "session":
+		m.showSessionStats()
 	case "resume":
 		if rest == "" {
 			return m.openSessionPicker()
 		}
 		m.resumeSession(rest)
+	case "switch":
+		var openPicker bool
+		m, openPicker = m.doSwitch(rest)
+		if openPicker {
+			return m.openSessionPicker()
+		}
+	case "import":
+		m.doImport(rest)
 	case "stop":
 		m.stopCurrent()
+	case "queue":
+		m.doQueue(rest)
+	case "tree":
+		m.doTree(rest)
+	case "fork":
+		m.doFork(rest)
 	case "undo":
 		m.doUndo()
 	case "diff":
@@ -1162,6 +1300,10 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 			return m.startModels("")
 		}
 		m.setModel(rest)
+	case "thinking":
+		m.doThinking(rest)
+	case "theme":
+		m.doTheme(rest)
 	case "provider":
 		m.setProvider(rest)
 	case "key":
@@ -1194,8 +1336,16 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		return m.startGenerate(args)
 	case "skills", "skill":
 		return m.startSkills(args)
+	case "impact", "imp":
+		return m.startImpact(rest)
+	case "research":
+		return m.startResearch(rest)
 	case "ext", "extension", "extensions":
 		return m.doExt(args)
+	case "x":
+		m.doExtCommand(rest)
+	case "templates", "template":
+		m.listTemplates()
 	case "serve":
 		return m.startServe(args)
 	case "hook":
@@ -1506,6 +1656,34 @@ func (m Model) startDiff() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// doThinking sets or shows the reasoning level requested from the model.
+func (m *Model) doThinking(arg string) {
+	if m.client == nil {
+		m.appendLine(dimStyle.Render("no active client — set a key first"))
+		return
+	}
+	arg = strings.ToLower(strings.TrimSpace(arg))
+	if arg == "" {
+		cur := m.client.Thinking
+		if cur == "" {
+			cur = "off"
+		}
+		m.appendLine(dimStyle.Render("thinking: " + cur + " — /thinking off|low|medium|high"))
+		return
+	}
+	if !llm.ValidThinkingLevel(arg) {
+		m.appendLine(errStyle.Render("unknown level — /thinking off|low|medium|high"))
+		return
+	}
+	m.client.Thinking = arg
+	if arg == "off" {
+		m.appendLine(okStyle.Render("thinking off — requests carry no reasoning parameters"))
+		return
+	}
+	m.appendLine(okStyle.Render("thinking " + arg + " — applied where the endpoint supports it " +
+		"(OpenRouter, OpenAI, Anthropic); reasoning models spend more tokens per reply"))
+}
+
 // showCost prints cumulative call/token counts — and, when the provider
 // reports it, real spend — for the active client.
 func (m *Model) showCost() {
@@ -1516,8 +1694,15 @@ func (m *Model) showCost() {
 	calls, pt, ct := m.client.Usage()
 	m.appendLine(fmt.Sprintf("  calls: %d   prompt tokens: %d   completion tokens: %d   total: %d",
 		calls, pt, ct, pt+ct))
-	if usd, known := m.client.CostUSD(); known {
-		line := fmt.Sprintf("  spend: $%.4f", usd)
+	if read, write := m.client.CacheUsage(); read+write > 0 {
+		m.appendLine(dimStyle.Render(fmt.Sprintf("  cache: %d tokens read · %d written", read, write)))
+	}
+	if usd, exact, known := m.client.SpendUSD(); known {
+		label := "spend"
+		if !exact {
+			label = "spend (estimated from catalog prices)"
+		}
+		line := fmt.Sprintf("  %s: $%.4f", label, usd)
 		if m.cfg != nil && (m.cfg.Budget.WarnAt > 0 || m.cfg.Budget.HardStop > 0) {
 			line += dimStyle.Render(fmt.Sprintf("   (budget: warn $%.2f · stop $%.2f)",
 				m.cfg.Budget.WarnAt, m.cfg.Budget.HardStop))
@@ -1909,8 +2094,11 @@ func (m *Model) listSessions() {
 			marker = okStyle.Render("● ")
 		}
 		m.appendLine(fmt.Sprintf("%s%s  %s", marker, dimStyle.Render(s.ID), s.Title))
-		m.appendLine(dimStyle.Render(fmt.Sprintf("     %d turns · %s · %s",
-			s.Turns, s.Model, humanTime(s.Updated))))
+		info := fmt.Sprintf("     %d turns · %s · %s", s.Turns, s.Model, humanTime(s.Updated))
+		if s.ParentID != "" {
+			info += " · ⑂ from " + s.ParentID
+		}
+		m.appendLine(dimStyle.Render(info))
 	}
 	m.appendLine(dimStyle.Render("/resume to pick one, /resume <id> to jump straight to it"))
 }
@@ -1928,10 +2116,14 @@ func (m Model) openSessionPicker() (tea.Model, tea.Cmd) {
 	}
 	items := make([]list.Item, 0, len(metas))
 	for _, s := range metas {
+		desc := fmt.Sprintf("%d turns · %s · %s", s.Turns, humanTime(s.Updated), s.Model)
+		if s.ParentID != "" {
+			desc += " · ⑂ " + s.ParentID
+		}
 		items = append(items, sessionItem{
 			id:    s.ID,
 			title: s.Title,
-			desc:  fmt.Sprintf("%d turns · %s · %s", s.Turns, humanTime(s.Updated), s.Model),
+			desc:  desc,
 		})
 	}
 	m.list.Title = "Resume a session — type to filter, enter to open, esc to cancel"
@@ -1955,6 +2147,10 @@ func (m *Model) resumeSession(id string) {
 	m.sess = s
 	m.conversation = s.Messages
 	m.undoStack = nil // undo entries belong to the session that made them
+	// Restore the reasoning level the session was saved with.
+	if s.Thinking != "" && m.client != nil {
+		m.client.Thinking = s.Thinking
+	}
 	// Restore the mode the session was saved in; an unrecognized value falls
 	// back to build rather than failing the resume.
 	if s.Mode != "" {
@@ -2654,6 +2850,10 @@ var helpText = strings.Join([]string{
 	"  /wiki retry             regenerate only the sections that failed last run",
 	"  /skills [force|name]    build task guides an AI loads while working here",
 	"                          (/skills list to see them; /update keeps them current)",
+	"  /impact <description>   predict which files, modules, docs, skills and tests",
+	"                          a proposed change touches — before editing anything",
+	"  /research [xN] <q>      deep web search: plan subquestions, search, read pages,",
+	"                          loop on the gaps, write a cited report to .kaioken/research/",
 	"  /serve [port]           browse the wiki in a browser  ·  /serve stop",
 	"  /hook [install|remove]  refresh the wiki automatically after every commit",
 	"  /scan /plan /cards      knowledge-card pipeline   ·   /status",
@@ -2676,6 +2876,18 @@ func clip(s string, w int) string {
 		return s
 	}
 	return lipgloss.NewStyle().Inline(true).MaxWidth(w).Render(s)
+}
+
+// lastOutputLine returns the newest non-blank line in a chunk of streamed
+// tool output — the one worth putting on the status line.
+func lastOutputLine(chunk string) string {
+	lines := strings.Split(chunk, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		if line := strings.TrimSpace(lines[i]); line != "" {
+			return line
+		}
+	}
+	return ""
 }
 
 func max(a, b int) int {

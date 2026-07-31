@@ -34,17 +34,26 @@ import (
 // Options control how wide and how deep a run goes.
 type Options struct {
 	// Multiplier is the kaioken ×N dial: it scales subquestions, queries per
-	// round, and pages fetched. 1 is a quick look, 3 the default, 10 unwise.
+	// round, pages fetched, and how much evidence each reasoning call sees.
+	// 1 is a quick look, 3 the default, 10 unwise.
 	Multiplier int
 	// MaxRounds caps the search→read→reason→gap loop. Zero derives it from
 	// the multiplier.
 	MaxRounds int
 	// Concurrency bounds parallel searches, fetches and reasoning calls.
 	Concurrency int
+	// MaxDuration stops the loop once a run has taken this long, reporting
+	// what it has rather than running until the context is cancelled. Zero
+	// means no limit beyond ctx. Rounds are only ever abandoned between
+	// stages, so a report is always written from whatever was gathered.
+	MaxDuration time.Duration
 	// Fetcher overrides how pages are retrieved. Production leaves this nil
 	// to get the SSRF-guarded webfetch.Fetcher; tests substitute a stub so the
 	// loop can be exercised without reaching the network.
 	Fetcher Fetcher
+	// Now overrides the clock the prompts are told about. Tests set it so a
+	// prompt assertion does not depend on the day it runs.
+	Now time.Time
 }
 
 // Fetcher retrieves pages in bulk. *webfetch.Fetcher satisfies it.
@@ -84,13 +93,26 @@ type Report struct {
 	Searched   int // queries issued
 	Fetched    int // pages read
 	Elapsed    time.Duration
-	Incomplete bool // the loop hit MaxRounds with gaps still open
+	Incomplete bool // the run ended with subquestions still thinly evidenced
+	// Warnings record what went wrong without sinking the run: searches that
+	// failed, a time budget that ran out. They belong in the report because a
+	// reader judging the answer needs to know it was assembled under a
+	// constraint.
+	Warnings []string
 }
 
-// evidenceBudget caps how much fetched text one reasoning call may carry.
-// Generous enough for a dozen passages, small enough that a modest context
-// window survives a round.
-const evidenceBudget = 24000
+// evidenceBudget is how much fetched text one reasoning call may carry, in
+// characters, at ×1. It scales with the multiplier: depth means seeing more of
+// what was read, not only reading more pages.
+//
+// The previous fixed pairing of a 24000-character ceiling with a cap of a
+// dozen passages meant the ceiling was never reached — a round selected about
+// four thousand characters of evidence and left five sixths of its own budget
+// unspent on the most expensive call in the pipeline.
+const evidenceBudgetPerX = 8000
+
+// maxEvidenceBudget keeps a ×10 run inside a modest context window.
+const maxEvidenceBudget = 48000
 
 // Run executes the research loop and returns the finished report.
 func Run(ctx context.Context, client *llm.Client, search websearch.Provider,

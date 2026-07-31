@@ -1,10 +1,7 @@
-- Use YAML struct tags for all configurable fields (e.g., `yaml:"version"`).
-- Provide a Default() function returning initialized Config with sensible defaults.
-- When loading a missing config file: return descriptive error for repo config (suggesting `kaioken init`); return empty/default struct for global config.
-- Before saving, ensure config directory exists with proper permissions: 0o755 for repo config dir, 0o700 for global config dir and 0o600 for global config file.
-- Include header comments in saved configs: repo config explains notes usage; global config warns against committing due to API keys.
-- Initialize maps (e.g., Global.Keys) to avoid nil when unmarshaling YAML.
-- Use constants for fixed values (Dir, FreeModelConcurrency).
-- Derive values through methods on config structs (LearnThreshold, EffectiveConcurrency, LearnAtSessionEnd, LearnPerTurn).
-- Perform case-insensitive, trimmed string comparisons for model IDs (e.g., IsFreeModel).
-- In tests, sandbox global config by setting KAIOKEN_HOME to a temporary directory (via TestMain or t.Setenv).
+- Use `yaml:"field,omitempty"` for optional fields in config structs
+- Provide a `Default()` function returning a Config with sensible defaults
+- When loading repo config, return error if missing; for global config, return empty zero value if missing
+- Save global config with restrictive permissions (0o600) due to API keys; repo config uses 0o644
+- Construct file paths via filepath.Join and helper functions (Path, GlobalPath, GlobalDir)
+- Respect KAIOKEN_HOME environment variable for overriding global config directory
+- In tests, set KAIOKEN_HOME to a temporary directory to avoid interfering with real user config
