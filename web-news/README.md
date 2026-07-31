@@ -53,6 +53,13 @@ against an already-running API, use `npm run dev` — Vite proxies `/api` to por
 
 ## Deploying
 
+This directory is one project inside a monorepo, so the Vercel project's **Root
+Directory must be set to `web-news`** (Settings → Build and Deployment). With it
+left at the repo root a git push builds from `/` — where there is no
+`package.json` — and fails with `ENOENT ... open '/vercel/path0/package.json'`.
+Deploying from the CLI hides the problem, because the CLI uploads the directory
+it is run from as the deployment root.
+
 ```bash
 npx vercel deploy --prod
 ```
