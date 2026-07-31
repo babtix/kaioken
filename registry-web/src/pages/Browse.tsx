@@ -29,7 +29,7 @@ export default function Browse() {
   )
 
   return (
-    <div>
+    <div className="animate-rise">
       <p className="mb-6 max-w-2xl text-sm text-kai-muted">
         Community extensions for the Kaioken terminal AI coding assistant: skills the agent reads,
         MCP tools, and sandboxed WASM plugins. Everything installs from the author's own GitHub
@@ -59,7 +59,7 @@ export default function Browse() {
         <select
           value={tag}
           onChange={(e) => setTag(e.target.value)}
-          className="h-9 rounded-md border border-kai-line bg-kai-panel px-2 font-mono text-xs text-kai-muted outline-none"
+          className="h-9 rounded-md border border-kai-line bg-kai-panel px-2 font-mono text-xs text-kai-muted outline-none transition-colors focus:border-kai-orange/60"
         >
           <option value="">all tags</option>
           {tags.map((t) => (
@@ -71,7 +71,7 @@ export default function Browse() {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
-          className="h-9 rounded-md border border-kai-line bg-kai-panel px-2 font-mono text-xs text-kai-muted outline-none"
+          className="h-9 rounded-md border border-kai-line bg-kai-panel px-2 font-mono text-xs text-kai-muted outline-none transition-colors focus:border-kai-orange/60"
         >
           <option value="name">sort: name</option>
           <option value="downloads">sort: downloads</option>
@@ -94,10 +94,10 @@ export default function Browse() {
           <Link
             key={e.id}
             to={`/ext/${encodeURIComponent(e.id)}`}
-            className="group rounded-md border border-kai-line bg-kai-ink p-4 transition-colors hover:border-kai-orange/50"
+            className="lift group rounded-md border border-kai-line bg-kai-ink p-4 hover:border-kai-orange/50"
           >
             <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="font-mono text-sm font-bold text-kai-white group-hover:text-kai-orange">
+              <span className="font-mono text-sm font-bold text-kai-white transition-colors group-hover:text-kai-orange">
                 {e.name}
               </span>
               <EntryBadges entry={e} />

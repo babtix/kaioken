@@ -51,10 +51,195 @@
   --radius-md: 0.25rem;
 }
 
+html {
+  scroll-behavior: smooth;
+  /* the site header is sticky — keep anchor targets clear of it */
+  scroll-padding-top: 5rem;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* no grey flash when tapping links on phones */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* mono-first, like the main site: this is a terminal product's shopfront */
 body {
   background: var(--kai-black);
   color: var(--kai-text);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: color-mix(in oklab, var(--kai-orange) 35%, transparent);
+  color: var(--kai-white);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--kai-black);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--kai-line);
+  border: 2px solid var(--kai-black);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--kai-dim);
+}
+
+:focus-visible {
+  outline: 1px solid var(--kai-orange);
+  outline-offset: 2px;
+}
+
+/* ── ambient page background ───────────────────────────────────────────────
+   The same construction as the main site's backdrop (website/src/index.css),
+   borrowed rather than imported so this app deploys independently: a coarse
+   panel mesh, a phosphor dot matrix, slow orange blooms and a vignette.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* The dot matrix a phosphor screen leaves between characters. */
+.kai-dots {
+  background-image: radial-gradient(var(--kai-dim) 1.1px, transparent 1.2px);
+  background-size: 26px 26px;
+}
+
+/* The coarse mesh behind everything — panel seams, not character cells. */
+.kai-mesh {
+  background-image:
+    linear-gradient(to right, #ffffff14 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff14 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* The faint character grid a terminal emulator leaves behind. */
+.term-grid {
+  background-image:
+    linear-gradient(to right, #ffffff08 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff08 1px, transparent 1px);
+  background-size: 3ch 1.5rem;
+}
+
+/* Softens a texture at the very bottom so it never collides with the footer. */
+.kai-fade-down {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+}
+
+/* Keeps a texture to the top of the viewport, where the hero sits. */
+.kai-fade-hero {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+}
+
+/* CRT scanlines as a plain background layer. */
+.kai-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    #00000073 2px 3px
+  );
+}
+
+/* A soft off-screen light source. Position and tint come from the caller. */
+.kai-bloom {
+  border-radius: 50%;
+  filter: blur(80px);
+}
+
+/* Darkens the edges so the centre column reads first. */
+.kai-vignette {
+  background: radial-gradient(
+    ellipse 80% 65% at 50% 40%,
+    transparent 0%,
+    color-mix(in oklab, var(--kai-black) 65%, transparent) 100%
+  );
+}
+
+.glow-orange {
+  text-shadow: 0 0 18px color-mix(in oklab, var(--kai-orange) 55%, transparent);
+}
+
+/* Phosphor bleed around a focused panel. */
+.panel-glow {
+  box-shadow:
+    0 0 0 1px #ffffff0f,
+    0 0 40px -12px color-mix(in oklab, var(--kai-orange) 45%, transparent);
+}
+
+/* ── animations — the main site's motion language ─────────────────────── */
+
+@keyframes caret-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.animate-caret {
+  animation: caret-blink 1.05s step-end infinite;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise {
+  animation: rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Slow horizontal sweep for the hero's top rule. */
+@keyframes rule-sweep {
+  0% { background-position: -60% 0; }
+  100% { background-position: 160% 0; }
+}
+.rule-sweep {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--kai-orange) 45%,
+    var(--kai-amber) 50%,
+    var(--kai-orange) 55%,
+    transparent 100%
+  );
+  background-size: 55% 100%;
+  background-repeat: no-repeat;
+  animation: rule-sweep 6s linear infinite;
+}
+
+/* Very slow bloom drift — long enough that you notice it only if you look. */
+@keyframes bloom-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -4%, 0) scale(1.08); }
+}
+.animate-bloom {
+  animation: bloom-drift 26s ease-in-out infinite;
+}
+
+/* A card that answers the pointer: lifts, warms its border, casts a little. */
+.lift {
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -16px color-mix(in oklab, var(--kai-orange) 70%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-caret,
+  .animate-rise,
+  .animate-bloom,
+  .rule-sweep {
+    animation: none;
+  }
+  .lift:hover {
+    transform: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* Markdown body — README and docs rendering. Deliberately terminal-flavored:

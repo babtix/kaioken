@@ -20,7 +20,7 @@ export default function Docs() {
   if (!doc) return <Navigate to={`/docs/${DOCS[0].slug}`} replace />
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
+    <div className="animate-rise grid gap-8 lg:grid-cols-[220px_1fr]">
       <nav className="lg:sticky lg:top-20 lg:self-start">
         <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-kai-dim">documentation</p>
         <ul className="flex flex-col gap-1">
@@ -28,12 +28,13 @@ export default function Docs() {
             <li key={d.slug}>
               <Link
                 to={`/docs/${d.slug}`}
-                className={`block rounded px-2 py-1.5 font-mono text-xs transition-colors ${
+                className={`block rounded-sm px-2 py-1.5 font-mono text-xs transition-colors ${
                   d.slug === doc.slug
-                    ? "bg-kai-orange/10 text-kai-orange"
+                    ? "text-kai-amber"
                     : "text-kai-muted hover:bg-kai-panel hover:text-kai-text"
                 }`}
               >
+                <span className={`mr-0.5 ${d.slug === doc.slug ? "text-kai-orange" : "text-transparent"}`}>/</span>
                 {d.title}
               </Link>
             </li>

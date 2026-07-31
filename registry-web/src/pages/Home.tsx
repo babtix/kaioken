@@ -58,35 +58,39 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-12">
       {/* Hero */}
-      <section className="pt-8 text-center">
+      <section className="animate-rise pt-8 text-center">
+        <div className="rule-sweep mx-auto mb-8 h-px max-w-3xl opacity-70" aria-hidden />
         <p className="font-mono text-xs uppercase tracking-[0.3em] text-kai-dim">community registry</p>
         <h1 className="mt-3 font-mono text-3xl font-bold text-kai-white sm:text-4xl">
-          Extend <span className="text-kai-orange">Kaioken</span> with the community
+          Extend <span className="glow-orange text-kai-orange">Kaioken</span> with the community
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-sm text-kai-muted">
           Skills, MCP tools and sandboxed WASM plugins for the Kaioken terminal AI coding assistant.
           Everything installs from the author's own GitHub releases; executable extensions stay
           inert until you explicitly trust that exact version.
         </p>
-        <div className="mx-auto mt-6 inline-block rounded-md border border-kai-line bg-kai-ink px-4 py-2.5">
-          <code className="font-mono text-xs text-kai-blue">kaioken ext install owner/repo</code>
+        <div className="panel-glow mx-auto mt-6 inline-block rounded-md border border-kai-line bg-kai-ink px-4 py-2.5">
+          <code className="font-mono text-xs text-kai-blue">
+            <span className="text-kai-green">$ </span>kaioken ext install owner/repo
+            <span className="animate-caret ml-1 inline-block h-3 w-[7px] translate-y-0.5 bg-kai-orange" aria-hidden />
+          </code>
         </div>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
             to="/browse"
-            className="h-10 rounded-md border border-kai-orange/70 bg-kai-orange/10 px-5 font-mono text-xs font-bold leading-10 text-kai-orange transition-colors hover:bg-kai-orange/20"
+            className="lift h-10 rounded-md border border-kai-orange/70 bg-kai-orange/10 px-5 font-mono text-xs font-bold leading-10 text-kai-orange transition-colors hover:bg-kai-orange/20"
           >
             browse extensions →
           </Link>
           <Link
             to="/submit"
-            className="h-10 rounded-md border border-kai-line bg-kai-panel px-5 font-mono text-xs leading-10 text-kai-text transition-colors hover:border-kai-orange/50"
+            className="lift h-10 rounded-md border border-kai-line bg-kai-panel px-5 font-mono text-xs leading-10 text-kai-text transition-colors hover:border-kai-orange/50"
           >
             publish yours
           </Link>
           <Link
             to="/docs/developer-guide"
-            className="h-10 rounded-md border border-kai-line bg-kai-panel px-5 font-mono text-xs leading-10 text-kai-text transition-colors hover:border-kai-orange/50"
+            className="lift h-10 rounded-md border border-kai-line bg-kai-panel px-5 font-mono text-xs leading-10 text-kai-text transition-colors hover:border-kai-orange/50"
           >
             read the docs
           </Link>
@@ -94,13 +98,13 @@ export default function Home() {
       </section>
 
       {/* Three tiers */}
-      <section>
+      <section className="animate-rise" style={{ animationDelay: "0.08s" }}>
         <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-kai-orange">
           three capability tiers
         </h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {TIERS.map((t) => (
-            <div key={t.name} className={`rounded-md border bg-kai-ink p-4 ${t.color}`}>
+            <div key={t.name} className={`lift rounded-md border bg-kai-ink p-4 ${t.color}`}>
               <p className="font-mono text-[10px] uppercase tracking-wider">{t.name}</p>
               <p className="mt-1 font-mono text-sm font-bold text-kai-white">{t.title}</p>
               <p className="mt-2 text-xs text-kai-muted">{t.blurb}</p>
@@ -110,7 +114,7 @@ export default function Home() {
       </section>
 
       {/* Site guide */}
-      <section>
+      <section className="animate-rise" style={{ animationDelay: "0.16s" }}>
         <h2 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-kai-orange">
           find your way
         </h2>
@@ -119,10 +123,10 @@ export default function Home() {
             <Link
               key={s.to}
               to={s.to}
-              className="group rounded-md border border-kai-line bg-kai-ink p-4 transition-colors hover:border-kai-orange/50"
+              className="lift group rounded-md border border-kai-line bg-kai-ink p-4 hover:border-kai-orange/50"
             >
               <p className="font-mono text-[11px] text-kai-dim">{s.label}</p>
-              <p className="mt-1 font-mono text-sm font-bold text-kai-white group-hover:text-kai-orange">
+              <p className="mt-1 font-mono text-sm font-bold text-kai-white transition-colors group-hover:text-kai-orange">
                 {s.title}
               </p>
               <p className="mt-2 text-xs text-kai-muted">{s.blurb}</p>
@@ -134,9 +138,9 @@ export default function Home() {
             <Link
               key={g.to}
               to={g.to}
-              className="group flex items-baseline gap-2 rounded-md border border-kai-line bg-kai-panel/40 px-3 py-2 transition-colors hover:border-kai-orange/50"
+              className="lift group flex items-baseline gap-2 rounded-md border border-kai-line bg-kai-panel/40 px-3 py-2 hover:border-kai-orange/50"
             >
-              <span className="font-mono text-xs font-bold text-kai-text group-hover:text-kai-orange">
+              <span className="font-mono text-xs font-bold text-kai-text transition-colors group-hover:text-kai-orange">
                 {g.title}
               </span>
               <span className="truncate font-mono text-[11px] text-kai-dim">— {g.blurb}</span>
@@ -146,8 +150,8 @@ export default function Home() {
       </section>
 
       {/* For users / for authors */}
-      <section className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-md border border-kai-line bg-kai-ink p-4">
+      <section className="animate-rise grid gap-3 sm:grid-cols-2" style={{ animationDelay: "0.24s" }}>
+        <div className="lift rounded-md border border-kai-line bg-kai-ink p-4">
           <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-kai-orange">for users</h3>
           <ul className="mt-2 list-disc pl-5 text-xs text-kai-muted">
             <li>
@@ -161,7 +165,7 @@ export default function Home() {
             </li>
           </ul>
         </div>
-        <div className="rounded-md border border-kai-line bg-kai-ink p-4">
+        <div className="lift rounded-md border border-kai-line bg-kai-ink p-4">
           <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-kai-orange">for authors</h3>
           <ul className="mt-2 list-disc pl-5 text-xs text-kai-muted">
             <li>

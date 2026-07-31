@@ -46,7 +46,7 @@ export default function Detail() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="animate-rise grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="min-w-0">
         <div className="mb-1 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-xl font-bold text-kai-white">{entry.name}</h1>
@@ -93,7 +93,7 @@ export default function Detail() {
 
       <aside className="flex flex-col gap-4">
         {!malicious && (
-          <section className="rounded-md border border-kai-line bg-kai-ink p-4">
+          <section className="panel-glow rounded-md border border-kai-line bg-kai-ink p-4">
             <h3 className="mb-2 font-mono text-xs font-bold uppercase tracking-wider text-kai-orange">install</h3>
             <div className="flex items-center gap-2">
               <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded border border-kai-line bg-kai-panel px-2 py-1.5 font-mono text-[11px]">
@@ -101,7 +101,7 @@ export default function Detail() {
               </code>
               <button
                 onClick={copy}
-                className="h-8 shrink-0 rounded-md border border-kai-line bg-kai-panel px-2 font-mono text-[11px] text-kai-muted hover:text-kai-text"
+                className="h-8 shrink-0 rounded-md border border-kai-line bg-kai-panel px-2 font-mono text-[11px] text-kai-muted transition-colors hover:border-kai-dim hover:text-kai-text"
               >
                 {copied ? "copied" : "copy"}
               </button>
@@ -125,7 +125,7 @@ export default function Detail() {
             href={`https://github.com/${entry.repo}`}
             target="_blank"
             rel="noreferrer"
-            className="font-mono text-xs text-kai-blue underline"
+            className="font-mono text-xs text-kai-blue underline decoration-kai-blue/40 underline-offset-2 transition-colors hover:text-kai-amber"
           >
             github.com/{entry.repo}
           </a>

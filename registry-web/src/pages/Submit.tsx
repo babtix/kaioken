@@ -37,7 +37,7 @@ export default function Submit() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="animate-rise max-w-2xl">
       <h1 className="mb-2 font-mono text-xl font-bold text-kai-white">Submit an extension</h1>
       <p className="mb-6 text-sm text-kai-muted">
         Publishing is a three-step flow: build and release your extension on GitHub, validate it
@@ -55,12 +55,12 @@ export default function Submit() {
           onChange={(e) => setRepo(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && run()}
           placeholder="owner/repo or a github.com URL"
-          className="h-10 min-w-0 flex-1 rounded-md border border-kai-line bg-kai-panel px-3 font-mono text-xs text-kai-text outline-none focus:border-kai-orange/60"
+          className="h-10 min-w-0 flex-1 rounded-md border border-kai-line bg-kai-panel px-3 font-mono text-xs text-kai-text outline-none transition-colors focus:border-kai-orange/60"
         />
         <button
           onClick={run}
           disabled={busy || !repo.trim()}
-          className="h-10 shrink-0 rounded-md border border-kai-orange/70 bg-kai-orange/10 px-4 font-mono text-xs font-bold text-kai-orange disabled:opacity-40"
+          className="lift h-10 shrink-0 rounded-md border border-kai-orange/70 bg-kai-orange/10 px-4 font-mono text-xs font-bold text-kai-orange transition-colors hover:bg-kai-orange/20 disabled:opacity-40"
         >
           {busy ? "validating…" : "validate"}
         </button>
@@ -107,7 +107,7 @@ export default function Submit() {
                 </pre>
                 <button
                   onClick={copy}
-                  className="absolute right-2 top-2 rounded-md border border-kai-line bg-kai-ink px-2 py-1 font-mono text-[10px] text-kai-muted hover:text-kai-text"
+                  className="absolute right-2 top-2 rounded-md border border-kai-line bg-kai-ink px-2 py-1 font-mono text-[10px] text-kai-muted transition-colors hover:border-kai-dim hover:text-kai-text"
                 >
                   {copied ? "copied" : "copy"}
                 </button>
