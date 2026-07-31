@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"kaioken/internal/llm"
 	"kaioken/internal/webfetch"
@@ -64,6 +65,16 @@ type scriptedLLM struct {
 	mu       sync.Mutex
 	gapCalls int
 	prompts  []string
+	// asked records every subquestion that reached the answering stage, in
+	// order, so a test can assert both what was researched and what was not
+	// researched twice.
+	asked []string
+	// chapters records the dossier chapter titles that reached the writer.
+	chapters []string
+	// highFor makes the answer for any subquestion containing this substring
+	// come back high confidence. "*" makes every answer high; empty leaves
+	// every answer at medium.
+	highFor string
 }
 
 func (s *scriptedLLM) server(t *testing.T) *httptest.Server {
@@ -98,7 +109,14 @@ func (s *scriptedLLM) server(t *testing.T) *httptest.Server {
 		case strings.Contains(system, "You write web search queries"):
 			reply = `{"queries":["solar cost europe","nuclear cost europe"]}`
 		case strings.Contains(system, "You answer one research subquestion"):
-			reply = `{"answer":"Solar fell below EUR 40/MWh.","citations":[1],"confidence":"medium","gaps":"no 2025 figures"}`
+			sub := subquestionOf(user)
+			s.asked = append(s.asked, sub)
+			conf := "medium"
+			if s.highFor == "*" || (s.highFor != "" && strings.Contains(sub, s.highFor)) {
+				conf = "high"
+			}
+			reply = `{"answer":"Solar fell below EUR 40/MWh.","citations":[1],"confidence":"` +
+				conf + `","gaps":"no 2025 figures"}`
 		case strings.Contains(system, "You audit a research draft"):
 			s.gapCalls++
 			if s.gapCalls == 1 {
@@ -108,6 +126,24 @@ func (s *scriptedLLM) server(t *testing.T) *httptest.Server {
 			}
 		case strings.Contains(system, "You write a research report"):
 			reply = "## Short answer\nSolar is cheaper per MWh [1].\n\n## Limitations\nThin on 2025."
+
+		// ---- the deep dossier stages ----
+		case strings.Contains(system, "You plan the structure of a long research report"):
+			reply = `{"sections":[
+				{"title":"How the two costs are measured","brief":"Define LCOE."},
+				{"title":"What drives the gap","brief":"Explain the drivers."},
+				{"title":"Where the comparison breaks down","brief":"System costs."}]}`
+		case strings.Contains(system, "You write the opening answer"):
+			reply = "On a levelized basis solar is the cheaper of the two per MWh [1]."
+		case strings.Contains(system, "You write one chapter"):
+			s.chapters = append(s.chapters, subjectOf(user))
+			reply = "### Basis\n\nThe levelized cost of electricity discounts lifetime cost " +
+				"over lifetime output [1]. Solar carries no fuel cost [1].\n\n" +
+				"- A bulleted point [1]\n- Another point\n"
+		case strings.Contains(system, "You deepen one chapter"):
+			reply = "### Basis\n\nExpanded with more of the same evidence [1], at greater length " +
+				"than the draft it replaces so the expansion is detectable.\n"
+
 		default:
 			reply = "{}"
 		}
@@ -132,6 +168,39 @@ func (s *scriptedLLM) sawPromptContaining(sub string) bool {
 		}
 	}
 	return false
+}
+
+func (s *scriptedLLM) asksFor(sub string) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var n int
+	for _, a := range s.asked {
+		if a == sub {
+			n++
+		}
+	}
+	return n
+}
+
+// subjectOf pulls the chapter title back out of a section-writing prompt.
+func subjectOf(user string) string {
+	_, rest, ok := strings.Cut(user, "This chapter: ")
+	if !ok {
+		return ""
+	}
+	line, _, _ := strings.Cut(rest, "
+")
+	return strings.TrimSpace(line)
+}
+
+// subquestionOf pulls the subquestion back out of an answering prompt.
+func subquestionOf(user string) string {
+	_, rest, ok := strings.Cut(user, "Subquestion: ")
+	if !ok {
+		return ""
+	}
+	line, _, _ := strings.Cut(rest, "\n")
+	return strings.TrimSpace(line)
 }
 
 // --------------------------------------------------------------------- test
@@ -204,6 +273,122 @@ func (f *fakeSearch) sawSecondRoundQuery() bool {
 		}
 	}
 	return false
+}
+
+// The point of a second round is not that it searches again — it is that the
+// thing it went back for gets answered. Fetching pages about a gap and then
+// only re-asking the original subquestions is how a run ends up reporting that
+// nobody supplied a figure whose source is sitting in its own corpus.
+func TestRunAnswersTheGapsItFinds(t *testing.T) {
+	script := &scriptedLLM{}
+	srv := script.server(t)
+	defer srv.Close()
+
+	search := &fakeSearch{hits: []websearch.Result{
+		{URL: "https://a.example/solar", Title: "Solar", Snippet: "cost per MWh", Rank: 1},
+	}}
+	fetch := &fakeFetcher{bodies: map[string]string{
+		"https://a.example/solar": strings.Repeat(
+			"Utility-scale solar in Europe fell below EUR 40 per MWh during 2024. "+
+				"Nuclear cost per MWh in Europe ranged far higher across the same period. "+
+				// The gap the audit will ask for is present in the corpus, so a
+				// round that actually asks the question can retrieve it.
+				"Provisional 2025 figures for both technologies were published in March. ", 20),
+	}}
+
+	rep, err := Run(context.Background(), newTestClient(t, srv.URL), search,
+		"Is solar cheaper than nuclear in Europe?",
+		Options{Multiplier: 1, MaxRounds: 3, Concurrency: 2, Fetcher: fetch}, Progress{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The gap audit reported "2025 figures" as missing; that has to become a
+	// subquestion the pipeline actually researches.
+	if script.asksFor("2025 figures") == 0 {
+		t.Errorf("the gap was searched for but never asked as a subquestion; asked = %v", script.asked)
+	}
+	if rep.Rounds < 2 {
+		t.Errorf("Rounds = %d, want the loop to have run again for the gap", rep.Rounds)
+	}
+}
+
+// A subquestion that came back solid must not be paid for again every round.
+func TestRunDoesNotRepeatSettledSubquestions(t *testing.T) {
+	script := &scriptedLLM{highFor: "solar"}
+	srv := script.server(t)
+	defer srv.Close()
+
+	search := &fakeSearch{hits: []websearch.Result{
+		{URL: "https://a.example/solar", Title: "Solar", Rank: 1},
+	}}
+	fetch := &fakeFetcher{bodies: map[string]string{
+		"https://a.example/solar": strings.Repeat(
+			"Utility-scale solar in Europe fell below EUR 40 per MWh during 2024. "+
+				"Nuclear cost per MWh in Europe ranged far higher. ", 20),
+	}}
+
+	if _, err := Run(context.Background(), newTestClient(t, srv.URL), search,
+		"Is solar cheaper than nuclear in Europe?",
+		Options{Multiplier: 1, MaxRounds: 3, Concurrency: 2, Fetcher: fetch}, Progress{}); err != nil {
+		t.Fatal(err)
+	}
+
+	if n := script.asksFor("What does solar cost?"); n != 1 {
+		t.Errorf("the high-confidence subquestion was asked %d times, want 1", n)
+	}
+	if n := script.asksFor("What does nuclear cost?"); n < 2 {
+		t.Errorf("the medium-confidence subquestion was asked %d times, want it revisited", n)
+	}
+}
+
+// A run whose later round closed its gaps is complete. Latching the flag the
+// first time a gap appeared trains the reader to ignore the warning.
+func TestRunDoesNotLatchIncomplete(t *testing.T) {
+	script := &scriptedLLM{highFor: "*"}
+	srv := script.server(t)
+	defer srv.Close()
+
+	search := &fakeSearch{hits: []websearch.Result{{URL: "https://a.example/solar", Rank: 1}}}
+	fetch := &fakeFetcher{bodies: map[string]string{
+		"https://a.example/solar": strings.Repeat(
+			"Solar cost per MWh in Europe during 2024 was low. "+
+				"Provisional 2025 figures were published in March. ", 40),
+	}}
+
+	rep, err := Run(context.Background(), newTestClient(t, srv.URL), search,
+		"Is solar cheaper than nuclear in Europe?",
+		Options{Multiplier: 1, MaxRounds: 3, Concurrency: 2, Fetcher: fetch}, Progress{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Incomplete {
+		t.Error("Incomplete is set although every finding came back high confidence")
+	}
+}
+
+// The model's sense of "now" is its training cutoff. Every stage that judges
+// recency has to be told the actual date.
+func TestRunTellsTheModelTheDate(t *testing.T) {
+	script := &scriptedLLM{}
+	srv := script.server(t)
+	defer srv.Close()
+
+	search := &fakeSearch{hits: []websearch.Result{{URL: "https://a.example/solar", Rank: 1}}}
+	fetch := &fakeFetcher{bodies: map[string]string{
+		"https://a.example/solar": strings.Repeat("Solar cost per MWh in Europe was low. ", 40),
+	}}
+
+	if _, err := Run(context.Background(), newTestClient(t, srv.URL), search, "Is solar cheap?",
+		Options{
+			Multiplier: 1, MaxRounds: 1, Concurrency: 2, Fetcher: fetch,
+			Now: time.Date(2031, time.March, 14, 0, 0, 0, 0, time.UTC),
+		}, Progress{}); err != nil {
+		t.Fatal(err)
+	}
+	if !script.sawPromptContaining("Today's date is 14 March 2031") {
+		t.Error("no prompt carried the current date")
+	}
 }
 
 func TestRunRejectsEmptyQuestion(t *testing.T) {

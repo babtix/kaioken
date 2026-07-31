@@ -1,6 +1,7 @@
 package research
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -73,15 +74,15 @@ func TestTokenizeDropsStopWordsAndKeepsNumbers(t *testing.T) {
 
 func TestKeywordScoreRewardsCoverageOverRepetition(t *testing.T) {
 	query := "solar cost europe"
-	covers := keywordScore("solar cost in europe explained", query)
-	repeats := keywordScore("solar solar solar solar solar solar", query)
+	covers := keywordScore("solar cost in europe explained", query, nil)
+	repeats := keywordScore("solar solar solar solar solar solar", query, nil)
 	if covers <= repeats {
 		t.Errorf("coverage %.3f should beat repetition %.3f", covers, repeats)
 	}
-	if got := keywordScore("entirely unrelated content", query); got != 0 {
+	if got := keywordScore("entirely unrelated content", query, nil); got != 0 {
 		t.Errorf("score = %.3f for no overlap, want 0", got)
 	}
-	if got := keywordScore("anything", ""); got != 0 {
+	if got := keywordScore("anything", "", nil); got != 0 {
 		t.Errorf("score = %.3f for an empty query, want 0", got)
 	}
 }
@@ -119,7 +120,7 @@ func TestRankChunksDropsNonMatchingText(t *testing.T) {
 		{SourceN: 3, Text: "European nuclear capacity factors have been stable."},
 	}
 	ranks := map[int]int{1: 1, 2: 2, 3: 3}
-	got := rankChunks(chunks, "nuclear capacity factor europe", ranks, 10)
+	got := rankChunks(chunks, "nuclear capacity factor europe", ranks, nil, 10, 0)
 
 	if len(got) == 0 {
 		t.Fatal("no chunks survived ranking")
@@ -134,13 +135,83 @@ func TestRankChunksDropsNonMatchingText(t *testing.T) {
 func TestRankChunksRespectsTopK(t *testing.T) {
 	var chunks []Chunk
 	for i := 0; i < 30; i++ {
-		chunks = append(chunks, Chunk{SourceN: 1, Text: "solar cost europe figure"})
+		chunks = append(chunks, Chunk{
+			SourceN: 1,
+			Text:    fmt.Sprintf("solar cost europe figure number %d for the year", i),
+		})
 	}
-	if got := rankChunks(chunks, "solar cost europe", map[int]int{1: 1}, 5); len(got) != 5 {
+	if got := rankChunks(chunks, "solar cost europe", map[int]int{1: 1}, nil, 5, 0); len(got) != 5 {
 		t.Errorf("got %d chunks, want the topK cap of 5", len(got))
 	}
-	if got := rankChunks(nil, "q", nil, 5); got != nil {
+	if got := rankChunks(nil, "q", nil, nil, 5, 0); got != nil {
 		t.Errorf("ranking no chunks returned %v, want nil", got)
+	}
+}
+
+// Overlapping chunks and site boilerplate mean the same sentences arrive
+// several times; paying context for the second copy buys nothing.
+func TestRankChunksDropsDuplicatePassages(t *testing.T) {
+	var chunks []Chunk
+	for i := 0; i < 10; i++ {
+		chunks = append(chunks, Chunk{SourceN: 1, Text: "solar cost europe figure"})
+	}
+	chunks = append(chunks, Chunk{SourceN: 1, Text: "a different solar cost europe passage entirely"})
+
+	got := rankChunks(chunks, "solar cost europe", map[int]int{1: 1}, nil, 8, 0)
+	if len(got) != 2 {
+		t.Errorf("got %d chunks, want the 10 identical ones collapsed to 1 plus the distinct one", len(got))
+	}
+}
+
+// Evidence drawn entirely from one page cannot corroborate anything, and worse,
+// it reads as agreement.
+func TestRankChunksSpreadsAcrossSources(t *testing.T) {
+	var chunks []Chunk
+	for i := 0; i < 10; i++ {
+		chunks = append(chunks, Chunk{SourceN: 1, Text: fmt.Sprintf("solar cost europe detail %d here", i)})
+	}
+	chunks = append(chunks, Chunk{SourceN: 2, Text: "solar cost europe from a second site"})
+	ranks := map[int]int{1: 1, 2: 9}
+
+	got := rankChunks(chunks, "solar cost europe", ranks, nil, 4, 2)
+	var fromTwo int
+	for _, c := range got {
+		if c.SourceN == 2 {
+			fromTwo++
+		}
+	}
+	if fromTwo == 0 {
+		t.Errorf("the second source contributed nothing; selection = %+v", got)
+	}
+
+	// Diversity must not cost evidence: when one source is all there is, the
+	// cap relaxes rather than returning a near-empty selection.
+	only := rankChunks(chunks[:10], "solar cost europe", ranks, nil, 6, 2)
+	if len(only) != 6 {
+		t.Errorf("got %d chunks from a single-source corpus, want the cap relaxed to fill 6", len(only))
+	}
+}
+
+// Rarity is what separates the passage that answers a question from the
+// hundreds that merely share its common words.
+func TestLexiconWeightsRareTermsAboveCommon(t *testing.T) {
+	chunks := []Chunk{
+		{Text: "nuclear cost report one"},
+		{Text: "nuclear cost report two"},
+		{Text: "nuclear cost report three"},
+		{Text: "nuclear cost decommissioning liability estimate"},
+	}
+	lx := newLexicon(chunks)
+	if lx.weight("decommissioning") <= lx.weight("nuclear") {
+		t.Errorf("rare term weight %.3f should exceed the ubiquitous term's %.3f",
+			lx.weight("decommissioning"), lx.weight("nuclear"))
+	}
+
+	query := "nuclear decommissioning cost"
+	withIDF := keywordScore("nuclear cost decommissioning liability estimate", query, lx)
+	plain := keywordScore("nuclear cost report two", query, lx)
+	if withIDF <= plain {
+		t.Errorf("the passage carrying the distinguishing term scored %.3f, not above %.3f", withIDF, plain)
 	}
 }
 

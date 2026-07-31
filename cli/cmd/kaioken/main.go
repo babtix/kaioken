@@ -24,6 +24,7 @@ import (
 	"kaioken/internal/gitx"
 	"kaioken/internal/llm"
 	"kaioken/internal/plan"
+	"kaioken/internal/reportpdf"
 	"kaioken/internal/research"
 	"kaioken/internal/scan"
 	"kaioken/internal/selfupdate"
@@ -85,7 +86,11 @@ Commands:
   research   Answer a question from the open web: plan subquestions, search,
              read pages, then search again for whatever is still missing, and
              write a cited report (positional: optional xN multiplier, then
-             the question; -out overrides the report path)
+             the question; -out overrides the report path).
+             x10 — or -deep at any multiplier — produces a deep dossier
+             instead: up to ~480 pages read over 8 rounds, written as a
+             sectioned document with a findings register, a search log and a
+             coverage log, and rendered to a signed PDF beside the Markdown
   usage      Show what Kaioken has spent — by operation, model and workspace
              (positional: a day count like "7d", or "refresh" / "prune")
   serve      Browse the generated wiki in a browser (-port, default 7777)
@@ -233,6 +238,11 @@ type flags struct {
 	mode    string
 	approve string
 	jsonOut bool
+	// deep turns on the long-form research dossier below ×10, and pdf asks
+	// for the PDF artifact. Deep runs write one anyway; the flag is for
+	// re-rendering or for a shallower run the user still wants as a document.
+	deep bool
+	pdf  bool
 }
 
 func parseFlags(argv []string) flags {
@@ -264,6 +274,10 @@ func parseFlags(argv []string) flags {
 				i++
 				fmt.Sscanf(argv[i], "%d", &f.port)
 			}
+		case "-deep", "--deep":
+			f.deep = true
+		case "-pdf", "--pdf":
+			f.pdf = true
 		case "-force", "--force":
 			f.force = true
 		case "-full", "--full":
@@ -984,8 +998,10 @@ func cmdResearch(ctx context.Context, f flags) error {
 	}
 
 	opts := research.Options{
-		Multiplier: mult,
-		MaxRounds:  global.Research.MaxRounds,
+		Multiplier:  mult,
+		MaxRounds:   global.Research.MaxRounds,
+		MaxDuration: global.Research.ResearchTimeout(),
+		Deep:        f.deep || f.pdf,
 	}
 	// Same rule as the daemon: Firecrawl in the active search set means its
 	// scrape API reads the pages too, with the built-in fetcher as fallback.
@@ -997,9 +1013,17 @@ func cmdResearch(ctx context.Context, f flags) error {
 
 	limit, _ := cfg.EffectiveConcurrency(client.Model)
 	opts.Concurrency = limit
+	deep := mult >= research.DeepMultiplier || opts.Deep
 	fmt.Printf("kaioken ×%d research with %s via %s (concurrency %d) …\n",
 		mult, client.Model, provider.Name(), limit)
 	fmt.Printf("  question: %s\n", question)
+	if deep {
+		// A deep run reads hundreds of pages and makes dozens of model calls.
+		// Saying so before it starts is cheaper than a surprised user
+		// cancelling ten minutes in.
+		fmt.Printf("  deep dossier: up to %d pages read, sectioned report with appendices, PDF output\n",
+			research.ScanCeiling(mult, opts.Deep))
+	}
 
 	started := time.Now()
 	rep, err := research.Run(ctx, client, provider, question, opts, research.Progress{
@@ -1034,10 +1058,30 @@ func cmdResearch(ctx context.Context, f flags) error {
 	}
 
 	fmt.Printf("\nresearch done in %s → %s\n", time.Since(started).Round(time.Second), out)
+
+	// The dossier's own artifact. The Markdown twin is still written above:
+	// it is what the repo, the desktop history and any diff can read.
+	if rep.Deep != nil {
+		pdfPath := strings.TrimSuffix(out, filepath.Ext(out)) + ".pdf"
+		pages, perr := reportpdf.WriteFile(rep, reportpdf.Meta{
+			Tool: "kaioken", Version: version.Version, Model: client.Model,
+			Provider: provider.Name(), Multiplier: mult,
+		}, pdfPath)
+		if perr != nil {
+			fmt.Printf("  warning: could not write the PDF: %v\n", perr)
+		} else {
+			fmt.Printf("  dossier → %s (%d pages, %d chapters)\n",
+				pdfPath, pages, len(rep.Deep.Chapters()))
+		}
+	}
+
 	fmt.Printf("  %d round(s), %d queries, %d sources read, %d cited\n",
 		rep.Rounds, rep.Searched, rep.Fetched, len(rep.Sources))
 	if rep.Incomplete {
-		fmt.Println("  note: some subquestions stayed thinly evidenced at the round limit")
+		fmt.Println("  note: some subquestions stayed thinly evidenced when the run ended")
+	}
+	for _, w := range rep.Warnings {
+		fmt.Println("  note: " + w)
 	}
 	calls, promptToks, completionToks := client.Usage()
 	fmt.Printf("  %d model calls, %d prompt + %d completion tokens", calls, promptToks, completionToks)

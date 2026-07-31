@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="diamGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffdd00" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#ff5500" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#cc0044" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="diamBolt" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="20%" stop-color="#ffe066"/>
+      <stop offset="55%" stop-color="#ff6600"/>
+      <stop offset="100%" stop-color="#cc0022"/>
+    </linearGradient>
+    <radialGradient id="diamCenter" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#ff5500" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0a0a10" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="diamGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="12" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="#07070c"/>
+
+  <polygon points="256,32 480,256 256,480 32,256" fill="none" stroke="url(#diamGrad)" stroke-width="5"/>
+  <polygon points="256,60 454,256 256,452 58,256" fill="#0c0c14"/>
+  <polygon points="256,60 454,256 256,452 58,256" fill="none" stroke="#ff6600" stroke-opacity="0.12" stroke-width="1.5"/>
+
+  <circle cx="256" cy="256" r="180" fill="url(#diamCenter)"/>
+
+  <line x1="256" y1="60" x2="256" y2="452" stroke="#ff6600" stroke-opacity="0.07" stroke-width="1"/>
+  <line x1="58" y1="256" x2="454" y2="256" stroke="#ff6600" stroke-opacity="0.07" stroke-width="1"/>
+  <polygon points="256,120 392,256 256,392 120,256" fill="none" stroke="#ff8800" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="6 4"/>
+
+  <g filter="url(#diamGlow)">
+    <path d="M282 88 L168 268 H246 L214 424 L354 244 H270 Z" fill="url(#diamBolt)"/>
+  </g>
+  <path d="M276 112 L196 258 H250 L230 374 L326 256 H268 Z" fill="#ffffff" opacity="0.18"/>
+
+  <circle cx="256" cy="32" r="7" fill="#ffcc00"/>
+  <circle cx="480" cy="256" r="7" fill="#ff6600"/>
+  <circle cx="256" cy="480" r="7" fill="#cc0044"/>
+  <circle cx="32" cy="256" r="7" fill="#ff6600"/>
+  <circle cx="256" cy="120" r="3" fill="#ffdd88" opacity="0.6"/>
+  <circle cx="392" cy="256" r="3" fill="#ff8844" opacity="0.6"/>
+  <circle cx="256" cy="392" r="3" fill="#ff4444" opacity="0.6"/>
+  <circle cx="120" cy="256" r="3" fill="#ff8844" opacity="0.6"/>
+</svg>

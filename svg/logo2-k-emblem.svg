@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="kGradStem" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff9d00"/>
+      <stop offset="50%" stop-color="#ff4400"/>
+      <stop offset="100%" stop-color="#cc0033"/>
+    </linearGradient>
+
+    <linearGradient id="kGradTopArm" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff4400"/>
+      <stop offset="60%" stop-color="#ffaa00"/>
+      <stop offset="100%" stop-color="#fff0aa"/>
+    </linearGradient>
+
+    <linearGradient id="kGradBotArm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3300"/>
+      <stop offset="60%" stop-color="#e60039"/>
+      <stop offset="100%" stop-color="#800020"/>
+    </linearGradient>
+
+    <linearGradient id="hexBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffaa00" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#ff3300" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ff0055" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <radialGradient id="centerPulse" cx="50%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#ff5500" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#050508" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#08080c"/>
+  <rect x="12" y="12" width="488" height="488" rx="84" fill="none" stroke="url(#hexBorder)" stroke-width="2.5"/>
+  <circle cx="256" cy="256" r="220" fill="url(#centerPulse)"/>
+
+  <!-- Background Hexagon Outline -->
+  <polygon points="256,60 416,152 416,360 256,452 96,360 96,152" fill="none" stroke="#ff5500" stroke-opacity="0.15" stroke-width="2"/>
+
+  <!-- Monogram 'K' Group -->
+  <g filter="url(#softGlow)">
+    <path d="M136 104 H192 V408 H136 Z" fill="url(#kGradStem)" rx="8"/>
+    <path d="M192 232 L340 104 H408 L256 256 Z" fill="url(#kGradTopArm)"/>
+    <path d="M256 256 L408 408 H340 L192 280 Z" fill="url(#kGradBotArm)"/>
+    <path d="M192 216 L240 256 L192 296 Z" fill="#ffffff" opacity="0.9"/>
+  </g>
+
+  <!-- Decorative Tech Dots & Lines -->
+  <line x1="96" y1="256" x2="136" y2="256" stroke="#ffaa00" stroke-width="2" stroke-dasharray="4 3"/>
+  <line x1="376" y1="256" x2="416" y2="256" stroke="#ffaa00" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="408" cy="104" r="4" fill="#ffaa00"/>
+  <circle cx="408" cy="408" r="4" fill="#ff0055"/>
+  <circle cx="136" cy="104" r="4" fill="#ffaa00"/>
+  <circle cx="136" cy="408" r="4" fill="#cc0033"/>
+</svg>

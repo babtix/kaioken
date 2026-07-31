@@ -60,8 +60,9 @@ func researchRun(ctx callContext, raw json.RawMessage) (*ToolResult, error) {
 	}
 
 	opts := research.Options{
-		Multiplier: args.Multiplier,
-		MaxRounds:  args.MaxRounds,
+		Multiplier:  args.Multiplier,
+		MaxRounds:   args.MaxRounds,
+		MaxDuration: global.Research.ResearchTimeout(),
 	}
 	if opts.MaxRounds == 0 {
 		opts.MaxRounds = global.Research.MaxRounds
@@ -83,10 +84,13 @@ func researchRun(ctx callContext, raw json.RawMessage) (*ToolResult, error) {
 		return nil, err
 	}
 
+	// The id must be the source's own citation number, not its position: the
+	// markdown's [n] markers resolve against that number, and renumbering the
+	// list here would silently point every citation at the wrong page.
 	sources := make([]map[string]any, 0, len(rep.Sources))
-	for i, src := range rep.Sources {
+	for _, src := range rep.Sources {
 		sources = append(sources, map[string]any{
-			"id": i + 1, "url": src.URL, "title": src.Title,
+			"id": src.N, "url": src.URL, "title": src.Title,
 		})
 	}
 
@@ -96,6 +100,9 @@ func researchRun(ctx callContext, raw json.RawMessage) (*ToolResult, error) {
 		b.WriteString("\n\n_This run hit its round budget with questions still open; " +
 			"raise multiplier or max_rounds for a fuller answer._")
 	}
+	for _, w := range rep.Warnings {
+		b.WriteString("\n\n_Note: " + w + "_")
+	}
 	return jsonResult(b.String(), map[string]any{
 		"question":   rep.Question,
 		"markdown":   rep.Markdown,
@@ -104,6 +111,8 @@ func researchRun(ctx callContext, raw json.RawMessage) (*ToolResult, error) {
 		"searched":   rep.Searched,
 		"fetched":    rep.Fetched,
 		"incomplete": rep.Incomplete,
+		"warnings":   rep.Warnings,
+		"deep":       rep.Deep != nil,
 		"elapsed_ms": rep.Elapsed.Milliseconds(),
 	}), nil
 }

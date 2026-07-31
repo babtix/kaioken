@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
+    <!-- Background & Aura Gradients -->
     <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ff6a00" stop-opacity="0.25"/>
       <stop offset="60%" stop-color="#ff2a00" stop-opacity="0.08"/>
@@ -16,7 +17,13 @@
       <stop offset="50%" stop-color="#ffea75"/>
       <stop offset="100%" stop-color="#ff8700"/>
     </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff8700" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#ff3600" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ff0055" stop-opacity="0.6"/>
+    </linearGradient>
 
+    <!-- Filters -->
     <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="12" result="blur1"/>
       <feGaussianBlur stdDeviation="24" result="blur2"/>
@@ -28,6 +35,7 @@
     </filter>
   </defs>
 
+  <!-- Base Dark Canvas -->
   <rect width="512" height="512" rx="96" fill="#0a0a0c"/>
 
   <!-- Outer Glow Energy Bolt -->

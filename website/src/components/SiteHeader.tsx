@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link, NavLink, useLocation } from "react-router-dom"
-import { Menu, Terminal, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import GithubMark from "@/components/GithubMark"
 import LinkButton from "@/components/LinkButton"
 import { GITHUB_URL, NEWS_URL } from "@/data/content"
@@ -44,7 +44,7 @@ export default function SiteHeader() {
     >
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
         <Link to="/" className="group flex items-center gap-2" aria-label="kaioken home">
-          <Terminal className="size-4 text-kai-orange transition-colors group-hover:text-kai-amber" />
+          <img src="/logo.svg" alt="kaioken logo" className="size-5 rounded transition-transform group-hover:scale-105" />
           <span className="font-mono text-sm font-bold tracking-tight text-foreground">
             kaioken
           </span>

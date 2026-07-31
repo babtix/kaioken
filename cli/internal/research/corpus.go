@@ -183,11 +183,19 @@ func fuseHits(cand []websearch.Result, focus string) []int {
 	lists := [][]int{byRank, byTier}
 
 	if strings.TrimSpace(focus) != "" {
-		scores := make([]float64, len(cand))
+		// Title and snippet together: a title carries the topic, a snippet
+		// carries the specifics, and either alone loses half the signal.
+		previews := make([]Chunk, len(cand))
 		for i, h := range cand {
-			// Title and snippet together: a title carries the topic, a snippet
-			// carries the specifics, and either alone loses half the signal.
-			scores[i] = keywordScore(h.Title+" \n "+h.Snippet, focus, nil)
+			previews[i] = Chunk{Text: h.Title + " \n " + h.Snippet}
+		}
+		// Weighting by rarity across this hit list is what separates the hits:
+		// every result for "nuclear cost europe" contains those words, so only
+		// the terms that do not appear everywhere carry information here.
+		lex := newLexicon(previews)
+		scores := make([]float64, len(cand))
+		for i := range cand {
+			scores[i] = keywordScore(previews[i].Text, focus, lex)
 		}
 		byText := make([]int, len(cand))
 		copy(byText, byRank)

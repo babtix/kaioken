@@ -11,7 +11,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"kaioken/internal/config"
+	"kaioken/internal/reportpdf"
 	"kaioken/internal/research"
+	"kaioken/internal/version"
 	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
 )
@@ -50,8 +52,9 @@ func (m Model) startResearch(rest string) (tea.Model, tea.Cmd) {
 	}
 
 	opts := research.Options{
-		Multiplier: mult,
-		MaxRounds:  global.Research.MaxRounds,
+		Multiplier:  mult,
+		MaxRounds:   global.Research.MaxRounds,
+		MaxDuration: global.Research.ResearchTimeout(),
 	}
 	// Same rule as the CLI and daemon: Firecrawl in the active search set
 	// means its scrape API reads the pages too, with the built-in fetcher
@@ -101,12 +104,29 @@ func (m Model) startResearch(rest string) (tea.Model, tea.Cmd) {
 			ch <- logMsg{warnStyle.Render("  could not save research history: " + err.Error())}
 		}
 
+		// A deep run's artifact is the dossier; the markdown above is its twin.
+		if rep.Deep != nil {
+			pdfPath := strings.TrimSuffix(out, ".md") + ".pdf"
+			pages, perr := reportpdf.WriteFile(rep, reportpdf.Meta{
+				Tool: "kaioken", Version: version.Version, Model: client.Model,
+				Provider: provider.Name(), Multiplier: mult,
+			}, pdfPath)
+			if perr != nil {
+				ch <- logMsg{warnStyle.Render("  could not write the PDF: " + perr.Error())}
+			} else {
+				ch <- logMsg{okStyle.Render(fmt.Sprintf("  dossier → %s (%d pages)", pdfPath, pages))}
+			}
+		}
+
 		ch <- logMsg{okStyle.Render(fmt.Sprintf("research done in %s → %s",
 			time.Since(started).Round(time.Second), out))}
 		ch <- logMsg{dimStyle.Render(fmt.Sprintf("  %d round(s), %d queries, %d sources read, %d cited",
 			rep.Rounds, rep.Searched, rep.Fetched, len(rep.Sources)))}
 		if rep.Incomplete {
-			ch <- logMsg{warnStyle.Render("  some subquestions stayed thinly evidenced at the round limit")}
+			ch <- logMsg{warnStyle.Render("  some subquestions stayed thinly evidenced when the run ended")}
+		}
+		for _, w := range rep.Warnings {
+			ch <- logMsg{warnStyle.Render("  " + w)}
 		}
 		callsAfter, promptAfter, outAfter := client.Usage()
 		ch <- logMsg{dimStyle.Render(fmt.Sprintf("  actual: %d calls · %d prompt + %d output tokens",

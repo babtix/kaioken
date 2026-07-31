@@ -12,7 +12,9 @@ import (
 	"kaioken/internal/config"
 	"kaioken/internal/generate"
 	"kaioken/internal/plan"
+	"kaioken/internal/reportpdf"
 	"kaioken/internal/research"
+	"kaioken/internal/version"
 	"kaioken/internal/skills"
 	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
@@ -381,6 +383,7 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 			opts := research.Options{
 				Multiplier:  multiplier,
 				MaxRounds:   global.Research.MaxRounds,
+				MaxDuration: global.Research.ResearchTimeout(),
 				Concurrency: limit,
 			}
 			// Firecrawl in the active search set means its scrape API reads
@@ -426,6 +429,22 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 					}
 					if _, err := research.Save(filepath.Dir(abs), rep, rel); err != nil {
 						s.hub.RunLog(ws.ID, r.ID, "error", "saving research history: "+err.Error())
+					}
+					// A deep run's real artifact is the signed dossier. It is
+					// registered like any other so the desktop can open it.
+					if rep.Deep != nil {
+						pdfRel := strings.TrimSuffix(rel, ".md") + ".pdf"
+						pdfAbs := strings.TrimSuffix(abs, ".md") + ".pdf"
+						pages, perr := reportpdf.WriteFile(rep, reportpdf.Meta{
+							Tool: "kaioken", Version: version.Version, Model: client.Model,
+							Provider: provider.Name(), Multiplier: multiplier,
+						}, pdfAbs)
+						if perr != nil {
+							s.hub.RunLog(ws.ID, r.ID, "error", "writing the dossier PDF: "+perr.Error())
+						} else {
+							r.AddArtifact(pdfRel, pages, "research_dossier")
+							s.hub.RunArtifact(ws.ID, r.ID, pdfRel, pages, "research_dossier")
+						}
 					}
 				}
 			}

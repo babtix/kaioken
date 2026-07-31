@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -55,6 +56,20 @@ type Research struct {
 	// MaxRounds overrides the search→read→reason→gap loop budget. Zero lets
 	// the ×N multiplier decide.
 	MaxRounds int `yaml:"max_rounds,omitempty"`
+	// MaxMinutes stops a run once it has taken this long and reports on what
+	// it gathered, rather than letting a deep multiplier run unbounded. Zero
+	// means no limit. Rounds are only ever abandoned between stages, so the
+	// report is still written and still cited.
+	MaxMinutes int `yaml:"max_minutes,omitempty"`
+}
+
+// ResearchTimeout is the run duration MaxMinutes describes, or zero when the
+// user has set no limit.
+func (r Research) ResearchTimeout() time.Duration {
+	if r.MaxMinutes <= 0 {
+		return 0
+	}
+	return time.Duration(r.MaxMinutes) * time.Minute
 }
 
 // SelfUpdate configures background checks for a newer kaioken release.

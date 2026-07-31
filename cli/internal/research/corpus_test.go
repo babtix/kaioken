@@ -33,7 +33,7 @@ func TestCorpusDedupesAndNumbersSources(t *testing.T) {
 		{URL: "https://a.example/one/", Title: "One again", Rank: 2}, // same page
 		{URL: "https://b.example/two", Title: "Two", Rank: 3},
 	}
-	fresh := c.addHits(hits, 10)
+	fresh := c.addHits(hits, 10, "")
 	if len(fresh) != 2 {
 		t.Fatalf("got %d fresh URLs, want 2 after dedupe: %v", len(fresh), fresh)
 	}
@@ -47,8 +47,8 @@ func TestCorpusDedupesAndNumbersSources(t *testing.T) {
 
 func TestCorpusKeepsBestRankOnRepeatSighting(t *testing.T) {
 	c := newCorpus(5)
-	c.addHits([]websearch.Result{{URL: "https://a.example/x", Rank: 8}}, 10)
-	c.addHits([]websearch.Result{{URL: "https://a.example/x", Rank: 2}}, 10)
+	c.addHits([]websearch.Result{{URL: "https://a.example/x", Rank: 8}}, 10, "")
+	c.addHits([]websearch.Result{{URL: "https://a.example/x", Rank: 2}}, 10, "")
 	if got := c.sources[0].Rank; got != 2 {
 		t.Errorf("Rank = %d, want the better rank 2 retained", got)
 	}
@@ -66,7 +66,7 @@ func TestCorpusEnforcesPerHostQuota(t *testing.T) {
 	}
 	hits = append(hits, websearch.Result{URL: "https://other.example/p", Rank: 99})
 
-	fresh := c.addHits(hits, 20)
+	fresh := c.addHits(hits, 20, "")
 	if len(fresh) != 3 {
 		t.Fatalf("got %d URLs, want 2 from the quota-limited host plus 1 other: %v", len(fresh), fresh)
 	}
@@ -87,7 +87,7 @@ func TestCorpusRefusesUnsafeURLs(t *testing.T) {
 		{URL: "http://169.254.169.254/latest/meta-data/", Rank: 1},
 		{URL: "file:///etc/passwd", Rank: 2},
 		{URL: "https://ok.example/p", Rank: 3},
-	}, 10)
+	}, 10, "")
 	if len(fresh) != 1 || fresh[0] != "https://ok.example/p" {
 		t.Errorf("fresh = %v; only the public https URL should be queued", fresh)
 	}
@@ -98,7 +98,7 @@ func TestCorpusOnlyCitesFetchedPages(t *testing.T) {
 	c.addHits([]websearch.Result{
 		{URL: "https://a.example/one", Rank: 1},
 		{URL: "https://b.example/two", Rank: 2},
-	}, 10)
+	}, 10, "")
 
 	c.addPages([]*webfetch.Page{{
 		URL:   "https://a.example/one",
@@ -123,7 +123,7 @@ func TestDropInventedCitations(t *testing.T) {
 	c.addHits([]websearch.Result{
 		{URL: "https://a.example/one", Rank: 1},
 		{URL: "https://b.example/two", Rank: 2},
-	}, 10)
+	}, 10, "")
 	c.addPages([]*webfetch.Page{{URL: "https://a.example/one", Text: "content"}})
 
 	// 1 was fetched, 2 was not, 99 never existed.
@@ -133,20 +133,60 @@ func TestDropInventedCitations(t *testing.T) {
 	}
 }
 
-func TestCitedSourcesFiltersToMarkersUsed(t *testing.T) {
-	sources := []Source{
-		{N: 1, URL: "https://a.example"},
-		{N: 2, URL: "https://b.example"},
-		{N: 3, URL: "https://c.example"},
+// A domain prior only has to separate the obvious cases; everything unknown
+// belongs in the middle where the other ranking signals decide.
+func TestHostTierSeparatesPrimaryFromLowSignal(t *testing.T) {
+	primary := []string{"energy.ec.europa.eu", "www.eia.gov", "ons.gov.uk", "arxiv.org", "www.nature.com"}
+	for _, h := range primary {
+		if got := hostTier(h); got != tierPrimary {
+			t.Errorf("hostTier(%q) = %d, want primary", h, got)
+		}
 	}
-	got := citedSources("Solar is cheap [1] and nuclear is steady [3].", sources)
-	if len(got) != 2 || got[0].N != 1 || got[1].N != 3 {
-		t.Errorf("cited = %+v, want sources 1 and 3", got)
+	for _, h := range []string{"www.facebook.com", "medium.com", "someone.blogspot.com"} {
+		if got := hostTier(h); got != tierLow {
+			t.Errorf("hostTier(%q) = %d, want low", h, got)
+		}
 	}
+	for _, h := range []string{"example.com", "woodmac.com", "", "reddit.com"} {
+		if got := hostTier(h); got != tierOrdinary {
+			t.Errorf("hostTier(%q) = %d, want ordinary", h, got)
+		}
+	}
+	// A lookalike host must not inherit the tier it is imitating.
+	if got := hostTier("facebook.com.phish.example"); got == tierLow {
+		t.Error("suffix matching let a lookalike domain match facebook.com")
+	}
+}
 
-	// A report with no markers still needs its evidence listed.
-	if all := citedSources("no markers here", sources); len(all) != 3 {
-		t.Errorf("got %d sources, want all 3 as a fallback", len(all))
+// The fetch budget is the scarcest thing in a round: only a fraction of the
+// hits can be read, and a page that is never fetched can never be cited.
+func TestAddHitsPrefersRelevantAndReputableHits(t *testing.T) {
+	c := newCorpus(5)
+	hits := []websearch.Result{
+		{URL: "https://forum.example/thread", Title: "chat", Snippet: "someone asked about power", Rank: 1},
+		{URL: "https://blah.example/unrelated", Title: "Bread recipes", Snippet: "sourdough starter", Rank: 2},
+		{URL: "https://eia.gov/nuclear-lcoe", Title: "Levelized cost of nuclear power",
+			Snippet: "nuclear levelized cost of electricity per MWh by year", Rank: 8},
+	}
+	fresh := c.addHits(hits, 1, "nuclear levelized cost of electricity per MWh")
+	if len(fresh) != 1 {
+		t.Fatalf("fresh = %v, want exactly one page inside the budget", fresh)
+	}
+	if fresh[0] != "https://eia.gov/nuclear-lcoe" {
+		t.Errorf("fetched %q; the on-topic primary source ranked 8th should win the single slot", fresh[0])
+	}
+}
+
+func TestAddHitsRecordsSnippetAndTier(t *testing.T) {
+	c := newCorpus(5)
+	c.addHits([]websearch.Result{
+		{URL: "https://facebook.com/groups/x", Title: "post", Snippet: "teaser", Rank: 1},
+	}, 5, "")
+	if c.sources[0].Snippet != "teaser" {
+		t.Errorf("Snippet = %q, want the search teaser retained", c.sources[0].Snippet)
+	}
+	if c.sources[0].Tier != tierLow {
+		t.Errorf("Tier = %d, want low for a social feed", c.sources[0].Tier)
 	}
 }
 

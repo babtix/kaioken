@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 250" width="100%" height="100%">
+  <defs>
+    <!-- Background styling -->
+    <rect id="bg" width="800" height="250" fill="#000000" rx="16"/>
+    <style>
+      .ascii-art {
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        font-size: 16px;
+        font-weight: 800;
+        white-space: pre;
+      }
+      .rule {
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        font-size: 16px;
+        white-space: pre;
+        opacity: 0.5;
+        fill: #ff4400;
+      }
+      .tagline {
+        font-family: 'Space Mono', 'Courier New', monospace;
+        font-size: 10px;
+        letter-spacing: 4px;
+        fill: #a0a0b0;
+      }
+    </style>
+  </defs>
+
+  <use href="#bg" />
+
+  <g transform="translate(130, 70)">
+    <!-- Line 1 -->
+    <text y="0" class="ascii-art" fill="#ff8700" xml:space="preserve">██╗  ██╗ █████╗ ██╗ ██████╗ ██╗  ██╗███████╗███╗   ██╗</text>
+    <!-- Line 2 -->
+    <text y="20" class="ascii-art" fill="#ff6c00" xml:space="preserve">██║ ██╔╝██╔══██╗██║██╔═══██╗██║ ██╔╝██╔════╝████╗  ██║</text>
+    <!-- Line 3 -->
+    <text y="40" class="ascii-art" fill="#ff5100" xml:space="preserve">█████╔╝ ███████║██║██║   ██║█████╔╝ █████╗  ██╔██╗ ██║</text>
+    <!-- Line 4 -->
+    <text y="60" class="ascii-art" fill="#ff3600" xml:space="preserve">██╔═██╗ ██╔══██║██║██║   ██║██╔═██╗ ██╔══╝  ██║╚██╗██║</text>
+    <!-- Line 5 -->
+    <text y="80" class="ascii-art" fill="#ff1b00" xml:space="preserve">██║  ██╗██║  ██║██║╚██████╔╝██║  ██╗███████╗██║ ╚████║</text>
+    <!-- Line 6 -->
+    <text y="100" class="ascii-art" fill="#660000" xml:space="preserve">╚═╝  ╚═╝╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝</text>
+    
+    <!-- Decorative Rule -->
+    <text y="120" class="rule" xml:space="preserve">══════════════════════════════════════════════════════</text>
+    
+    <!-- Tagline -->
+    <text x="54" y="145" class="tagline" xml:space="preserve">A G E N T I C   B U I L D E R S   C O L L E C T I V E</text>
+  </g>
+</svg>

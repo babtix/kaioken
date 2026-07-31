@@ -354,15 +354,15 @@ func rankChunks(chunks []Chunk, question string, pageRank map[int]int, lx *lexic
 	return out
 }
 
-// chunkKey identifies a passage by its opening words, which is enough to catch
-// the duplicates that actually occur: overlapping chunks from one page, and
-// navigation or cookie boilerplate repeated across a site.
+// chunkKey identifies a passage for duplicate detection.
+//
+// Only exact repeats are collapsed — the same text under two URLs that
+// normalisation did not unify, or the navigation and cookie boilerplate that
+// every page of a site carries. Anything looser is dangerous here: two
+// passages that differ by a single figure are the most valuable pair in a
+// research corpus, and a fuzzy key would throw one of them away.
 func chunkKey(text string) string {
-	terms := tokenize(text)
-	if len(terms) > 12 {
-		terms = terms[:12]
-	}
-	return strings.Join(terms, " ")
+	return strings.Join(strings.Fields(strings.ToLower(text)), " ")
 }
 
 // fenceUntrusted wraps fetched page text for a prompt.
