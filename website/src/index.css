@@ -416,11 +416,13 @@
   background-color: color-mix(in oklab, var(--kai-panel) 85%, transparent);
 }
 
-/* The tab bar sits over content — lift it off the page with a hard edge. */
+/* The tab bar sits over content — lift it off the page with a hard edge.
+   Fully opaque, deliberately: a translucent+blurred bar reads fine over a
+   photo, but dense monospace terminal text behind it just turns into an
+   illegible smear the moment a phone's viewport is shorter than the content
+   above the bar — which is any phone with visible browser chrome. */
 .m-bar-blur {
-  background-color: color-mix(in oklab, var(--kai-black) 88%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background-color: var(--kai-black);
 }
 
 /* Accordion body: animates on height without a measurement pass. */
