@@ -382,65 +382,73 @@ export default function Desktop() {
         </div>
       </section>
 
-      {/* ── principles + shortcuts side by side ───────────────────────────── */}
-      <section className={SECTION}>
+      {/* ── principles ────────────────────────────────────────────────────── */}
+      <section id="principles" className={SECTION}>
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr]">
-            {/* principles */}
-            <div id="principles" className="scroll-mt-3">
-              <Reveal>
-                <SectionHeading index="04" eyebrow="principles" title={<>Built <span className="text-kai-orange glow-orange">this way</span></>} />
-              </Reveal>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                {PRINCIPLES.map((p, i) => (
-                  <Reveal key={p.title} delay={i * 0.05}>
-                    <div className="lift h-full rounded-md border border-border bg-card/60 p-4 backdrop-blur-sm hover:border-kai-orange/40">
-                      <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-sm border border-kai-orange/25 bg-kai-orange/10">
-                          <Icon name={p.icon} className="size-3.5 text-kai-orange" />
-                        </span>
-                        <h3 className="font-mono text-[12px] font-bold text-foreground">{p.title}</h3>
-                      </div>
-                      <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">{p.body}</p>
-                    </div>
-                  </Reveal>
-                ))}
-              </div>
-            </div>
+          <Reveal>
+            <SectionHeading
+              index="04"
+              eyebrow="principles"
+              title={<>Built <span className="text-kai-orange glow-orange">this way</span></>}
+              description="Four commitments the app is allowed to be judged against."
+            />
+          </Reveal>
 
-            {/* shortcuts */}
-            <div id="shortcuts" className="scroll-mt-3">
-              <Reveal>
-                <SectionHeading index="05" eyebrow="shortcuts" title={<><span className="text-kai-orange glow-orange">Keyboard-first</span></>} />
-              </Reveal>
-              <Reveal delay={0.05}>
-                <div className="mt-8 space-y-3">
-                  {SHORTCUT_GROUPS.map((g) => (
-                    <div
-                      key={g.group}
-                      className="rounded-md border border-border bg-card/60 p-3 backdrop-blur-sm transition-colors hover:border-kai-amber/30"
-                    >
-                      <h4 className="font-mono text-[10px] tracking-wider text-kai-amber uppercase">{g.group}</h4>
-                      <div className="mt-2 divide-y divide-border/50">
-                        {g.items.map((item) => (
-                          <div
-                            key={item.keys}
-                            className="group flex items-center justify-between gap-3 py-1.5"
-                          >
-                            <span className="text-[11px] text-muted-foreground transition-colors group-hover:text-kai-text">
-                              {item.label}
-                            </span>
-                            <kbd className="shrink-0 rounded-sm border border-border bg-background px-1.5 py-px font-mono text-[9.5px] whitespace-nowrap text-kai-dim transition-colors group-hover:border-kai-amber/40 group-hover:text-kai-amber">
-                              {item.keys}
-                            </kbd>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+          {/* four across at full width — the same four cards that were two-up
+              when this section shared a row with the shortcuts */}
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {PRINCIPLES.map((p, i) => (
+              <Reveal key={p.title} delay={i * 0.05}>
+                <div className="lift h-full rounded-md border border-border bg-card/60 p-4 backdrop-blur-sm hover:border-kai-orange/40">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-sm border border-kai-orange/25 bg-kai-orange/10">
+                      <Icon name={p.icon} className="size-3.5 text-kai-orange" />
+                    </span>
+                    <h3 className="font-mono text-[12px] font-bold text-foreground">{p.title}</h3>
+                  </div>
+                  <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">{p.body}</p>
                 </div>
               </Reveal>
-            </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── shortcuts ─────────────────────────────────────────────────────── */}
+      <section id="shortcuts" className={SECTION}>
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <Reveal>
+            <SectionHeading
+              index="05"
+              eyebrow="shortcuts"
+              title={<><span className="text-kai-orange glow-orange">Keyboard-first</span></>}
+              description="Every surface, every dialog and the terminal, without reaching for the mouse."
+            />
+          </Reveal>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {SHORTCUT_GROUPS.map((g, i) => (
+              <Reveal key={g.group} delay={i * 0.05}>
+                <div className="h-full rounded-md border border-border bg-card/60 p-3 backdrop-blur-sm transition-colors hover:border-kai-amber/30">
+                  <h4 className="font-mono text-[10px] tracking-wider text-kai-amber uppercase">{g.group}</h4>
+                  <div className="mt-2 divide-y divide-border/50">
+                    {g.items.map((item) => (
+                      <div
+                        key={item.keys}
+                        className="group flex items-center justify-between gap-3 py-1.5"
+                      >
+                        <span className="text-[11px] text-muted-foreground transition-colors group-hover:text-kai-text">
+                          {item.label}
+                        </span>
+                        <kbd className="shrink-0 rounded-sm border border-border bg-background px-1.5 py-px font-mono text-[9.5px] whitespace-nowrap text-kai-dim transition-colors group-hover:border-kai-amber/40 group-hover:text-kai-amber">
+                          {item.keys}
+                        </kbd>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
