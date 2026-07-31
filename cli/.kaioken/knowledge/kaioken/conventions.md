@@ -1,8 +1,1 @@
-- Unit tests reside in *_test.go files and are executed with `go test ./... -count=1` (see Makefile test target).
-- Static analysis is run via `go vet ./...` (Makefile vet target) and optionally golangci-lint (Makefile lint target).
-- The binary is built with `go build ./...` and a specific output `go build -o kaioken.exe ./cmd/kaioken` (Makefile build target).
-- Cleaning removes the artifact `kaioken.exe` via the Makefile clean target.
-- Dependency management follows Go modules; the go.mod file pins versions as shown.
-- Error handling follows idiomatic Go: functions return error values that are checked and propagated upstream.
-- Configuration files are expected in YAML format and decoded with yaml.v3.
-- The project uses a Makefile for common development tasks; new contributions should add targets there if they introduce new build or test steps.
+

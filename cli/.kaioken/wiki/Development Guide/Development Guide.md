@@ -84,6 +84,9 @@ internal/codemap/codemap.go→ Source code parsing/symbol indexing
 internal/session/session.go→ Chat session persistence
 internal/state/state.go    → Wiki build state tracking
 internal/serve/serve.go    → Wiki HTTP server
+internal/gitx/gitx.go      → Git integration (hooks, diff
+internal/state/state.go    → Wiki build state tracking
+internal/serve/serve.go    → Wiki HTTP server
 internal/gitx/gitx.go      → Git integration (hooks, diffs)
 internal/config/config.go  → Configuration management
 ```
@@ -141,6 +144,5 @@ go.mod
 Makefile
 .gitignore
 ```
-
 
 <!-- kaioken:files Makefile,go.mod -->

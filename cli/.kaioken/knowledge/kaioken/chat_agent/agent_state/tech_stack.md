@@ -1,1 +1,1 @@
-The module uses the Go standard library (encoding/json, fmt, math/rand, os, path/filepath, sort, strings, time, crypto/sha256, encoding/hex) and internal packages config, llm (for session), and scan (for state).
+Session uses Go stdlib (encoding/json, fmt, math/rand, os, path/filepath, sort, strings, time) and internal packages config, llm. State uses stdlib (crypto/sha256, encoding/hex, encoding/json, fmt, os, path/filepath, sort, time) and internal packages config, scan.

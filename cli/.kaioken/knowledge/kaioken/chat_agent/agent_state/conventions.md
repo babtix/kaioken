@@ -1,11 +1,9 @@
-Session IDs follow format 'YYYYMMDD-HHMMSS-XXXX' where XXXX is a random 4-digit number
-Session titles are derived from the first user message (whitespace-collapsed, truncated to 64 characters with ellipsis if exceeded) and set only on the first Record call if empty
-Session.Turns() counts only user messages
-Empty sessions (no user messages) are not saved to disk
-Session.List returns summaries sorted by update time (newest first), skipping corrupt JSON files
-State.HashFiles sorts files by path before hashing to ensure determinism
-State.Load returns an empty state if the state file is missing
-All file operations create necessary directories with 0o755 permissions
-JSON files are written with indentation ('  ') for readability
-Exported functions use PascalCase; unexported helpers use camelCase
-Package names match directory names (session, state)
+- Session IDs use format "20060102-150405-<rand4>" (timestamp + random 4-digit).
+- Session titles derive from first user message via deriveTitle (truncated to 64 runes, ellipsis if truncated) and set only on first Record if empty.
+- Empty sessions (zero user turns) are skipped by Save but saved unconditionally by SaveForce.
+- Session files written with 0o644 permissions after creating sessions dir with 0o755.
+- DurableInput.Delivery uses PromptDeliveryMode enum ("steer" or "queue").
+- Epochs record context changes with Kind: "mode_switch" or "compaction".
+- State.json written as indented JSON (mkdir 0o755 for .ainow dir).
+- HashFiles sorts scan.File by Path, hashes path\x00+content\x00 per file via SHA256.
+- State.Load returns empty State (Modules map initialized) if state.json missing.

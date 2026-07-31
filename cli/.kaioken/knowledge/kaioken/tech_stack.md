@@ -1,1 +1,1 @@
-Go 1.25.8; charm/bubbletea, charm/bubbles, charm/glamour, charm/lipgloss for TUI; creack/pty and github.com/UserExistsError/conpty for PTY; github.com/atotto/clipboard for clipboard access; github.com/sabhiram/go-gitignore for .gitignore parsing; github.com/tetratelabs/wazero for WebAssembly runtime; github.com/yuin/goldmark for markdown; gopkg.in/yaml.v3 for configuration.
+

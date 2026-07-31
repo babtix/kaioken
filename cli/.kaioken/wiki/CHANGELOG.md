@@ -2,6 +2,157 @@
 
 What Kaioken revised, and why.
 
+## 2026-07-31 05:35 — 91c6fcc4 → d4c949b0
+
+31 files changed · 1 documents updated
+
+- Added a document clarifying the required Vercel root directory layout for the `web-news` project.  
+- Implemented a site‑wide page backdrop system (new `PageBackground`, `BackToTop`, `Reveal`, `SectionNav` components) and applied it across both the marketing site and the news application.  
+- Refactored the `/desktop` experience: updated `Desktop.tsx`, `AppWindow.tsx`, `Hero.tsx`, associated styles, and routing to improve layout and responsiveness.  
+- Enhanced news persistence by revising the storage guard, HTTP client, and Post API endpoints (`store.ts`, `http.ts`, `posts.ts`, `posts/[id].ts`, `session.ts`), added unit tests for the storage guard, and adjusted related client‑side API calls.  
+- Updated supporting assets: roadmap data, global CSS, TypeScript build info, icon component, and wiki files to reflect the changes.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Using the Terminal User Interface (TUI).md
+
+<details><summary>Changed files</summary>
+
+- `A` DESIGN_SYSTEM.md
+- `A` cli/.kaioken/research/is-solar-cheaper-than-nuclear-in-europe.json
+- `M` cli/.kaioken/research/is-solar-cheaper-than-nuclear-in-europe.md
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` web-news/README.md
+- `A` web-news/api/_lib/__tests__/storage-guard.test.ts
+- `M` web-news/api/_lib/http.ts
+- `M` web-news/api/_lib/store.ts
+- `M` web-news/api/posts.ts
+- `M` web-news/api/posts/[id].ts
+- `M` web-news/api/session.ts
+- `M` web-news/src/Admin.tsx
+- `M` web-news/src/api.ts
+- `M` web-news/src/styles.css
+- `M` web-news/tsconfig.tsbuildinfo
+- `M` website/src/App.tsx
+- `A` website/src/components/BackToTop.tsx
+- `M` website/src/components/Icon.tsx
+- `A` website/src/components/PageBackground.tsx
+- `A` website/src/components/Reveal.tsx
+- `A` website/src/components/SectionNav.tsx
+- `M` website/src/components/desktop/AppWindow.tsx
+- `M` website/src/components/sections/Hero.tsx
+- `M` website/src/data/roadmap.ts
+- `M` website/src/index.css
+- `A` website/src/lib/scroll.ts
+- `M` website/src/pages/Desktop.tsx
+- `M` website/src/pages/Home.tsx
+- `M` website/src/pages/Next.tsx
+- `M` wiki
+
+</details>
+
+## 2026-07-31 05:35 — 91c6fcc4 → 8284104f
+
+32 files changed · 2 documents updated
+
+- Removed the wiki gitlink from the repository and added it to `.gitignore` to eliminate submodule fetch failures during deployment.  
+- Added a `DESIGN_SYSTEM.md` document and introduced new UI components (`PageBackground`, `Reveal`, `SectionNav`, `BackToTop`) while updating existing components (`Icon`, `AppWindow`, `Hero`, `Desktop`, `Home`, `Next`) to implement page backdrops and refine the desktop layout across both sites.  
+- Enhanced the web‑news API: added a storage guard unit test, improved the HTTP client, store, posts, and session handling, updated the admin API, and documented the required Vercel root directory in `web-news/README.md`.  
+- Updated styling and configuration files (`styles.css`, `index.css`, `tsconfig.tsbuildinfo`, new `scroll.ts` utility) and refreshed the roadmap data to support the new backdrop features and overall UI polish.  
+- Deleted the `wiki` directory entirely, reflecting its untracking and removal from the project.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Using the Terminal User Interface (TUI).md
+- .kaioken/wiki/Development Guide/Development Guide.md
+
+<details><summary>Changed files</summary>
+
+- `M` .gitignore
+- `A` DESIGN_SYSTEM.md
+- `A` cli/.kaioken/research/is-solar-cheaper-than-nuclear-in-europe.json
+- `M` cli/.kaioken/research/is-solar-cheaper-than-nuclear-in-europe.md
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` web-news/README.md
+- `A` web-news/api/_lib/__tests__/storage-guard.test.ts
+- `M` web-news/api/_lib/http.ts
+- `M` web-news/api/_lib/store.ts
+- `M` web-news/api/posts.ts
+- `M` web-news/api/posts/[id].ts
+- `M` web-news/api/session.ts
+- `M` web-news/src/Admin.tsx
+- `M` web-news/src/api.ts
+- `M` web-news/src/styles.css
+- `M` web-news/tsconfig.tsbuildinfo
+- `M` website/src/App.tsx
+- `A` website/src/components/BackToTop.tsx
+- `M` website/src/components/Icon.tsx
+- `A` website/src/components/PageBackground.tsx
+- `A` website/src/components/Reveal.tsx
+- `A` website/src/components/SectionNav.tsx
+- `M` website/src/components/desktop/AppWindow.tsx
+- `M` website/src/components/sections/Hero.tsx
+- `M` website/src/data/roadmap.ts
+- `M` website/src/index.css
+- `A` website/src/lib/scroll.ts
+- `M` website/src/pages/Desktop.tsx
+- `M` website/src/pages/Home.tsx
+- `M` website/src/pages/Next.tsx
+- `D` wiki
+
+</details>
+
+## 2026-07-31 05:29 — 91c6fcc4 → ddad92d4
+
+31 files changed · 1 documents updated
+
+- Added reusable page backdrop components (`PageBackground`, `BackToTop`, `Reveal`, `SectionNav`) and a scroll utility (`scroll.ts`) to both the website and web‑news sites.  
+- Reworked the desktop experience: updated `Desktop.tsx`, `AppWindow.tsx`, `Hero.tsx`, and related styles to integrate the new backdrop system and improve layout.  
+- Enhanced news persistence by introducing a storage guard (`storage-guard.test.ts`) and refining the API layer (`http.ts`, `store.ts`, `posts.ts`, `session.ts`) to reliably save and retrieve posts.  
+- Updated supporting files (README, changelog, wiki state, TypeScript build info, and various component/icon files) to reflect the new features and fixes.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Using the Terminal User Interface (TUI).md
+
+<details><summary>Changed files</summary>
+
+- `A` DESIGN_SYSTEM.md
+- `A` cli/.kaioken/research/is-solar-cheaper-than-nuclear-in-europe.json
+- `M` cli/.kaioken/research/is-solar-cheaper-than-nuclear-in-europe.md
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` web-news/README.md
+- `A` web-news/api/_lib/__tests__/storage-guard.test.ts
+- `M` web-news/api/_lib/http.ts
+- `M` web-news/api/_lib/store.ts
+- `M` web-news/api/posts.ts
+- `M` web-news/api/posts/[id].ts
+- `M` web-news/api/session.ts
+- `M` web-news/src/Admin.tsx
+- `M` web-news/src/api.ts
+- `M` web-news/src/styles.css
+- `M` web-news/tsconfig.tsbuildinfo
+- `M` website/src/App.tsx
+- `A` website/src/components/BackToTop.tsx
+- `M` website/src/components/Icon.tsx
+- `A` website/src/components/PageBackground.tsx
+- `A` website/src/components/Reveal.tsx
+- `A` website/src/components/SectionNav.tsx
+- `M` website/src/components/desktop/AppWindow.tsx
+- `M` website/src/components/sections/Hero.tsx
+- `M` website/src/data/roadmap.ts
+- `M` website/src/index.css
+- `A` website/src/lib/scroll.ts
+- `M` website/src/pages/Desktop.tsx
+- `M` website/src/pages/Home.tsx
+- `M` website/src/pages/Next.tsx
+- `M` wiki
+
+</details>
+
 ## 2026-07-30 22:43 — ad5b089d → 91c6fcc4
 
 22 files changed · 1 documents updated

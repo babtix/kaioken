@@ -6,3 +6,4 @@ For the ext subcommand, the first positional is the subcommand (e.g., 'install')
 The mcp subcommand expects its first positional to be 'serve', 'manifest', or 'validate', with additional flags parsed by parseMCPFlags.
 The review subcommand parses flags like -format, -severity, -only, and -fail-on-findings from the positionals slice.
 The usage subcommand treats the first positional as 'refresh', 'prune', or a day count (e.g., '7d').
+The run subcommand expects the prompt either via the -p flag or as the first positional argument.
