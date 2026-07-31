@@ -1,46 +1,9 @@
 import * as React from "react"
 import { Check, Copy } from "lucide-react"
+import { useDocChrome } from "@/lib/doc-chrome"
+import { ShellLine } from "@/lib/shell"
 import { cn } from "@/lib/utils"
 import TerminalWindow from "./TerminalWindow"
-
-/**
- * A deliberately small shell tokenizer. It only needs to recognise the four
- * things that show up in this project's snippets — comments, the binary name,
- * flags, and quoted strings — which is enough to read like a terminal without
- * pulling in a highlighter.
- */
-const TOKEN = /(#.*$)|("[^"]*"|'[^']*')|(\$env:[A-Za-z_][\w]*|\$[A-Za-z_][\w]*)|(\B-{1,2}[A-Za-z][\w-]*)|(\bkaioken\b|\bgo\b|\bnpm\b|\bcd\b|\bgit\b)/
-
-function ShellLine({ line }: { line: string }) {
-  const out: React.ReactNode[] = []
-  let rest = line
-  let key = 0
-
-  while (rest.length > 0) {
-    const m = TOKEN.exec(rest)
-    if (!m || m.index === undefined) {
-      out.push(<span key={key++}>{rest}</span>)
-      break
-    }
-    if (m.index > 0) out.push(<span key={key++}>{rest.slice(0, m.index)}</span>)
-
-    const [text] = m
-    let cls = ""
-    if (m[1]) cls = "text-kai-dim italic"
-    else if (m[2]) cls = "text-kai-green"
-    else if (m[3]) cls = "text-kai-blue"
-    else if (m[4]) cls = "text-kai-amber"
-    else if (m[5]) cls = "text-kai-orange font-semibold"
-
-    out.push(
-      <span key={key++} className={cls}>
-        {text}
-      </span>
-    )
-    rest = rest.slice(m.index + text.length)
-  }
-  return <>{out}</>
-}
 
 interface CodeBlockProps {
   code: string
@@ -51,6 +14,9 @@ interface CodeBlockProps {
 }
 
 export default function CodeBlock({ code, title = "bash", prompt = false, className }: CodeBlockProps) {
+  // Inside the phone site's doc screen: smaller type, and a copy control a
+  // thumb can actually land on.
+  const { bare } = useDocChrome()
   const [copied, setCopied] = React.useState(false)
   const timer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -74,12 +40,16 @@ export default function CodeBlock({ code, title = "bash", prompt = false, classN
     <TerminalWindow
       title={title}
       className={className}
+      bodyClassName={bare ? "px-3.5 py-3.5 text-[12px]" : undefined}
       meta={
         <button
           type="button"
           onClick={copy}
           aria-label={copied ? "Copied" : "Copy to clipboard"}
-          className="flex cursor-pointer items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-[11px] text-kai-dim transition-colors hover:bg-accent hover:text-kai-amber focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          className={cn(
+            "flex cursor-pointer items-center gap-1.5 rounded-sm text-[11px] text-kai-dim transition-colors hover:bg-accent hover:text-kai-amber focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+            bare ? "-my-2 h-11 px-3" : "px-1.5 py-0.5"
+          )}
         >
           {copied ? <Check className="size-3 text-kai-green" /> : <Copy className="size-3" />}
           {copied ? "copied" : "copy"}

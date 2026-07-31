@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom"
-import { Terminal } from "lucide-react"
+import { Smartphone, Terminal } from "lucide-react"
 import AsciiArt from "@/components/AsciiArt"
 import GithubMark from "@/components/GithubMark"
 import { BUILDER_ART, BUILDER_NAME, GITHUB_URL, NEWS_URL, PROVIDERS } from "@/data/content"
+import { setLayoutOverride, useLayoutOverride } from "@/lib/viewport"
 
 const COLUMNS: { heading: string; links: { label: string; to: string; external?: boolean }[] }[] = [
   {
@@ -37,6 +38,10 @@ const COLUMNS: { heading: string; links: { label: string; to: string; external?:
 ]
 
 export default function SiteFooter() {
+  // Only someone who pinned this layout from the phone site sees a way back —
+  // otherwise the viewport decides and the control would be noise.
+  const override = useLayoutOverride()
+
   return (
     <footer className="relative border-t border-border bg-kai-panel/40">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
@@ -140,6 +145,19 @@ export default function SiteFooter() {
             </span>
           </div>
         </div>
+
+        {override === "desktop" ? (
+          <div className="mt-8 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setLayoutOverride(null)}
+              className="flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-2 font-mono text-[11.5px] text-muted-foreground transition-colors hover:border-kai-orange/40 hover:text-kai-orange"
+            >
+              <Smartphone className="size-3.5" />
+              Back to the phone site
+            </button>
+          </div>
+        ) : null}
 
         <div className="mt-8 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-[11px] text-kai-dim">

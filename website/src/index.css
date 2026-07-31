@@ -347,6 +347,108 @@
   box-shadow: 0 8px 24px -16px color-mix(in oklab, var(--kai-orange) 70%, transparent);
 }
 
+/* ── phone site ────────────────────────────────────────────────────────────
+   Utilities used only by src/mobile. The phone site is a fixed top bar, a
+   fixed tab bar and a scrolling column between them, so it needs the notch
+   and the home indicator expressed as real space.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --m-top-bar: 3.25rem; /* 52px */
+  --m-tab-bar: 3.5rem; /* 56px */
+  --m-safe-top: env(safe-area-inset-top, 0px);
+  --m-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* The height a fixed bar actually occupies, chrome plus inset. */
+.m-top-inset {
+  padding-top: calc(var(--m-top-bar) + var(--m-safe-top));
+}
+.m-bottom-inset {
+  padding-bottom: calc(var(--m-tab-bar) + var(--m-safe-bottom));
+}
+.m-safe-top {
+  padding-top: var(--m-safe-top);
+}
+.m-safe-bottom {
+  padding-bottom: var(--m-safe-bottom);
+}
+
+/* Sticky elements below the top bar — section chips, doc sub-headers. */
+.m-under-bar {
+  top: calc(var(--m-top-bar) + var(--m-safe-top));
+}
+.m-scroll-offset {
+  scroll-margin-top: calc(var(--m-top-bar) + var(--m-safe-top) + 3.5rem);
+}
+
+/* A horizontal card rail: full-bleed, snapping, no visible scrollbar. */
+.m-rail {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.m-rail::-webkit-scrollbar {
+  display: none;
+}
+.m-rail > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+.m-no-scrollbar {
+  scrollbar-width: none;
+}
+.m-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch has no hover, so pressed state is the only feedback there is. */
+.m-press {
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.12s ease;
+}
+.m-press:active {
+  transform: scale(0.985);
+  background-color: color-mix(in oklab, var(--kai-panel) 85%, transparent);
+}
+
+/* The tab bar sits over content — lift it off the page with a hard edge. */
+.m-bar-blur {
+  background-color: color-mix(in oklab, var(--kai-black) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Accordion body: animates on height without a measurement pass. */
+@keyframes m-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.m-expand {
+  animation: m-expand 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m-expand,
+  .m-press:active {
+    animation: none;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-caret,
   .animate-rise,

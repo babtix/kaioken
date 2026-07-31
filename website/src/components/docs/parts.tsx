@@ -2,6 +2,7 @@ import * as React from "react"
 import { Link } from "react-router-dom"
 import { AlertTriangle, ArrowLeft, ArrowRight, Info, Lightbulb } from "lucide-react"
 import { DOC_ORDER } from "@/data/docs-nav"
+import { useDocChrome } from "@/lib/doc-chrome"
 import { cn } from "@/lib/utils"
 
 /* Small typographic primitives so each doc page stays readable as JSX. */
@@ -115,9 +116,14 @@ export function DocPage({
   lead: string
   children: React.ReactNode
 }) {
+  const { bare } = useDocChrome()
   const index = DOC_ORDER.findIndex((d) => d.label === title)
   const prev = index > 0 ? DOC_ORDER[index - 1] : undefined
   const next = index >= 0 && index < DOC_ORDER.length - 1 ? DOC_ORDER[index + 1] : undefined
+
+  // The phone site frames the document itself — title, back button and
+  // prev/next all live in its screen, so here only the prose is wanted.
+  if (bare) return <div className="min-w-0">{children}</div>
 
   return (
     <article className="min-w-0 pb-16">
