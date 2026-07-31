@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { Compass, ExternalLink, Monitor, Newspaper, Rocket, Terminal } from "lucide-react"
 import AsciiArt from "@/components/AsciiArt"
 import GithubMark from "@/components/GithubMark"
+import FitText from "@/mobile/components/FitText"
 import {
   Eyebrow,
   Lead,
@@ -94,12 +95,10 @@ export default function More() {
       <Section className="pt-8">
         <SectionHead index="02" eyebrow="built by" title={BUILDER_NAME} />
 
-        <div className="mt-5 overflow-hidden rounded-md border border-border bg-card px-3 py-4 text-center">
-          <AsciiArt
-            art={BUILDER_ART}
-            label={BUILDER_NAME}
-            className="text-[clamp(2.6px,1.32vw,6px)] leading-[1.3]"
-          />
+        <div className="mt-5 overflow-hidden rounded-md border border-border bg-card px-3 py-4">
+          <FitText>
+            <AsciiArt art={BUILDER_ART} label={BUILDER_NAME} className="text-[6px] leading-[1.3]" />
+          </FitText>
         </div>
 
         <RowGroup className="mt-4">

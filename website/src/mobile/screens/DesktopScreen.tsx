@@ -4,6 +4,7 @@ import GithubMark from "@/components/GithubMark"
 import Icon from "@/components/Icon"
 import Accordion, { Points } from "@/mobile/components/Accordion"
 import Code from "@/mobile/components/Code"
+import FitText from "@/mobile/components/FitText"
 import {
   Action,
   Card,
@@ -61,13 +62,11 @@ function Hero() {
         </span>
 
         {/* the same wordmark the desktop /desktop page opens with, stacked so
-            it reads at phone width */}
+            it reads at phone width, measured to fit rather than guessed */}
         <h1 className="mt-5">
-          <AsciiArt
-            art={DESKTOP_ART}
-            label="Desktop app"
-            className="text-[clamp(4px,2.36vw,9px)] leading-[1.3]"
-          />
+          <FitText>
+            <AsciiArt art={DESKTOP_ART} label="Desktop app" className="text-[9px] leading-[1.3]" />
+          </FitText>
         </h1>
         <div
           className="mt-2 h-px w-full max-w-[21rem] opacity-40"

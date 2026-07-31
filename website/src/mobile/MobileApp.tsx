@@ -55,7 +55,10 @@ function ScreenFallback() {
 export default function MobileApp() {
   return (
     <ChromeProvider>
-      <div className="min-h-screen text-foreground">
+      {/* overflow-x-hidden as a backstop: if any element ever renders wider
+          than the viewport, it clips here instead of expanding the document
+          and pushing content behind the fixed top/tab bars */}
+      <div className="min-h-screen overflow-x-hidden text-foreground">
         <ScrollToTop />
         <RouteBackdrop />
         <TopBar />

@@ -5,6 +5,7 @@ import GithubMark from "@/components/GithubMark"
 import Icon from "@/components/Icon"
 import Accordion, { Points } from "@/mobile/components/Accordion"
 import Code from "@/mobile/components/Code"
+import FitText from "@/mobile/components/FitText"
 import TerminalPeek from "@/mobile/components/TerminalPeek"
 import {
   Action,
@@ -58,12 +59,10 @@ function Hero() {
   return (
     <section className="px-4 pt-6 pb-9">
       <div className="animate-rise text-center">
-        {/* the logo, sized to fill the phone's gutter exactly */}
-        <AsciiArt
-          art={ASCII_LOGO}
-          label="kaioken"
-          className="text-[clamp(5px,2.45vw,10px)] leading-[1.3]"
-        />
+        {/* the logo, measured to fit the phone's gutter exactly */}
+        <FitText>
+          <AsciiArt art={ASCII_LOGO} label="kaioken" className="text-[10px] leading-[1.3]" />
+        </FitText>
         <div
           className="mx-auto mt-1 h-px w-full max-w-[22rem] opacity-40"
           style={{ background: "linear-gradient(90deg, var(--kai-red), var(--kai-orange))" }}
