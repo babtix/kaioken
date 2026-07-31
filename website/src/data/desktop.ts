@@ -9,6 +9,31 @@
 
 export const DESKTOP_REPO_PATH = "https://github.com/babtix/kaioken/tree/master/desktop"
 
+/**
+ * The /desktop wordmark, from website/DESKTOP APP-logo.html.
+ *
+ * The source art sets DESKTOP and APP side by side, 97 columns wide — which on
+ * a phone means 6px type. Stacked, the widest block is 64 columns, so the same
+ * logo reads at 9px in a 375px viewport. One string rather than two so the
+ * red→orange sweep runs across both blocks instead of restarting.
+ *
+ * The D's top row starts at column 0: the two spaces in front of it in the
+ * source file are that file's own HTML indentation, not part of the letter.
+ * The A's single leading space is real — that is the ANSI Shadow letterform.
+ */
+export const DESKTOP_ART = `██████╗  ███████╗ ███████╗ ██╗  ██╗ ████████╗  ██████╗  ██████╗
+██╔══██╗ ██╔════╝ ██╔════╝ ██║ ██╔╝ ╚══██╔══╝ ██╔═══██╗ ██╔══██╗
+██║  ██║ █████╗   ███████╗ █████╔╝     ██║    ██║   ██║ ██████╔╝
+██║  ██║ ██╔══╝   ╚════██║ ██╔═██╗     ██║    ██║   ██║ ██╔═══╝
+██████╔╝ ███████╗ ███████║ ██║  ██╗    ██║    ╚██████╔╝ ██║
+╚═════╝  ╚══════╝ ╚══════╝ ╚═╝  ╚═╝    ╚═╝     ╚═════╝  ╚═╝
+ █████╗  ██████╗  ██████╗
+██╔══██╗ ██╔══██╗ ██╔══██╗
+███████║ ██████╔╝ ██████╔╝
+██╔══██║ ██╔═══╝  ██╔═══╝
+██║  ██║ ██║      ██║
+╚═╝  ╚═╝ ╚═╝      ╚═╝`
+
 /* ── the window itself ──────────────────────────────────────────────────── */
 
 export const WINDOW = {

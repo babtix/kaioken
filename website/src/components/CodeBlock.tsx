@@ -40,7 +40,7 @@ export default function CodeBlock({ code, title = "bash", prompt = false, classN
     <TerminalWindow
       title={title}
       className={className}
-      bodyClassName={bare ? "px-3.5 py-3.5 text-[12px]" : undefined}
+      bodyClassName={bare ? "m-no-scrollbar px-3.5 py-3.5 text-[12px]" : undefined}
       meta={
         <button
           type="button"

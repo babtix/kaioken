@@ -374,10 +374,7 @@
   padding-bottom: var(--m-safe-bottom);
 }
 
-/* Sticky elements below the top bar — section chips, doc sub-headers. */
-.m-under-bar {
-  top: calc(var(--m-top-bar) + var(--m-safe-top));
-}
+/* Anchor targets clear the fixed top bar. */
 .m-scroll-offset {
   scroll-margin-top: calc(var(--m-top-bar) + var(--m-safe-top) + 3.5rem);
 }
