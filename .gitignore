@@ -48,6 +48,12 @@ Thumbs.db
 # treatment as opencode/. Committing it would create a stray gitlink.
 cli/PRISM_RAG/
 
+# The GitHub Wiki, cloned locally for editing (github.com/babtix/kaioken.wiki.git).
+# It has its own .git, is pushed to its own remote, and neither site's build reads
+# it — tracking it here only produced a gitlink with no .gitmodules to resolve it,
+# which is what caused "Failed to fetch one or more git submodules" on every clone.
+/wiki/
+
 # web-news
 web-news/node_modules/
 web-news/dist/
