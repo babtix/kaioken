@@ -1,0 +1,63 @@
+{
+  "slug": "is-solar-cheaper-than-nuclear-in-europe",
+  "question": "Is solar cheaper than nuclear in Europe?",
+  "markdown": "## Short answer\nThe available data show that utility‑scale solar PV in Europe has a typical levelized cost of electricity (LCOE) of about €87/MWh, with most observations between €43‑€168/MWh)【20】, but the sources do not provide a comparable LCOE figure for nuclear power in Europe. Consequently, we cannot definitively state whether solar is cheaper than nuclear based solely on the supplied evidence.\n\n## What the evidence shows\n- Solar PV LCOE in the EU27 (2018) ranged from €43 to €168/MWh, with three‑quarters of observations below €112/MWh and a typical value around €87/MWh【20】.  \n- The same LCOE methodology includes capital, O\u0026M, fuel (zero for solar), and decommissioning costs【16】.  \n- The Wood Mackenzie report cited confirms that its LCOE dataset for Europe covers nuclear as well as utility‑scale solar, yet the excerpt does not give a specific nuclear LCOE value【15】.  \n- No other cited source supplies a nuclear LCOE (including capital, O\u0026M, fuel, and decommissioning) for Europe.\n\nThus, while solar’s cost range is quantified, the nuclear counterpart is missing from the evidence.\n\n## Where sources disagree\nThere is no direct disagreement among the provided sources; they simply do not overlap on a nuclear LCOE figure to compare with the solar numbers.\n\n## Limitations\nThe key limitation is the absence of a specific European nuclear LCOE (including all cost components) in the cited material. Without that figure, a direct cost‑competitiveness assessment between solar and nuclear cannot be made. Obtaining a comparable nuclear LCOE estimate (or a range) from a reliable European source would resolve this gap.",
+  "sources": [
+    {
+      "n": 3,
+      "url": "https://climate.ec.europa.eu/news-other-reads/news/5-things-you-should-know-about-carbon-pricing-2025-09-05_en",
+      "title": "5 things you should know about carbon pricing"
+    },
+    {
+      "n": 4,
+      "url": "https://www.solarpowereurope.org/interests/grids-and-flexibility",
+      "title": "Grids \u0026 Flexibility - SolarPower Europe"
+    },
+    {
+      "n": 9,
+      "url": "https://www.sciencedirect.com/science/article/pii/S030626192301927X",
+      "title": "A global analysis of renewable energy project commissioning timelines - ScienceDirect"
+    },
+    {
+      "n": 15,
+      "url": "https://www.woodmac.com/reports/power-markets-europe-levelised-cost-of-electricity-lcoe-2023-150185487/",
+      "title": "Europe levelised cost of electricity (LCOE) 2023 Report | Wood Mackenzie"
+    },
+    {
+      "n": 16,
+      "url": "https://scienceinsights.org/what-is-lcoe-levelized-cost-of-energy-explained",
+      "title": "What Is LCOE? Levelized Cost of Energy Explained - ScienceInsights"
+    },
+    {
+      "n": 17,
+      "url": "https://world-nuclear.org/information-library/economic-aspects/economics-of-nuclear-power",
+      "title": "Economics of Nuclear Power - World Nuclear Association"
+    },
+    {
+      "n": 18,
+      "url": "https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2023-2027/detail",
+      "title": "EU Market Outlook for Solar Power 2023-2027 - SolarPower Europe"
+    },
+    {
+      "n": 19,
+      "url": "https://op.europa.eu/en/publication-detail/-/publication/32d284d1-747f-11ee-99ba-01aa75ed71a1",
+      "title": "Study on energy subsidies and other government interventions in the European Union - Publications Office of the EU"
+    },
+    {
+      "n": 20,
+      "url": "https://energy.ec.europa.eu/system/files/2020-10/final_report_levelised_costs_0.pdf",
+      "title": "Final Report Cost of Energy (LCOE)"
+    },
+    {
+      "n": 21,
+      "url": "https://www.facebook.com/groups/205494660270195/posts/1890363805116597/",
+      "title": "Eyre Peninsula Renewable Energy Initiatives | The cost of nuclear power in Europe varies by project, but overall, nuclear is more expensive than renewables like wind and solar on a per-kilowatt-ho..."
+    }
+  ],
+  "rounds": 2,
+  "searched": 18,
+  "fetched": 10,
+  "incomplete": true,
+  "report_path": ".kaioken/research/is-solar-cheaper-than-nuclear-in-europe.md",
+  "created_at": "2026-07-31T05:05:10.0442562Z"
+}

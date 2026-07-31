@@ -39,8 +39,16 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   return (await res.json()) as T
 }
 
+export type Session = {
+  authed: boolean
+  /** where posts are kept — "memory" means they vanish on a cold start */
+  storage: "kv" | "memory"
+  /** false when this deployment would lose posts; the admin warns on it */
+  durable: boolean
+}
+
 export const api = {
-  session: () => req<{ authed: boolean }>("GET", "/api/session"),
+  session: () => req<Session>("GET", "/api/session"),
   login: (password: string) => req<{ ok: true }>("POST", "/api/login", { password }),
   logout: () => req<{ ok: true }>("POST", "/api/logout"),
 

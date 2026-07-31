@@ -95,7 +95,17 @@ function CategorySection({ cat }: { cat: RoadmapCategory }) {
                 )}
                 aria-hidden
               />
-              <h4 className="font-mono text-[13.5px] font-bold text-foreground">{item.title}</h4>
+              <div className="flex items-start justify-between gap-2">
+                <h4 className="font-mono text-[13.5px] font-bold text-foreground">{item.title}</h4>
+                {item.done && (
+                  <span
+                    className="flex size-4.5 shrink-0 items-center justify-center rounded-full bg-kai-green/15 text-kai-green"
+                    title="Already shipped"
+                  >
+                    <Icon name="Check" className="size-3" strokeWidth={3} />
+                  </span>
+                )}
+              </div>
               <p className="mt-2 font-sans text-[13px] leading-relaxed text-muted-foreground">
                 {item.body}
               </p>
@@ -187,8 +197,18 @@ export default function Next() {
                 <span className="mt-px shrink-0 font-mono text-[11px] text-kai-dim">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <div>
-                  <p className="font-mono text-[13.5px] font-bold text-foreground">{item.title}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-[13.5px] font-bold text-foreground">{item.title}</p>
+                    {item.done && (
+                      <span
+                        className="flex size-4 shrink-0 items-center justify-center rounded-full bg-kai-green/15 text-kai-green"
+                        title="Already shipped"
+                      >
+                        <Icon name="Check" className="size-2.5" strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-1 font-sans text-[13px] leading-relaxed text-muted-foreground">
                     {item.body}
                   </p>

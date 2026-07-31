@@ -4,6 +4,7 @@ import {
   isAuthed,
   readBody,
   requireAuth,
+  requireDurableStorage,
   sendError,
   sendJSON,
   type Req,
@@ -28,6 +29,7 @@ export default async function handler(req: Req, res: Res) {
 
   if (req.method === "PUT") {
     if (!(await requireAuth(req, res))) return
+    if (!requireDurableStorage(res)) return
     const input = readBody<Partial<Post>>(req)
     const patch: Partial<Post> = {}
     if (typeof input.title === "string") {
@@ -47,6 +49,7 @@ export default async function handler(req: Req, res: Res) {
 
   if (req.method === "DELETE") {
     if (!(await requireAuth(req, res))) return
+    if (!requireDurableStorage(res)) return
     if (!(await deletePost(id))) return sendError(res, 404, "No such post.")
     return sendJSON(res, 200, { ok: true })
   }

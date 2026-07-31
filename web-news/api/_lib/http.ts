@@ -1,4 +1,5 @@
 import { readCookie, SESSION_COOKIE, verifySession } from "./auth.js"
+import { storageMode, storageMustBeDurable } from "./store.js"
 
 // Vercel's Node runtime passes Node-shaped req/res objects. Typing them
 // structurally keeps this deployable without pulling in @vercel/node just for
@@ -41,6 +42,22 @@ export async function isAuthed(req: Req): Promise<boolean> {
 export async function requireAuth(req: Req, res: Res): Promise<boolean> {
   if (await isAuthed(req)) return true
   sendError(res, 401, "Sign in first.")
+  return false
+}
+
+export const STORAGE_UNCONFIGURED =
+  "Storage is not configured: KV_REST_API_URL and KV_REST_API_TOKEN are unset, " +
+  "so this post would be held in memory and lost on the next cold start. Set both " +
+  "in the deployment's environment variables and redeploy, then try again."
+
+/**
+ * Guards a *writing* handler. A deployment with no KV accepts posts and then
+ * loses them minutes later, which looks like the site eating your work — far
+ * better to refuse the write and say exactly why.
+ */
+export function requireDurableStorage(res: Res): boolean {
+  if (storageMode() === "kv" || !storageMustBeDurable()) return true
+  sendError(res, 503, STORAGE_UNCONFIGURED)
   return false
 }
 

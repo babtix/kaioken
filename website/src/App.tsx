@@ -2,6 +2,7 @@ import * as React from "react"
 import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import SiteHeader from "@/components/SiteHeader"
 import SiteFooter from "@/components/SiteFooter"
+import PageBackground from "@/components/PageBackground"
 import Home from "@/pages/Home"
 import Next from "@/pages/Next"
 import Showcase from "@/pages/Showcase"
@@ -23,6 +24,16 @@ import OutputDoc from "@/pages/docs/OutputDoc"
 const PreviewLayout = React.lazy(() => import("@/pages/preview/PreviewLayout"))
 const PreviewIndex = React.lazy(() => import("@/pages/preview/PreviewIndex"))
 const PreviewDoc = React.lazy(() => import("@/pages/preview/PreviewDoc"))
+
+/** Home and desktop bring their own, richer backdrop — every other route gets
+ *  the quiet one from here, so no page is left on flat black. */
+const OWN_BACKDROP = ["/", "/desktop"]
+
+function RouteBackdrop() {
+  const { pathname } = useLocation()
+  if (OWN_BACKDROP.includes(pathname)) return null
+  return <PageBackground variant="simple" />
+}
 
 /** Route changes should land at the top, except when targeting an anchor. */
 function ScrollToTop() {
@@ -46,8 +57,12 @@ function RouteFallback() {
 
 export default function App() {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    // No background on this wrapper: a non-positioned block paints its own
+    // background *above* any -z-10 descendant, which would bury a page-level
+    // backdrop. body already carries bg-background, so the canvas is the same.
+    <div className="flex min-h-screen flex-col text-foreground">
       <ScrollToTop />
+      <RouteBackdrop />
       <SiteHeader />
       <main className="flex-1">
         <React.Suspense fallback={<RouteFallback />}>

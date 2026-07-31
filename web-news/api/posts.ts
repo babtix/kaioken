@@ -1,5 +1,14 @@
 import { allPosts, createPost, publishedPosts, sortPosts, type Post } from "./_lib/store.js"
-import { isAuthed, readBody, requireAuth, sendError, sendJSON, type Req, type Res } from "./_lib/http.js"
+import {
+  isAuthed,
+  readBody,
+  requireAuth,
+  requireDurableStorage,
+  sendError,
+  sendJSON,
+  type Req,
+  type Res,
+} from "./_lib/http.js"
 
 type PostInput = Partial<Pick<Post, "title" | "summary" | "body" | "tags" | "published">>
 
@@ -14,6 +23,7 @@ export default async function handler(req: Req, res: Res) {
 
   if (req.method === "POST") {
     if (!(await requireAuth(req, res))) return
+    if (!requireDurableStorage(res)) return
     const input = readBody<PostInput>(req)
     const title = (input.title ?? "").trim()
     if (!title) return sendError(res, 400, "Title is required.")

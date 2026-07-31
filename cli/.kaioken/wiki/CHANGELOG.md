@@ -2,6 +2,46 @@
 
 What Kaioken revised, and why.
 
+## 2026-07-30 22:43 — ad5b089d → 91c6fcc4
+
+22 files changed · 1 documents updated
+
+- Added contact information (GitHub, email, LinkedIn, Instagram, portfolio) to the website footer component (`SiteFooter.tsx`).  
+- Updated numerous knowledge‑base markdown files and YAML module descriptors to include the new contact details.  
+- Created a new documentation file `setup_commands.md` under the cmd knowledge section.  
+- Refreshed internal state files (`state.json`, `wiki_state.yaml`) and the project changelog to reflect the contact‑info addition.
+
+**Documents updated**
+
+- .kaioken/wiki/Getting Started/Using the Terminal User Interface (TUI).md
+
+<details><summary>Changed files</summary>
+
+- `M` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/knowledge/kaioken/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/cmd/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/cmd/setup_commands.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/version/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/version/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/version/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/version/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/version/tech_stack.md
+- `M` cli/.kaioken/state.json
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` website/src/components/SiteFooter.tsx
+- `M` wiki
+
+</details>
+
 ## 2026-07-30 22:35 — 4ce79333 → 985cb9d3
 
 27 files changed · 1 documents updated

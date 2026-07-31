@@ -62,8 +62,9 @@ export default function Hero() {
           className="crt-scanlines pointer-events-none absolute inset-0 -z-10 opacity-30"
         />
       )}
-      {/* Keep the type readable over the shader. */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background/50 via-background/75 to-background" />
+      {/* Keep the type readable over the shader. Stops short of fully opaque at
+          the bottom so the page backdrop carries on through the seam. */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background/50 via-background/70 to-background/90" />
 
       <div className="mx-auto max-w-6xl px-4 pt-14 pb-20 sm:px-6 sm:pt-20">
         <div className="animate-rise text-center">

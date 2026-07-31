@@ -6,17 +6,46 @@ import { api, formatDate, type Post } from "./api"
 // single author with a single job — write news.
 export default function Admin() {
   const [authed, setAuthed] = useState<boolean | null>(null)
+  const [durable, setDurable] = useState(true)
 
-  useEffect(() => {
+  const checkSession = useCallback(() => {
     api
       .session()
-      .then((r) => setAuthed(r.authed))
+      .then((r) => {
+        setAuthed(r.authed)
+        setDurable(r.durable)
+      })
       .catch(() => setAuthed(false))
   }, [])
 
+  useEffect(checkSession, [checkSession])
+
   if (authed === null) return <p className="muted" style={{ paddingTop: 40 }}>Checking session…</p>
-  if (!authed) return <SignIn onDone={() => setAuthed(true)} />
-  return <Console onSignOut={() => setAuthed(false)} />
+  return (
+    <>
+      {!durable && <StorageWarning />}
+      {authed ? (
+        <Console onSignOut={() => setAuthed(false)} />
+      ) : (
+        <SignIn onDone={checkSession} />
+      )}
+    </>
+  )
+}
+
+/** Shown whenever the server is holding posts in memory. Saving is refused in
+ *  that state, so this explains the refusal before it happens. */
+function StorageWarning() {
+  return (
+    <div className="warning" role="alert">
+      <strong>Posts cannot be saved — storage is not configured.</strong>
+      <p>
+        This deployment has no <code>KV_REST_API_URL</code> / <code>KV_REST_API_TOKEN</code>, so
+        posts would be kept in the server's memory and lost within minutes. Add a Redis-compatible
+        KV store to the project, set both variables, and redeploy.
+      </p>
+    </div>
+  )
 }
 
 function SignIn({ onDone }: { onDone: () => void }) {

@@ -36,6 +36,24 @@ if (!useKV && process.env.NODE_ENV === "production") {
 // Module-scoped fallback. Survives warm invocations only, by design.
 let memory: Post[] = []
 
+export type StorageMode = "kv" | "memory"
+
+/** Which backing store the process actually ended up with. */
+export function storageMode(): StorageMode {
+  return useKV ? "kv" : "memory"
+}
+
+/**
+ * True where losing posts on a cold start is an outage rather than a local
+ * convenience — i.e. anything deployed. `vercel dev` reports VERCEL_ENV as
+ * "development", so local work is unaffected.
+ */
+export function storageMustBeDurable(): boolean {
+  const env = process.env.VERCEL_ENV
+  if (env) return env === "production" || env === "preview"
+  return process.env.NODE_ENV === "production"
+}
+
 async function kv(command: unknown[]): Promise<unknown> {
   const res = await fetch(restUrl!, {
     method: "POST",

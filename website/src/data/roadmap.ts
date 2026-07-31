@@ -7,6 +7,8 @@
 export interface RoadmapItem {
   title: string
   body: string
+  /** Already implemented in the current codebase. */
+  done?: boolean
 }
 
 export interface RoadmapCategory {
@@ -46,10 +48,12 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Code review agent",
         body: "Takes a git diff, annotates style, bugs, and performance issues as inline comments.",
+        done: true,
       },
       {
         title: "Multi-agent orchestrator",
         body: "A planner that decomposes a task, delegates to specialist sub-agents, and merges their outputs.",
+        done: true,
       },
       {
         title: "Migration agent",
@@ -77,6 +81,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Semantic search",
         body: "Embed knowledge cards and file skeletons into a local vector store; retrieve by meaning, not keywords.",
+        done: true,
       },
       {
         title: "Fuzzy file finder",
@@ -121,6 +126,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Session timeline",
         body: "Visual history of conversations, tool calls, and file changes with branching and undo points.",
+        done: true,
       },
       {
         title: "Wiki editor",
@@ -156,6 +162,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Context window manager",
         body: "Proactive conversation pruning that keeps relevant tool results and drops stale ones mid-task.",
+        done: true,
       },
       {
         title: "explain_code",
@@ -175,10 +182,12 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Knowledge graph",
         body: "Cross-referenced graph of modules → symbols → docs with link traversal, stored as a property graph.",
+        done: true,
       },
       {
         title: "Live staleness detection",
         body: "File watchers that flag knowledge cards as stale in real-time when their source files change.",
+        done: true,
       },
       {
         title: "Versioned wiki with diffs",
@@ -214,6 +223,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "MCP server mode",
         body: "Expose search, read_knowledge, and codemap as MCP tools so other agents can call them.",
+        done: true,
       },
       {
         title: "GitHub / GitLab integration",
@@ -222,6 +232,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "CI/CD plugin",
         body: "A GitHub Action that runs kaioken wiki on merge to main and publishes to a docs site.",
+        done: true,
       },
       {
         title: "Slack / Discord bot",
@@ -380,6 +391,7 @@ export const ARCH_ENABLERS: RoadmapItem[] = [
   {
     title: "Plugin / tool registry",
     body: "Make Tools() dynamically extensible so new tools register without modifying core agent code.",
+    done: true,
   },
   {
     title: "Event bus",
@@ -388,6 +400,7 @@ export const ARCH_ENABLERS: RoadmapItem[] = [
   {
     title: "Daemon mode",
     body: "A long-running kaioken daemon holding the codemap index, wiki state, and sessions — thin clients connect over HTTP.",
+    done: true,
   },
   {
     title: "Streaming tool results",

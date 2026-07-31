@@ -111,6 +111,7 @@ export default function AppWindow({
   const item = RAIL.find((r) => r.id === pane) ?? RAIL[1]
   const Pane = item.Pane
   const tall = size === "lg"
+  const touring = !reduced && !steered && inView
 
   return (
     <div
@@ -122,7 +123,7 @@ export default function AppWindow({
         className
       )}
       role="figure"
-      aria-label="The Kaioken desktop app, showing the ${item.label} screen"
+      aria-label={`The Kaioken desktop app, showing the ${item.label} screen`}
     >
       {/* ── title bar (decorations:false — the app draws its own) ───────── */}
       <div className="flex items-center gap-2 border-b border-border bg-card px-2.5 py-1.5">
@@ -152,6 +153,20 @@ export default function AppWindow({
           <Square className="size-2" />
           <X className="size-2.5" />
         </span>
+      </div>
+
+      {/* ── tour progress — how long until the screen changes on its own ── */}
+      <div className="relative h-px w-full bg-transparent" aria-hidden>
+        {touring ? (
+          <div
+            key={pane}
+            className={cn(
+              "animate-tour absolute inset-y-0 left-0 w-full bg-gradient-to-r from-kai-orange/40 to-kai-orange",
+              hovered && "[animation-play-state:paused]"
+            )}
+            style={{ animationDuration: `${DWELL_MS}ms` }}
+          />
+        ) : null}
       </div>
 
       {/* ── rail + content ─────────────────────────────────────────────── */}
@@ -220,8 +235,15 @@ export default function AppWindow({
           <span className="size-1.5 rounded-full bg-kai-green shadow-[0_0_6px_-1px_var(--kai-green)]" />
           <span className="text-[8px] text-kai-muted">daemon v1.0.0 · :62841</span>
         </span>
-        <span className="ml-auto hidden items-center gap-2 sm:flex">
-          <span className="text-[8px] text-kai-dim">D:/project/ai_now_know/cli</span>
+        <span className="text-[8px] text-kai-dim">·</span>
+        <span className="text-[8px] text-kai-muted">{item.label}</span>
+        <span className="ml-auto flex items-center gap-2">
+          {touring ? (
+            <span className="text-[8px] text-kai-dim">
+              {hovered ? "tour paused" : "touring — click the rail to steer"}
+            </span>
+          ) : null}
+          <span className="hidden text-[8px] text-kai-dim sm:inline">D:/project/ai_now_know/cli</span>
         </span>
       </div>
     </div>

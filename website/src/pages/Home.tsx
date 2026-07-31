@@ -10,12 +10,16 @@ import Commands from "@/components/sections/Commands"
 import QuickStart from "@/components/sections/QuickStart"
 import LinkButton from "@/components/LinkButton"
 import AppWindow from "@/components/desktop/AppWindow"
+import PageBackground from "@/components/PageBackground"
 import SectionHeading from "@/components/SectionHeading"
 import { DESIGN_DECISIONS, GITHUB_URL, ROADMAP } from "@/data/content"
 
 export default function Home() {
   return (
     <>
+      {/* the page-wide backdrop; the hero's WebGL shader layers on top of it
+          inside its own isolated stacking context */}
+      <PageBackground />
       <Hero />
       <Features />
       <Pipeline />

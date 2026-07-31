@@ -26,7 +26,17 @@ Copy `.env.example` to `.env.local` and fill it in:
 
 Without the KV variables the site still runs, but posts are held in process
 memory and disappear on a cold start. That is fine locally and wrong in
-production, so the server logs a warning when it happens with `NODE_ENV=production`.
+production, so a deployed environment (`VERCEL_ENV` of `production` or
+`preview`) **refuses writes** rather than accepting a post it is about to lose:
+`POST`/`PUT`/`DELETE` return `503` with an explanation, and `/admin` shows a
+banner saying the same thing. Reads still work, so an already-populated site
+keeps serving if the variables are ever removed.
+
+To provision the store: add a Redis-compatible KV to the Vercel project
+(Storage → Upstash Redis sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` on the
+project automatically), or set both by hand with `npx vercel env add`, then
+redeploy. Confirm with `curl https://<host>/api/session` — it reports
+`"storage":"kv"` once the store is live.
 
 ## Running locally
 

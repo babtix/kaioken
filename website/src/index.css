@@ -191,6 +191,62 @@
   background-size: 3ch 1.5rem;
 }
 
+/* ── ambient page background ───────────────────────────────────────────────
+   A page-wide phosphor backdrop: a dot matrix, two slow orange blooms and a
+   vignette. All CSS — the WebGL shader on the landing hero is too heavy to
+   run behind a whole page, and this reads as the same machine.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* The dot matrix a phosphor screen leaves between characters. */
+.kai-dots {
+  background-image: radial-gradient(var(--kai-dim) 1.1px, transparent 1.2px);
+  background-size: 26px 26px;
+}
+
+/* The coarse mesh behind everything — panel seams, not character cells. */
+.kai-mesh {
+  background-image:
+    linear-gradient(to right, #ffffff14 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff14 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* Softens a texture at the very bottom so it never collides with the footer. */
+.kai-fade-down {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+}
+
+/* Keeps a texture to the top of the viewport, where the hero sits. */
+.kai-fade-hero {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+}
+
+/* Scanlines as a plain background, for elements that are themselves overlays. */
+.kai-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    #00000073 2px 3px
+  );
+}
+
+/* A soft off-screen light source. Position and tint come from the caller. */
+.kai-bloom {
+  border-radius: 50%;
+  filter: blur(80px);
+}
+
+/* Darkens the edges so the centre column reads first. */
+.kai-vignette {
+  background: radial-gradient(
+    ellipse 80% 65% at 50% 40%,
+    transparent 0%,
+    color-mix(in oklab, var(--kai-black) 65%, transparent) 100%
+  );
+}
+
 .glow-orange {
   text-shadow: 0 0 18px color-mix(in oklab, var(--kai-orange) 55%, transparent);
 }
@@ -242,10 +298,69 @@
   animation: rule-sweep 6s linear infinite;
 }
 
+/* Fills across the dwell of one auto-tour step. Duration comes from the
+   component so the bar and the timer cannot disagree. */
+@keyframes tour-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.animate-tour {
+  transform-origin: left;
+  animation: tour-fill linear forwards;
+}
+
+/* Very slow bloom drift — long enough that you notice it only if you look. */
+@keyframes bloom-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -4%, 0) scale(1.08); }
+}
+.animate-bloom {
+  animation: bloom-drift 26s ease-in-out infinite;
+}
+
+/* ── scroll reveal ─────────────────────────────────────────────────────────
+   Sections start slightly low and transparent, then settle once they enter
+   the viewport. Class-driven so one IntersectionObserver per section is all
+   the JavaScript involved. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* A card that answers the pointer: lifts, warms its border, casts a little. */
+.lift {
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -16px color-mix(in oklab, var(--kai-orange) 70%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-caret,
   .animate-rise,
+  .animate-bloom,
+  .animate-tour,
   .rule-sweep {
     animation: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .lift:hover {
+    transform: none;
   }
 }
