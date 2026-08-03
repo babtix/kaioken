@@ -11,8 +11,11 @@ cli/kaioken-test
 /dist/
 
 # Session and state (local-only)
-.kaioken/sessions/
+**/.kaioken/sessions/
 .kaioken/config.yaml
+.kaioken/research/
+.hermes/
+.vite/
 
 # Agent tooling (local-only)
 .qoder/
