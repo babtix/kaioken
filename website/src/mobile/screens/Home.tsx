@@ -31,6 +31,9 @@ import {
   PROVIDERS,
   QUALITY,
   QUICK_START,
+  RESEARCH,
+  RESEARCH_EXAMPLE,
+  RESEARCH_NOTES,
   ROADMAP,
 } from "@/data/content"
 import { cn } from "@/lib/utils"
@@ -41,6 +44,7 @@ export default function Home() {
       <Hero />
       <Features />
       <Pipeline />
+      <Research />
       <MultiplierDial />
       <Quality />
       <Commands />
@@ -218,7 +222,74 @@ function Pipeline() {
   )
 }
 
-/* ── multiplier ───────────────────────────────────────────────────────────── */
+/* ── deep research ───────────────────────────────────────────────────────────── */
+
+function Research() {
+  return (
+    <Section id="research">
+      <SectionHead
+        index="03"
+        eyebrow="deep research"
+        title={
+          <>
+            Ask the open web,{" "}
+            <span className="text-kai-orange glow-orange">get a cited answer</span>
+          </>
+        }
+        lead="One question in, a sourced report out. A cheap router decides whether it needs a quick loop or a team of parallel agents."
+      />
+
+      <ol className="mt-6">
+        {RESEARCH.map((step, i) => (
+          <li key={step.title} className="relative flex gap-3.5 pb-5 last:pb-0">
+            {/* the rail that joins the steps */}
+            {i < RESEARCH.length - 1 ? (
+              <span
+                className="absolute top-7 bottom-0 left-[13px] w-px bg-border"
+                aria-hidden
+              />
+            ) : null}
+
+            <span
+              className={cn(
+                "relative z-10 flex size-7 shrink-0 items-center justify-center rounded-sm border font-mono text-[11px] font-bold",
+                step.tone === "amber"
+                  ? "border-kai-amber/50 bg-kai-amber/15 text-kai-amber"
+                  : "border-border bg-card text-kai-orange"
+              )}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+
+            <div className="min-w-0 flex-1 pt-0.5">
+              <p className="font-mono text-[12px] text-foreground">{step.title}</p>
+              <p className="mt-1.5 font-sans text-[12.5px] leading-[1.6] text-muted-foreground">
+                {step.body}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <Code className="mt-6" title="powershell" code={RESEARCH_EXAMPLE} />
+
+      <ul className="mt-4 space-y-2.5">
+        {RESEARCH_NOTES.map((note) => (
+          <li key={note} className="flex gap-2.5">
+            <span className="mt-px shrink-0 font-mono text-[12px] text-kai-green" aria-hidden>
+              ✓
+            </span>
+            <span className="font-sans text-[12.5px] leading-[1.6] text-muted-foreground">
+              {note}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
+}
+
+/* ── multiplier ───────────────────────────────────────────────────────── */
 
 function MultiplierDial() {
   const defaultIndex = Math.max(
@@ -231,7 +302,7 @@ function MultiplierDial() {
   return (
     <Section id="multiplier">
       <SectionHead
-        index="03"
+        index="04"
         eyebrow="the multiplier"
         title="×N buys passes, not padding"
         lead="Each level roughly doubles the calls per document — which is what a power-multiplier metaphor ought to mean."
@@ -288,7 +359,7 @@ function Quality() {
   return (
     <Section id="quality">
       <SectionHead
-        index="04"
+        index="05"
         eyebrow="why it holds up"
         title={
           <>
@@ -322,7 +393,7 @@ function Commands() {
   return (
     <Section id="commands">
       <SectionHead
-        index="05"
+        index="06"
         eyebrow="slash commands"
         title={<>{total} commands, four groups</>}
         lead="Everything the TUI answers to. Tap a group to open it."
@@ -378,7 +449,7 @@ function OutputTree() {
   return (
     <Section id="output">
       <SectionHead
-        index="06"
+        index="07"
         eyebrow="what lands on disk"
         title={
           <>
@@ -434,7 +505,7 @@ function QuickStart() {
   return (
     <Section id="quickstart">
       <SectionHead
-        index="07"
+        index="08"
         eyebrow="quick start"
         title="From clone to wiki"
         lead="The scan is free, the plan is a file you can edit, and the cost estimate prints before anything expensive runs."
@@ -450,7 +521,7 @@ function DesktopTeaser() {
   return (
     <Section id="desktop">
       <SectionHead
-        index="08"
+        index="09"
         eyebrow="desktop"
         title={
           <>
@@ -491,7 +562,7 @@ function DesktopTeaser() {
 function Decisions() {
   return (
     <Section id="decisions">
-      <SectionHead index="09" eyebrow="design decisions" title="Choices worth stating" />
+      <SectionHead index="10" eyebrow="design decisions" title="Choices worth stating" />
 
       <dl className="mt-6 space-y-4">
         {DESIGN_DECISIONS.map((d) => (

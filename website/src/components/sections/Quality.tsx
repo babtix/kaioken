@@ -10,7 +10,7 @@ export default function Quality() {
 
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
-          index="04"
+          index="05"
           eyebrow="engineering"
           title="Failure modes, addressed mechanically"
           description="Long-form generation fails in predictable ways. Kaioken addresses each one with code rather than by asking the model nicely."

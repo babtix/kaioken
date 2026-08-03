@@ -10,7 +10,7 @@ export default function OutputTree() {
     <section id="output" className="relative border-t border-border py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
-          index="05"
+          index="07"
           eyebrow="output layout"
           title="Everything lands in .kaioken/"
           description="Plain files in the target repo — YAML you edit, markdown your agent reads. Nothing is locked in a database, and the files marked below are meant to be changed by hand."

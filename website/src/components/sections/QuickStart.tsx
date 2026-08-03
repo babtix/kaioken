@@ -18,7 +18,7 @@ export default function QuickStart() {
         <div className="grid gap-10 lg:grid-cols-[1fr_1.25fr] lg:gap-14">
           <div className="lg:sticky lg:top-24 lg:self-start">
             <SectionHeading
-              index="07"
+              index="08"
               eyebrow="quick start"
               title="Running in one build"
               description="One Go build, one environment variable, and you are in the TUI. Bare kaioken launches it; every subcommand exists too, for CI."

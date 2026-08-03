@@ -195,6 +195,12 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     blurb: "Build and refresh everything the engine generates.",
     commands: [
       {
+        name: "/research",
+        args: "[xN] <question>",
+        summary:
+          "Ask the open web: the router picks the fast loop or the deep multi-agent path, grounds every claim, and writes a cited report to .kaioken/research/.",
+      },
+      {
         name: "/wiki",
         args: "[xN] [force]",
         summary:
@@ -411,4 +417,61 @@ export const ROADMAP = [
   "Conversation-memory extraction and card self-iteration",
   "Diff-driven updates for knowledge cards (today update covers the wiki)",
   "Export targets (--export qoder, --export claude-md)",
+]
+
+/* ── deep research ─────────────────────────────────────────────────────── */
+
+export interface ResearchStep {
+  title: string
+  body: string
+  /** which accent the step leans on */
+  tone: "orange" | "amber"
+}
+
+/** The research flow, reduced to what a reader needs: one question in, one
+ *  cited report out, with a cheap decision made before anything expensive. */
+export const RESEARCH: ResearchStep[] = [
+  {
+    title: "One question, one command",
+    body: "kaioken research \"…\" (or /research in the TUI) — the engine searches the open web and, when it helps, your own repository.",
+    tone: "orange",
+  },
+  {
+    title: "A router sizes it up first",
+    body: "A cheap model call decides the shape of the run: a quick lookup takes the fast path, a multi-part question earns the deep one. You can pin either with -mode.",
+    tone: "amber",
+  },
+  {
+    title: "Fast path — one tight loop",
+    body: "Search, read, reason, repeat until the gaps close. Cheap, quick, and its cost is knowable in advance because nothing branches.",
+    tone: "orange",
+  },
+  {
+    title: "Deep path — parallel workers",
+    body: "A supervisor splits the question into subquestions and hands each to an isolated worker that researches and compresses its own findings. At ×10 it reads up to ~480 pages across 8 rounds and ships a full dossier — markdown plus a signed PDF.",
+    tone: "amber",
+  },
+  {
+    title: "Grounded before it ships",
+    body: "Every claim is tied to a numbered source that was actually read, and a separate pass checks the draft against the raw text. A claim that can't be grounded gets flagged — never a fabricated citation.",
+    tone: "orange",
+  },
+]
+
+export const RESEARCH_EXAMPLE = `kaioken research "what changed in Go 1.24 GC?"
+kaioken research x3 -mode deep "compare OSS auth designs"
+
+/research x2 is solar cheaper than nuclear?
+
+# closed the terminal mid-run? continue it:
+kaioken research -resume <run id>
+
+# -verify cross-checks load-bearing claims
+# reports land in .kaioken/research/`
+
+export const RESEARCH_NOTES = [
+  "A fast run that turns out thin escalates to deep — reusing everything it already fetched instead of restarting.",
+  "Every fetched page is treated as data, never instructions, and is sanitised before it reaches a prompt.",
+  "State checkpoints to disk at every phase, so an interrupted run resumes where it left off.",
+  "Cost stays line-itemised: searches, pages read and tokens — one honest number at the end.",
 ]

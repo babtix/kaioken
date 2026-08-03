@@ -3,6 +3,7 @@ import GithubMark from "@/components/GithubMark"
 import Hero from "@/components/sections/Hero"
 import Features from "@/components/sections/Features"
 import Pipeline from "@/components/sections/Pipeline"
+import Research from "@/components/sections/Research"
 import Multiplier from "@/components/sections/Multiplier"
 import Quality from "@/components/sections/Quality"
 import OutputTree from "@/components/sections/OutputTree"
@@ -23,6 +24,7 @@ export default function Home() {
       <Hero />
       <Features />
       <Pipeline />
+      <Research />
       <Multiplier />
       <Quality />
       <Commands />
@@ -68,7 +70,7 @@ export default function Home() {
                 <span className="text-kai-orange" aria-hidden>
                   ▎
                 </span>
-                <span className="text-kai-amber">08</span>
+                <span className="text-kai-amber">10</span>
                 <span className="text-muted-foreground">design decisions</span>
               </div>
               <dl className="mt-7 grid gap-x-8 gap-y-5 sm:grid-cols-2">
