@@ -22,14 +22,16 @@ import type { ResearchReport } from "@/lib/types"
 
 /**
  * Research is the Perplexity-style surface wired to the daemon's `research`
- * run: decompose → search → read → reason → gap-check → report, with the ×N
- * power dial scaling what the engine actually spends.
+ * run: decompose → search → read → reason → gap-check → report. The composer's
+ * Normal/Advanced toggle picks which of two pipelines runs — Normal scales the
+ * everyday report ×1-9, Advanced (×10) switches to the deep dossier pipeline
+ * and produces a signed PDF export — but both post to the same `start`.
  */
 export default function Research() {
   const ws = useWorkspaceStore((s) => s.active)
   const {
-    question, busy, steps, answer, rounds, searched, reportPath, error, history,
-    start, cancel, loadHistory, openSaved, deleteSaved,
+    question, busy, steps, answer, rounds, searched, reportPath, deep, exporting, error, history,
+    start, cancel, loadHistory, openSaved, deleteSaved, exportPdf,
   } = useResearchStore()
   const pushToast = useToastStore((s) => s.push)
   const [power, setPower] = useState(3)
@@ -133,13 +135,9 @@ export default function Research() {
             rounds={rounds}
             onOpenSource={openSource}
             onCopy={() => void navigator.clipboard.writeText(answer.body).catch(() => {})}
-            onExport={() =>
-              pushToast(
-                "success",
-                "Report saved in the repository",
-                reportPath ?? ".kaioken/research/"
-              )
-            }
+            exportLabel={deep ? "Export dossier" : "Export PDF"}
+            exporting={exporting}
+            onExport={() => void exportPdf()}
             onRewrite={() => void start(ws.id, answer.question, power)}
           />
           {reportPath && (
@@ -249,8 +247,12 @@ function ResearchIntro({ onPick }: { onPick: (q: string) => void }) {
       <p className="mt-2 font-mono text-[11px] leading-relaxed text-kai-dim">
         The question is split into subquestions, each searched and read across the web,
         then gaps are detected and searched again. Every claim in the report cites a page
-        that was actually fetched. The ×N dial is the cost control — it scales queries,
-        pages and rounds.
+        that was actually fetched. <strong className="text-kai-text">Normal</strong> scales
+        that loop from ×1 to ×9 — more queries, pages and rounds the higher you go.{" "}
+        <strong className="text-kai-orange">Advanced</strong> switches to a different
+        pipeline entirely: up to 480 pages read over 8 rounds, written a chapter at a time
+        into a massive, exhaustively detailed dossier with its own findings register and
+        source log, exported as a signed PDF.
       </p>
       <div className="mt-4 flex flex-wrap gap-1.5">
         {EXAMPLES.map((q) => (

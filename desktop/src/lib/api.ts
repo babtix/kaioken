@@ -1,6 +1,6 @@
 import { authHeaders, base } from "./daemon"
 import type { Graph as WikiGraph } from "./graph/types"
-import type { EmbedSettings, ErrorEnvelope, WikiSearchResponse, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, LocalProviderStatus, LocalProvidersResponse, ModuleStatus, RepoFile, ResearchReport, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, UsageResponse, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
+import type { EmbedSettings, ErrorEnvelope, WikiSearchResponse, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, LocalProviderStatus, LocalProvidersResponse, ModuleStatus, RepoFile, ResearchExport, ResearchReport, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, UsageResponse, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
 
 // Parses the §2.1 error envelope; carries enough for a component to branch
 // on err.code (e.g. "no_api_key") instead of printing a stack trace.
@@ -142,6 +142,11 @@ export const api = {
     req<ResearchReport>("GET", `/workspaces/${wsId}/research/${encodeURIComponent(slug)}`),
   researchDelete: (wsId: string, slug: string) =>
     req<void>("DELETE", `/workspaces/${wsId}/research/${encodeURIComponent(slug)}`),
+  // Renders a saved report to a signed PDF beside its markdown twin. The daemon
+  // does the rendering, not the app: it already has the workspace on disk, and
+  // the signature has to come from the same code that produced the research.
+  researchExport: (wsId: string, slug: string) =>
+    req<ResearchExport>("POST", `/workspaces/${wsId}/research/${encodeURIComponent(slug)}/export`),
 
   // Wiki/docs (T044–T052)
   wikiTree: (wsId: string) => req<WikiTree>("GET", `/workspaces/${wsId}/wiki/tree`),

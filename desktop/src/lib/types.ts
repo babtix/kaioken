@@ -227,8 +227,54 @@ export type ResearchReport = {
   searched: number
   fetched: number
   incomplete: boolean
+  warnings?: string[]
+  /** Present only on a deep (x10) run; stripped from listings, which carry counters only. */
+  deep?: unknown
+  provenance?: { model?: string; search_provider?: string; multiplier?: number }
   report_path?: string
   created_at: string
+  /** Hybrid-engine metadata: which execution path produced the report. */
+  path?: "fast" | "deep" | string
+  /** Run directory id under ~/.kaioken/runs, for the trace. */
+  run_id?: string
+  /** True when the run was promoted from the fast path mid-run. */
+  escalated?: boolean
+  escalated_from?: string
+  /** Line-itemised meter for the whole run, both paths and any promotion. */
+  cost?: ResearchCost
+  /** The citation grounding pass's verdict, when the pass ran. */
+  grounding?: ResearchGrounding
+}
+
+/** The Perplexity-style line-itemised cost a research run reports. */
+export type ResearchCost = {
+  input_tokens?: number
+  output_tokens?: number
+  reasoning_tokens?: number
+  searches?: number
+  fetches?: number
+  usd?: number
+  /** True when the dollar figure came from the provider, not an estimate. */
+  exact?: boolean
+}
+
+/** What the separate citation pass concluded about the draft. */
+export type ResearchGrounding = {
+  checked?: number
+  /** Share of checked claims grounded in the raw sources, 0..1. */
+  rate?: number
+  ungrounded?: number
+}
+
+/** What the daemon reports after rendering a saved report to PDF. */
+export type ResearchExport = {
+  /** Absolute path on disk, for opening the file. */
+  path: string
+  /** Repo-relative path, for showing the user where it landed. */
+  rel: string
+  pages: number
+  bytes: number
+  deep: boolean
 }
 
 export type Estimate = {

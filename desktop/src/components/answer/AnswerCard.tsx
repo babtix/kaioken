@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { Check, Copy, CornerDownLeft, Download, RefreshCw, TriangleAlert } from "lucide-react"
+import { Check, Copy, CornerDownLeft, Download, Loader2, RefreshCw, TriangleAlert } from "lucide-react"
 import { openInBrowser } from "@/lib/openInBrowser"
 import { cn } from "@/lib/utils"
 import CodeBlock from "@/components/common/CodeBlock"
@@ -32,6 +32,8 @@ export function AnswerCard({
   onOpenSource,
   onCopy,
   onExport,
+  exportLabel = "Export",
+  exporting = false,
   onRewrite,
 }: {
   answer: Answer
@@ -42,6 +44,10 @@ export function AnswerCard({
   onOpenSource?: (s: AnswerSource) => void
   onCopy?: () => void
   onExport?: () => void
+  /** What the export button says — a deep run exports a dossier, not a page. */
+  exportLabel?: string
+  /** Rendering a long dossier takes a moment; the button says so and locks. */
+  exporting?: boolean
   onRewrite?: () => void
 }) {
   const [tab, setTab] = useState<"answer" | "sources" | "steps">("answer")
@@ -109,7 +115,13 @@ export function AnswerCard({
 
       <footer className="flex items-center gap-1 border-t border-border px-3 py-2">
         <Action icon={Copy} label="Copy" onClick={onCopy} />
-        <Action icon={Download} label="Export" onClick={onExport} />
+        <Action
+          icon={exporting ? Loader2 : Download}
+          label={exporting ? "Exporting…" : exportLabel}
+          onClick={onExport}
+          disabled={exporting}
+          spin={exporting}
+        />
         <Action icon={RefreshCw} label="Rewrite" onClick={onRewrite} />
       </footer>
 
@@ -317,15 +329,20 @@ function Action({
   icon: Icon,
   label,
   onClick,
+  disabled = false,
+  spin = false,
 }: {
   icon: typeof Copy
   label: string
   onClick?: () => void
+  disabled?: boolean
+  spin?: boolean
 }) {
   const [done, setDone] = useState(false)
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => {
         onClick?.()
         setDone(true)
@@ -333,9 +350,14 @@ function Action({
       }}
       className="flex items-center gap-1.5 rounded-[var(--radius)] px-2 py-1 font-mono text-[10.5px]
                  text-kai-dim transition-colors hover:bg-accent hover:text-kai-text
+                 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent
                  outline-none focus-visible:ring-2 focus-visible:ring-kai-orange/50"
     >
-      {done ? <Check size={12} className="text-kai-green" /> : <Icon size={12} />}
+      {done && !spin ? (
+        <Check size={12} className="text-kai-green" />
+      ) : (
+        <Icon size={12} className={spin ? "animate-spin" : undefined} />
+      )}
       {label}
     </button>
   )
