@@ -1,19 +1,21 @@
-// Package research answers a question from the open web.
-//
-// The pipeline is a loop, not a pass: it decomposes the question, searches,
-// fetches and reads pages, reasons over what it found, then asks itself what
-// is still missing and searches again for exactly that. The loop is what
-// separates research from a single search — a first round almost always
-// answers the easy half of a question and leaves the load-bearing half thin.
+// Package research answers a question from the open web — and, when the
+// question deserves it, from the user's own repository — as a hybrid
+// system: a triage router picks between a fast single-loop path and a deep
+// multi-agent path over one shared control plane, and a run that turns out
+// to need more is promoted between them rather than restarted. See
+// cli/docs/deep-research-spec.md and cli/docs/hybrid-research-system.md.
 //
 // Two properties matter more than the pipeline shape:
 //
-//   - Every fetched page is untrusted input. It is fenced before it reaches a
-//     prompt (see fenceUntrusted) and the prompts covering it say plainly that
-//     the content is data, never instructions.
-//   - Every claim is traceable. Pages are numbered when they enter the corpus
-//     and that number is the only way the model may cite them, so a citation
-//     in the report always resolves to a page that was actually read.
+//   - Every fetched page is untrusted input. It is sanitised at the fetch
+//     boundary and fenced before it reaches a prompt (see fenceUntrusted);
+//     the prompts covering it say plainly that the content is data, never
+//     instructions.
+//   - Every claim is traceable. Pages are numbered when they enter the
+//     corpus and that number is the only way the model may cite them, so a
+//     citation in the report always resolves to a page that was actually
+//     read; a separate grounding pass checks the draft against the raw
+//     text before it ships.
 package research
 
 import (
@@ -34,7 +36,8 @@ import (
 type Options struct {
 	// Multiplier is the kaioken ×N dial: it scales subquestions, queries per
 	// round, pages fetched, and how much evidence each reasoning call sees.
-	// 1 is a quick look, 3 the default, 10 unwise.
+	// 1 is a quick look, 3 the default, 10 unwise. It also selects the
+	// budget preset the run works inside.
 	Multiplier int
 	// MaxRounds caps the search→read→reason→gap loop. Zero derives it from
 	// the multiplier.
@@ -43,8 +46,9 @@ type Options struct {
 	Concurrency int
 	// MaxDuration stops the loop once a run has taken this long, reporting
 	// what it has rather than running until the context is cancelled. Zero
-	// means no limit beyond ctx. Rounds are only ever abandoned between
-	// stages, so a report is always written from whatever was gathered.
+	// applies the preset's wall clock instead. Rounds are only ever
+	// abandoned between stages, so a report is always written from whatever
+	// was gathered.
 	MaxDuration time.Duration
 	// Fetcher overrides how pages are retrieved. Production leaves this nil
 	// to get the SSRF-guarded webfetch.Fetcher; tests substitute a stub so the
@@ -55,6 +59,17 @@ type Options struct {
 	Now time.Time
 	// Deep forces the long-form dossier below ×10. At ×10 it is on regardless.
 	Deep bool
+	// Mode pins the execution path: "auto" (default) lets the triage router
+	// decide, "fast" runs the single loop only, "deep" runs the multi-agent
+	// path. Empty means whatever the global config says, then auto.
+	Mode string
+	// Resume reopens an existing run by id instead of starting a new one.
+	Resume string
+	// Verify turns on opt-in cross-path verification of load-bearing claims.
+	Verify bool
+	// Repo is the repository root the code retriever searches; empty runs
+	// research the web only.
+	Repo string
 }
 
 // Fetcher retrieves pages in bulk. *webfetch.Fetcher satisfies it.
@@ -105,6 +120,21 @@ type Report struct {
 	// not have room for: the section outline, the full findings register, every
 	// query issued and every page reached.
 	Deep *Deep
+	// Path is the execution path that produced the report: "fast" or "deep".
+	Path string
+	// RunID names the run directory under ~/.kaioken/runs, so the trace can
+	// be opened when something goes wrong.
+	RunID string
+	// Escalated records a fast→deep promotion happening mid-run.
+	Escalated bool
+	// EscalatedFrom names the path the run was promoted out of ("fast"),
+	// empty when no promotion happened.
+	EscalatedFrom string
+	// Grounding is the citation pass's verdict, when the pass ran.
+	Grounding *Grounding
+	// Cost is the line-itemised meter for the whole run, both paths and any
+	// promotion included.
+	Cost Cost
 }
 
 // Deep is the long-form dossier a ×10 run produces.
@@ -237,220 +267,22 @@ func ScanCeiling(mult int, deep bool) int {
 	return p.rounds * p.newPagesMax
 }
 
-// Run executes the research loop and returns the finished report.
+// Run executes the hybrid research pipeline and returns the finished
+// report: route the question, run the chosen path, promote to the deep
+// path when the evidence says to, write, ground the claims, assemble. The
+// signature is the one the CLI, the TUI and the daemon all share.
 func Run(ctx context.Context, client *llm.Client, search websearch.Provider,
 	question string, opts Options, pg Progress) (*Report, error) {
 
-	started := time.Now()
 	question = strings.TrimSpace(question)
 	if question == "" {
 		return nil, fmt.Errorf("no question given")
 	}
-
-	mult := clampInt(opts.Multiplier, 1, 10)
-	p := planFor(mult, opts.Deep)
-	rounds := p.rounds
-	if opts.MaxRounds > 0 {
-		rounds = opts.MaxRounds
-	}
-	workers := clampInt(opts.Concurrency, 1, 16)
-	asOf := asOfLine(opts.Now)
-
-	var (
-		maxSubs     = p.maxSubs
-		queriesPer  = p.queriesPer
-		maxQueries  = p.maxQueries
-		resultsPer  = p.resultsPer
-		newPagesMax = p.newPagesMax
-		budget      = p.evidence
-	)
-
-	deadline := func() bool {
-		return opts.MaxDuration > 0 && time.Since(started) >= opts.MaxDuration
-	}
-
-	pg.stage("planning")
-	subs, err := decompose(ctx, client, question, maxSubs, asOf)
+	e, err := newEngine(ctx, client, search, question, opts, pg)
 	if err != nil {
 		return nil, err
 	}
-	pg.detail(fmt.Sprintf("%d subquestions", len(subs)))
-
-	queries, err := searchQueries(ctx, client, question, subs, queriesPer, maxQueries, asOf)
-	if err != nil {
-		return nil, err
-	}
-
-	fetcher := opts.Fetcher
-	if fetcher == nil {
-		fetcher = webfetch.New()
-	}
-	pool := newCorpus(p.perHost)
-
-	var (
-		// allQueries is the search log. A deep dossier publishes it, because a
-		// reader judging coverage needs to see what was actually asked.
-		allQueries []string
-		// answered is keyed by subquestion so a later round can add to what an
-		// earlier one established instead of redoing all of it. Re-answering
-		// every subquestion every round costs the same again each time and
-		// lets a settled finding regress on a noisier corpus.
-		answered  = map[string]finding{}
-		searched  int
-		roundsRun int
-		warnings  []string
-	)
-
-	for round := 1; round <= rounds; round++ {
-		// The first round always runs. A budget too short for it would
-		// otherwise produce no findings at all, and "no findings" is an error,
-		// not a report — a time limit should shorten a run, never fail it.
-		if round > 1 && deadline() {
-			warnings = append(warnings, fmt.Sprintf(
-				"stopped after %s to stay inside the time budget", time.Since(started).Round(time.Second)))
-			pg.detail("time budget reached; reporting on what was gathered")
-			break
-		}
-		pg.round(round, rounds)
-		roundsRun = round
-
-		pg.stage(fmt.Sprintf("searching (%d queries)", len(queries)))
-		hits, err := searchAll(ctx, search, queries, resultsPer, workers)
-		if err != nil {
-			// A total search failure in round 1 is fatal; later it just means
-			// this round adds nothing, and what is already gathered stands.
-			if round == 1 {
-				return nil, err
-			}
-			pg.detail("search failed: " + err.Error())
-			warnings = append(warnings, "a follow-up search round failed: "+err.Error())
-			break
-		}
-		searched += len(queries)
-		allQueries = append(allQueries, queries...)
-
-		// The subquestions are what the pages will be read for, so they decide
-		// which hits are worth the fetch.
-		fresh := pool.addHits(hits, newPagesMax, question+"\n"+strings.Join(subs, "\n"))
-		pg.stage(fmt.Sprintf("reading %d pages", len(fresh)))
-		pages, ferrs := fetcher.FetchMany(ctx, fresh, workers)
-		pool.addPages(pages)
-		if len(ferrs) > 0 {
-			pg.detail(fmt.Sprintf("%d of %d pages unreadable", len(ferrs), len(fresh)))
-		}
-
-		if len(pool.cited()) == 0 {
-			if round == rounds {
-				return nil, fmt.Errorf("no readable sources found for %q", question)
-			}
-			pg.detail("nothing readable yet; widening the search")
-			continue
-		}
-
-		// Which subquestions still need work: the ones never asked, and the
-		// ones whose answer was not solid. A high-confidence finding is left
-		// alone — the corpus grew, but it grew to close other gaps.
-		todo := pending(subs, answered)
-		pg.stage(fmt.Sprintf("reading evidence for %d subquestion(s)", len(todo)))
-		found, err := answerAll(ctx, client, todo, pool, budget, workers, asOf)
-		if err != nil {
-			return nil, err
-		}
-		for _, f := range found {
-			answered[f.Question] = better(answered[f.Question], f)
-		}
-
-		if round == rounds {
-			// No point asking what is missing when nothing more will be done
-			// about it; the limitations section covers it instead.
-			break
-		}
-
-		pg.stage("checking for gaps")
-		gaps, err := detectGaps(ctx, client, question, ordered(subs, answered), maxQueries, asOf)
-		if err != nil {
-			pg.detail("gap check failed: " + err.Error())
-			warnings = append(warnings, "the gap audit failed, so the run stopped early: "+err.Error())
-			break
-		}
-		if gaps.Complete || len(gaps.Queries) == 0 {
-			pg.detail("evidence is sufficient")
-			break
-		}
-
-		// The gaps become subquestions of their own. This is the difference
-		// between a loop that searches again and one that actually answers
-		// what it went back for.
-		added := 0
-		for _, q := range gaps.Questions {
-			if _, seen := answered[q]; seen || containsFold(subs, q) {
-				continue
-			}
-			if len(subs) >= maxSubs+maxQueries {
-				break
-			}
-			subs = append(subs, q)
-			added++
-		}
-		pg.detail(fmt.Sprintf("%d gap(s), %d new subquestion(s); searching again", len(gaps.Missing), added))
-		queries = gaps.Queries
-	}
-
-	findings := ordered(subs, answered)
-	if len(findings) == 0 {
-		return nil, fmt.Errorf("no findings produced for %q", question)
-	}
-
-	sources := pool.cited()
-
-	var (
-		md   string
-		deep *Deep
-	)
-	if p.deep {
-		deep, md, err = buildDossier(ctx, client, question, findings, pool, budget, workers, asOf, pg)
-	} else {
-		pg.stage("writing the report")
-		md, err = synthesize(ctx, client, question, findings, sources, asOf)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	// Only sources the report actually cites belong in the reference list; a
-	// page that was read and found irrelevant is not a reference.
-	md, used := rewriteCitations(md, sources)
-
-	if deep != nil {
-		deep.Queries = allQueries
-		deep.Findings = findingNotes(findings)
-		deep.Scanned = scannedPages(pool, used)
-		// The run-state appendices are appended after renumbering: they carry
-		// URLs and counts, never citation markers, so nothing in them depends
-		// on the ids the rewrite just changed.
-		md += SearchLog(deep.Queries) + ScanLog(deep.Scanned)
-		// Sections are re-cut from the assembled body rather than kept as
-		// written, because the citation rewrite edited that body.
-		deep.Sections = splitSections(md)
-		deep.Summary = stripToProse(firstSection(md))
-	}
-
-	return &Report{
-		Question: question,
-		Markdown: md,
-		Sources:  used,
-		Rounds:   roundsRun,
-		Searched: searched,
-		Fetched:  len(sources),
-		Elapsed:  time.Since(started),
-		// Recomputed from the findings that ended up in the report, not
-		// latched the first time a gap appeared: a run whose second round
-		// closed its gaps is complete, and saying otherwise trains the reader
-		// to ignore the warning.
-		Incomplete: anyLowConfidence(findings),
-		Warnings:   warnings,
-		Deep:       deep,
-	}, nil
+	return e.execute(ctx)
 }
 
 // pending returns the subquestions a round still has to work on: the unasked
@@ -644,6 +476,13 @@ func (r *Report) Render() string {
 		r.Searched, plural(r.Searched, "y", "ies"),
 		r.Fetched, plural(r.Fetched, "", "s"),
 		len(r.Sources), r.Elapsed.Round(time.Second))
+	if r.Path != "" {
+		if r.Escalated {
+			fmt.Fprintf(&b, "Execution path: %s (promoted from the fast path mid-run).\n", r.Path)
+		} else {
+			fmt.Fprintf(&b, "Execution path: %s.\n", r.Path)
+		}
+	}
 	if r.Incomplete {
 		b.WriteString("Some subquestions remained thinly evidenced when the run ended.\n")
 	}

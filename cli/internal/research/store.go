@@ -27,9 +27,39 @@ type SavedReport struct {
 	Searched   int           `json:"searched"`
 	Fetched    int           `json:"fetched"`
 	Incomplete bool          `json:"incomplete"`
+	Warnings   []string      `json:"warnings,omitempty"`
+	// Deep is the long-form dossier, when the run produced one. It is stored
+	// so a saved run can be re-rendered later — exporting a PDF a week after
+	// the research ran must produce the same document, not a summary of it.
+	Deep *Deep `json:"deep,omitempty"`
+	// Provenance records what produced this report. It is stored rather than
+	// re-read at export time because the signature on an exported document has
+	// to name the model that did the work, not whichever model is configured
+	// when somebody presses Export.
+	Provenance Provenance `json:"provenance,omitempty"`
+	// Path is the execution path that produced the report: "fast" or "deep".
+	Path string `json:"path,omitempty"`
+	// RunID names the run directory under ~/.kaioken/runs for the trace.
+	RunID string `json:"run_id,omitempty"`
+	// Escalated records a fast→deep promotion happening mid-run.
+	Escalated bool `json:"escalated,omitempty"`
+	// EscalatedFrom names the path the run was promoted out of ("fast"),
+	// empty when no promotion happened.
+	EscalatedFrom string `json:"escalated_from,omitempty"`
+	// Cost is the line-itemised meter for the whole run.
+	Cost Cost `json:"cost,omitempty"`
+	// Grounding is the citation pass's verdict, when the pass ran.
+	Grounding *Grounding `json:"grounding,omitempty"`
 	// ReportPath is the repo-relative path of the rendered markdown.
 	ReportPath string    `json:"report_path,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+
+// Provenance is what a report cannot know about itself.
+type Provenance struct {
+	Model          string `json:"model,omitempty"`
+	SearchProvider string `json:"search_provider,omitempty"`
+	Multiplier     int    `json:"multiplier,omitempty"`
 }
 
 // SavedSource mirrors Source with the wire-format field names the desktop's
@@ -84,7 +114,7 @@ func validSlug(s string) bool {
 // Save persists rep as <slug>.json in dir, creating dir if needed. A rerun
 // of the same question overwrites its predecessor — the newest answer is the
 // one the user meant to keep.
-func Save(dir string, rep *Report, reportPath string) (*SavedReport, error) {
+func Save(dir string, rep *Report, reportPath string, prov Provenance) (*SavedReport, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
@@ -101,6 +131,15 @@ func Save(dir string, rep *Report, reportPath string) (*SavedReport, error) {
 		Searched:   rep.Searched,
 		Fetched:    rep.Fetched,
 		Incomplete: rep.Incomplete,
+		Warnings:   rep.Warnings,
+		Deep:       rep.Deep,
+		Provenance: prov,
+		Path:       rep.Path,
+		RunID:      rep.RunID,
+		Escalated:  rep.Escalated,
+		EscalatedFrom: rep.EscalatedFrom,
+		Cost:       rep.Cost,
+		Grounding:  rep.Grounding,
 		ReportPath: reportPath,
 		CreatedAt:  time.Now().UTC(),
 	}
@@ -131,7 +170,10 @@ func List(dir string) []*SavedReport {
 		if err != nil {
 			continue
 		}
+		// The dossier goes too: a listing needs questions and counters, and a
+		// deep run's Deep block carries every chapter and every page reached.
 		saved.Markdown = ""
+		saved.Deep = nil
 		out = append(out, saved)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
@@ -165,8 +207,9 @@ func Delete(dir, slug string) error {
 	if err := os.Remove(filepath.Join(dir, slug+".json")); err != nil {
 		return err
 	}
-	// The markdown may have been renamed or written elsewhere via -out;
-	// its absence is not an error.
+	// The rendered twins may have been renamed or written elsewhere via -out;
+	// their absence is not an error.
 	_ = os.Remove(filepath.Join(dir, slug+".md"))
+	_ = os.Remove(filepath.Join(dir, slug+".pdf"))
 	return nil
 }

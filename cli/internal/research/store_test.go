@@ -20,7 +20,7 @@ func TestStoreRoundTrip(t *testing.T) {
 		Incomplete: true,
 	}
 
-	saved, err := Save(dir, rep, ".kaioken/research/is-solar-cheaper-than-nuclear.md")
+	saved, err := Save(dir, rep, ".kaioken/research/is-solar-cheaper-than-nuclear.md", Provenance{})
 	if err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestStoreRoundTrip(t *testing.T) {
 
 func TestStoreListNewestFirst(t *testing.T) {
 	dir := t.TempDir()
-	older, err := Save(dir, &Report{Question: "first question"}, "")
+	older, err := Save(dir, &Report{Question: "first question"}, "", Provenance{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestStoreListNewestFirst(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, older.Slug+".json"), data, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Save(dir, &Report{Question: "second question"}, ""); err != nil {
+	if _, err := Save(dir, &Report{Question: "second question"}, "", Provenance{}); err != nil {
 		t.Fatal(err)
 	}
 

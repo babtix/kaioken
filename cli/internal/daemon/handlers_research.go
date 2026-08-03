@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 
 	"kaioken/internal/config"
+	"kaioken/internal/reportpdf"
 	"kaioken/internal/research"
+	"kaioken/internal/version"
 )
 
 // --- Research history ---
@@ -47,6 +49,51 @@ func (s *Server) handleGetResearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, saved)
+}
+
+// POST /v1/workspaces/{id}/research/{slug}/export
+//
+// Renders a saved report as a signed PDF beside its Markdown twin and returns
+// where it landed. The daemon does the rendering rather than the client because
+// it already has the workspace on disk and the fonts, and because the signature
+// has to be produced by the same code that produced the research — a PDF built
+// in the renderer of whatever app happens to be open is not the same artifact.
+func (s *Server) handleExportResearch(w http.ResponseWriter, r *http.Request) {
+	ws := s.workspaceFromRequest(w, r)
+	if ws == nil {
+		return
+	}
+	slug := r.PathValue("slug")
+	dir := researchDir(ws)
+	saved, err := research.Load(dir, slug)
+	if err != nil {
+		writeError(w, http.StatusNotFound, codeNotFound, "no saved research with that slug", "")
+		return
+	}
+
+	// Load returns the slug validated, so this join cannot escape the
+	// workspace's research directory.
+	abs := filepath.Join(dir, saved.Slug+".pdf")
+	pages, err := reportpdf.WriteSavedFile(saved, reportpdf.Meta{
+		Tool: "kaioken", Version: version.Version,
+	}, abs)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, "could not render the PDF", err.Error())
+		return
+	}
+
+	rel := filepath.ToSlash(filepath.Join(config.Dir, "research", saved.Slug+".pdf"))
+	var size int64
+	if fi, statErr := os.Stat(abs); statErr == nil {
+		size = fi.Size()
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"path":  filepath.ToSlash(abs),
+		"rel":   rel,
+		"pages": pages,
+		"bytes": size,
+		"deep":  saved.Deep != nil,
+	})
 }
 
 // DELETE /v1/workspaces/{id}/research/{slug}

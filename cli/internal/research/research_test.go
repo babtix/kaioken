@@ -12,10 +12,19 @@ import (
 	"testing"
 	"time"
 
+	"kaioken/internal/config"
 	"kaioken/internal/llm"
 	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
 )
+
+// pinHome points the global config — and therefore the run-state
+// directories — at a throwaway location, so exercising the engine never
+// writes into the developer's real ~/.kaioken.
+func pinHome(t *testing.T) {
+	t.Helper()
+	t.Setenv(config.HomeEnv, t.TempDir())
+}
 
 // ------------------------------------------------------------------ doubles
 
@@ -170,6 +179,12 @@ func (s *scriptedLLM) sawPromptContaining(sub string) bool {
 	return false
 }
 
+func (s *scriptedLLM) chaptersWritten() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.chapters...)
+}
+
 func (s *scriptedLLM) asksFor(sub string) int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -188,8 +203,7 @@ func subjectOf(user string) string {
 	if !ok {
 		return ""
 	}
-	line, _, _ := strings.Cut(rest, "
-")
+	line, _, _ := strings.Cut(rest, "\n")
 	return strings.TrimSpace(line)
 }
 
@@ -215,6 +229,7 @@ func newTestClient(t *testing.T, baseURL string) *llm.Client {
 }
 
 func TestRunCompletesLoopAndCitesOnlyFetchedPages(t *testing.T) {
+	pinHome(t)
 	script := &scriptedLLM{}
 	srv := script.server(t)
 	defer srv.Close()
@@ -280,6 +295,7 @@ func (f *fakeSearch) sawSecondRoundQuery() bool {
 // only re-asking the original subquestions is how a run ends up reporting that
 // nobody supplied a figure whose source is sitting in its own corpus.
 func TestRunAnswersTheGapsItFinds(t *testing.T) {
+	pinHome(t)
 	script := &scriptedLLM{}
 	srv := script.server(t)
 	defer srv.Close()
@@ -315,6 +331,7 @@ func TestRunAnswersTheGapsItFinds(t *testing.T) {
 
 // A subquestion that came back solid must not be paid for again every round.
 func TestRunDoesNotRepeatSettledSubquestions(t *testing.T) {
+	pinHome(t)
 	script := &scriptedLLM{highFor: "solar"}
 	srv := script.server(t)
 	defer srv.Close()
@@ -345,6 +362,7 @@ func TestRunDoesNotRepeatSettledSubquestions(t *testing.T) {
 // A run whose later round closed its gaps is complete. Latching the flag the
 // first time a gap appeared trains the reader to ignore the warning.
 func TestRunDoesNotLatchIncomplete(t *testing.T) {
+	pinHome(t)
 	script := &scriptedLLM{highFor: "*"}
 	srv := script.server(t)
 	defer srv.Close()
@@ -370,6 +388,7 @@ func TestRunDoesNotLatchIncomplete(t *testing.T) {
 // The model's sense of "now" is its training cutoff. Every stage that judges
 // recency has to be told the actual date.
 func TestRunTellsTheModelTheDate(t *testing.T) {
+	pinHome(t)
 	script := &scriptedLLM{}
 	srv := script.server(t)
 	defer srv.Close()
@@ -399,6 +418,7 @@ func TestRunRejectsEmptyQuestion(t *testing.T) {
 }
 
 func TestRunFailsWhenNothingIsReadable(t *testing.T) {
+	pinHome(t)
 	script := &scriptedLLM{}
 	srv := script.server(t)
 	defer srv.Close()
@@ -416,6 +436,7 @@ func TestRunFailsWhenNothingIsReadable(t *testing.T) {
 // A search backend that is entirely down in round one is fatal; there is
 // nothing to report on.
 func TestRunFailsWhenEverySearchFails(t *testing.T) {
+	pinHome(t)
 	script := &scriptedLLM{}
 	srv := script.server(t)
 	defer srv.Close()

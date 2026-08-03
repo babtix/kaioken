@@ -55,6 +55,9 @@ func (m Model) startResearch(rest string) (tea.Model, tea.Cmd) {
 		Multiplier:  mult,
 		MaxRounds:   global.Research.MaxRounds,
 		MaxDuration: global.Research.ResearchTimeout(),
+		Mode:        global.Research.Mode,
+		Verify:      global.Research.Verify,
+		Repo:        m.repo,
 	}
 	// Same rule as the CLI and daemon: Firecrawl in the active search set
 	// means its scrape API reads the pages too, with the built-in fetcher
@@ -100,7 +103,10 @@ func (m Model) startResearch(rest string) (tea.Model, tea.Cmd) {
 			return
 		}
 		rel := filepath.ToSlash(filepath.Join(config.Dir, "research", research.Slug(question)+".md"))
-		if _, err := research.Save(dir, rep, rel); err != nil {
+		prov := research.Provenance{
+			Model: client.Model, SearchProvider: provider.Name(), Multiplier: mult,
+		}
+		if _, err := research.Save(dir, rep, rel, prov); err != nil {
 			ch <- logMsg{warnStyle.Render("  could not save research history: " + err.Error())}
 		}
 

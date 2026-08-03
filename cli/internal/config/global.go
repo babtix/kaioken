@@ -61,6 +61,21 @@ type Research struct {
 	// means no limit. Rounds are only ever abandoned between stages, so the
 	// report is still written and still cited.
 	MaxMinutes int `yaml:"max_minutes,omitempty"`
+	// Mode picks the execution path: "auto" lets the triage router decide
+	// per question, "fast" pins the single-loop path, "deep" pins the
+	// multi-agent path. Empty means auto.
+	Mode string `yaml:"mode,omitempty"`
+	// Verify turns on opt-in cross-path verification: high-stakes claims get
+	// an independently-run second check and the agreement is reported.
+	Verify bool `yaml:"verify,omitempty"`
+	// MaxCostUSD caps a run's model spend. Zero applies the preset's own
+	// ceiling. A run that reaches it reports what it has rather than failing.
+	MaxCostUSD float64 `yaml:"max_cost_usd,omitempty"`
+	// Models maps a research role (router, scope, plan, supervisor, worker,
+	// compress, write, cite) to the model that runs it. An empty or missing
+	// entry uses the configured default model; setting only "compress" is a
+	// valid cascade of one.
+	Models map[string]string `yaml:"models,omitempty"`
 }
 
 // ResearchTimeout is the run duration MaxMinutes describes, or zero when the

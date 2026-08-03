@@ -170,6 +170,14 @@ type Model struct {
 	// budget shares the client's lifetime: it watches the client's cumulative
 	// spend, so both reset together on a /model or /provider switch.
 	budget *agent.BudgetGuard
+	// ctxTracker holds the provider's own measurement of the conversation's
+	// size, which is what compaction decides on. It outlives the per-turn
+	// Agent, and resets alongside the client — a different model tokenizes
+	// differently, so a measurement taken under the old one means nothing.
+	ctxTracker *agent.ContextTracker
+	// dirNotes remembers which nested AGENTS.md files have been delivered, so a
+	// package's rules are stated once per session rather than on every read.
+	dirNotes *agent.DirNotes
 
 	conversation []llm.Message
 	autoApprove  bool
@@ -342,6 +350,9 @@ func (m *Model) resetConversation() {
 	}}
 	m.sess = session.New(m.cfg.Model, m.cfg.Provider)
 	m.sess.Mode = string(m.agentMode)
+	// Directory rules are delivered once per conversation, so a new
+	// conversation starts owing all of them again.
+	m.dirNotes = agent.NewDirNotes()
 }
 
 // saveSession persists the conversation after a completed turn. Failures are
@@ -1148,11 +1159,14 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 		Mode:            m.agentMode,
 		MemoryDisabled:  m.cfg.Memory.Disable,
 		Budget:          m.budget,
+		Context:         m.ctxTracker,
+		Notes:           m.dirNotes,
 	}
 	conv := m.conversation
 	ch := m.events
 	m.runningAgent = ag
 	client, model, ceiling := m.client, m.cfg.Model, m.cfg.MaxTokens
+	tracker := m.ctxTracker
 	go func() {
 		// Shrink the context before the turn rather than after a provider
 		// rejects it. Overflow is not recoverable in place: by the time the
@@ -1163,13 +1177,13 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 		// Two steps, cheapest first. Pruning erases the bodies of stale tool
 		// results for free and keeps the whole conversation; summarizing costs
 		// a model call and replaces it. Most turns never need the second.
-		if need, used := agent.ShouldCompact(conv, model, ceiling); need && agent.CompactionEnabled() {
+		if need, used := agent.ShouldCompact(tracker, conv, model, ceiling); need && agent.CompactionEnabled() {
 			if pruned, freed, note := agent.Prune(conv, model, ceiling); freed > 0 {
 				conv = pruned
 				ch <- compactedMsg{history: pruned, note: note, auto: true}
 				used -= freed
 			}
-			if still, _ := agent.ShouldCompact(conv, model, ceiling); still {
+			if still, _ := agent.ShouldCompact(tracker, conv, model, ceiling); still {
 				ch <- busyMsg{true, "compacting context"}
 				compacted, note, err := agent.Compact(ctx, client, conv, model, ceiling)
 				if err == nil {
@@ -2634,6 +2648,9 @@ func (m *Model) rebuildClient() string {
 	m.client = c
 	// A new client starts a new spend meter, so the guard restarts with it.
 	m.budget = agent.NewBudgetGuard(m.cfg.Budget.WarnAt, m.cfg.Budget.HardStop)
+	// Likewise the context measurement: token counts are per-tokenizer, so a
+	// figure measured under the previous model does not describe this one.
+	m.ctxTracker = &agent.ContextTracker{}
 	return ""
 }
 

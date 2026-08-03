@@ -385,6 +385,12 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 				MaxRounds:   global.Research.MaxRounds,
 				MaxDuration: global.Research.ResearchTimeout(),
 				Concurrency: limit,
+				Mode:        stringParam(params, "mode"),
+				Verify:      boolParam(params, "verify") || global.Research.Verify,
+				Repo:        repo,
+			}
+			if opts.Mode == "" {
+				opts.Mode = global.Research.Mode
 			}
 			// Firecrawl in the active search set means its scrape API reads
 			// the pages too (with the built-in fetcher as per-URL fallback).
@@ -427,7 +433,10 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 						r.AddArtifact(rel, lines, "research_report")
 						s.hub.RunArtifact(ws.ID, r.ID, rel, lines, "research_report")
 					}
-					if _, err := research.Save(filepath.Dir(abs), rep, rel); err != nil {
+					prov := research.Provenance{
+						Model: client.Model, SearchProvider: provider.Name(), Multiplier: multiplier,
+					}
+					if _, err := research.Save(filepath.Dir(abs), rep, rel, prov); err != nil {
 						s.hub.RunLog(ws.ID, r.ID, "error", "saving research history: "+err.Error())
 					}
 					// A deep run's real artifact is the signed dossier. It is
@@ -464,11 +473,28 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 				"searched":    rep.Searched,
 				"fetched":     rep.Fetched,
 				"incomplete":  rep.Incomplete,
+				"warnings":    rep.Warnings,
+				"deep":        rep.Deep != nil,
 				"report_path": rel,
 				"slug":        slug,
 				"providers":   provider.Name(),
 				"calls":       calls,
 				"tokens":      promptToks + completionToks,
+				// The hybrid engine's metadata: which path ran, whether it was
+				// promoted mid-run, the line-itemised meter, and the grounding
+				// pass's verdict — the answer surface shows all four.
+				"path":          rep.Path,
+				"run_id":        rep.RunID,
+				"escalated":     rep.Escalated,
+				"escalated_from": rep.EscalatedFrom,
+				"cost":          rep.Cost,
+			}
+			if rep.Grounding != nil {
+				r.finishSummary["grounding"] = map[string]any{
+					"checked":    rep.Grounding.Checked,
+					"rate":       rep.Grounding.Rate(),
+					"ungrounded": len(rep.Grounding.Ungrounded),
+				}
 			}
 			return nil
 		}, nil

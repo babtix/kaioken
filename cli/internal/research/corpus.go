@@ -223,6 +223,39 @@ func (c *corpus) addPages(pages []*webfetch.Page) {
 	}
 }
 
+// addDocs registers documents the shared store already holds — the deep
+// path's fetches and the fast path's corpus on an escalation — giving each
+// a citation number and chunking it for evidence selection. Documents the
+// corpus knows already are skipped, so seeding a promoted run costs nothing.
+func (c *corpus) addDocs(docs []Document) {
+	for _, d := range docs {
+		norm := canonicalID(d.ID)
+		if _, seen := c.byURL[norm]; seen {
+			continue
+		}
+		if d.Origin == OriginWeb && webfetch.ValidateURL(d.ID) != nil {
+			continue
+		}
+		src := Source{
+			N: len(c.sources) + 1, URL: d.ID, Title: d.Title,
+			Rank: 1 << 20, Tier: hostTier(hostOf(d.ID)), Fetched: true,
+		}
+		c.sources = append(c.sources, src)
+		c.byURL[norm] = len(c.sources) - 1
+		c.chunks = append(c.chunks, chunkText(src.N, d.Content)...)
+	}
+}
+
+// numberForID returns the citation number of the source holding id,
+// bridging the store's documents and the corpus's citation numbers.
+func (c *corpus) numberForID(id string) (int, bool) {
+	idx, ok := c.byURL[canonicalID(id)]
+	if !ok {
+		return 0, false
+	}
+	return c.sources[idx].N, true
+}
+
 // pageRanks maps citation number → best search rank, for fusion.
 func (c *corpus) pageRanks() map[int]int {
 	m := make(map[int]int, len(c.sources))

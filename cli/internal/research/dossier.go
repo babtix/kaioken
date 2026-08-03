@@ -3,7 +3,6 @@ package research
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
@@ -27,15 +26,19 @@ import (
 
 // dossierTargetWords is the floor the body aims for. Twelve A4 pages of body
 // text at this renderer's measure is roughly 5,400 words; the target is set
-// well above it so that the guarantee survives a run that finds less than it
-// hoped, and so the appendices are never doing the work of reaching it.
-const dossierTargetWords = 7000
+// well above the *page* floor (see reportpdf) so the guarantee survives a run
+// that finds less evidence than it hoped, and so the appendices are never
+// doing the work of reaching it. At this floor a run that hits it produces a
+// document in the 25-35 page range from its body alone, before the source
+// register and appendices add their own pages — this is the "massive" mode,
+// not a bigger version of the four-section report.
+const dossierTargetWords = 12000
 
 // Section counts. Enough sections that each can be written well inside a
 // model's output budget, few enough that the document has a shape.
 const (
 	minSections = 8
-	maxSections = 14
+	maxSections = 16
 )
 
 // sectionPlan is one chapter as the outline step described it.
@@ -95,25 +98,30 @@ func buildDossier(ctx context.Context, client *llm.Client, question string, find
 func outlineDossier(ctx context.Context, client *llm.Client, question string,
 	findings []finding, asOf string) ([]sectionPlan, error) {
 
-	system := `You plan the structure of a long research report. You are given a
-question and the findings a research pipeline gathered for it. Produce the
-chapter outline for a report of 20 to 40 pages.
+	system := `You plan the structure of a long research report — an exhaustive
+one, the kind that leaves nothing unexamined. You are given a question and the
+findings a research pipeline gathered for it. Each chapter you plan will be
+written at 1200 to 1800 words on its own, so plan for a substantial document,
+not a brief one: cover the question from every angle the evidence supports.
 
 A good outline for this is not a list of the subquestions. It is the shape an
 analyst would give the material: establish what is being measured and how,
-work through each dimension of the evidence, confront the places sources
-disagree, then say what follows and what would change the conclusion.
+work through each dimension of the evidence in its own depth, confront the
+places sources disagree, examine the mechanisms and context behind the
+figures — not only the figures themselves — then say what follows and what
+would change the conclusion.
 
 Every chapter must be answerable from the findings. Do not plan a chapter on
 material nobody gathered — plan a chapter on what is missing instead, and say
-so there.
+so there. Prefer more chapters over thin ones: where a dimension of the
+evidence could support two focused chapters instead of one broad one, plan two.
 
 For each chapter give:
   - "title": a specific noun phrase, not a generic label. "What drives the cost
     gap" beats "Analysis".
   - "brief": one or two sentences saying exactly what that chapter must
     establish, in enough detail that a writer who saw only the brief and the
-    evidence could write it.
+    evidence could write 1200+ words without padding.
 
 Reply with ONLY a JSON object:
 {"sections": [{"title": "...", "brief": "..."}]}`
@@ -240,9 +248,12 @@ func writeSection(ctx context.Context, client *llm.Client, question string, p se
 pages and from findings a research pipeline already established.
 ` + untrustedRules + `
 
-Write 700 to 1000 words of Markdown. Use ### subheadings to break it up, and
-bullet lists where the material is genuinely a list — not to avoid writing
-prose.
+Write 1200 to 1800 words of Markdown — this is a chapter of a long, thorough
+report, not a summary paragraph. Use ### subheadings to break it into named
+parts, and cover the topic from more than one angle: what the figures are, what
+explains them, where they come from, what qualifies them, what follows from
+them. A chapter that only states a number and moves on is too short regardless
+of word count.
 
 Rules:
 - Write only this chapter. Do not introduce the report, do not summarise it,
@@ -256,9 +267,12 @@ Rules:
   Say when a figure comes from a party with an interest in it.
 - Where sources disagree, set out the disagreement and its likely cause rather
   than picking a side silently.
-- Never state a figure no source provided, and never pad. If this chapter's
-  material runs to 700 words and no further, write 700 good words and stop.
-  Repetition is more damaging to a long report than brevity.`
+- Never state a figure no source provided, and never pad to hit the length.
+  If this chapter's material genuinely runs out before 1200 words, stop there
+  — repetition is more damaging to a long report than brevity — but exhaust
+  what the evidence actually supports first: a second angle on the same
+  figures, the mechanism behind them, a qualification, before concluding
+  there is nothing more to say.`
 
 	user := fmt.Sprintf("%sReport question: %s\n\nThis chapter: %s\nIt must establish: %s\n\n"+
 		"Findings already established:\n%s\n\nSource passages:\n%s",
@@ -271,8 +285,11 @@ Rules:
 	return stripEchoedTitle(strings.TrimSpace(md), p.Title), nil
 }
 
-// expandSections deepens the thinnest chapters when the body came in under its
-// target. Failures here are tolerated: a shorter dossier is a far better
+// expandSections deepens every chapter when the body as a whole came in under
+// its target — not just the thinnest ones. "Detailed at every point" is the
+// point of the deep mode: a document where nine chapters are thorough and one
+// is a paragraph reads as unfinished, however good the average looks.
+// Failures here are tolerated per chapter: a shorter dossier is a far better
 // outcome than a failed one, and the caller has already checked the floor.
 func expandSections(ctx context.Context, client *llm.Client, question string, plans []sectionPlan,
 	bodies []string, pool *corpus, budget, workers int, asOf string) {
@@ -282,26 +299,22 @@ func expandSections(ctx context.Context, client *llm.Client, question string, pl
 	const fenceOverhead = 150
 	topK := clampInt(budget/(childChars+fenceOverhead), 4, 64)
 
-	// Order chapters by how far short they fell, and expand the worst half.
 	idx := make([]int, len(bodies))
 	for i := range idx {
 		idx[i] = i
 	}
-	sort.SliceStable(idx, func(a, b int) bool {
-		return len(strings.Fields(bodies[idx[a]])) < len(strings.Fields(bodies[idx[b]]))
-	})
-	if len(idx) > 1 {
-		idx = idx[:(len(idx)+1)/2]
-	}
 
-	system := `You deepen one chapter of a research report that came back thinner
-than it should be.
+	system := `You deepen one chapter of a research report that, taken as a
+whole, came back thinner than it should be.
 ` + untrustedRules + `
 
 Return the WHOLE chapter rewritten, not an addition to it. Keep everything that
 is already there and add the material the evidence supports but the draft left
 out: the figures behind a general statement, the mechanism behind a claim, the
-qualifications on a comparison, the sources that disagree.
+qualifications on a comparison, the sources that disagree, a dimension of the
+topic the draft did not reach. Aim for 1200 to 1800 words once expanded — the
+same target the first draft was written against — but let the evidence be the
+ceiling, not the word count.
 
 Do not pad. Do not restate a point in different words to reach a length. If the
 evidence genuinely supports no more than what is written, return it unchanged.
@@ -459,10 +472,11 @@ func (d *Deep) Appendices() []DeepSection {
 	return out
 }
 
-// splitSections cuts an assembled body back into its chapters, so the PDF can
-// give each one its own page and contents entry. The body is re-cut rather than
-// kept as written because citation renumbering rewrites it after assembly.
-func splitSections(md string) []DeepSection {
+// SplitSections cuts a Markdown body into its "## " sections, so a renderer can
+// give each one its own page and contents entry. A dossier body is re-cut this
+// way rather than kept as written because citation renumbering rewrites it
+// after assembly; an ordinary report is cut the same way when it is exported.
+func SplitSections(md string) []DeepSection {
 	var out []DeepSection
 	var cur *DeepSection
 	for _, line := range strings.Split(md, "\n") {
@@ -484,7 +498,7 @@ func splitSections(md string) []DeepSection {
 // firstSection returns the body of the first "## " chapter, which is the short
 // answer.
 func firstSection(md string) string {
-	secs := splitSections(md)
+	secs := SplitSections(md)
 	if len(secs) == 0 {
 		return ""
 	}

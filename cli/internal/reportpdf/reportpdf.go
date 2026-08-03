@@ -31,18 +31,70 @@ type Meta struct {
 
 // Write renders rep as a PDF and returns the page count.
 //
-// It refuses a report that has no dossier. A four-section answer laid out on
-// A4 is a worse artifact than the Markdown it came from — the PDF exists for
-// the deep mode, where the document is the point.
+// Both shapes render. A deep run becomes the full dossier — chapters, source
+// register, appendices. An ordinary run becomes the same document in miniature:
+// the four sections it has, its sources, its caveats, the same cover and the
+// same signature. The layout does not need a dossier to be worth having; what
+// it needs is that an exported file be self-contained and traceable, which is
+// as true of a two-page answer as of a thirty-page one.
 func Write(rep *research.Report, meta Meta, w io.Writer) (int, error) {
 	if rep == nil {
 		return 0, fmt.Errorf("no report to render")
 	}
-	if rep.Deep == nil {
-		return 0, fmt.Errorf("this report has no dossier; PDF output is produced by deep research (×%d or -deep)",
-			research.DeepMultiplier)
+	if rep.Deep == nil && strings.TrimSpace(rep.Markdown) == "" {
+		return 0, fmt.Errorf("this report is empty; there is nothing to export")
 	}
 	return pdf.Render(document(rep, meta), w)
+}
+
+// WriteSaved renders a report loaded from the store. Provenance recorded at
+// research time wins over anything the caller supplies: the signature has to
+// name the model that did the work, not whichever one is configured when
+// somebody presses Export weeks later.
+func WriteSaved(saved *research.SavedReport, meta Meta, w io.Writer) (int, error) {
+	if saved == nil {
+		return 0, fmt.Errorf("no saved report to render")
+	}
+	return Write(fromSaved(saved), mergeProvenance(meta, saved.Provenance), w)
+}
+
+// WriteSavedFile renders a saved report to path.
+func WriteSavedFile(saved *research.SavedReport, meta Meta, path string) (int, error) {
+	if saved == nil {
+		return 0, fmt.Errorf("no saved report to render")
+	}
+	return WriteFile(fromSaved(saved), mergeProvenance(meta, saved.Provenance), path)
+}
+
+// fromSaved reconstructs the in-memory report the renderer works from.
+func fromSaved(s *research.SavedReport) *research.Report {
+	rep := &research.Report{
+		Question:   s.Question,
+		Markdown:   s.Markdown,
+		Rounds:     s.Rounds,
+		Searched:   s.Searched,
+		Fetched:    s.Fetched,
+		Incomplete: s.Incomplete,
+		Warnings:   s.Warnings,
+		Deep:       s.Deep,
+	}
+	for _, src := range s.Sources {
+		rep.Sources = append(rep.Sources, research.Source{N: src.N, URL: src.URL, Title: src.Title})
+	}
+	return rep
+}
+
+func mergeProvenance(m Meta, p research.Provenance) Meta {
+	if p.Model != "" {
+		m.Model = p.Model
+	}
+	if p.SearchProvider != "" {
+		m.Provider = p.SearchProvider
+	}
+	if p.Multiplier > 0 {
+		m.Multiplier = p.Multiplier
+	}
+	return m
 }
 
 // WriteFile renders rep to path, creating the directory if needed.
@@ -73,12 +125,25 @@ func document(rep *research.Report, meta Meta) *pdf.Document {
 		tool = "kaioken"
 	}
 
+	// A deep run carries its own sections and summary; an ordinary one is cut
+	// from the Markdown it already has, which has the same "## " shape.
+	sections := research.SplitSections(rep.Markdown)
+	summary := shortAnswerOf(sections)
+	reached := rep.Fetched
+	depth := fmt.Sprintf("×%d research", meta.Multiplier)
+	if rep.Deep != nil {
+		sections = rep.Deep.Sections
+		summary = rep.Deep.Summary
+		reached = len(rep.Deep.Scanned)
+		depth = fmt.Sprintf("×%d deep research", meta.Multiplier)
+	}
+
 	doc := &pdf.Document{
 		Title:   rep.Question,
-		Summary: rep.Deep.Summary,
+		Summary: summary,
 		Meta: []pdf.Field{
-			{Label: "Depth", Value: fmt.Sprintf("×%d deep research", meta.Multiplier)},
-			{Label: "Pages read", Value: fmt.Sprintf("%d of %d reached", rep.Fetched, len(rep.Deep.Scanned))},
+			{Label: "Depth", Value: depth},
+			{Label: "Pages read", Value: fmt.Sprintf("%d of %d reached", rep.Fetched, reached)},
 			{Label: "Search queries", Value: fmt.Sprintf("%d over %d round%s",
 				rep.Searched, rep.Rounds, plural(rep.Rounds))},
 			{Label: "Sources cited", Value: fmt.Sprintf("%d", len(rep.Sources))},
@@ -97,19 +162,23 @@ func document(rep *research.Report, meta Meta) *pdf.Document {
 		},
 	}
 
-	for _, s := range rep.Deep.Chapters() {
+	for _, s := range sections {
 		// The short answer is on the cover; repeating it as chapter one wastes
 		// the reader's first page.
-		if strings.EqualFold(strings.TrimSpace(s.Title), "Short answer") {
+		if isShortAnswer(s.Title) {
+			continue
+		}
+		if strings.HasPrefix(s.Title, "Appendix ") {
+			doc.Appendices = append(doc.Appendices, pdf.Section{Title: s.Title, Markdown: s.Markdown})
 			continue
 		}
 		doc.Sections = append(doc.Sections, pdf.Section{Title: s.Title, Markdown: s.Markdown})
 	}
-	for _, s := range rep.Deep.Appendices() {
-		doc.Appendices = append(doc.Appendices, pdf.Section{Title: s.Title, Markdown: s.Markdown})
-	}
 
-	tier := tierNotes(rep.Deep.Scanned)
+	var tier map[string]string
+	if rep.Deep != nil {
+		tier = tierNotes(rep.Deep.Scanned)
+	}
 	for _, s := range rep.Sources {
 		doc.Sources = append(doc.Sources, pdf.Source{
 			N: s.N, Title: s.Title, URL: s.URL, Note: tier[s.URL],
@@ -150,6 +219,27 @@ func tierNotes(scanned []research.ScannedPage) map[string]string {
 		}
 	}
 	return out
+}
+
+// isShortAnswer recognises the opening section under either name the two report
+// shapes give it.
+func isShortAnswer(title string) bool {
+	t := strings.ToLower(strings.TrimSpace(title))
+	return t == "short answer" || t == "answer"
+}
+
+// shortAnswerOf pulls the opening section's prose out of an ordinary report, so
+// the cover can lead with the conclusion the way the dossier does.
+func shortAnswerOf(sections []research.DeepSection) string {
+	for _, s := range sections {
+		if isShortAnswer(s.Title) {
+			if para, _, ok := strings.Cut(strings.TrimSpace(s.Markdown), "\n\n"); ok {
+				return strings.TrimSpace(para)
+			}
+			return strings.TrimSpace(s.Markdown)
+		}
+	}
+	return ""
 }
 
 func orUnknown(s string) string {

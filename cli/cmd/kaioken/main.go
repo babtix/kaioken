@@ -83,10 +83,13 @@ Commands:
   search     Query that index from the terminal (positional: the query)
   review     Review a diff against the repo's documented conventions and
              skills (-base sets the baseline; -out writes the report)
-  research   Answer a question from the open web: plan subquestions, search,
-             read pages, then search again for whatever is still missing, and
-             write a cited report (positional: optional xN multiplier, then
-             the question; -out overrides the report path).
+  research   Answer a question from the open web: a router picks the fast
+             single-loop path or the deep multi-agent path, researches it,
+             grounds the claims against the raw sources, and writes a cited
+             report (positional: optional xN multiplier, then the question;
+             -out overrides the report path). -mode auto|fast|deep pins the
+             path; -resume <run id> continues an interrupted run; -verify
+             cross-checks load-bearing claims independently.
              x10 — or -deep at any multiplier — produces a deep dossier
              instead: up to ~480 pages read over 8 rounds, written as a
              sectioned document with a findings register, a search log and a
@@ -243,6 +246,10 @@ type flags struct {
 	// re-rendering or for a shallower run the user still wants as a document.
 	deep bool
 	pdf  bool
+	// resume reopens an interrupted research run by id; verify turns on
+	// opt-in cross-path checking of load-bearing claims.
+	resume string
+	verify bool
 }
 
 func parseFlags(argv []string) flags {
@@ -278,6 +285,13 @@ func parseFlags(argv []string) flags {
 			f.deep = true
 		case "-pdf", "--pdf":
 			f.pdf = true
+		case "-resume", "--resume":
+			if i+1 < len(argv) {
+				i++
+				f.resume = argv[i]
+			}
+		case "-verify", "--verify":
+			f.verify = true
 		case "-force", "--force":
 			f.force = true
 		case "-full", "--full":
@@ -996,12 +1010,24 @@ func cmdResearch(ctx context.Context, f flags) error {
 	if err != nil {
 		return err
 	}
+	// The cascade's derived role-clients join the spending ledger too: a
+	// run with per-role models configured is a multi-model spend, and the
+	// ledger is the one place the user sees all of it.
+	ledgerProvider := cfg.Provider
+	if ledgerProvider == "" {
+		ledgerProvider = "openrouter"
+	}
+	research.TrackClient = func(c *llm.Client) { trackSpend(c, ledgerProvider) }
 
 	opts := research.Options{
 		Multiplier:  mult,
 		MaxRounds:   global.Research.MaxRounds,
 		MaxDuration: global.Research.ResearchTimeout(),
 		Deep:        f.deep || f.pdf,
+		Mode:        f.mode,
+		Resume:      f.resume,
+		Verify:      f.verify || global.Research.Verify,
+		Repo:        f.repo,
 	}
 	// Same rule as the daemon: Firecrawl in the active search set means its
 	// scrape API reads the pages too, with the built-in fetcher as fallback.
@@ -1014,9 +1040,12 @@ func cmdResearch(ctx context.Context, f flags) error {
 	limit, _ := cfg.EffectiveConcurrency(client.Model)
 	opts.Concurrency = limit
 	deep := mult >= research.DeepMultiplier || opts.Deep
-	fmt.Printf("kaioken ×%d research with %s via %s (concurrency %d) …\n",
-		mult, client.Model, provider.Name(), limit)
+	fmt.Printf("kaioken ×%d research (%s preset) with %s via %s (concurrency %d) …\n",
+		mult, research.PresetName(mult, deep), client.Model, provider.Name(), limit)
 	fmt.Printf("  question: %s\n", question)
+	if f.resume != "" {
+		fmt.Printf("  resuming run %s\n", f.resume)
+	}
 	if deep {
 		// A deep run reads hundreds of pages and makes dozens of model calls.
 		// Saying so before it starts is cheaper than a surprised user
@@ -1053,11 +1082,25 @@ func cmdResearch(ctx context.Context, f flags) error {
 	if relErr != nil || strings.HasPrefix(relOut, "..") {
 		relOut = ""
 	}
-	if _, err := research.Save(filepath.Join(f.repo, config.Dir, "research"), rep, filepath.ToSlash(relOut)); err != nil {
+	prov := research.Provenance{
+		Model: client.Model, SearchProvider: provider.Name(), Multiplier: mult,
+	}
+	if _, err := research.Save(filepath.Join(f.repo, config.Dir, "research"), rep, filepath.ToSlash(relOut), prov); err != nil {
 		fmt.Printf("  warning: could not save research history: %v\n", err)
 	}
 
 	fmt.Printf("\nresearch done in %s → %s\n", time.Since(started).Round(time.Second), out)
+	if rep.RunID != "" {
+		fmt.Printf("  run state: %s (resume with --resume %s)\n",
+			filepath.Join(config.GlobalDir(), "runs", rep.RunID), rep.RunID)
+	}
+	if rep.Path != "" {
+		if rep.Escalated {
+			fmt.Printf("  path: %s (promoted from the fast path mid-run)\n", rep.Path)
+		} else {
+			fmt.Printf("  path: %s\n", rep.Path)
+		}
+	}
 
 	// The dossier's own artifact. The Markdown twin is still written above:
 	// it is what the repo, the desktop history and any diff can read.
@@ -1083,12 +1126,20 @@ func cmdResearch(ctx context.Context, f flags) error {
 	for _, w := range rep.Warnings {
 		fmt.Println("  note: " + w)
 	}
-	calls, promptToks, completionToks := client.Usage()
-	fmt.Printf("  %d model calls, %d prompt + %d completion tokens", calls, promptToks, completionToks)
-	if usd, known := client.CostUSD(); known {
-		fmt.Printf(", $%.4f", usd)
+	// The line-itemised meter: one price, computed the same way, whichever
+	// path ran — searches and fetches alongside the token classes, with the
+	// reasoning column that dominates a research run shown of its own.
+	cost := rep.Cost
+	estimate := ""
+	if !cost.Exact {
+		estimate = " (estimated)"
 	}
-	fmt.Println()
+	fmt.Printf("  cost%s: %d searches, %d fetches, %d in + %d out + %d reasoning tokens, $%.4f\n",
+		estimate, cost.Searches, cost.Fetches,
+		cost.InputTokens, cost.OutputTokens, cost.ReasoningTokens, cost.USD)
+	calls, promptToks, completionToks := client.Usage()
+	fmt.Printf("  primary model: %d calls, %d prompt + %d completion tokens\n",
+		calls, promptToks, completionToks)
 	return nil
 }
 

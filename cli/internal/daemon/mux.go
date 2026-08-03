@@ -80,6 +80,7 @@ func newMux(s *Server) http.Handler {
 	// Research history — saved deep-search reports
 	router.HandleFunc("GET /v1/workspaces/{id}/research", s.handleListResearch)
 	router.HandleFunc("GET /v1/workspaces/{id}/research/{slug}", s.handleGetResearch)
+	router.HandleFunc("POST /v1/workspaces/{id}/research/{slug}/export", s.handleExportResearch)
 	router.HandleFunc("DELETE /v1/workspaces/{id}/research/{slug}", s.handleDeleteResearch)
 
 	// Documents, wiki, cards, skills (T044–T056)
