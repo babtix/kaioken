@@ -135,12 +135,17 @@ func TestMCPToolCallApprovalGate(t *testing.T) {
 		t.Errorf("decline path returned %q", got)
 	}
 
-	// Oversized output is capped before it reaches the model.
+	// Oversized output is capped before it reaches the model, and the excerpt
+	// says where the rest went.
 	extInvoke = func(context.Context, string, string, string, string) (string, error) {
 		return strings.Repeat("A", 150_000), nil
 	}
-	if got := a.execTool(context.Background(), tc); !strings.Contains(got, "[output truncated]") {
-		t.Errorf("oversized tool output was not truncated (len %d)", len(got))
+	got := a.execTool(context.Background(), tc)
+	if len(got) > DefaultMaxBytes*2 {
+		t.Errorf("oversized tool output was not bounded (len %d)", len(got))
+	}
+	if !strings.Contains(got, "truncated:") || !strings.Contains(got, "Full output saved to") {
+		t.Errorf("bounded output lost its truncation notice: %q", clipLine(got, 200))
 	}
 
 	// Unknown extension tools still report cleanly.

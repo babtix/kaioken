@@ -72,8 +72,8 @@ func TestParallelBatchPreservesCallOrder(t *testing.T) {
 		if r.ToolCallID != want[i] {
 			t.Errorf("result %d: ToolCallID = %s, want %s", i, r.ToolCallID, want[i])
 		}
-		if r.Content != wantContent[i] {
-			t.Errorf("result %d: content = %q, want %q", i, r.Content, wantContent[i])
+		if !strings.Contains(r.Content, wantContent[i]) {
+			t.Errorf("result %d: content = %q, want it to contain %q", i, r.Content, wantContent[i])
 		}
 	}
 }
@@ -141,7 +141,7 @@ func TestToolCallHookRewritesArguments(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, m := range history {
-		if m.Role == "tool" && m.Content == "rerouted" {
+		if m.Role == "tool" && strings.Contains(m.Content, "rerouted") {
 			return
 		}
 	}
@@ -268,5 +268,58 @@ func TestParallelSafeClassification(t *testing.T) {
 		if parallelSafe(name) {
 			t.Errorf("%s must not be parallel-safe", name)
 		}
+	}
+}
+
+// cancelOnApproveUI cancels the run the first time a tool asks for approval,
+// standing in for the user hitting esc while a batch is being applied.
+type cancelOnApproveUI struct {
+	fakeUI
+	cancel context.CancelFunc
+}
+
+func (c *cancelOnApproveUI) Approve(ApprovalRequest) bool {
+	c.cancel()
+	return false
+}
+
+// Cancelling partway through a tool batch used to return a history whose
+// assistant message still carried tool_calls nobody had answered. That
+// history is saved to the session, and every chat API rejects it — so one esc
+// at the wrong moment made the session unusable and unresumable. Every call
+// must come back with a result, even an aborted one.
+func TestCancelMidBatchStillAnswersEveryToolCall(t *testing.T) {
+	script := &scriptedServer{replies: []map[string]any{
+		multiToolCallReply(
+			[2]string{"write_file", `{"path":"x.txt","content":"1"}`},
+			[2]string{"write_file", `{"path":"y.txt","content":"2"}`},
+			[2]string{"write_file", `{"path":"z.txt","content":"3"}`},
+		),
+	}}
+	srv := script.server(t)
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	a := newRunAgent(t, srv.URL)
+	a.UI = &cancelOnApproveUI{cancel: cancel}
+
+	history, _ := a.Run(ctx, []llm.Message{
+		{Role: "system", Content: "test"},
+		{Role: "user", Content: "write three files"},
+	})
+
+	issued, answered := 0, map[string]bool{}
+	for _, m := range history {
+		issued += len(m.ToolCalls)
+		if m.Role == "tool" {
+			answered[m.ToolCallID] = true
+		}
+	}
+	if issued == 0 {
+		t.Fatal("expected the model to have issued tool calls")
+	}
+	if issued != len(answered) {
+		t.Errorf("%d tool_calls but %d results: the provider would reject this history", issued, len(answered))
 	}
 }

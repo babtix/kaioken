@@ -146,6 +146,12 @@ func (a *Agent) Run(ctx context.Context, history []llm.Message) (_ []llm.Message
 			return history, cerr
 		}
 		history = append(history, msg)
+		// Anchor the context measurement here, while the provider's figure and
+		// the conversation it described still line up. Anything appended after
+		// this point — tool results, steering — is estimated on top of it.
+		if toks, ok := a.Client.LastContextTokens(); ok {
+			a.Context.Record(toks, len(history), history)
+		}
 		bus.Emit(&events.Event{Type: events.MessageEnd, Step: i, Depth: a.Depth, Text: msg.Content})
 
 		if text := strings.TrimSpace(msg.Content); text != "" {

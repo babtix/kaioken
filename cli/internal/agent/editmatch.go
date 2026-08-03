@@ -14,6 +14,7 @@ package agent
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"unicode"
@@ -258,54 +259,104 @@ func applyPreservingUnchangedLines(originalContent, baseContent string, reps []m
 	return b.String(), nil
 }
 
+// lineNumberPrefix matches the "  42: " that read_file puts in front of every
+// line it returns.
+var lineNumberPrefix = regexp.MustCompile(`^[ \t]*\d+: `)
+
+// stripLineNumbers removes read_file's display prefix from every line of a
+// block, and reports whether the block was numbered at all.
+//
+// The guard is that *every* non-empty line must carry a prefix. That is what
+// separates "the model pasted read_file's output back" from "the code
+// genuinely starts with a number and a colon" — a switch over HTTP statuses,
+// a YAML map, a changelog. A block where only some lines match is left alone.
+func stripLineNumbers(block string) (string, bool) {
+	lines := strings.Split(block, "\n")
+	numbered := 0
+	out := make([]string, len(lines))
+	for i, l := range lines {
+		if strings.TrimSpace(l) == "" {
+			out[i] = l
+			continue
+		}
+		loc := lineNumberPrefix.FindString(l)
+		if loc == "" {
+			return block, false
+		}
+		out[i] = l[len(loc):]
+		numbered++
+	}
+	if numbered == 0 {
+		return block, false
+	}
+	return strings.Join(out, "\n"), true
+}
+
 // applyEdits matches every edit against content (already BOM-stripped and
 // LF-normalized) and returns the new content. All edits are located against
 // the same base; if any edit needs the fuzzy fallback, the whole batch is
 // applied in normalized space and overlaid line-wise onto the original so
 // unchanged lines keep their exact bytes. Errors are phrased for the model:
 // they say what to fix, not just what failed.
-func applyEdits(content string, edits []Edit, path string) (newContent string, usedFuzzy bool, err error) {
+//
+// A third fallback sits under the other two: old text that still carries
+// read_file's line numbers is stripped and retried. Numbering the read output
+// helps the model point at code, but only if quoting that output back is not
+// then a silent edit failure.
+func applyEdits(content string, edits []Edit, path string) (newContent string, usedFuzzy, usedNumbered bool, usedStrategy string, err error) {
 	if len(edits) == 0 {
-		return "", false, fmt.Errorf("no edits given for %s", path)
+		return "", false, false, "", fmt.Errorf("no edits given for %s", path)
 	}
 	normalized := make([]Edit, len(edits))
 	for i, e := range edits {
 		normalized[i] = Edit{Old: normalizeToLF(e.Old), New: normalizeToLF(e.New)}
 		if normalized[i].Old == "" {
-			return "", false, editErr(path, i, len(edits), "old text must not be empty")
+			return "", false, false, "", editErr(path, i, len(edits), "old text must not be empty")
 		}
 	}
 
-	for _, e := range normalized {
-		if fuzzyFindText(content, e.Old).usedFuzzy {
-			usedFuzzy = true
-			break
-		}
-	}
-	base := content
-	if usedFuzzy {
-		base = normalizeForFuzzyMatch(content)
-	}
-
-	matched := make([]matchedEdit, 0, len(normalized))
+	// Line-number stripping is tried before fuzzy matching and only for edits
+	// that miss as given: an edit that already matches is never rewritten.
 	for i, e := range normalized {
-		m := fuzzyFindText(base, e.Old)
-		if !m.found {
-			return "", false, editErr(path, i, len(edits),
-				"the old text was not found; it must match exactly, including whitespace and newlines")
+		if fuzzyFindText(content, e.Old).found {
+			continue
 		}
-		if n := countOccurrences(base, e.Old); n > 1 {
-			return "", false, editErr(path, i, len(edits),
-				fmt.Sprintf("found %d occurrences of the old text; it must be unique — include more surrounding context", n))
+		stripped, was := stripLineNumbers(e.Old)
+		if !was || !fuzzyFindText(content, stripped).found {
+			continue
 		}
-		matched = append(matched, matchedEdit{editIndex: i, index: m.index, length: m.length, newText: e.New})
+		normalized[i].Old = stripped
+		// New text pasted from the same read carries the numbers too.
+		if strippedNew, wasNew := stripLineNumbers(e.New); wasNew {
+			normalized[i].New = strippedNew
+		}
+		usedNumbered = true
+	}
+
+	// Placement happens in one of two spaces, and which one decides how the
+	// result is assembled.
+	//
+	// The original: a match is a byte range in the file itself, so applying it
+	// is a splice and every byte outside the range is untouched by
+	// construction. Exact matching and the line/indent/anchor strategies all
+	// land here.
+	//
+	// The normalized copy: NFKC and smart-quote folding rewrite the text, so a
+	// match there is an offset into a file that does not exist on disk. Those
+	// results have to be overlaid back line by line. It is the more invasive
+	// path, so it is only taken when no edit in the batch could be placed in
+	// the original — mixing the two would mean two different coordinate spaces
+	// in one `matched` list.
+	matched, base, err := placeEdits(content, normalized, edits, path, &usedFuzzy, &usedStrategy)
+	if err != nil {
+		return "", false, false, "", err
 	}
 
 	sort.Slice(matched, func(i, j int) bool { return matched[i].index < matched[j].index })
 	for i := 1; i < len(matched); i++ {
 		prev, cur := matched[i-1], matched[i]
 		if prev.index+prev.length > cur.index {
-			return "", false, fmt.Errorf(
+			return "", false, false, "", fmt.Errorf(
 				"edits %d and %d overlap in %s; merge them into one edit or target disjoint regions",
 				prev.editIndex+1, cur.editIndex+1, path)
 		}
@@ -314,15 +365,70 @@ func applyEdits(content string, edits []Edit, path string) (newContent string, u
 	if usedFuzzy {
 		newContent, err = applyPreservingUnchangedLines(content, base, matched)
 		if err != nil {
-			return "", false, err
+			return "", false, false, "", err
 		}
 	} else {
 		newContent = applyReplacements(base, matched, 0)
 	}
 	if newContent == content {
-		return "", false, fmt.Errorf("no changes made to %s: the replacement produced identical content", path)
+		return "", false, false, "", fmt.Errorf("no changes made to %s: the replacement produced identical content", path)
 	}
-	return newContent, usedFuzzy, nil
+	return newContent, usedFuzzy, usedNumbered, usedStrategy, nil
+}
+
+// placeEdits resolves every edit to a position, preferring the original
+// content and falling back to the normalized copy for the whole batch. It
+// returns the placements and the space they refer to, and sets usedFuzzy /
+// usedStrategy so the approval preview can say how the match was reached.
+func placeEdits(content string, normalized, edits []Edit, path string, usedFuzzy *bool, usedStrategy *string) ([]matchedEdit, string, error) {
+	matched := make([]matchedEdit, 0, len(normalized))
+	strategy := ""
+	for i, e := range normalized {
+		s, name, ambiguous, ok := locateSpan(content, e.Old)
+		if ambiguous > 1 {
+			return nil, "", editErr(path, i, len(edits), fmt.Sprintf(
+				"found %d occurrences of the old text; it must be unique — include more surrounding context", ambiguous))
+		}
+		if !ok {
+			matched, strategy = nil, ""
+			break
+		}
+		if name != "exact" {
+			strategy = name
+		}
+		matched = append(matched, matchedEdit{editIndex: i, index: s.index, length: s.length, newText: e.New})
+	}
+	if len(matched) == len(normalized) {
+		*usedStrategy = strategy
+		return matched, content, nil
+	}
+
+	// Nothing placed cleanly in the original — match the batch in normalized
+	// space instead.
+	for _, e := range normalized {
+		if fuzzyFindText(content, e.Old).usedFuzzy {
+			*usedFuzzy = true
+			break
+		}
+	}
+	base := content
+	if *usedFuzzy {
+		base = normalizeForFuzzyMatch(content)
+	}
+	matched = make([]matchedEdit, 0, len(normalized))
+	for i, e := range normalized {
+		m := fuzzyFindText(base, e.Old)
+		if !m.found {
+			return nil, "", editErr(path, i, len(edits),
+				"the old text was not found; it must match exactly, including whitespace and newlines")
+		}
+		if n := countOccurrences(base, e.Old); n > 1 {
+			return nil, "", editErr(path, i, len(edits), fmt.Sprintf(
+				"found %d occurrences of the old text; it must be unique — include more surrounding context", n))
+		}
+		matched = append(matched, matchedEdit{editIndex: i, index: m.index, length: m.length, newText: e.New})
+	}
+	return matched, base, nil
 }
 
 // editErr phrases a per-edit failure, naming the edit index only when the

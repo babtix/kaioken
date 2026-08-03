@@ -115,7 +115,7 @@ func TestShouldCompactShortConversation(t *testing.T) {
 		{Role: "system", Content: "sys"},
 		{Role: "user", Content: "hi"},
 	}
-	if need, _ := ShouldCompact(conv, "openai/gpt-4", 8192); need {
+	if need, _ := ShouldCompact(nil, conv, "openai/gpt-4", 8192); need {
 		t.Error("a two-message conversation must not compact")
 	}
 }

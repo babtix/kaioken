@@ -53,13 +53,35 @@ func toolMessage(tc llm.ToolCall, result string) llm.Message {
 	}
 }
 
+// abortedResult is what an unexecuted tool call reports back. Every call the
+// model made must be answered — see runToolCalls — and this is the answer for
+// the ones a cancellation reached first.
+const abortedResult = "error: tool call was not executed — the user interrupted the run"
+
+// abortedResults answers a run of calls that will never execute, so the
+// conversation keeps its tool_call/tool_result pairing.
+func abortedResults(calls []llm.ToolCall) []llm.Message {
+	out := make([]llm.Message, len(calls))
+	for i, tc := range calls {
+		out[i] = toolMessage(tc, abortedResult)
+	}
+	return out
+}
+
 // runToolCalls executes one turn's tool batch and appends the results to
 // history in call order — the order the model asked for them, whatever
 // order they finished in.
+//
+// Every call gets a result message, including the ones a cancellation cuts
+// short. Chat APIs reject an assistant message whose tool_calls are not all
+// answered, and this history is saved to the session: leaving a call dangling
+// does not just abandon a turn, it makes every later turn — and every later
+// /resume — fail with a provider error the user cannot act on. opencode
+// closes out in-flight calls the same way when a session aborts.
 func (a *Agent) runToolCalls(ctx context.Context, history []llm.Message, calls []llm.ToolCall, step int) []llm.Message {
 	for i := 0; i < len(calls); {
 		if ctx.Err() != nil {
-			return history
+			return append(history, abortedResults(calls[i:])...)
 		}
 		// Collect the run of consecutive read-only calls starting here.
 		j := i

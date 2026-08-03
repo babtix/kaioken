@@ -141,14 +141,45 @@ func Usable(model string, replyCeiling int) int {
 }
 
 // ShouldCompact reports whether a conversation should be reduced before the
-// next turn runs, and the estimate that decided it.
-func ShouldCompact(conv []llm.Message, model string, replyCeiling int) (bool, int) {
-	used := llm.EstimateTokens(conv)
+// next turn runs, and the size that decided it.
+//
+// track may be nil, in which case the size is estimated from the text as it
+// always was. When it carries a provider measurement the answer is anchored on
+// that instead — see ContextTracker for why that matters.
+func ShouldCompact(track *ContextTracker, conv []llm.Message, model string, replyCeiling int) (bool, int) {
+	used, measured := track.Estimate(conv)
 	if len(conv) < minCompactMessages {
 		return false, used
 	}
 	limit := Usable(model, replyCeiling)
-	return limit > 0 && used > limit, used
+	if limit <= 0 {
+		return false, used
+	}
+	// A measured figure needs no safety margin; an estimated one does, and
+	// Usable() already holds a tenth of the window back to cover it. Reclaim
+	// that slack when the number is real, so a measured conversation is not
+	// compacted a tenth of a window earlier than it needs to be.
+	if measured {
+		limit = measuredLimit(model, replyCeiling)
+	}
+	return used > limit, used
+}
+
+// measuredLimit is Usable() without the estimation slack: the window less only
+// the space the pending reply actually needs.
+func measuredLimit(model string, replyCeiling int) int {
+	window := llm.ContextWindow(model)
+	reserve := replyCeiling
+	if reserve <= 0 {
+		reserve = llm.DefaultMaxTokens
+	}
+	if reserveOverride > 0 {
+		reserve = reserveOverride
+	}
+	if half := window / 2; reserve > half {
+		reserve = half
+	}
+	return window - reserve
 }
 
 // tailBudget is how many tokens of recent conversation survive a compaction
