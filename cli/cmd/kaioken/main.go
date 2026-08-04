@@ -100,6 +100,9 @@ Commands:
   serve      Browse the generated wiki in a browser (-port, default 7777)
   publish    Render the wiki as a static site anyone can browse — no server,
              no Kaioken needed (-out overrides .kaioken/site)
+  pack       Bundle the generated knowledge into one portable .tar.gz for an
+             offline or air-gapped machine (-extract <file> unpacks one,
+             -out overrides the archive path)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
   upgrade    Update kaioken itself to the latest GitHub release
@@ -190,6 +193,8 @@ func main() {
 		err = cmdServe(ctx, args)
 	case "publish":
 		err = cmdPublish(args)
+	case "pack":
+		err = cmdPack(args)
 	case "hook":
 		err = cmdHook(args)
 	case "daemon":
@@ -270,6 +275,8 @@ type flags struct {
 	// check turns `status` into the CI drift gate: no fixes, just an exit
 	// code a pipeline can gate on.
 	check bool
+	// extract names a knowledge bundle for `pack -extract <file>`.
+	extract string
 }
 
 // cliExit carries an explicit process exit code alongside the error, for
@@ -331,6 +338,11 @@ func parseFlags(argv []string) flags {
 			f.verify = true
 		case "-check", "--check":
 			f.check = true
+		case "-extract", "--extract":
+			if i+1 < len(argv) {
+				i++
+				f.extract = argv[i]
+			}
 		case "-force", "--force":
 			f.force = true
 		case "-full", "--full":

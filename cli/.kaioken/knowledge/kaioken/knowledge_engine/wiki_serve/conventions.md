@@ -1,8 +1,7 @@
-- Always use html.EscapeString (via the htmlEscape helper) for any user-provided string inserted into HTML output.
-- When serving documents, resolve the requested path relative to the wiki root and reject paths that escape the wiki directory (using the resolve function).
-- For markdown rendering, use the pre-configured goldmark.Markdown instance in the Server struct (with GFM extensions and unsafe renderer options).
-- In the graph view, file nodes are inert (no navigation) while doc nodes navigate to /d/<rel> upon click.
-- Perform case-insensitive matching in search and highlight matches with <mark> tags.
-- The server must not start if the wiki directory does not exist (checked in the Run function).
-- Use context.Context for graceful server shutdown in the Run function.
-- In tests, use t.TempDir() for temporary repositories and helper functions like seedWiki to set up test data.
+- Error-returning functions (like resolve, renderDoc) must be checked and converted to 404 for path errors (not found or outside wiki) or 500 for internal errors.
+- All document paths must be resolved using the Server.resolve method to prevent directory traversal.
+- Markdown rendering uses a pre-configured goldmark instance with GFM extensions and unsafe HTML allowed.
+- The Server.static field controls link generation (to relative .html files) and omits server-only features (search, graph) when true.
+- The page rendering function (page) is shared between HTTP handlers and static export to ensure consistent output.
+- Embedded assets (like graphJS) are included via //go:embed directives and used in HTML templates.
+- Tests use temporary directories for wiki data and httptest to simulate HTTP requests.

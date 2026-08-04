@@ -1,1 +1,1 @@
-The module uses the Go standard library (net/http, context, path/filepath, etc.) and the third-party github.com/yuin/goldmark library (with its GFM extension and HTML renderer) for markdown processing. The graph view relies on an embedded JavaScript force-graph engine (bundled as a string asset in assets.go) that is executed in the browser.
+The module uses the Go standard library (net/http, os, path/filepath), the github.com/yuin/goldmark package for markdown processing, and depends on the internal/wiki package for wiki-related utilities.
