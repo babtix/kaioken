@@ -125,6 +125,42 @@ export const FEATURES: Feature[] = [
     ],
     tone: "amber",
   },
+  {
+    icon: "ShieldCheck",
+    title: "Self-verification loop",
+    description:
+      "Detects build/test commands, runs a background agent to diagnose and fix failures, then enforces a Go-native gate so model claims are verified.",
+    highlights: [
+      "Automatic command detection (go.mod, Makefile, package.json)",
+      "Background agent attempts up to 3 diagnostic passes",
+      "Hard Go verification gate before completion",
+    ],
+    tone: "blue",
+  },
+  {
+    icon: "GitFork",
+    title: "Worktree delegation",
+    description:
+      "Delegate sub-tasks to writable sub-agents operating in isolated git worktrees. Changes land in the main repo only when you approve the combined diff.",
+    highlights: [
+      "Isolated execution in temp git worktree",
+      "Per-edit user approval namespace",
+      "Diff patch review before landing",
+    ],
+    tone: "green",
+  },
+  {
+    icon: "FolderGit2",
+    title: "Hub & drift poller",
+    description:
+      "Track freshness across your entire codebase portfolio using a global cross-repo registry and live working tree drift notification poller.",
+    highlights: [
+      "Global registry at ~/.kaioken/hub.yaml",
+      "CI staleness check via status -check",
+      "Live drift polling with kaioken watch",
+    ],
+    tone: "orange",
+  },
 ]
 
 /* ── pipeline ───────────────────────────────────────────────────────────── */
@@ -219,6 +255,9 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { name: "/cards", args: "[force|id]", summary: "Generate knowledge cards — all, one module, or force a rebuild." },
       { name: "/scan", summary: "Scan the repo, print an inventory." },
       { name: "/status", summary: "Per-module freshness." },
+      { name: "/publish", args: "[-out <dir>]", summary: "Render the wiki as a static HTML site — no server needed." },
+      { name: "/pack", args: "[-out <file>]", summary: "Bundle knowledge into a portable .tar.gz archive." },
+      { name: "/onboard", args: "[-force]", summary: "Write ONBOARDING.md assembled from wiki, cards, and skills." },
     ],
   },
   {
@@ -235,6 +274,9 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { name: "/new", summary: "Start a fresh session — the current one is saved." },
       { name: "/notes", args: "[add <t>|clear]", summary: "View or edit steering notes injected into prompts." },
       { name: "/init", summary: "Create .kaioken/config.yaml in the target repo." },
+      { name: "/draft", args: "[base]", summary: "Draft conventional commit message + PR description grounded in diff." },
+      { name: "/handoff", args: "[session-id]", summary: "Write a continuation briefing from a saved session." },
+      { name: "/hub", args: "[list|add|remove|status]", summary: "Cross-repo registry — track and check freshness across multiple repos." },
     ],
   },
   {
@@ -248,7 +290,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { name: "/provider", args: "<name>", summary: "Switch API provider (openrouter, openai, anthropic, groq, …)." },
       { name: "/key", args: "[value]", summary: "Set API key in-memory — blank opens a hidden prompt." },
       { name: "/cost", summary: "What the session has spent." },
-      { name: "/config", summary: "Show the active configuration." },
+      { name: "/config", summary: "Show active configuration and per-operation model roles." },
     ],
   },
   {
@@ -257,6 +299,8 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     icon: "Terminal",
     blurb: "The small commands you reach for mid-run.",
     commands: [
+      { name: "/verify", summary: "Run build/test commands and auto-fix failures with a background agent." },
+      { name: "/watch", args: "[-interval <s>]", summary: "Poll working tree for drift and notify on new changed paths." },
       { name: "/diff", summary: "Review the changes the agent has proposed or applied." },
       { name: "/undo", summary: "Roll back the last applied change." },
       { name: "/yolo", summary: "Auto-approve file changes and commands for this session." },
@@ -363,6 +407,18 @@ export const DESIGN_DECISIONS: { title: string; body: string }[] = [
     title: "Cost up front",
     body: "A wiki run prints its estimated calls and tokens before starting, and asks for confirmation past a threshold.",
   },
+  {
+    title: "Per-operation model routing",
+    body: "Route operations (plan, edit, task, compact, impact, summarize) to dedicated model roles in config.yaml for speed and cost efficiency.",
+  },
+  {
+    title: "Hard Go verification gate",
+    body: "The model's claim that code passes is verified by running detected build/test commands natively before exit.",
+  },
+  {
+    title: "Worktree sub-agent isolation",
+    body: "Sub-agents run in temporary git worktrees, preventing untrusted draft edits from corrupting your working tree.",
+  },
 ]
 
 /* ── output layout ──────────────────────────────────────────────────────── */
@@ -376,13 +432,16 @@ export interface TreeNode {
 
 export const OUTPUT_TREE: TreeNode[] = [
   { name: ".kaioken/", depth: 0, kind: "dir" },
-  { name: "config.yaml", note: "model, scope excludes, steering notes", depth: 1, kind: "edit" },
+  { name: "config.yaml", note: "model, scope excludes, per-operation model roles, steering notes", depth: 1, kind: "edit" },
   { name: "modules.yaml", note: "LLM-proposed module tree — EDIT before generating", depth: 1, kind: "edit" },
   { name: "wiki_plan.yaml", note: "LLM-proposed wiki outline — EDIT before generating", depth: 1, kind: "edit" },
   { name: "architecture.md", note: "shared brief + glossary injected into every chapter", depth: 1, kind: "edit" },
   { name: "wiki_state.yaml", note: "the commit the wiki reflects (+ failed sections)", depth: 1, kind: "file" },
   { name: "state.json", note: "per-module source hashes → incremental updates", depth: 1, kind: "file" },
+  { name: "risk.json", note: "scan risk flags (secrets, credential files, large binaries)", depth: 1, kind: "file" },
+  { name: "site/", note: "static HTML wiki export generated by /publish", depth: 1, kind: "dir" },
   { name: "sessions/", note: "saved chat conversations → /resume", depth: 1, kind: "dir" },
+  { name: "handoffs/", note: "continuation briefings generated by /handoff", depth: 1, kind: "dir" },
   { name: "skills/", note: "task guides an agent loads while working", depth: 1, kind: "dir" },
   { name: "wiki/", note: "the deep wiki: one folder per section, plus CHANGELOG.md", depth: 1, kind: "dir" },
   { name: "KNOWLEDGE.md", note: "index an agent reads first", depth: 1, kind: "file" },
