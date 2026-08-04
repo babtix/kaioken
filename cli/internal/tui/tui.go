@@ -47,6 +47,7 @@ import (
 	"kaioken/internal/setup"
 	"kaioken/internal/skills"
 	"kaioken/internal/state"
+	"kaioken/internal/verify"
 	"kaioken/internal/version"
 	"kaioken/internal/wiki"
 )
@@ -1410,6 +1411,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		return m.startDraft(rest)
 	case "handoff":
 		return m.startHandoff()
+	case "verify":
+		return m.startVerify()
 	case "hook":
 		m.doHook(args)
 	case "status":
@@ -2087,6 +2090,34 @@ func (m *Model) doHook(args []string) {
 }
 
 // ---- wiki browser ----
+
+// startVerify runs the repo's build/test gate in the background. The fix
+// loop itself belongs to the chat agent; here the value is the verdict.
+func (m Model) startVerify() (tea.Model, tea.Cmd) {
+	repo, ch := m.repo, m.events
+	cmds, err := verify.Detect(repo)
+	if err != nil {
+		m.appendLine(errStyle.Render("verify: " + err.Error()))
+		return m, nil
+	}
+	m.appendLine(dimStyle.Render("running the verify gate: " + strings.Join(cmds, " → ")))
+	go func() {
+		results, gateErr := verify.Gate(context.Background(), repo, cmds)
+		for _, r := range results {
+			mark := okStyle.Render("  ✓ " + r.Command)
+			if !r.OK {
+				mark = errStyle.Render("  ✗ " + r.Command)
+			}
+			ch <- logMsg{mark}
+		}
+		if gateErr != nil {
+			ch <- logMsg{errStyle.Render("verify gate failed — ask the agent to fix it")}
+			return
+		}
+		ch <- logMsg{okStyle.Render("verify gate passed")}
+	}()
+	return m, nil
+}
 
 // startHandoff briefs the current session so someone else can continue it.
 // The brief comes from the model; the file write happens when it lands.
@@ -3040,6 +3071,7 @@ var helpText = strings.Join([]string{
 	"  /onboard [force]        write ONBOARDING.md — the day-one guide from your knowledge",
 	"  /draft [base]           draft a commit message + PR description for the current diff",
 	"  /handoff                write a continuation briefing for the current session",
+	"  /verify                 run the repo's build/test gate and report each verdict",
 	"  /hook [install|remove]  refresh the wiki automatically after every commit",
 	"  /scan /plan /cards      knowledge-card pipeline   ·   /status",
 	"  /notes [add <t>|clear]  steering notes injected into card prompts",

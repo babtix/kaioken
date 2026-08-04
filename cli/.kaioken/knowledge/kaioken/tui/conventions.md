@@ -1,1 +1,8 @@
-
+- Add new slash commands by appending to the commands slice in commands.go with a command struct containing name, aliases, args, summary, detail, guide, and examples
+- Handle the new command in the dispatch method of Model (tui.go) by adding a case for the command string
+- Use appendLine with appropriate style functions (errStyle, warnStyle, okStyle) to display messages in the transcript
+- For long-running operations, use a goroutine communicating via m.events channel, signaling start/end with busyMsg
+- Before modifying session state, call m.sess.Record(m.conversation); after changes, call m.saveSession()
+- Render assistant responses using the renderMarkdown function for markdown content
+- Use predefined lipgloss styles (promptStyle, hintStyle, etc.) for UI consistency
+- Check for busy state using m.guardBusy() (or m.busy) to prevent concurrent operations

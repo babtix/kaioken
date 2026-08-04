@@ -1,1 +1,11 @@
-Functions executing git commands must take context.Context as first parameter (except IsRepo/Branch/DirtyCount which use context.Background() internally); Returned paths (Change.Path, FileStatus.Path) must be slash-separated and repo-relative via filepath.ToSlash; When reading files, convert slash-separated paths to OS-specific using filepath.FromSlash before joining with repo root; Git command failures must return errors (wrapped via run/runRaw helpers); boolean-returning functions like IsRepo indicate success via return value; Define domain-specific errors (e.g., ErrNoPaths in work.go) for conditions like empty path lists; Hook block delimiters are fixed: hookStart="# >>> kaioken >>>", hookEnd="# <<< kaioken <<<"; Hook scripts must run detached (trailing &) to avoid blocking commits; On non-Windows, ensure hook file is executable (0o755) after writing; Tests requiring a git repo must use the newRepo helper (from gitx_test.go) to create temporary repositories
+- Functions executing Git commands return wrapped errors (see runRaw).
+- Git operation functions take context.Context as first parameter.
+- Paths normalized to forward slashes via filepath.ToSlash.
+- Hook blocks delimited by hookStart/hookEnd.
+- Hook paths shell-quoted via shellQuote.
+- Installed hooks set executable (0o755).
+- WorktreeRemove for cleanup.
+- Stage/Unstage/Discard return ErrNoPaths on empty paths.
+- Diff/patch output truncated at maxBytes with [diff truncated].
+- Untracked file diffs synthesized against /dev/null.
+- Untracked file line count capped at maxUntrackedStat.

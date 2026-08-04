@@ -155,6 +155,11 @@ var commandGuides = map[string]string{
 		"decisions, state, open threads — and appends the collapsed transcript. The file " +
 		"lands under .kaioken/handoffs/, ready to hand to a teammate or paste into a " +
 		"fresh session so the work continues without re-explaining everything.",
+	"verify": "Detects how this repository verifies itself — a Makefile check target, a Go " +
+		"module's build+test, an npm test script — and runs those commands, reporting each " +
+		"verdict. When something fails, ask the agent to fix it and run /verify again; the " +
+		"gate is the final word on whether the change is done. `kaioken verify` from the " +
+		"CLI adds an automatic diagnose-and-fix loop before the gate.",
 	"hook": "Installs a git post-commit hook that runs /update in the background after " +
 		"every commit, so documentation never drifts. It appends a delimited block " +
 		"to the existing hook, so your other hooks are preserved. Remove it with " +

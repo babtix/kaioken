@@ -113,6 +113,9 @@ Commands:
   handoff    Write a continuation briefing for a saved session — goal,
              decisions, state, open threads, plus the transcript
              (positional: session id, default most recent; -out overrides)
+  verify     Run the repo's build/test commands green: an agent diagnoses and
+             fixes failures, then every command is re-run in plain Go as the
+             final gate (-approve defaults to all here; exit 1 if the gate fails)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
   upgrade    Update kaioken itself to the latest GitHub release
@@ -211,6 +214,8 @@ func main() {
 		err = cmdGitDraft(ctx, args)
 	case "handoff":
 		err = cmdHandoff(ctx, args)
+	case "verify":
+		err = cmdVerify(ctx, args)
 	case "hook":
 		err = cmdHook(args)
 	case "daemon":

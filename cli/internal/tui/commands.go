@@ -647,6 +647,17 @@ var commands = []command{
 		},
 	},
 	{
+		name: "verify",
+		summary: "run the repo's build/test gate",
+		detail: "Detects the repo's own verification commands (Makefile check, go build+test, " +
+			"npm test) and runs them, reporting each verdict. Ask the agent to fix whatever " +
+			"fails, then verify again — the gate's word is final. The headless CLI version " +
+			"(kaioken verify) adds an automatic fix loop.",
+		examples: []example{
+			{"/verify", "run the gate and show each verdict"},
+		},
+	},
+	{
 		name: "hook", args: "[install|remove]",
 		summary: "auto-update the wiki after each commit",
 		detail: "Installs a git post-commit hook running /update in the background, so documentation " +
