@@ -70,7 +70,9 @@ Commands:
   impact     Predict the blast radius of a proposed change before editing:
              affected symbols, files, modules, wiki docs, skills and tests
              (positional: the change description; -format markdown|json,
-             -out writes the report to a file)
+             -out writes the report to a file). -compare scores the newest
+             saved prediction against what actually changed (positional: base
+             rev, default HEAD)
   export     Flatten the generated knowledge into another tool's context file
              (claude-md | agents-md | cursor-rules | context-md; -out overrides
              the path, -force overwrites, -full inlines wiki chapters)
@@ -291,6 +293,9 @@ type flags struct {
 	check bool
 	// extract names a knowledge bundle for `pack -extract <file>`.
 	extract string
+	// compare turns `impact` into a prediction-vs-reality check against the
+	// newest saved report.
+	compare bool
 }
 
 // cliExit carries an explicit process exit code alongside the error, for
@@ -357,6 +362,8 @@ func parseFlags(argv []string) flags {
 				i++
 				f.extract = argv[i]
 			}
+		case "-compare", "--compare":
+			f.compare = true
 		case "-force", "--force":
 			f.force = true
 		case "-full", "--full":

@@ -1,10 +1,1 @@
-- File names in snake_case (e.g., commands.go).
-- MixedCase for functions and variables.
-- Slash commands registered as command structs in commands.go with name, aliases, args, summary, detail, guide, examples.
-- Command matching via command.matches and filterCommands.
-- Long-running operations in goroutines communicating via Model's events channel with specific message types.
-- Errors displayed using errStyle or warnStyle from theme.go.
-- guardBusy prevents concurrent busy operations.
-- UI state updated via appendLine and View methods.
-- Palette refreshes on input, closes on argument entry or no matches.
-- Extension trust requires explicit two-step confirmation (e.g., /ext trust <id> yes).
+

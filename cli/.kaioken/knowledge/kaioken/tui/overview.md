@@ -1,1 +1,1 @@
-The tui module provides a Bubble Tea-based terminal interface for Kaioken, featuring an interactive chat with slash-command palette, session management, and integration with internal packages for knowledge generation, impact prediction, and extension handling.
+The TUI module provides an interactive terminal interface for the Kaioken application, built with Bubble Tea, allowing users to chat with an AI model, execute slash commands for operations like knowledge card generation and wiki management, and manage application state through a command-driven interface.

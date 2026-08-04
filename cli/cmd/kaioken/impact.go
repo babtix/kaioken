@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"kaioken/internal/config"
+	"kaioken/internal/gitx"
 	"kaioken/internal/impact"
 	"kaioken/internal/scan"
 )
@@ -17,6 +18,9 @@ import (
 // symbols, files, modules, wiki docs, skills and tests. Advisory by design:
 // the exit code stays zero so it can sit in any script without gating it.
 func cmdImpact(ctx context.Context, f flags) error {
+	if f.compare {
+		return cmdImpactCompare(ctx, f)
+	}
 	cfg, err := config.Load(f.repo)
 	if err != nil {
 		return err
@@ -97,4 +101,51 @@ func cmdImpact(ctx context.Context, f flags) error {
 		fmt.Printf("report saved: %s\n", rep.SavedPath)
 	}
 	return nil
+}
+
+// cmdImpactCompare scores the newest saved prediction against what actually
+// changed. No LLM is involved — it is pure bookkeeping, so it is cheap enough
+// to run after every landed change. The positional, when given, is the diff
+// baseline; it defaults to HEAD, i.e. the uncommitted work.
+func cmdImpactCompare(ctx context.Context, f flags) error {
+	predicted, intent, err := impact.LoadLatest(f.repo)
+	if err != nil {
+		return err
+	}
+	if len(predicted) == 0 {
+		return fmt.Errorf("the newest impact report predicts no files — nothing to compare")
+	}
+
+	base := strings.TrimSpace(f.positional)
+	if base == "" {
+		base = "HEAD"
+	}
+	changes, err := gitx.Changes(ctx, f.repo, base)
+	if err != nil {
+		return err
+	}
+
+	out := impact.Compare(predicted, changes)
+	fmt.Printf("impact prediction vs. reality (since %s)\n", base)
+	if intent != "" {
+		fmt.Printf("intent: %s\n", intent)
+	}
+	printGroup("hits", out.Hits)
+	printGroup("missed", out.Missed)
+	printGroup("unpredicted", out.Unpredicted)
+	fmt.Printf("\naccuracy: %.0f%% (%d of %d predicted files changed)\n",
+		out.Accuracy()*100, len(out.Hits), len(out.Hits)+len(out.Missed))
+
+	if err := impact.RecordAccuracy(f.repo, intent, out); err != nil {
+		fmt.Printf("  · could not record accuracy: %v\n", err)
+	}
+	return nil
+}
+
+func printGroup(label string, paths []string) {
+	if len(paths) == 0 {
+		fmt.Printf("  %-12s none\n", label+":")
+		return
+	}
+	fmt.Printf("  %-12s %s\n", label+":", strings.Join(paths, ", "))
 }
