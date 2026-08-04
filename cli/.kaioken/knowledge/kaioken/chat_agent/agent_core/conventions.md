@@ -1,11 +1,9 @@
-- Use PascalCase for struct and interface names (e.g., Agent, UI, BudgetGuard).
-- Use mixedCase for method and variable names (e.g., Steer, drainSteering, compactionEnabled).
-- Use ALL_CAPS for constants (e.g., maxReadBytes, prunedStub).
-- Prefix error strings returned by tools with "error: " (observed in tools.go, knowledge.go).
-- Register runtime tools via agent.RegisterTool with a RegisteredTool struct containing a non-empty name and non-nil Run function (tool_registry.go).
-- Protect shared state (queues, budget guard, context tracker, ruleset) with appropriate mutexes (sync.Mutex or sync.RWMutex).
-- For tool execution, group consecutive read-only tools (read_file, list_files, search, read_knowledge, recall) to run in parallel (tool_executor.go).
-- Emit lifecycle events via the event bus (events/bus.go) and use EventsUI to translate UI callbacks to events (events.go).
-- Build the system prompt by rendering context sources in a fixed order (identity, tools, mode, model, knowledge, guidelines, project, memory, notes) (context.go).
-- Attach mode-specific reminders to the last user message before each model turn, stripping any existing reminders first (reminders.go).
-- Track files read and modified across the conversation for inclusion in compaction summaries (fileops.go).
+- Use mutexes for shared state (e.g., Agent.qmu, BudgetGuard.mu, DirNotes.mu) and hold locks for the entire critical section.
+- Check for nil at the start of methods in nil-safe types (e.g., ContextTracker, Bus, DirNotes) and degrade gracefully.
+- Emit events via the bus.Emit method with an Event pointer; the bus is nil-safe and handlers run synchronously.
+- Group consecutive read-only tool calls for parallel execution in runToolCalls (tool_executor.go) using the parallelSafe helper.
+- Anchor context estimation on provider-reported tokens (ctxtrack.go) and estimate only new messages since the anchor.
+- Strip all existing reminder blocks from user messages before applying the current turn's reminder to the last user message (reminders.go).
+- Ensure budget warnings fire exactly once per guard using a mutex-protected flag (budget.go).
+- Protect ContextEpoch snapshots with a RWMutex and truncate EpochID to 12 characters (epoch.go).
+- Bound tool output by line and byte limits, spill excess to .kaioken/tool-output/, and return a bounded excerpt with a truncation notice (tool_store.go).

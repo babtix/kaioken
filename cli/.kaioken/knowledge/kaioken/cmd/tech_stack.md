@@ -1,1 +1,1 @@
-The module uses Go and the Go standard library
+The module uses the Go standard library and the kaioken internal packages (such as config, llm, agent, session, etc.). No external frameworks or libraries are directly imported in the provided source files.

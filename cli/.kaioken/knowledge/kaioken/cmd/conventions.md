@@ -1,8 +1,1 @@
-- Command functions named cmd<CommandName> (e.g., cmdRun, cmdExt) in files named <command>.go
-- Functions take context.Context and flags (defined in main.go) arguments
-- Flags obtained via parseFlags on args after command
-- Must return error
-- Handle errors: return errStale for stale status checks, return *cliExit for custom exit codes, else return error for main.go handling
-- LLM-using commands must obtain client via newClient (handles spend tracking)
-- Commands supporting JSON output must check flags (e.g., jsonOut, format) and output JSON when set
-- main.go calls bookSpend after command runs before error handling
+

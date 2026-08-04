@@ -1,1 +1,1 @@
-The cmd/kaioken module is the main command-line interface for the kaioken knowledge engine. It parses user commands and flags, dispatches to subcommand handlers, and manages application lifecycle including signal handling, usage tracking, and error handling.
+The kaioken/cmd module provides the command-line interface for the kaioken knowledge engine. It defines the main entry point and implements various subcommands (such as tui, run, init, scan, etc.) that perform operations like repository scanning, knowledge generation, and agent interaction.
