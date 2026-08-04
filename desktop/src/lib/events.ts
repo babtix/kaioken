@@ -14,12 +14,21 @@ export function connectEvents(onEvent: (e: KaiEvent) => void, onStatus: (s: Conn
   let lastSeq = 0
   let stopped = false
   let attempt = 0
+  // Disconnect has to kill the live stream, not just flag it: without the
+  // abort the reader keeps pumping events into the stores forever, and a
+  // remount (StrictMode does exactly that) leaves two connections
+  // dispatching the same stream — every log line lands twice.
+  let abort: AbortController | null = null
 
   ;(async function loop() {
     while (!stopped) {
       try {
         onStatus("connecting")
-        const res = await fetch(`${base()}/events?since=${lastSeq}`, { headers: authHeaders() })
+        abort = new AbortController()
+        const res = await fetch(`${base()}/events?since=${lastSeq}`, {
+          headers: authHeaders(),
+          signal: abort.signal,
+        })
         if (!res.ok || !res.body) throw new Error(`events: ${res.status}`)
         onStatus("open")
         attempt = 0
@@ -36,7 +45,8 @@ export function connectEvents(onEvent: (e: KaiEvent) => void, onStatus: (s: Conn
           }
         }
       } catch {
-        // fall through to backoff
+        // fall through to backoff; an aborted fetch means shutdown, and the
+        // stopped check below ends the loop before any reconnect.
       }
       if (stopped) return
       onStatus("reconnecting")
@@ -46,5 +56,6 @@ export function connectEvents(onEvent: (e: KaiEvent) => void, onStatus: (s: Conn
 
   return () => {
     stopped = true
+    abort?.abort()
   }
 }

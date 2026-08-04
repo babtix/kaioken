@@ -15,6 +15,11 @@ import type { ResearchStep } from "./types"
  * high-stakes questions where a reader should check. So the header carries the
  * evidence count inline — "searched 24 · read 11 sources" is visible without
  * expanding anything, and only the step-by-step detail is hidden.
+ *
+ * The detail itself is two-tier: each step shows its newest detail line
+ * inline, and any step the engine streamed lines for — the subquestions it
+ * planned, the workers it dispatched — expands on its own click. Those stay
+ * collapsed by default: viewable, but never in the way.
  */
 export function ResearchSteps({
   steps,
@@ -31,6 +36,9 @@ export function ResearchSteps({
   defaultOpen?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  // Which steps have their detail lines expanded. Empty by default — the
+  // subquestions and the rest are viewable, but you have to ask for them.
+  const [detailOpen, setDetailOpen] = useState<Record<number, boolean>>({})
   if (steps.length === 0) return null
 
   const done = steps.filter((s) => s.state === "done").length
@@ -72,25 +80,78 @@ export function ResearchSteps({
 
       {open && (
         <ol className="animate-slide-up border-t border-border px-2.5 py-2">
-          {steps.map((step, i) => (
-            <li key={i} className="flex items-start gap-2 py-1">
-              <StepMark state={step.state} />
-              <div className="min-w-0 flex-1">
-                <div
-                  className={cn(
-                    "font-mono text-[11px]",
-                    step.state === "pending" ? "text-kai-dim" : "text-kai-text"
-                  )}
+          {steps.map((step, i) => {
+            const lines = step.details ?? []
+            const expanded = !!detailOpen[i]
+            if (lines.length === 0) {
+              return (
+                <li key={i} className="flex items-start gap-2 py-1">
+                  <StepMark state={step.state} />
+                  <StepBody step={step} expanded={false} />
+                </li>
+              )
+            }
+            return (
+              <li key={i} className="py-1">
+                <button
+                  type="button"
+                  onClick={() => setDetailOpen((v) => ({ ...v, [i]: !v[i] }))}
+                  aria-expanded={expanded}
+                  title={expanded ? "Hide the detail lines" : "Show the detail lines"}
+                  className="flex w-full items-start gap-2 rounded-[var(--radius)] text-left outline-none
+                             transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-kai-orange/50"
                 >
-                  {step.label}
-                </div>
-                {step.detail && (
-                  <div className="truncate font-mono text-[10px] text-kai-dim">{step.detail}</div>
-                )}
-              </div>
+                  <StepMark state={step.state} />
+                  <StepBody step={step} expanded={expanded} />
+                  <ChevronRight
+                    size={10}
+                    className={cn(
+                      "mt-1 shrink-0 text-kai-dim transition-transform",
+                      expanded && "rotate-90"
+                    )}
+                  />
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+/**
+ * StepBody is the step's label plus its detail. Collapsed, only the newest
+ * detail line shows inline (truncated); expanded, every line the engine
+ * streamed during the step is listed — the subquestions among them.
+ */
+function StepBody({ step, expanded }: { step: ResearchStep; expanded: boolean }) {
+  const lines = step.details ?? []
+  return (
+    <div className="min-w-0 flex-1">
+      <div
+        className={cn(
+          "font-mono text-[11px]",
+          step.state === "pending" ? "text-kai-dim" : "text-kai-text"
+        )}
+      >
+        {step.label}
+      </div>
+      {expanded ? (
+        <ul className="mt-1 space-y-0.5 border-l border-border pl-2">
+          {lines.map((line, j) => (
+            <li
+              key={j}
+              className="break-words font-mono text-[10px] leading-relaxed text-kai-dim"
+            >
+              {line}
             </li>
           ))}
-        </ol>
+        </ul>
+      ) : (
+        step.detail && (
+          <div className="truncate font-mono text-[10px] text-kai-dim">{step.detail}</div>
+        )
       )}
     </div>
   )

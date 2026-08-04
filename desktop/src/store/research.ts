@@ -2,9 +2,11 @@ import { openPath } from "@tauri-apps/plugin-opener"
 import { create } from "zustand"
 import { api } from "@/lib/api"
 import { humanize } from "@/lib/errors"
+import { friendlyStage } from "@/lib/stages"
 import { useToastStore } from "@/store/toast"
+import { useRunsStore } from "@/store/runs"
 import type { Answer, AnswerSource, ResearchStep } from "@/components/answer/types"
-import type { KaiEvent, ResearchCost, ResearchGrounding, ResearchReport } from "@/lib/types"
+import type { KaiEvent, ResearchCost, ResearchGrounding, ResearchReport, ResumableRun } from "@/lib/types"
 
 /**
  * Drives the Research screen against the daemon's `research` run kind.
@@ -45,6 +47,10 @@ type ResearchState = {
   answer: Answer | null
   rounds: number
   searched: number
+  /** Pages the finished run actually read; null until the engine reports. */
+  fetched: number | null
+  /** Wall-clock duration of the finished run; null until run.finished lands. */
+  durationMs: number | null
   reportPath: string | null
   /** Slug of the report on screen, which is what Export acts on. */
   slug: string | null
@@ -63,11 +69,17 @@ type ResearchState = {
   error: string | null
   /** Saved reports for the active workspace, newest first. */
   history: ResearchReport[]
+  /** Interrupted runs on disk — stopped, checkpointed, continuable. */
+  paused: ResumableRun[]
 
-  start: (wsId: string, question: string, multiplier: number) => Promise<void>
+  start: (wsId: string, question: string, multiplier: number, resume?: string) => Promise<void>
   cancel: () => Promise<void>
+  reattach: (wsId: string) => Promise<void>
   handleEvent: (ev: KaiEvent) => void
   loadHistory: (wsId: string) => Promise<void>
+  loadPaused: () => Promise<void>
+  continueRun: (wsId: string, run: ResumableRun) => Promise<void>
+  discardPaused: (runId: string) => Promise<void>
   openSaved: (wsId: string, slug: string) => Promise<void>
   deleteSaved: (wsId: string, slug: string) => Promise<void>
   exportPdf: () => Promise<void>
@@ -82,6 +94,8 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
   answer: null,
   rounds: 0,
   searched: 0,
+  fetched: null,
+  durationMs: null,
   reportPath: null,
   slug: null,
   deep: false,
@@ -92,8 +106,9 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
   exporting: false,
   error: null,
   history: [],
+  paused: [],
 
-  start: async (wsId, question, multiplier) => {
+  start: async (wsId, question, multiplier, resume) => {
     if (get().busy) return
     set({
       question,
@@ -103,6 +118,8 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
       answer: null,
       rounds: 0,
       searched: 0,
+      fetched: null,
+      durationMs: null,
       reportPath: null,
       slug: null,
       deep: false,
@@ -113,7 +130,15 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
       error: null,
     })
     try {
-      const run = await api.startRun(wsId, "research", { question, multiplier })
+      // A resume id continues an interrupted run from its checkpoint; the
+      // engine restores the original depth dial itself, so the multiplier
+      // carried here is only the fallback for runs checkpointed before it
+      // was recorded.
+      const run = await api.startRun(wsId, "research", {
+        question,
+        multiplier,
+        ...(resume ? { resume } : {}),
+      })
       set({ runId: run.id })
     } catch (err) {
       const h = humanize(err)
@@ -134,6 +159,63 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
     }
   },
 
+  // A research run outlives this screen: the daemon owns it, so a page
+  // change, a reload, a WebView restart — or a run started from another
+  // surface entirely — leaves it running with nobody watching. Reattach
+  // adopts the workspace's active research run, so the live trail is
+  // waiting when the user comes back instead of an empty intro.
+  reattach: async (wsId) => {
+    if (get().busy) return
+    // Snapshot the adoption guards: if either changes while the request is
+    // in flight, the user started a fresh run meanwhile, and the adoption
+    // must not overwrite it.
+    const busyBefore = get().busy
+    const runIdBefore = get().runId
+    try {
+      const res = await api.listRuns(wsId, true)
+      const run = (res.runs ?? []).find(
+        (r) => r.kind === "research" && (r.state === "running" || r.state === "queued")
+      )
+      if (!run) return
+      if (get().busy !== busyBefore || get().runId !== runIdBefore) return
+      // The runs store folds the same event stream into the same trail the
+      // Research screen uses — adopt it whole when it exists, so the trail
+      // rebuilt here is identical to Activity's. Only when nothing was
+      // recorded (fresh reload) does the current progress message seed a
+      // single step.
+      const trail = useRunsStore.getState().trails[run.id]
+      const steps: ResearchStep[] =
+        trail && trail.length > 0
+          ? trail
+          : [{ label: friendlyStage(run.progress?.message ?? "") || "Starting", state: "running" }]
+      set({
+        wsId,
+        runId: run.id,
+        question: String(run.params?.question ?? ""),
+        busy: true,
+        steps,
+        answer: null,
+        rounds: 0,
+        searched: 0,
+        fetched: null,
+        durationMs: null,
+        reportPath: null,
+        slug: null,
+        deep: false,
+        path: null,
+        escalated: false,
+        cost: null,
+        grounding: null,
+        error: null,
+      })
+      // Events that arrived before the adoption are gone, but the stream
+      // picks straight back up: every later progress, log and finish event
+      // carries the adopted run id.
+    } catch {
+      // non-fatal: the screen simply stays as it is
+    }
+  },
+
   // Every finished run was persisted by the daemon, so the history list is
   // just a read — it survives app restarts, and a load failure only costs
   // the panel, never the run itself.
@@ -143,6 +225,34 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
       set({ history: res.reports })
     } catch {
       set({ history: [] })
+    }
+  },
+
+  // Interrupted runs are global (research never reads the repository), and
+  // the daemon reads them straight off disk — so this list is true after
+  // any restart, however long the run has been stopped.
+  loadPaused: async () => {
+    try {
+      const res = await api.researchRuns()
+      set({ paused: res.runs ?? [] })
+    } catch {
+      set({ paused: [] })
+    }
+  },
+
+  // Continue is a start with a checkpoint: same screen, same store, the
+  // engine picking the loop back up where it stopped.
+  continueRun: async (wsId, run) => {
+    await get().start(wsId, run.question, 3, run.id)
+  },
+
+  discardPaused: async (runId) => {
+    try {
+      await api.researchRunDelete(runId)
+      set((s) => ({ paused: s.paused.filter((r) => r.id !== runId) }))
+    } catch (err) {
+      const h = humanize(err)
+      useToastStore.getState().push("error", h.title, h.body, h.action)
     }
   },
 
@@ -159,6 +269,10 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
         steps: [],
         rounds: saved.rounds,
         searched: saved.searched,
+        fetched: null,
+        // A reopened report predates this session; the daemon does not
+        // persist the wall clock, so the time stays unknown.
+        durationMs: null,
         reportPath: saved.report_path ?? null,
         slug: saved.slug,
         deep: saved.deep != null,
@@ -255,13 +369,21 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
         break
       }
       case "run.log": {
-        // Detail lines attach to the step currently running.
+        // Detail lines attach to the step currently running. Every line is
+        // kept — the trail expands them on demand — while `detail` stays
+        // the newest one, which is what shows inline when collapsed.
         const text = String(ev.text ?? "")
         if (!text || ev.level === "error") return
         set((s) => {
           const steps = [...s.steps]
           const last = steps[steps.length - 1]
-          if (last) steps[steps.length - 1] = { ...last, detail: text }
+          if (last) {
+            steps[steps.length - 1] = {
+              ...last,
+              detail: text,
+              details: [...(last.details ?? []), text],
+            }
+          }
           return { steps }
         })
         break
@@ -279,6 +401,8 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
             busy: false,
             rounds: sum.rounds ?? 0,
             searched: sum.searched ?? 0,
+            fetched: sum.fetched ?? sum.cost?.fetches ?? null,
+            durationMs: typeof ev.duration_ms === "number" ? ev.duration_ms : null,
             reportPath: sum.report_path ?? null,
             slug: sum.slug ?? null,
             deep: sum.deep === true,
@@ -298,8 +422,10 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
           }))
           // The daemon persisted this run before announcing it — refresh the
           // saved list so the new report appears in the history immediately.
+          // The paused list moves too: a resumed run has left it.
           const wsId = get().wsId
           if (wsId) void get().loadHistory(wsId)
+          void get().loadPaused()
         } else {
           const msg =
             state === "cancelled" ? "Research cancelled" : String(ev.error ?? "Research failed")
@@ -310,39 +436,12 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
               st.state === "running" ? { ...st, state: "pending" } : st
             ),
           }))
+          // A stopped run is checkpointed, not lost: it belongs on the
+          // paused list now, waiting to be continued.
+          void get().loadPaused()
         }
         break
       }
     }
   },
 }))
-
-/**
- * friendlyStage rewrites engine stage strings into the plain language the
- * teardown calls for — "Searching the web" beats "searching (12 queries)"
- * as a step name, with the specifics kept as the detail line.
- */
-function friendlyStage(msg: string): string {
-  if (!msg || msg === "starting") return "Starting"
-  if (msg === "planning") return "Planning the research"
-  if (msg.startsWith("searching")) return "Searching the web"
-  if (msg.startsWith("reading") && msg.includes("pages")) return capitalize(msg)
-  if (msg === "reading evidence") return "Reading the evidence"
-  if (msg === "checking for gaps") return "Checking for gaps"
-  if (msg === "writing the report") return "Writing the report"
-  // Hybrid-engine stages: the deep path's scope/plan/dispatch vocabulary and
-  // the quality passes that follow both paths.
-  if (msg === "scoping the research") return "Scoping the research"
-  if (msg === "planning the subtopics") return "Planning the subtopics"
-  if (msg.startsWith("wave")) return "Workers researching in parallel"
-  if (msg.startsWith("worker ")) return capitalize(msg)
-  if (msg === "grounding claims against sources") return "Grounding claims against sources"
-  if (msg === "rewriting the report") return "Rewriting the report"
-  if (msg.startsWith("cross-checking")) return "Cross-checking load-bearing claims"
-  if (msg.startsWith("round")) return capitalize(msg)
-  return capitalize(msg)
-}
-
-function capitalize(s: string): string {
-  return s ? s[0].toUpperCase() + s.slice(1) : s
-}

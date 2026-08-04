@@ -17,7 +17,13 @@ export type ResearchStep = {
    *  "websearch.Provider.Search". The teardown is explicit that opaque tool
    *  names cost trust. */
   label: string
+  /** The latest detail line — what shows inline while the step stays
+   *  collapsed. */
   detail?: string
+  /** Every detail line the engine streamed while this step was running:
+   *  the subquestions it planned, the workers it dispatched, the budget
+   *  notes. Viewable on demand; hidden by default. */
+  details?: string[]
   state: "done" | "running" | "pending"
 }
 

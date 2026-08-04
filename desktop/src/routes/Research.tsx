@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { openInBrowser } from "@/lib/openInBrowser"
-import { FileText, History, Radar, Square, Trash2 } from "lucide-react"
+import { FileText, History, Info, PauseCircle, Play, Radar, Square, Trash2 } from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useResearchStore } from "@/store/research"
 import { useToastStore } from "@/store/toast"
 import EmptyState from "@/components/EmptyState"
+import { JumpToBottom } from "@/components/common/JumpToBottom"
 import { Button } from "@/components/ui"
 import { LiveDot, SectionLabel } from "@/components/hud"
 import { AnswerCard } from "@/components/answer/AnswerCard"
@@ -15,27 +16,33 @@ import {
   type SearchSettings,
 } from "@/components/SearchProviderPicker"
 import { api } from "@/lib/api"
-import { formatRelativeTime } from "@/lib/format"
+import { formatDuration, formatRelativeTime, formatTokens } from "@/lib/format"
 import { humanize } from "@/lib/errors"
 import type { AnswerSource } from "@/components/answer/types"
-import type { ResearchReport } from "@/lib/types"
+import type { ResearchCost, ResearchGrounding, ResearchReport, ResumableRun } from "@/lib/types"
 
 /**
  * Research is the Perplexity-style surface wired to the daemon's `research`
- * run: decompose → search → read → reason → gap-check → report. The composer's
- * Normal/Advanced toggle picks which of two pipelines runs — Normal scales the
- * everyday report ×1-9, Advanced (×10) switches to the deep dossier pipeline
- * and produces a signed PDF export — but both post to the same `start`.
+ * run. The engine behind it is a hybrid: a router picks the fast single-loop
+ * path for narrow questions and the deep multi-agent path for questions that
+ * decompose into parallel strands, and a thin fast run can be promoted to
+ * deep mid-flight. The composer's Normal/Advanced toggle still picks the
+ * budget regime — Normal scales the everyday report ×1-9, Advanced (×10)
+ * switches to the deep dossier pipeline with a signed PDF export.
  */
 export default function Research() {
   const ws = useWorkspaceStore((s) => s.active)
   const {
-    question, busy, steps, answer, rounds, searched, reportPath, deep, exporting, error, history,
-    start, cancel, loadHistory, openSaved, deleteSaved, exportPdf,
+    question, busy, steps, answer, rounds, searched, fetched, durationMs, reportPath, deep, exporting, error, history,
+    path, escalated, cost, grounding, paused,
+    start, cancel, reattach, loadHistory, loadPaused, continueRun, discardPaused, openSaved, deleteSaved, exportPdf,
   } = useResearchStore()
   const pushToast = useToastStore((s) => s.push)
   const [power, setPower] = useState(3)
   const [search, setSearch] = useState<SearchSettings | null>(null)
+  // Anchor for the jump-to-bottom button: the route scrolls inside the
+  // shell's <main>, which it locates from this element.
+  const rootRef = useRef<HTMLDivElement>(null)
 
   // The provider switch edits the same daemon-side value as Settings, so a
   // choice made here holds everywhere (CLI included).
@@ -47,9 +54,16 @@ export default function Research() {
   }, [])
 
   // Saved reports are workspace-scoped; reload whenever the repo changes.
+  // Reattach runs on the same tick: if the daemon still has a research run
+  // going — whatever page it was started from, and whatever happened to
+  // this screen meanwhile — its live trail belongs on this screen.
   useEffect(() => {
-    if (ws) void loadHistory(ws.id)
-  }, [ws?.id, loadHistory])
+    if (ws) {
+      void loadHistory(ws.id)
+      void reattach(ws.id)
+    }
+    void loadPaused()
+  }, [ws?.id, loadHistory, reattach, loadPaused])
 
   const setSearchProvider = async (v: string) => {
     try {
@@ -83,7 +97,7 @@ export default function Research() {
   const openSource = (s: AnswerSource) => openInBrowser(s.url)
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-6">
+    <div ref={rootRef} className="mx-auto max-w-3xl px-5 py-6">
       <header className="mb-5 flex items-center gap-3">
         <div className="flex-1">
           <h1 className="font-mono text-lg font-bold tracking-tight text-kai-white">Research</h1>
@@ -114,10 +128,15 @@ export default function Research() {
             <SectionLabel>Researching — {question}</SectionLabel>
           </div>
           <ResearchSteps steps={steps} searched={searched} rounds={rounds} defaultOpen />
-          <Button variant="danger" size="sm" onClick={() => void cancel()}>
-            <Square size={11} />
-            Stop
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="danger" size="sm" onClick={() => void cancel()}>
+              <Square size={11} />
+              Stop
+            </Button>
+            <span className="font-mono text-[10px] text-kai-dim">
+              Stopping saves the run — continue it anytime below, even much later.
+            </span>
+          </div>
         </div>
       )}
 
@@ -140,6 +159,21 @@ export default function Research() {
             onExport={() => void exportPdf()}
             onRewrite={() => void start(ws.id, answer.question, power)}
           />
+          <div className="flex items-center gap-1.5">
+            <ResearchMeta path={path} escalated={escalated} cost={cost} grounding={grounding} />
+            <RunStats
+              durationMs={durationMs}
+              path={path}
+              escalated={escalated}
+              rounds={rounds}
+              searched={searched}
+              fetched={fetched}
+              sources={answer.sources.length}
+              cost={cost}
+              grounding={grounding}
+              incomplete={answer.incomplete}
+            />
+          </div>
           {reportPath && (
             <p className="flex items-center gap-1.5 font-mono text-[10px] text-kai-dim">
               <FileText size={10} />
@@ -159,6 +193,18 @@ export default function Research() {
           onDelete={(slug) => void deleteSaved(ws.id, slug)}
         />
       )}
+
+      {!busy && paused.length > 0 && (
+        <PausedResearch
+          runs={paused}
+          onContinue={(run) => void continueRun(ws.id, run)}
+          onDiscard={(id) => void discardPaused(id)}
+        />
+      )}
+
+      {/* A rendered dossier runs to dozens of screens; this is the trip
+          back down, shown only while the reader is away from the end. */}
+      <JumpToBottom anchor={rootRef} className="bottom-12" />
     </div>
   )
 }
@@ -168,6 +214,167 @@ const EXAMPLES = [
   "What changed in Go 1.24 garbage collection?",
   "How do Tauri v2 and Electron compare on memory?",
 ]
+
+/**
+ * ResearchMeta is the hybrid engine's audit strip: which path ran, whether
+ * it was promoted mid-run, how much of the draft the citation pass could
+ * ground, and the line-itemised price. Cost honesty is the point of the
+ * meter — one price, computed the same way, whichever path ran.
+ */
+function ResearchMeta({
+  path,
+  escalated,
+  cost,
+  grounding,
+}: {
+  path: string | null
+  escalated: boolean
+  cost: ResearchCost | null
+  grounding: ResearchGrounding | null
+}) {
+  const hasCost = !!cost && ((cost.usd ?? 0) > 0 || (cost.searches ?? 0) > 0)
+  const hasGrounding = !!grounding && (grounding.checked ?? 0) > 0
+  if (!path && !hasCost && !hasGrounding) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[10px] text-kai-dim">
+      {path && (
+        <span
+          className={
+            path === "deep"
+              ? "rounded-[var(--radius)] border border-kai-orange/40 bg-kai-orange/10 px-1.5 py-0.5 text-kai-orange"
+              : "rounded-[var(--radius)] border border-border px-1.5 py-0.5"
+          }
+          title={
+            path === "deep"
+              ? "Deep path — supervisor with parallel research workers"
+              : "Fast path — a single search-and-reason loop"
+          }
+        >
+          {path === "deep" ? "DEEP PATH" : "FAST PATH"}
+        </span>
+      )}
+      {escalated && (
+        <span className="text-kai-amber" title="The fast path gathered too little, so the run was promoted to the deep path without restarting.">
+          promoted from the fast path mid-run
+        </span>
+      )}
+      {hasGrounding && (
+        <span title="Share of checked claims the citation pass could ground in the raw sources.">
+          {Math.round((grounding!.rate ?? 0) * 100)}% grounded
+          {(grounding!.ungrounded ?? 0) > 0 ? ` · ${grounding!.ungrounded} flagged` : ""}
+        </span>
+      )}
+      {hasCost && <span>{formatCost(cost!)}</span>}
+    </div>
+  )
+}
+
+/**
+ * RunStats is the finished run's full receipt behind one small icon: hover
+ * (or focus) and the whole bill opens — time, rounds, work done, tokens and
+ * price. The meta strip keeps the headline numbers; this keeps everything,
+ * without taking a line of the answer surface for itself.
+ */
+function RunStats({
+  durationMs,
+  path,
+  escalated,
+  rounds,
+  searched,
+  fetched,
+  sources,
+  cost,
+  grounding,
+  incomplete,
+}: {
+  durationMs: number | null
+  path: string | null
+  escalated: boolean
+  rounds: number
+  searched: number
+  fetched: number | null
+  sources: number
+  cost: ResearchCost | null
+  grounding: ResearchGrounding | null
+  incomplete?: boolean
+}) {
+  const rows: [string, string][] = []
+  if (durationMs != null) rows.push(["time", formatDuration(durationMs)])
+  if (path) rows.push(["path", path === "deep" ? "deep path" : "fast path" + (escalated ? " · promoted mid-run" : "")])
+  else if (escalated) rows.push(["path", "promoted to deep mid-run"])
+  const work = [
+    rounds ? `${rounds} round${rounds === 1 ? "" : "s"}` : null,
+    searched ? `${searched} queries` : null,
+    fetched ? `${fetched} pages read` : null,
+    sources ? `${sources} cited` : null,
+  ].filter(Boolean).join(" · ")
+  if (work) rows.push(["work", work])
+  if (cost) {
+    const toks = (cost.input_tokens ?? 0) + (cost.output_tokens ?? 0) + (cost.reasoning_tokens ?? 0)
+    if (toks > 0) {
+      const split = [
+        `${formatTokens(cost.input_tokens ?? 0)} in`,
+        `${formatTokens(cost.output_tokens ?? 0)} out`,
+        (cost.reasoning_tokens ?? 0) > 0 ? `${formatTokens(cost.reasoning_tokens ?? 0)} reasoning` : null,
+      ].filter(Boolean).join(" · ")
+      rows.push(["tokens", `${formatTokens(toks)} (${split})`])
+    }
+    if ((cost.usd ?? 0) > 0) rows.push(["cost", `${cost.exact ? "" : "≈"}$${cost.usd!.toFixed(4)}`])
+  }
+  if (grounding && (grounding.checked ?? 0) > 0) {
+    rows.push([
+      "grounded",
+      `${Math.round((grounding.rate ?? 0) * 100)}% of ${grounding.checked} claim${grounding.checked === 1 ? "" : "s"}` +
+        ((grounding.ungrounded ?? 0) > 0 ? ` · ${grounding.ungrounded} flagged` : ""),
+    ])
+  }
+  if (incomplete) rows.push(["warning", "some subquestions stayed thinly evidenced"])
+  if (rows.length === 0) return null
+
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        aria-label="Run details"
+        title="Run details"
+        className="rounded-[var(--radius)] p-1 text-kai-dim outline-none transition-colors
+                   hover:text-kai-orange focus-visible:ring-2 focus-visible:ring-kai-orange/50"
+      >
+        <Info size={12} />
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute right-0 bottom-full z-50 mb-1.5 hidden w-72
+                   rounded-[var(--radius)] border border-border bg-card p-2.5 shadow-lg
+                   group-focus-within:block group-hover:block"
+      >
+        <span className="block font-mono text-[9px] font-bold tracking-[0.14em] text-kai-dim uppercase">
+          Run details
+        </span>
+        <dl className="mt-1.5 space-y-1">
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-3">
+              <dt className="shrink-0 font-mono text-[10px] text-kai-dim">{k}</dt>
+              <dd className="text-right font-mono text-[10px] text-kai-text">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </span>
+    </span>
+  )
+}
+
+/** formatCost renders the line-itemised meter as one compact line. */
+function formatCost(c: ResearchCost): string {
+  const parts: string[] = []
+  if ((c.usd ?? 0) > 0) parts.push(`${c.exact ? "" : "≈"}$${c.usd!.toFixed(4)}`)
+  if ((c.searches ?? 0) > 0) parts.push(`${c.searches} searches`)
+  if ((c.fetches ?? 0) > 0) parts.push(`${c.fetches} pages`)
+  const toks = (c.input_tokens ?? 0) + (c.output_tokens ?? 0) + (c.reasoning_tokens ?? 0)
+  if (toks > 0) parts.push(`${formatTokens(toks)} tokens`)
+  return parts.join(" · ")
+}
 
 /**
  * ResearchHistory is what makes a deep search reusable: every finished run
@@ -215,6 +422,8 @@ function ResearchHistory({
               <span className="block truncate font-mono text-[10px] text-kai-dim">
                 {[
                   formatRelativeTime(r.created_at),
+                  r.path ? `${r.path} path` : null,
+                  r.escalated ? "promoted" : null,
                   `${r.sources.length} sources`,
                   r.rounds ? `${r.rounds} round${r.rounds === 1 ? "" : "s"}` : null,
                 ]
@@ -240,19 +449,119 @@ function ResearchHistory({
   )
 }
 
+/**
+ * PausedResearch is the stop-and-continue shelf: every run stopped before
+ * its report is checkpointed on disk by the engine, and stays there until
+ * it is continued or discarded — a run stopped today resumes next month.
+ */
+function PausedResearch({
+  runs,
+  onContinue,
+  onDiscard,
+}: {
+  runs: ResumableRun[]
+  onContinue: (run: ResumableRun) => void
+  onDiscard: (id: string) => void
+}) {
+  return (
+    <div className="mt-8">
+      <div className="flex items-center gap-1.5">
+        <PauseCircle size={11} className="text-kai-dim" />
+        <SectionLabel>Paused research</SectionLabel>
+      </div>
+      <p className="mt-1 font-mono text-[10px] text-kai-dim">
+        Stopped runs are saved exactly where they stopped. Continue one
+        whenever you like — the checkpoint does not expire.
+      </p>
+      <ul className="mt-2 space-y-1">
+        {runs.map((r) => (
+          <li
+            key={r.id}
+            className="group flex items-center gap-2 rounded-[var(--radius)] border border-border
+                       bg-card transition-colors hover:border-kai-orange/40 hover:bg-accent"
+          >
+            <button
+              type="button"
+              onClick={() => onContinue(r)}
+              title="Continue this run from where it stopped"
+              className="min-w-0 flex-1 px-2.5 py-1.5 text-left outline-none
+                         focus-visible:ring-2 focus-visible:ring-kai-orange/50"
+            >
+              <span className="flex items-center gap-1.5">
+                <Play size={10} className="shrink-0 text-kai-orange opacity-0 transition-opacity group-hover:opacity-100" />
+                <span className="truncate font-sans text-[12px] text-kai-text group-hover:text-kai-white">
+                  {r.question}
+                </span>
+              </span>
+              <span className="block truncate font-mono text-[10px] text-kai-dim">
+                {[
+                  `stopped ${formatRelativeTime(r.started_at)}`,
+                  `was ${phaseLabel(r.phase)}`,
+                  r.path ? `${r.path} path` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </button>
+            <Button size="sm" onClick={() => onContinue(r)} className="shrink-0">
+              <Play size={10} />
+              Continue
+            </Button>
+            <button
+              type="button"
+              onClick={() => onDiscard(r.id)}
+              aria-label={`Discard saved research: ${r.question}`}
+              title="Discard this saved run for good"
+              className="mr-1.5 shrink-0 rounded-[var(--radius)] p-1.5 text-kai-dim outline-none
+                         transition-colors hover:text-kai-rose focus-visible:ring-2
+                         focus-visible:ring-kai-orange/50"
+            >
+              <Trash2 size={12} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** phaseLabel puts the engine's checkpoint phase into plain language. */
+function phaseLabel(phase: string): string {
+  switch (phase) {
+    case "scope":
+      return "scoping the research"
+    case "plan":
+      return "planning"
+    case "research":
+      return "researching"
+    case "write":
+      return "writing the report"
+    case "cite":
+      return "grounding citations"
+    default:
+      return phase
+  }
+}
+
 function ResearchIntro({ onPick }: { onPick: (q: string) => void }) {
   return (
     <div className="animate-charge mt-8">
       <SectionLabel>How it works</SectionLabel>
       <p className="mt-2 font-mono text-[11px] leading-relaxed text-kai-dim">
-        The question is split into subquestions, each searched and read across the web,
-        then gaps are detected and searched again. Every claim in the report cites a page
-        that was actually fetched. <strong className="text-kai-text">Normal</strong> scales
-        that loop from ×1 to ×9 — more queries, pages and rounds the higher you go.{" "}
-        <strong className="text-kai-orange">Advanced</strong> switches to a different
-        pipeline entirely: up to 480 pages read over 8 rounds, written a chapter at a time
-        into a massive, exhaustively detailed dossier with its own findings register and
-        source log, exported as a signed PDF.
+        A router reads the question first. Narrow lookups take the{" "}
+        <strong className="text-kai-text">fast path</strong> — one lean
+        search-and-reason loop. Multi-part questions take the{" "}
+        <strong className="text-kai-orange">deep path</strong> — a supervisor
+        delegating parallel research workers — and a fast run that gathers too
+        little is promoted to deep mid-flight instead of restarting. Either
+        way the draft is checked against the raw sources before it ships, and
+        every claim cites a page that was actually fetched.{" "}
+        <strong className="text-kai-text">Normal</strong> scales the budget
+        from ×1 to ×9; <strong className="text-kai-orange">Advanced</strong>{" "}
+        switches to the dossier pipeline: up to 480 pages read over 8 rounds,
+        written a chapter at a time into a massive, exhaustively detailed
+        dossier with its own findings register and source log, exported as a
+        signed PDF.
       </p>
       <div className="mt-4 flex flex-wrap gap-1.5">
         {EXAMPLES.map((q) => (

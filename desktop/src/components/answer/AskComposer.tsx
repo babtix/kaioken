@@ -243,9 +243,9 @@ function ModeButton({
 function estimate(mode: "normal" | "advanced", power: number, web: boolean): string {
   if (!web) return "Repository only — no web search, no pages fetched"
   if (mode === "advanced") {
-    return "Deep dossier: up to 32 queries × 8 rounds · up to 480 pages scanned · " +
-      "sectioned report with a findings register, search log and coverage log · " +
-      "signed PDF, 12+ pages guaranteed — not token-efficient, for when the answer matters more than the bill"
+    return "Deep dossier: sectioned report with a findings register, search log and coverage log · " +
+      "signed PDF. Highest quality this app can produce, at the highest token cost. " +
+      "Check your balance before you press go."
   }
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, hi))
   const queries = clamp(3 * power, 3, 24)

@@ -19,6 +19,7 @@ import { useRunsStore } from "@/store/runs"
 import { useToastStore } from "@/store/toast"
 import { useThemeStore } from "@/store/theme"
 import Markdown from "@/components/common/Markdown"
+import { JumpToBottom } from "@/components/common/JumpToBottom"
 import ApprovalDialog from "@/components/chat/ApprovalDialog"
 import Autocomplete, { detectTrigger, type Suggestion } from "@/components/chat/Autocomplete"
 import { ToolCallCard, ToolResultCard } from "@/components/chat/ToolCallCard"
@@ -288,6 +289,10 @@ export default function Chat() {
       </div>
 
       <ApprovalDialog approval={approval} onResolve={resolveApproval} />
+
+      {/* Long transcripts get a one-click trip back to the live end; it
+          hides itself the moment the reader is there already. */}
+      <JumpToBottom scroller={scrollRef} className="bottom-40" />
     </div>
   )
 }

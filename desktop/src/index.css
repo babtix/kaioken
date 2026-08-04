@@ -290,6 +290,9 @@
   font-size: 0.9375rem;
   line-height: 1.7;
   color: var(--kai-text);
+  /* Bare URLs and other unbreakable strings (the report's page registers)
+     must wrap inside the card, never push through its edge. */
+  overflow-wrap: anywhere;
 }
 .md-body > *:first-child { margin-top: 0; }
 
@@ -602,6 +605,9 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  /* Content wraps in .md-body; this is the backstop for anything — a wide
+     table, a stubborn string — that still tries to leave the card. */
+  overflow: hidden;
 }
 
 /* Inline citation chip. Sized to sit inside a line of prose without

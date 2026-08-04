@@ -1,6 +1,6 @@
 import { authHeaders, base } from "./daemon"
 import type { Graph as WikiGraph } from "./graph/types"
-import type { EmbedSettings, ErrorEnvelope, WikiSearchResponse, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, LocalProviderStatus, LocalProvidersResponse, ModuleStatus, RepoFile, ResearchExport, ResearchReport, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, UsageResponse, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
+import type { EmbedSettings, ErrorEnvelope, WikiSearchResponse, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, LocalProviderStatus, LocalProvidersResponse, ModuleStatus, RepoFile, ResearchExport, ResearchReport, ResumableRun, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, UsageResponse, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
 
 // Parses the §2.1 error envelope; carries enough for a component to branch
 // on err.code (e.g. "no_api_key") instead of printing a stack trace.
@@ -147,6 +147,14 @@ export const api = {
   // the signature has to come from the same code that produced the research.
   researchExport: (wsId: string, slug: string) =>
     req<ResearchExport>("POST", `/workspaces/${wsId}/research/${encodeURIComponent(slug)}/export`),
+
+  // Interrupted runs — the stop-and-continue contract. Stopping a research
+  // run checkpoints it to disk; this lists what can be continued, and
+  // discards what should not be. Continuing is startRun with a `resume`
+  // param carrying one of these ids.
+  researchRuns: () => req<{ runs: ResumableRun[] }>("GET", "/research/runs"),
+  researchRunDelete: (runId: string) =>
+    req<void>("DELETE", `/research/runs/${encodeURIComponent(runId)}`),
 
   // Wiki/docs (T044–T052)
   wikiTree: (wsId: string) => req<WikiTree>("GET", `/workspaces/${wsId}/wiki/tree`),

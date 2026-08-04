@@ -1,7 +1,9 @@
 import { create } from "zustand"
 import { api } from "@/lib/api"
 import { humanize } from "@/lib/errors"
+import { friendlyStage } from "@/lib/stages"
 import { useToastStore } from "@/store/toast"
+import type { ResearchStep } from "@/components/answer/types"
 import type { KaiEvent, RunRecord } from "@/lib/types"
 
 type RunLog = { level: string; text: string }
@@ -9,6 +11,10 @@ type RunLog = { level: string; text: string }
 type RunsState = {
   runs: RunRecord[]
   logs: Record<string, RunLog[]>
+  /** Research runs also get the step trail the Research screen builds —
+   *  the same fold of the same events, so Activity can render the run
+   *  with the identical component instead of a raw log dump. */
+  trails: Record<string, ResearchStep[]>
   error: string | null
 
   refresh: (wsId: string) => Promise<void>
@@ -21,6 +27,7 @@ type RunsState = {
 export const useRunsStore = create<RunsState>((set) => ({
   runs: [],
   logs: {},
+  trails: {},
   error: null,
 
   refresh: async (wsId: string) => {
@@ -88,6 +95,21 @@ export const useRunsStore = create<RunsState>((set) => ({
               : r
           ),
         }))
+        // Research runs also advance their step trail — same rule as the
+        // research store: a repeated stage stays running, a new one closes
+        // the previous step.
+        set((s) => {
+          if (s.runs.find((r) => r.id === runId)?.kind !== "research") return {}
+          const label = friendlyStage(String(ev.message ?? ""))
+          if (!label) return {}
+          const steps = (s.trails[runId] ?? []).map((st): ResearchStep => ({ ...st, state: "done" }))
+          const last = steps[steps.length - 1]
+          if (last && last.label === label) {
+            last.state = "running"
+            return { trails: { ...s.trails, [runId]: steps } }
+          }
+          return { trails: { ...s.trails, [runId]: [...steps, { label, state: "running" }] } }
+        })
         break
       }
       case "run.log": {
@@ -96,6 +118,23 @@ export const useRunsStore = create<RunsState>((set) => ({
         set((s) => ({
           logs: { ...s.logs, [runId]: [...(s.logs[runId] || []), entry] },
         }))
+        // Detail lines attach to the trail's currently running step; every
+        // line is kept so the expanded view shows the whole story.
+        const text = String(ev.text ?? "")
+        if (!text || entry.level === "error") break
+        set((s) => {
+          if (s.runs.find((r) => r.id === runId)?.kind !== "research") return {}
+          const prev = s.trails[runId]
+          if (!prev || prev.length === 0) return {}
+          const steps = [...prev]
+          const last = steps[steps.length - 1]
+          steps[steps.length - 1] = {
+            ...last,
+            detail: text,
+            details: [...(last.details ?? []), text],
+          }
+          return { trails: { ...s.trails, [runId]: steps } }
+        })
         break
       }
       case "run.artifact": {
@@ -118,6 +157,16 @@ export const useRunsStore = create<RunsState>((set) => ({
               : r
           ),
         }))
+        set((s) => {
+          const prev = s.trails[runId]
+          if (!prev) return {}
+          return {
+            trails: {
+              ...s.trails,
+              [runId]: prev.map((st): ResearchStep => ({ ...st, state: "done" })),
+            },
+          }
+        })
         break
       }
     }

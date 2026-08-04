@@ -246,6 +246,22 @@ export type ResearchReport = {
   grounding?: ResearchGrounding
 }
 
+/**
+ * An interrupted research run — stopped before its report, checkpointed to
+ * disk by the engine, and continuable whenever the user returns. The
+ * checkpoint does not age: a run stopped today resumes next month.
+ */
+export type ResumableRun = {
+  id: string
+  question: string
+  /** Where the pipeline stopped: scope | plan | research | write | cite. */
+  phase: string
+  /** fast | deep — the route chosen so far; empty before routing. */
+  path?: string
+  mode?: string
+  started_at: string
+}
+
 /** The Perplexity-style line-itemised cost a research run reports. */
 export type ResearchCost = {
   input_tokens?: number

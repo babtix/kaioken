@@ -20,6 +20,8 @@ import { useRunsStore } from "@/store/runs"
 import { api } from "@/lib/api"
 import EmptyState from "@/components/EmptyState"
 import { Badge, Button, Card, ProgressBar, SectionLabel, Spinner } from "@/components/ui"
+import { ResearchSteps } from "@/components/answer/ResearchSteps"
+import type { ResearchStep } from "@/components/answer/types"
 import { cn } from "@/lib/utils"
 import { formatDuration, formatTokens } from "@/lib/format"
 import type { Estimate, RunRecord, SessionMeta, Skill } from "@/lib/types"
@@ -57,6 +59,7 @@ const KIND_LABELS: Record<string, string> = {
   update: "Update",
   skills: "Skills",
   chat: "Chat",
+  research: "Research",
 }
 
 // The pipeline behind the "Start wiki" button, in the order it runs — same
@@ -80,7 +83,7 @@ const SECONDARY_RUNS = [
 
 export default function Activity() {
   const ws = useWorkspaceStore((s) => s.active)
-  const { runs, logs, error, refresh, start, cancel, revert } = useRunsStore()
+  const { runs, logs, trails, error, refresh, start, cancel, revert } = useRunsStore()
   const [multiplier, setMultiplier] = useState(3)
   const [force, setForce] = useState(false)
   const [estimate, setEstimate] = useState<Estimate | null>(null)
@@ -277,7 +280,7 @@ export default function Activity() {
           </div>
           <div className="mt-2 space-y-2">
             {active.map((r) => (
-              <RunRow key={r.id} run={r} logs={logs[r.id] || []} onCancel={() => cancel(r.id)} onRevert={() => revert(r.id)} defaultOpen />
+              <RunRow key={r.id} run={r} logs={logs[r.id] || []} trail={trails[r.id] || []} onCancel={() => cancel(r.id)} onRevert={() => revert(r.id)} defaultOpen />
             ))}
           </div>
         </section>
@@ -298,7 +301,7 @@ export default function Activity() {
 
         <div className="mt-2 space-y-2">
           {past.map((r) => (
-            <RunRow key={r.id} run={r} logs={logs[r.id] || []} onCancel={() => cancel(r.id)} onRevert={() => revert(r.id)} />
+            <RunRow key={r.id} run={r} logs={logs[r.id] || []} trail={trails[r.id] || []} onCancel={() => cancel(r.id)} onRevert={() => revert(r.id)} />
           ))}
           {past.length === 0 && active.length === 0 && (
             <p className="rounded-md border border-dashed border-border px-4 py-6 text-center font-mono text-[11px] text-kai-dim">
@@ -364,12 +367,14 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
 function RunRow({
   run,
   logs,
+  trail,
   onCancel,
   onRevert,
   defaultOpen = false,
 }: {
   run: RunRecord
   logs: { level: string; text: string }[]
+  trail: ResearchStep[]
   onCancel: () => void
   onRevert: () => void
   defaultOpen?: boolean
@@ -510,8 +515,13 @@ function RunRow({
             </details>
           )}
 
-          {logs.length > 0 ? (
-            <pre className="max-h-48 overflow-auto font-mono text-[10px] leading-relaxed">
+          {/* Research runs render the same step trail the Research screen
+              shows — identical component, identical picture. The raw log
+              dump below stays for every other run kind. */}
+          {run.kind === "research" && trail.length > 0 ? (
+            <ResearchSteps steps={trail} defaultOpen />
+          ) : logs.length > 0 ? (
+            <pre className="max-h-64 overflow-auto font-mono text-[10px] leading-relaxed">
               {logs.map((l, i) => (
                 <span
                   key={i}
@@ -529,7 +539,9 @@ function RunRow({
               ))}
             </pre>
           ) : (
-            <p className="font-mono text-[10px] text-kai-dim">No log output.</p>
+            <p className="font-mono text-[10px] text-kai-dim">
+              {run.kind === "research" ? "No steps recorded." : "No log output."}
+            </p>
           )}
         </div>
       )}

@@ -36,7 +36,20 @@ Sources disagree mainly on financing assumptions. Studies using a 3 percent disc
     { n: 5, url: "https://www.irena.org/publications/renewable-power-generation-costs", title: "Renewable Power Generation Costs in 2024" },
   ],
   steps: [
-    { label: "Planning the research", detail: "6 subquestions", state: "done" },
+    {
+      label: "Planning the research",
+      detail: "6 subquestions",
+      details: [
+        "6 subquestions",
+        "What is the levelised cost of utility-scale solar in Europe?",
+        "What is the levelised cost of new nuclear in Europe?",
+        "How do capacity factors differ between the two?",
+        "Are storage and grid costs included in either figure?",
+        "Which financing assumptions drive the spread between studies?",
+        "Do 2025 construction cost updates change the comparison?",
+      ],
+      state: "done",
+    },
     { label: "Searching the web", detail: "solar cost europe · nuclear cost europe · capacity factor", state: "done" },
     { label: "Reading 14 pages", detail: "3 unreadable, skipped", state: "done" },
     { label: "Checking for gaps", detail: "missing 2025 construction costs", state: "done" },
