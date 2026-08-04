@@ -12,6 +12,8 @@ cli/kaioken-test
 
 # Session and state (local-only)
 **/.kaioken/sessions/
+**/.kaioken/site/
+*.tar.gz
 .kaioken/config.yaml
 .kaioken/research/
 .hermes/
