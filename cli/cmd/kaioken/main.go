@@ -31,7 +31,6 @@ import (
 	"kaioken/internal/serve"
 	"kaioken/internal/setup"
 	"kaioken/internal/skills"
-	"kaioken/internal/state"
 	"kaioken/internal/tui"
 	"kaioken/internal/version"
 	"kaioken/internal/webfetch"
@@ -58,7 +57,9 @@ Commands:
   scan       Scan the repo and print an inventory summary
   plan       Propose a module tree with the LLM → .kaioken/modules.yaml (editable)
   generate   Generate knowledge cards for all modules (skips unchanged ones)
-  status     Show module freshness (changed / up-to-date / missing)
+  status     Show module freshness (changed / up-to-date / missing). -check is
+             the CI drift gate: exit 0 fresh, 1 stale, 2 error; -json emits a
+             machine-readable staleness summary
   models     List provider models (optional filter argument)
   wiki       Deep multi-pass wiki (positional arg: x1..x10 multiplier)
   update     Incremental refresh: git-diff the repo against the commit the
@@ -212,6 +213,18 @@ func main() {
 	bookSpend(cmd, args.repo)
 
 	if err != nil {
+		// status -check speaks in exit codes: stale is a finding, not an
+		// error, so it gets no "error:" prefix.
+		if errors.Is(err, errStale) {
+			os.Exit(1)
+		}
+		var ce *cliExit
+		if errors.As(err, &ce) {
+			if ce.err != nil {
+				fmt.Fprintln(os.Stderr, "error:", ce.err)
+			}
+			os.Exit(ce.code)
+		}
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
@@ -250,7 +263,27 @@ type flags struct {
 	// opt-in cross-path checking of load-bearing claims.
 	resume string
 	verify bool
+	// check turns `status` into the CI drift gate: no fixes, just an exit
+	// code a pipeline can gate on.
+	check bool
 }
+
+// cliExit carries an explicit process exit code alongside the error, for
+// commands whose contract is coded in exit codes (status -check: 1 stale,
+// 2 error). err may be nil when the command already printed its output.
+type cliExit struct {
+	code int
+	err  error
+}
+
+func (e *cliExit) Error() string {
+	if e.err != nil {
+		return e.err.Error()
+	}
+	return fmt.Sprintf("exit %d", e.code)
+}
+
+func (e *cliExit) Unwrap() error { return e.err }
 
 func parseFlags(argv []string) flags {
 	f := flags{repo: "."}
@@ -292,6 +325,8 @@ func parseFlags(argv []string) flags {
 			}
 		case "-verify", "--verify":
 			f.verify = true
+		case "-check", "--check":
+			f.check = true
 		case "-force", "--force":
 			f.force = true
 		case "-full", "--full":
@@ -473,46 +508,6 @@ func cmdGenerate(ctx context.Context, f flags) error {
 		done, revised, skipped, failed, time.Since(started).Round(time.Second))
 	fmt.Printf("index: %s\n", config.Dir+"/KNOWLEDGE.md")
 	return err
-}
-
-func cmdStatus(f flags) error {
-	cfg, err := config.Load(f.repo)
-	if err != nil {
-		return err
-	}
-	p, err := plan.Load(f.repo)
-	if err != nil {
-		return err
-	}
-	st, err := state.Load(f.repo)
-	if err != nil {
-		return err
-	}
-	res, err := scan.Repo(f.repo, cfg)
-	if err != nil {
-		return err
-	}
-	for _, fm := range p.Flatten() {
-		files := plan.FilesFor(fm, res)
-		ms, ok := st.Modules[fm.ID]
-		switch {
-		case len(files) == 0:
-			fmt.Printf("  ∅ %-40s (no files in scope)\n", fm.ID)
-		case !ok:
-			fmt.Printf("  ○ %-40s not generated (%d files)\n", fm.ID, len(files))
-		default:
-			hash, herr := state.HashFiles(res.Root, files)
-			if herr != nil {
-				return herr
-			}
-			if hash == ms.SourceHash {
-				fmt.Printf("  ✓ %-40s up-to-date (%s)\n", fm.ID, ms.GeneratedAt.Format("2006-01-02 15:04"))
-			} else {
-				fmt.Printf("  Δ %-40s CHANGED since %s\n", fm.ID, ms.GeneratedAt.Format("2006-01-02 15:04"))
-			}
-		}
-	}
-	return nil
 }
 
 func cmdModels(ctx context.Context, f flags) error {
@@ -1052,6 +1047,7 @@ func cmdResearch(ctx context.Context, f flags) error {
 		// cancelling ten minutes in.
 		fmt.Printf("  deep dossier: up to %d pages read, sectioned report with appendices, PDF output\n",
 			research.ScanCeiling(mult, opts.Deep))
+		fmt.Printf("  highest quality this app can produce, at the highest token cost — check your balance before you press go\n")
 	}
 
 	started := time.Now()
