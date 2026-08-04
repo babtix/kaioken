@@ -423,7 +423,24 @@ func cmdScan(f flags) error {
 	}
 	fmt.Printf("scanned in %s: %s\n\n", time.Since(started).Round(time.Millisecond), res.Stats())
 	fmt.Print(res.TreeSummary(8))
+	printRiskFlags(f.repo, res)
 	return nil
+}
+
+// printRiskFlags surfaces the scan's risk findings and persists them to
+// .kaioken/risk.json so the approval dialog can consult them later. A save
+// failure never fails the scan itself — the findings were already printed.
+func printRiskFlags(repo string, res *scan.Result) {
+	if len(res.Flags) == 0 {
+		return
+	}
+	fmt.Printf("\nrisk: %d finding(s)\n", len(res.Flags))
+	for _, fl := range res.Flags {
+		fmt.Printf("  ⚠ %-16s %s — %s\n", fl.Kind, fl.Path, fl.Detail)
+	}
+	if err := res.SaveFlags(repo); err != nil {
+		fmt.Printf("  · could not persist risk.json: %v\n", err)
+	}
 }
 
 func cmdPlan(ctx context.Context, f flags) error {

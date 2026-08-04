@@ -32,6 +32,9 @@ type Result struct {
 	Manifests []string // repo-relative paths of recognized manifest files
 	ByExt     map[string]int
 	TotalSize int64
+	// Flags are risk findings (secrets, credentials, generated files, large
+	// binaries) collected during the walk. See risk.go.
+	Flags []Flag
 }
 
 // manifestNames are files that reveal the tech stack; they are surfaced to
@@ -116,23 +119,28 @@ func Repo(root string, cfg *config.Config) (*Result, error) {
 		}
 
 		ext := strings.ToLower(filepath.Ext(base))
-		if binaryExts[ext] {
-			return nil
-		}
 		info, ierr := d.Info()
 		if ierr != nil {
 			return nil
 		}
+		if binaryExts[ext] {
+			res.Flags = append(res.Flags, binaryRisk(rel, info.Size())...)
+			return nil
+		}
 
 		f := File{Path: rel, Size: info.Size(), Ext: ext}
+		var content []byte
 		if info.Size() <= maxFileBytes {
 			if raw, rerr := os.ReadFile(path); rerr == nil {
 				if bytes.IndexByte(raw, 0) != -1 {
+					res.Flags = append(res.Flags, binaryRisk(rel, info.Size())...)
 					return nil // binary content sniffed
 				}
 				f.Lines = bytes.Count(raw, []byte("\n")) + 1
+				content = raw
 			}
 		}
+		res.Flags = append(res.Flags, detectRisk(rel, base, content)...)
 		res.Files = append(res.Files, f)
 		res.ByExt[ext]++
 		res.TotalSize += f.Size
