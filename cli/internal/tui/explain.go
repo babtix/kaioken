@@ -151,6 +151,10 @@ var commandGuides = map[string]string{
 		"message and a what/why/how-to-test PR description in the project's own voice. " +
 		"It never stages or commits — the draft is for you to edit and use. Pass a " +
 		"baseline like HEAD~3 to cover committed work too.",
+	"handoff": "Distills the current session into a continuation briefing — goal, " +
+		"decisions, state, open threads — and appends the collapsed transcript. The file " +
+		"lands under .kaioken/handoffs/, ready to hand to a teammate or paste into a " +
+		"fresh session so the work continues without re-explaining everything.",
 	"hook": "Installs a git post-commit hook that runs /update in the background after " +
 		"every commit, so documentation never drifts. It appends a delimited block " +
 		"to the existing hook, so your other hooks are preserved. Remove it with " +

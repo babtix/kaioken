@@ -1,8 +1,1 @@
-- Command handler functions are named cmd<Command> (e.g., cmdRun, cmdInit) and return an error.
-- Common flags (-repo, -model, -module, -base, -port, -force, -full, -out, -token, -token-stdin) are parsed by the shared parseFlags function into a flags struct.
-- Command-specific flags (like -format, -severity, -only for review) are parsed from f.positionals within the handler function.
-- The repo field in flags defaults to "." (current directory) and is used as the target repository.
-- Error handling: Handlers return error; in main, if the error is errStale (from status.go), exit with code 1 without an "error:" prefix; if the error is of type *cliExit, use its code and error; otherwise, print "error:" and exit with code 1.
-- For JSON output, handlers check the jsonOut flag in flags to change the output format (e.g., in cmdStatus, cmdReview).
-- The force flag is used to bypass caching and regenerate outputs (e.g., in cmdIndex, cmdOnboard).
-- Output files specified by -out are made absolute if not already (e.g., in cmdImpact, cmdReview).
+

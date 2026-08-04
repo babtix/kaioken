@@ -637,6 +637,16 @@ var commands = []command{
 		},
 	},
 	{
+		name: "handoff",
+		summary: "write a continuation briefing for this session",
+		detail: "Distills the current session into goal, decisions, state and open threads, " +
+			"appends the collapsed transcript, and writes the document under .kaioken/handoffs/ " +
+			"— what a teammate or a fresh agent needs to pick the work up.",
+		examples: []example{
+			{"/handoff", "brief the current session"},
+		},
+	},
+	{
 		name: "hook", args: "[install|remove]",
 		summary: "auto-update the wiki after each commit",
 		detail: "Installs a git post-commit hook running /update in the background, so documentation " +

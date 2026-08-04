@@ -35,6 +35,7 @@ import (
 	"kaioken/internal/generate"
 	"kaioken/internal/gitx"
 	"kaioken/internal/gitdraft"
+	"kaioken/internal/handoff"
 	"kaioken/internal/impact"
 	"kaioken/internal/llm"
 	"kaioken/internal/memory"
@@ -85,6 +86,13 @@ type modelsFetchedMsg struct {
 type draftMsg struct {
 	text string
 	err  error
+}
+
+// handoffMsg carries a /handoff brief back from the LLM goroutine; the file
+// is written in the Update loop so the user sees the path synchronously.
+type handoffMsg struct {
+	brief string
+	err   error
 }
 
 // extRegistryFetchedMsg carries the community extension index for the
@@ -515,6 +523,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.appendLine(msg.text)
 		m.appendLine(dimStyle.Render("draft only — nothing was committed · /copy to take it"))
+		return m, nil
+
+	case handoffMsg:
+		m.busy = false
+		if msg.err != nil {
+			m.appendLine(errStyle.Render("handoff: " + msg.err.Error()))
+			return m, nil
+		}
+		out, err := m.writeHandoff(msg.brief)
+		if err != nil {
+			m.appendLine(errStyle.Render("handoff: " + err.Error()))
+			return m, nil
+		}
+		m.appendLine(okStyle.Render("handoff briefing → " + out))
 		return m, nil
 
 	case modelsFetchedMsg:
@@ -1386,6 +1408,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		return m.startOnboard(args)
 	case "draft":
 		return m.startDraft(rest)
+	case "handoff":
+		return m.startHandoff()
 	case "hook":
 		m.doHook(args)
 	case "status":
@@ -2063,6 +2087,51 @@ func (m *Model) doHook(args []string) {
 }
 
 // ---- wiki browser ----
+
+// startHandoff briefs the current session so someone else can continue it.
+// The brief comes from the model; the file write happens when it lands.
+func (m Model) startHandoff() (tea.Model, tea.Cmd) {
+	if m.client == nil {
+		return m.needKey()
+	}
+	if m.sess == nil || m.sess.Empty() {
+		m.appendLine(errStyle.Render("no current session to hand off"))
+		return m, nil
+	}
+	m.busy = true
+	m.busyText = "writing the handoff briefing"
+	client, sess := m.client, m.sess
+	return m, tea.Batch(
+		func() tea.Msg {
+			brief, err := handoff.Brief(context.Background(), client, sess)
+			return handoffMsg{brief, err}
+		},
+		m.spin.Tick,
+	)
+}
+
+// writeHandoff saves the brief plus the collapsed transcript under
+// .kaioken/handoffs/ and returns the path.
+func (m *Model) writeHandoff(brief string) (string, error) {
+	sess := m.sess
+	var doc strings.Builder
+	fmt.Fprintf(&doc, "# Handoff — %s\n\n", sess.Title)
+	fmt.Fprintf(&doc, "_Session `%s`, briefed %s. Hand this to whoever continues the work._\n\n",
+		sess.ID, time.Now().Format("2006-01-02 15:04"))
+	doc.WriteString(brief)
+	doc.WriteString("\n\n## Transcript\n\n")
+	doc.WriteString(handoff.Transcript(sess))
+
+	dir := filepath.Join(m.repo, config.Dir, "handoffs")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	out := filepath.Join(dir, fmt.Sprintf("%s-%s.md", sess.ID, time.Now().Format("20060102-1504")))
+	if err := os.WriteFile(out, []byte(doc.String()), 0o644); err != nil {
+		return "", err
+	}
+	return out, nil
+}
 
 // startDraft asks the model for a commit message + PR description grounded
 // in the current diff. It is strictly advisory: nothing is staged or
@@ -2970,6 +3039,7 @@ var helpText = strings.Join([]string{
 	"  /publish                render the wiki as a static site under .kaioken/site/",
 	"  /onboard [force]        write ONBOARDING.md — the day-one guide from your knowledge",
 	"  /draft [base]           draft a commit message + PR description for the current diff",
+	"  /handoff                write a continuation briefing for the current session",
 	"  /hook [install|remove]  refresh the wiki automatically after every commit",
 	"  /scan /plan /cards      knowledge-card pipeline   ·   /status",
 	"  /notes [add <t>|clear]  steering notes injected into card prompts",

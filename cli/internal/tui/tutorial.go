@@ -48,7 +48,7 @@ var chapters = []chapter{
 		intro: "Conversations are saved per repo after every reply, so nothing is lost\n" +
 			"when you quit. When a session gets long, compact it rather than losing\n" +
 			"the thread.",
-		commands: []string{"sessions", "session", "resume", "switch", "import", "new", "fork", "tree", "compact", "learn", "copy", "cost", "clear"},
+		commands: []string{"sessions", "session", "resume", "switch", "import", "new", "fork", "tree", "compact", "learn", "copy", "handoff", "cost", "clear"},
 	},
 	{
 		name: "model", title: "Models, providers and steering",
