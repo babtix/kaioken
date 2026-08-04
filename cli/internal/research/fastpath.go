@@ -58,6 +58,12 @@ func (e *engine) runFast(ctx context.Context) (pathOutcome, error) {
 		}
 		out.subs = subs
 		e.pg.detail(fmt.Sprintf("%d subquestions", len(subs)))
+		// The trail should show what the loop actually asked, not just the
+		// count: each question lands as its own detail line, so surfaces can
+		// list them viewable-but-collapsed instead of hiding them entirely.
+		for _, q := range subs {
+			e.pg.detail(q)
+		}
 
 		queries, err := searchQueries(ctx, planClient, e.question, subs, e.shape.queriesPer, e.shape.maxQueries, asOf)
 		if err != nil {
@@ -179,7 +185,7 @@ func (e *engine) runFast(ctx context.Context) (pathOutcome, error) {
 		// The gaps become subquestions of their own. This is the difference
 		// between a loop that searches again and one that actually answers
 		// what it went back for.
-		added := 0
+		var added []string
 		for _, q := range gaps.Questions {
 			if _, seen := out.answered[q]; seen || containsFold(out.subs, q) {
 				continue
@@ -188,9 +194,12 @@ func (e *engine) runFast(ctx context.Context) (pathOutcome, error) {
 				break
 			}
 			out.subs = append(out.subs, q)
-			added++
+			added = append(added, q)
 		}
-		e.pg.detail(fmt.Sprintf("%d gap(s), %d new subquestion(s); searching again", len(gaps.Missing), added))
+		e.pg.detail(fmt.Sprintf("%d gap(s), %d new subquestion(s); searching again", len(gaps.Missing), len(added)))
+		for _, q := range added {
+			e.pg.detail(q)
+		}
 		out.pendingQueries = gaps.Queries
 		e.checkpointFast(out)
 	}

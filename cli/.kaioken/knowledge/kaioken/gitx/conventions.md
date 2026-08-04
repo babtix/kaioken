@@ -1,8 +1,1 @@
-- Use the `run` helper function (in gitx.go) for executing git commands, which returns trimmed stdout or an error.
-- Convert paths to slash-separated using `filepath.ToSlash` for consistency in Git output.
-- In hook management, use the delimiters `# >>> kaioken >>>` and `# <<< kaioken <<<` to identify Kaioken's block in hook files.
-- Write hook scripts with a `#!/bin/sh` shebang and single-quote paths (using `shellQuote`) to ensure compatibility with Git's bundled shell.
-- Make hook files executable (0o755) on non-Windows systems.
-- Functions that take a path list must return `ErrNoPaths` if the list is empty (enforced in Stage, Unstage, Discard).
-- Context is used for cancellation in long-running git operations (where applicable).
-- Tests use the `newRepo` helper to create a temporary git repository with an initial commit.
+Functions executing git commands must take context.Context as first parameter (except IsRepo/Branch/DirtyCount which use context.Background() internally); Returned paths (Change.Path, FileStatus.Path) must be slash-separated and repo-relative via filepath.ToSlash; When reading files, convert slash-separated paths to OS-specific using filepath.FromSlash before joining with repo root; Git command failures must return errors (wrapped via run/runRaw helpers); boolean-returning functions like IsRepo indicate success via return value; Define domain-specific errors (e.g., ErrNoPaths in work.go) for conditions like empty path lists; Hook block delimiters are fixed: hookStart="# >>> kaioken >>>", hookEnd="# <<< kaioken <<<"; Hook scripts must run detached (trailing &) to avoid blocking commits; On non-Windows, ensure hook file is executable (0o755) after writing; Tests requiring a git repo must use the newRepo helper (from gitx_test.go) to create temporary repositories

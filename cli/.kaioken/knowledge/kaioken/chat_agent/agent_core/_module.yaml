@@ -1,6 +1,6 @@
 description: Core agent implementation including file operations and command execution.
-file_count: 38
-generated_at: "2026-07-31T09:34:38Z"
+file_count: 46
+generated_at: "2026-08-04T16:19:01Z"
 id: kaioken/chat_agent/agent_core
 model: nemotron-3-super:cloud
 scope:

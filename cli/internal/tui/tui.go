@@ -1362,6 +1362,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		m.listTemplates()
 	case "serve":
 		return m.startServe(args)
+	case "publish":
+		return m.startPublish()
 	case "hook":
 		m.doHook(args)
 	case "status":
@@ -1490,7 +1492,10 @@ func (m *Model) listProviders() {
 }
 
 func (m Model) setKey(val string) (tea.Model, tea.Cmd) {
-	if val != "" {
+	// Trim: a pasted key with trailing whitespace produces a header the
+	// provider rejects with a confusing 401 (the hidden-prompt path already
+	// trims; the inline `/key <value>` path must behave the same).
+	if val = strings.TrimSpace(val); val != "" {
 		m.setSessionKey(val)
 		m.persistKey(val)
 		if e := m.rebuildClient(); e != "" {
@@ -2036,6 +2041,24 @@ func (m *Model) doHook(args []string) {
 }
 
 // ---- wiki browser ----
+
+// startPublish renders the wiki to a static site in the background; the
+// render is all local I/O, so no spinner machinery is needed — one line when
+// it lands.
+func (m Model) startPublish() (tea.Model, tea.Cmd) {
+	repo, ch := m.repo, m.events
+	m.appendLine(dimStyle.Render("publishing the wiki as a static site…"))
+	go func() {
+		out := filepath.Join(repo, config.Dir, "site")
+		n, err := serve.Export(repo, out)
+		if err != nil {
+			ch <- logMsg{errStyle.Render("publish: " + err.Error())}
+			return
+		}
+		ch <- logMsg{okStyle.Render(fmt.Sprintf("published %d page(s) → %s", n, out))}
+	}()
+	return m, nil
+}
 
 // startServe runs the local wiki site alongside the chat. It deliberately
 // does NOT set busy: the server is long-lived and the user keeps working.
@@ -2872,6 +2895,7 @@ var helpText = strings.Join([]string{
 	"  /research [xN] <q>      deep web search: plan subquestions, search, read pages,",
 	"                          loop on the gaps, write a cited report to .kaioken/research/",
 	"  /serve [port]           browse the wiki in a browser  ·  /serve stop",
+	"  /publish                render the wiki as a static site under .kaioken/site/",
 	"  /hook [install|remove]  refresh the wiki automatically after every commit",
 	"  /scan /plan /cards      knowledge-card pipeline   ·   /status",
 	"  /notes [add <t>|clear]  steering notes injected into card prompts",

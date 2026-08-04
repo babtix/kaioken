@@ -268,16 +268,21 @@ func (s *Server) handlePutKey(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Key string `json:"key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Key == "" {
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Key) == "" {
 		writeError(w, http.StatusBadRequest, codeBadRequest, "key is required", "")
 		return
 	}
 	g := config.LoadGlobal()
-	g.Keys[prov] = body.Key
+	// A paste often drags a trailing newline along; the API rejects the
+	// resulting header with a confusing 401, so strip it at the door.
+	g.Keys[prov] = strings.TrimSpace(body.Key)
 	if err := g.Save(); err != nil {
 		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
 		return
 	}
+	// Cached clients were built with the old key — drop them so the next
+	// request picks up the new one without a daemon restart.
+	s.mgr.RebuildAllConfig()
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -290,6 +295,8 @@ func (s *Server) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
 		return
 	}
+	// Same as a key change: cached clients must not keep the deleted key.
+	s.mgr.RebuildAllConfig()
 	w.WriteHeader(http.StatusNoContent)
 }
 

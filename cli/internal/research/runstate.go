@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -98,6 +99,10 @@ type RunMeta struct {
 	Query         string     `json:"query"`
 	Path          string     `json:"path"` // fast | deep
 	Mode          string     `json:"mode"` // auto | fast | deep — how Path was chosen
+	// Multiplier is the ×N dial the run started under. A resume must run
+	// under the same one: the loop shape, budgets and dossier behaviour all
+	// derive from it, and a continue a month later cannot guess it.
+	Multiplier    int        `json:"multiplier,omitempty"`
 	Phase         Phase      `json:"phase"`
 	Plan          []Subtopic `json:"plan,omitempty"`
 	EscalatedFrom string     `json:"escalated_from,omitempty"`
@@ -337,4 +342,63 @@ func (rs *RunState) LoadFindings() ([]Finding, error) {
 // WriteReport stores the final markdown beside the state that produced it.
 func (rs *RunState) WriteReport(md string) error {
 	return os.WriteFile(filepath.Join(rs.dir, "report.md"), []byte(md), 0o644)
+}
+
+// ResumableRun is one interrupted run on disk, as the listing surfaces it:
+// enough for a user to recognise the work and decide to continue it — today
+// or next month, the checkpoint does not age.
+type ResumableRun struct {
+	ID        string    `json:"id"`
+	Question  string    `json:"question"`
+	Phase     Phase     `json:"phase"`
+	Path      string    `json:"path"`
+	Mode      string    `json:"mode"`
+	StartedAt time.Time `json:"started_at"`
+}
+
+// ResumableRuns lists every run directory that has not reached a terminal
+// phase, newest first. Runs in the write or cite phase can be resumed too:
+// the pipeline re-enters at its checkpointed position, whatever that is.
+func ResumableRuns() []ResumableRun {
+	entries, err := os.ReadDir(RunsDir())
+	if err != nil {
+		return nil
+	}
+	var out []ResumableRun
+	for _, e := range entries {
+		if !e.IsDir() || !runIDRe.MatchString(e.Name()) {
+			continue
+		}
+		raw, err := os.ReadFile(filepath.Join(RunsDir(), e.Name(), "run.json"))
+		if err != nil {
+			continue
+		}
+		var run RunMeta
+		if json.Unmarshal(raw, &run) != nil {
+			continue
+		}
+		if run.Phase == PhaseDone || run.Phase == PhaseFailed {
+			continue
+		}
+		out = append(out, ResumableRun{
+			ID: run.ID, Question: run.Query, Phase: run.Phase,
+			Path: run.Path, Mode: run.Mode, StartedAt: run.StartedAt,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].StartedAt.After(out[j].StartedAt) })
+	return out
+}
+
+// DeleteRun removes one run directory entirely — the discard half of
+// stop-and-continue. Only ids of the minted shape are admitted, so the
+// removal cannot escape the runs directory.
+func DeleteRun(id string) error {
+	if !runIDRe.MatchString(id) {
+		return fmt.Errorf("invalid run id %q", id)
+	}
+	dir := filepath.Join(RunsDir(), id)
+	if _, err := os.Stat(dir); err != nil {
+		return err
+	}
+	return os.RemoveAll(dir)
 }

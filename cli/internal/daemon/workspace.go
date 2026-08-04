@@ -148,6 +148,17 @@ func (m *Manager) List() []*Workspace {
 	return out
 }
 
+// RebuildAllConfig reloads config and drops the cached LLM client on every
+// open workspace. Global config (API keys) is read per workspace when it
+// opens and the client is cached for its lifetime, so after a key is saved
+// or deleted from settings every open workspace must rebuild — otherwise the
+// old key keeps producing 401s until a daemon restart.
+func (m *Manager) RebuildAllConfig() {
+	for _, ws := range m.List() {
+		ws.RebuildConfig()
+	}
+}
+
 // Count returns the number of open workspaces.
 func (m *Manager) Count() int {
 	m.mu.RLock()

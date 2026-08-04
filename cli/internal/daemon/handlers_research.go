@@ -112,3 +112,34 @@ func (s *Server) handleDeleteResearch(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// --- Interrupted runs (stop & continue) ---
+//
+// Every research run checkpoints itself to the global runs directory as it
+// goes, so stopping a run is not losing it: the state stays on disk until
+// it is continued or discarded — across restarts, across months. These
+// endpoints are the listing and the discard half of that contract; the
+// continue half is POST /v1/workspaces/{id}/runs with a resume param.
+
+// GET /v1/research/runs — every interrupted run, newest first.
+func (s *Server) handleListResearchRuns(w http.ResponseWriter, r *http.Request) {
+	runs := research.ResumableRuns()
+	if runs == nil {
+		runs = []research.ResumableRun{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"runs": runs})
+}
+
+// DELETE /v1/research/runs/{run_id} — discard an interrupted run for good.
+func (s *Server) handleDeleteResearchRun(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("run_id")
+	if err := research.DeleteRun(id); err != nil {
+		if os.IsNotExist(err) {
+			writeError(w, http.StatusNotFound, codeNotFound, "no interrupted run with that id", "")
+			return
+		}
+		writeError(w, http.StatusBadRequest, codeBadRequest, err.Error(), "")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -136,6 +136,11 @@ var commandGuides = map[string]string{
 		"and mermaid diagrams. Runs in the background so chat stays usable. Reading " +
 		"a two-thousand-line chapter in an editor is rough; serve it instead. Use " +
 		"/serve stop to shut it down.",
+	"publish": "Writes .kaioken/wiki/ out as a static site of plain HTML under " +
+		".kaioken/site/ — no server, no Kaioken needed to read it. Every document " +
+		"becomes its own .html page and the navigation links between them, so the " +
+		"whole site works from a file share or any static host. Publish it to " +
+		"GitHub Pages, or hand the folder to a teammate who just wants a browser.",
 	"hook": "Installs a git post-commit hook that runs /update in the background after " +
 		"every commit, so documentation never drifts. It appends a delimited block " +
 		"to the existing hook, so your other hooks are preserved. Remove it with " +

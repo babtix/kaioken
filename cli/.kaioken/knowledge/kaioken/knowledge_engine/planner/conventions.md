@@ -1,8 +1,6 @@
-- Use both `yaml` and `json` tags for struct fields intended for YAML/JSON serialization (e.g., Module struct).
-- Store the plan file at <repo>/.kaioken/modules.yaml (using config.Dir for the directory name).
-- In Save, create the plan directory (0o755) if it doesn't exist before writing the file (0o644).
-- Prepend a header comment to the YAML file explaining its purpose and editability.
-- In Generate, build the LLM prompt by concatenating: tree summary (max 12 files/dir), manifest contents (max 4000 bytes/manifest), and config notes.
-- Validate generated plans against scan results, logging scope mismatches to stderr as warnings (not errors).
-- In Flatten, traverse the module tree depth-first, building hierarchical IDs by prefixing child IDs with parent IDs separated by '/'.
-- In FilesFor, resolve scope entries to files by exact match or directory prefix match, deduplicate by file path, and preserve scan order.
+When saving a plan, ensure the .kaioken directory exists by calling os.MkdirAll before writing modules.yaml (seen in Save function).
+Load returns a specific error if modules.yaml is not found, prompting the user to run `kaioken plan` first (seen in Load function).
+Validation warnings (e.g., mismatched scope entries) are printed to stderr via fmt.Fprintln(os.Stderr) but do not halt execution (seen in Validate function).
+Scope entries in modules.yaml must be repo-relative paths or directory prefixes; directory prefixes match all files under that path (seen in Validate and FilesFor functions).
+Module IDs use snake_case and are path-like for children (e.g., parent/child) but without slashes within a single ID (seen in Flatten function and plannerSystem comment).
+The plan file includes a header explaining its purpose and that it is editable before generation (seen in Save function).

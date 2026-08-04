@@ -1,18 +1,18 @@
 {
   "modules": {
     "kaioken": {
-      "source_hash": "0f121eaf63b20c91c4a5332fe8c909636258fe7aded36894769207b9d4a11a4b",
-      "model": "nvidia/nemotron-3-super-120b-a12b",
-      "generated_at": "2026-07-31T06:43:45.1464604Z",
+      "source_hash": "ae15dee457a538c9b8f65dec9a52f16fca7376fa7648f45f66b257901339b006",
+      "model": "nemotron-3-super:cloud",
+      "generated_at": "2026-08-04T16:10:10.6616629Z",
       "file_count": 3,
-      "commit": "49d4c313c8f9747d636a362c0adb6ba354cadc1f"
+      "commit": "8b6e0fcd83c8daf836ebe3d527b248c28548e96a"
     },
     "kaioken/chat_agent/agent_core": {
-      "source_hash": "7688975191e2bebcc6cd0659ce1f4f28affba311de95668e2f86bc0b3c8cdee2",
+      "source_hash": "f6c07dca2bf097de91ee982b2431025f15f599aabb6e10bf52e6532a0e092534",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-31T09:34:38.2884939Z",
-      "file_count": 38,
-      "commit": "9d4214ab292c502e3a22e73a734ad722b8d21847"
+      "generated_at": "2026-08-04T16:13:07.6395777Z",
+      "file_count": 46,
+      "commit": "8b6e0fcd83c8daf836ebe3d527b248c28548e96a"
     },
     "kaioken/chat_agent/agent_skills": {
       "source_hash": "fff7a5a10a32472a1f1f2405b611d45150d98caddfc3dbe421ed1e7a57fa44ff",
@@ -29,32 +29,32 @@
       "commit": "9d4214ab292c502e3a22e73a734ad722b8d21847"
     },
     "kaioken/chat_agent/llm_integration": {
-      "source_hash": "69b2e611d19d3184ac8959287a9fc7e337c316ebfab4880d432161793cc81929",
+      "source_hash": "8a137f216a9ded1d6c3b092bbb71251e2640fe6d494a9ac406cbb4b6e4fb2cce",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-31T09:33:05.5627297Z",
+      "generated_at": "2026-08-04T16:10:37.1391206Z",
       "file_count": 16,
-      "commit": "9d4214ab292c502e3a22e73a734ad722b8d21847"
+      "commit": "8b6e0fcd83c8daf836ebe3d527b248c28548e96a"
     },
     "kaioken/cmd": {
-      "source_hash": "1122fce78f7229ae044f8eb5a73cd7d45666ce04c48f86c61d6e5756c88c68dd",
+      "source_hash": "3ee849d5c6a901f9d8da7c5fd68e509f23c97fa171f0e7b711fb17c9bd985786",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-31T09:35:30.1598487Z",
-      "file_count": 9,
-      "commit": "9d4214ab292c502e3a22e73a734ad722b8d21847"
+      "generated_at": "2026-08-04T16:24:14.1729354Z",
+      "file_count": 11,
+      "commit": "d795e5b7c5e3f071038a9861ba5eedd69463f1ab"
     },
     "kaioken/config": {
-      "source_hash": "7762c87f55a19e294fcc77bc8184edb81907badb190ab72bbb007d3fe491bad5",
+      "source_hash": "5144caf8dbf23ff8beca5143932aebe50f506b82b55251c4d7f68aef0faf0009",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-31T09:36:51.0385681Z",
-      "file_count": 4,
-      "commit": "9d4214ab292c502e3a22e73a734ad722b8d21847"
+      "generated_at": "2026-08-04T16:22:45.9069774Z",
+      "file_count": 5,
+      "commit": "d795e5b7c5e3f071038a9861ba5eedd69463f1ab"
     },
     "kaioken/gitx": {
-      "source_hash": "f559664a62e22a30cea714ccc4614e6d103b492c37b4c3729b12972f5fb84bbc",
-      "model": "nvidia/nemotron-3-super-120b-a12b",
-      "generated_at": "2026-07-30T22:23:00.426239Z",
-      "file_count": 8,
-      "commit": "4ce793339fa54c81057cc2b4c5596f8f4cb3f591"
+      "source_hash": "d9a36d598afbe4f592d6965e9b242b0404c7665b04c764ed630fabdb87eec6ec",
+      "model": "nemotron-3-super:cloud",
+      "generated_at": "2026-08-04T16:24:04.5364316Z",
+      "file_count": 10,
+      "commit": "d795e5b7c5e3f071038a9861ba5eedd69463f1ab"
     },
     "kaioken/knowledge_engine/codemap": {
       "source_hash": "24d93f26b655cd8362e1614a1e73ac57c374b1cb3b162c006479254c42af0cb4",
@@ -63,10 +63,11 @@
       "file_count": 6
     },
     "kaioken/knowledge_engine/planner": {
-      "source_hash": "49ae949810e0cfccf1eb1af87a7a3f60f4d2cfda94381bce69b780b45edaef46",
-      "model": "nvidia/nemotron-3-super-120b-a12b",
-      "generated_at": "2026-07-26T04:11:35.394814Z",
-      "file_count": 3
+      "source_hash": "8d4c3f2bdc1a6d894ca1406f00bcf0376bc4d3de035be2b74ee3e204129d2239",
+      "model": "nemotron-3-super:cloud",
+      "generated_at": "2026-08-04T16:23:36.0207813Z",
+      "file_count": 5,
+      "commit": "d795e5b7c5e3f071038a9861ba5eedd69463f1ab"
     },
     "kaioken/knowledge_engine/wiki_generator": {
       "source_hash": "dd1839dcfd1f6f918e64f8bad764b140688be15e86a0d73dc644bf72f151edc6",
@@ -83,11 +84,11 @@
       "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
     },
     "kaioken/tui": {
-      "source_hash": "ede4fdfbbcb5d1868a4febff3c40ff632451b1c4d591516a8715038a4023cf86",
+      "source_hash": "593d38c08be7702199c0072031b5b9a9654d1795db300c74ec40c235b0a027aa",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-31T09:33:36.0608016Z",
+      "generated_at": "2026-08-04T16:13:45.695297Z",
       "file_count": 26,
-      "commit": "9d4214ab292c502e3a22e73a734ad722b8d21847"
+      "commit": "8b6e0fcd83c8daf836ebe3d527b248c28548e96a"
     },
     "kaioken/version": {
       "source_hash": "4a62c5e6e12572a2f8d9cead195b784567a452d70fafd29a35fee399434f6014",

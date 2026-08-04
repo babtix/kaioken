@@ -1,1 +1,1 @@
-The kaioken module has been deleted; no source files remain in the repository.
+Kaioken is a terminal‑based AI coding assistant and knowledge engine written in Go. It provides a TUI interface powered by bubbletea and integrates pseudo‑terminal handling via conpty/pty, clipboard access, markdown rendering, and .gitignore processing.

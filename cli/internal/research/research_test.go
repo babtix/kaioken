@@ -84,6 +84,10 @@ type scriptedLLM struct {
 	// come back high confidence. "*" makes every answer high; empty leaves
 	// every answer at medium.
 	highFor string
+	// failChapter makes the chapter writer refuse one exact chapter title
+	// with an HTTP 400, so tests can exercise a dossier surviving one
+	// failed chapter.
+	failChapter string
 }
 
 func (s *scriptedLLM) server(t *testing.T) *httptest.Server {
@@ -156,7 +160,26 @@ func (s *scriptedLLM) server(t *testing.T) *httptest.Server {
 		default:
 			reply = "{}"
 		}
+		// The refusal covers both the first write and the deepening pass,
+		// which doubles as a retry for failed chapters: only a chapter that
+		// fails twice stays out of the dossier.
+		refusedTitle := ""
+		switch {
+		case strings.Contains(system, "You write one chapter"):
+			refusedTitle = subjectOf(user)
+		case strings.Contains(system, "You deepen one chapter"):
+			if _, rest, ok := strings.Cut(user, "Chapter: "); ok {
+				line, _, _ := strings.Cut(rest, "\n")
+				refusedTitle = strings.TrimSpace(line)
+			}
+		}
+		refuse := s.failChapter != "" && refusedTitle == s.failChapter
 		s.mu.Unlock()
+
+		if refuse {
+			http.Error(w, `{"error":{"message":"refused"}}`, http.StatusBadRequest)
+			return
+		}
 
 		resp := map[string]any{
 			"choices": []any{map[string]any{

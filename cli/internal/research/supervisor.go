@@ -76,6 +76,11 @@ func (e *engine) runDeep(ctx context.Context, seed pathOutcome) (pathOutcome, er
 		}
 	}
 	e.pg.detail(fmt.Sprintf("%d subtopic(s), ≤%d waves", len(subs), e.budget.MaxSupervisorIters))
+	// Same rule as the fast path: the delegation contracts themselves ride
+	// along as detail lines, so the trail can show what is being researched.
+	for _, sub := range subs {
+		e.pg.detail(sub.Objective)
+	}
 
 	// ---- research: the supervisor loop --------------------------------------
 	if err := e.state.SetPhase(PhaseResearch); err != nil {

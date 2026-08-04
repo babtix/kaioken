@@ -477,6 +477,10 @@ func (r *renderer) drawSources() {
 // before the body was laid out.
 func (r *renderer) fillContents(page int) {
 	p := r.pdf
+	// The writer emits pages up to the current one — never past it. This
+	// rewind therefore has to hand the pen back to the last page afterwards,
+	// or everything after the contents page silently leaves the file.
+	last := p.PageCount()
 	p.SetPage(page)
 	p.SetY(marginTop)
 
@@ -495,6 +499,7 @@ func (r *renderer) fillContents(page int) {
 		p.CellFormat(14, 6.4, num, "", 1, "R", false, e.link, "")
 	}
 	setText(p, inkBody)
+	p.SetPage(last)
 }
 
 // -------------------------------------------------------------------- utils

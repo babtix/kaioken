@@ -236,3 +236,25 @@ func TestChatJSONRetryRound(t *testing.T) {
 		t.Error("repaired reply must be decoded")
 	}
 }
+
+func TestNormalizeBaseURL(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{"https://openrouter.ai/api/v1", "https://openrouter.ai/api/v1"},
+		{"https://openrouter.ai/api/v1/", "https://openrouter.ai/api/v1"},
+		{"https://openrouter.ai/api/v1//", "https://openrouter.ai/api/v1"},
+		{"https://openrouter.ai/api/v1/chat/completions", "https://openrouter.ai/api/v1"},
+		{"https://openrouter.ai/api/v1/chat/completions/", "https://openrouter.ai/api/v1"},
+		{"  https://api.openai.com/v1/   ", "https://api.openai.com/v1"},
+		{"https://api.anthropic.com/v1/messages", "https://api.anthropic.com/v1"},
+		{"https://openrouter.ai/api/v1/models", "https://openrouter.ai/api/v1"},
+	}
+	for _, tc := range cases {
+		if got := NormalizeBaseURL(tc.input); got != tc.want {
+			t.Errorf("NormalizeBaseURL(%q) = %q, want %q", tc.input, got, tc.want)
+		}
+	}
+}
+

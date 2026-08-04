@@ -1,9 +1,11 @@
-- Use snake_case for file names (e.g., agent.go, budget.go).
-- Use MixedCase for struct names (e.g., BudgetGuard, Agent) and constants (e.g., ModeBuild, MaxSteps).
-- Use mixedCase for function and variable names (e.g., ApplyReminders, a.UI).
-- Tools must be registered in the Tools() method of *Agent, returning []llm.Tool with name, description, and JSON schema parameters.
-- All file operations must confine paths to the repository root (using a.resolve and checking for escapes).
-- The agent must use the provided UI interface for all user interactions (streaming, approvals, info messages).
-- Sub-agent delegation must respect maxSubAgentDepth limit (1) to prevent infinite nesting.
-- Error returns from tool functions are strings; the Run loop treats strings starting with "error:" or containing "exited with error" as failures.
-- The budget guard must be checked before each model call, and a hard stop returns an error that breaks the loop.
+- Use PascalCase for struct and interface names (e.g., Agent, UI, BudgetGuard).
+- Use mixedCase for method and variable names (e.g., Steer, drainSteering, compactionEnabled).
+- Use ALL_CAPS for constants (e.g., maxReadBytes, prunedStub).
+- Prefix error strings returned by tools with "error: " (observed in tools.go, knowledge.go).
+- Register runtime tools via agent.RegisterTool with a RegisteredTool struct containing a non-empty name and non-nil Run function (tool_registry.go).
+- Protect shared state (queues, budget guard, context tracker, ruleset) with appropriate mutexes (sync.Mutex or sync.RWMutex).
+- For tool execution, group consecutive read-only tools (read_file, list_files, search, read_knowledge, recall) to run in parallel (tool_executor.go).
+- Emit lifecycle events via the event bus (events/bus.go) and use EventsUI to translate UI callbacks to events (events.go).
+- Build the system prompt by rendering context sources in a fixed order (identity, tools, mode, model, knowledge, guidelines, project, memory, notes) (context.go).
+- Attach mode-specific reminders to the last user message before each model turn, stripping any existing reminders first (reminders.go).
+- Track files read and modified across the conversation for inclusion in compaction summaries (fileops.go).

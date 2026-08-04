@@ -605,6 +605,16 @@ var commands = []command{
 		},
 	},
 	{
+		name: "publish",
+		summary: "render the wiki as a static site",
+		detail: "Writes .kaioken/wiki/ out as plain HTML under .kaioken/site/ — no server, no " +
+			"Kaioken needed to read it. The artifact to put on GitHub Pages or share with " +
+			"teammates who just want a browser.",
+		examples: []example{
+			{"/publish", "write the static site to .kaioken/site/"},
+		},
+	},
+	{
 		name: "hook", args: "[install|remove]",
 		summary: "auto-update the wiki after each commit",
 		detail: "Installs a git post-commit hook running /update in the background, so documentation " +

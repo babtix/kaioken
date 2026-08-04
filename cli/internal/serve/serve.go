@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -49,6 +50,39 @@ type Doc struct {
 type Server struct {
 	repo string
 	md   goldmark.Markdown
+	// static switches the link scheme from server routes (/d/<rel>) to flat
+	// relative .html slugs, and drops the server-only chrome (search, graph).
+	// Set only by the static export path.
+	static bool
+}
+
+// docHref returns the href for one wiki document: a server route in the
+// default mode, a flat .html slug in static mode.
+func (s *Server) docHref(rel string) string {
+	if s.static {
+		return staticHref(rel)
+	}
+	return "/d/" + rel
+}
+
+// homeHref returns the href of the overview page.
+func (s *Server) homeHref() string {
+	if s.static {
+		return "index.html"
+	}
+	return "/"
+}
+
+// staticHref maps a wiki-relative doc path to its flat static filename:
+// "Section/Doc Name.md" -> "section--doc-name.html". Slashes become a double
+// dash so a section name and a doc name never blur into one slug.
+func staticHref(rel string) string {
+	rel = strings.TrimSuffix(rel, ".md")
+	parts := strings.Split(rel, "/")
+	for i, p := range parts {
+		parts[i] = slugify(p)
+	}
+	return strings.Join(parts, "--") + ".html"
 }
 
 // New builds a server for a repository.
@@ -177,20 +211,30 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := s.renderIndex(w); err != nil {
+		http.Error(w, "render error: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// renderIndex writes the overview page — the wiki README (or a placeholder)
+// plus the chapter cards. Shared verbatim by the HTTP server and the static
+// export, so the two cannot drift apart.
+func (s *Server) renderIndex(w io.Writer) error {
 	body := "# Repository Wiki\n\nPick a chapter from the sidebar.\n"
 	if raw, err := os.ReadFile(filepath.Join(wiki.WikiDir(s.repo), "README.md")); err == nil {
 		body = string(raw)
 	}
 	var content bytes.Buffer
 	if err := s.md.Convert([]byte(body), &content); err != nil {
-		http.Error(w, "render error: "+err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
 	s.page(w, pageInfo{
 		title:    "Wiki",
 		bodyHTML: content.String() + s.indexCards(),
 		isIndex:  true,
 	})
+	return nil
 }
 
 // indexCards renders the chapter overview grid shown below the README.
@@ -202,8 +246,8 @@ func (s *Server) indexCards() string {
 	var b strings.Builder
 	b.WriteString(`<div class="cards">`)
 	for _, sec := range secs {
-		fmt.Fprintf(&b, `<a class="card" href="/d/%s"><div class="card-name">%s</div>`,
-			htmlEscape(sec.Docs[0].Rel), htmlEscape(sec.Name))
+		fmt.Fprintf(&b, `<a class="card" href="%s"><div class="card-name">%s</div>`,
+			htmlEscape(s.docHref(sec.Docs[0].Rel)), htmlEscape(sec.Name))
 		fmt.Fprintf(&b, `<div class="card-count">%d docs</div><ul>`, len(sec.Docs))
 		for i, d := range sec.Docs {
 			if i >= 3 {
@@ -222,23 +266,29 @@ func (s *Server) indexCards() string {
 
 func (s *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 	rel := strings.TrimPrefix(r.URL.Path, "/d/")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := s.renderDoc(w, rel); err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+	}
+}
+
+// renderDoc writes one document page. Errors cover both a missing file and a
+// path outside the wiki; the HTTP layer answers both with 404.
+func (s *Server) renderDoc(w io.Writer, rel string) error {
 	abs, err := s.resolve(rel)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
+		return err
 	}
 	raw, err := os.ReadFile(abs)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
+		return err
 	}
 	if len(raw) > maxDocBytes {
 		raw = raw[:maxDocBytes]
 	}
 	var content bytes.Buffer
 	if err := s.md.Convert(raw, &content); err != nil {
-		http.Error(w, "render error: "+err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
 	title := strings.TrimSuffix(filepath.Base(rel), ".md")
 	info := pageInfo{
@@ -251,9 +301,11 @@ func (s *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 		info.modTime = fi.ModTime()
 	}
 	s.page(w, info)
+	return nil
 }
 
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
 		s.page(w, pageInfo{
@@ -370,7 +422,8 @@ func highlightHTML(line, needle string) string {
 
 // page renders fully-built article HTML inside the site chrome: sidebar tree,
 // breadcrumbs, meta line, prev/next pager, and the table-of-contents rail.
-func (s *Server) page(w http.ResponseWriter, info pageInfo) {
+// It writes plain HTML — callers own the transport headers.
+func (s *Server) page(w io.Writer, info pageInfo) {
 	secs := s.sections()
 
 	// Split out the first H1 so the breadcrumb + meta line can sit above it.
@@ -392,7 +445,7 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		if len(parts) == 2 && strings.TrimSuffix(parts[1], ".md") == parts[0] {
 			docTitle = "" // the chapter lead doc — the section crumb is enough
 		}
-		crumb = fmt.Sprintf(`<nav class="crumbs"><a href="/">Wiki</a><span class="sep">/</span><span>%s</span>`, htmlEscape(secName))
+		crumb = fmt.Sprintf(`<nav class="crumbs"><a href="%s">Wiki</a><span class="sep">/</span><span>%s</span>`, s.homeHref(), htmlEscape(secName))
 		if docTitle != "" {
 			crumb += fmt.Sprintf(`<span class="sep">/</span><span>%s</span>`, htmlEscape(docTitle))
 		}
@@ -420,14 +473,14 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		prev, next := neighbors(secs, info.current)
 		pager = `<nav class="pager">`
 		if prev != nil {
-			pager += fmt.Sprintf(`<a class="pager-prev" href="/d/%s"><span class="pager-label">← Previous</span><span class="pager-title">%s</span></a>`,
-				htmlEscape(prev.Rel), htmlEscape(prev.Title))
+			pager += fmt.Sprintf(`<a class="pager-prev" href="%s"><span class="pager-label">← Previous</span><span class="pager-title">%s</span></a>`,
+				htmlEscape(s.docHref(prev.Rel)), htmlEscape(prev.Title))
 		} else {
 			pager += `<span></span>`
 		}
 		if next != nil {
-			pager += fmt.Sprintf(`<a class="pager-next" href="/d/%s"><span class="pager-label">Next →</span><span class="pager-title">%s</span></a>`,
-				htmlEscape(next.Rel), htmlEscape(next.Title))
+			pager += fmt.Sprintf(`<a class="pager-next" href="%s"><span class="pager-label">Next →</span><span class="pager-title">%s</span></a>`,
+				htmlEscape(s.docHref(next.Rel)), htmlEscape(next.Title))
 		}
 		pager += `</nav>`
 	}
@@ -444,21 +497,28 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		tocHTML = tb.String()
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// Search and the graph view only exist on the HTTP server; a static
+	// export drops both rather than shipping dead links.
+	searchForm := `<form action="/search"><input id="nav-search" name="q" placeholder="search… ( / )" autocomplete="off"></form>`
+	if s.static {
+		searchForm = ""
+	}
 	fmt.Fprintf(w, `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>%s · Kaioken Wiki</title><link rel="icon" href="%s"><style>%s</style></head><body>
 <aside id="sidebar"><div class="brand"><span class="brand-mark">⚡</span>KAIOKEN<span class="brand-sub">wiki</span></div>
-<form action="/search"><input id="nav-search" name="q" placeholder="search… ( / )" autocomplete="off"></form>
+%s
 <div class="nav-tools"><button type="button" id="expand-all">expand</button><button type="button" id="collapse-all">collapse</button></div>
-<nav id="tree">`, htmlEscape(info.title), favicon, styles)
+<nav id="tree">`, htmlEscape(info.title), favicon, styles, searchForm)
 
 	homeClass := "home"
 	if info.isIndex {
 		homeClass += " active"
 	}
-	fmt.Fprintf(w, `<a class="%s" href="/">⌂ Overview</a>`, homeClass)
-	fmt.Fprintf(w, `<a class="home" href="/graph">◈ Graph</a>`)
+	fmt.Fprintf(w, `<a class="%s" href="%s">⌂ Overview</a>`, homeClass, s.homeHref())
+	if !s.static {
+		fmt.Fprintf(w, `<a class="home" href="/graph">◈ Graph</a>`)
+	}
 	for _, sec := range secs {
 		open, active := "", ""
 		if strings.HasPrefix(info.current, sec.Name+"/") {
@@ -467,8 +527,8 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		fmt.Fprintf(w, `<details class="sec-group"%s><summary class="%s"><span class="chev"></span><span class="sec-name">%s</span><span class="count">%d</span></summary><div class="sec-docs">`,
 			open, strings.TrimSpace(active), htmlEscape(sec.Name), len(sec.Docs))
 		for _, doc := range sec.Docs {
-			fmt.Fprintf(w, `<a href="/d/%s"%s>%s</a>`,
-				htmlEscape(doc.Rel), activeClass(doc.Rel == info.current), htmlEscape(doc.Title))
+			fmt.Fprintf(w, `<a href="%s"%s>%s</a>`,
+				htmlEscape(s.docHref(doc.Rel)), activeClass(doc.Rel == info.current), htmlEscape(doc.Title))
 		}
 		fmt.Fprintf(w, `</div></details>`)
 	}

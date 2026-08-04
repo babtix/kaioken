@@ -98,6 +98,8 @@ Commands:
   usage      Show what Kaioken has spent — by operation, model and workspace
              (positional: a day count like "7d", or "refresh" / "prune")
   serve      Browse the generated wiki in a browser (-port, default 7777)
+  publish    Render the wiki as a static site anyone can browse — no server,
+             no Kaioken needed (-out overrides .kaioken/site)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
   upgrade    Update kaioken itself to the latest GitHub release
@@ -186,6 +188,8 @@ func main() {
 		err = cmdResearch(ctx, args)
 	case "serve":
 		err = cmdServe(ctx, args)
+	case "publish":
+		err = cmdPublish(args)
 	case "hook":
 		err = cmdHook(args)
 	case "daemon":

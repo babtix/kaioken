@@ -60,7 +60,6 @@ func newEngine(ctx context.Context, client *llm.Client, provider websearch.Provi
 
 	global := config.LoadGlobal()
 	mult := clampInt(opts.Multiplier, 1, 10)
-	dossier := opts.Deep || mult >= DeepMultiplier
 
 	mode := strings.ToLower(strings.TrimSpace(opts.Mode))
 	if mode == "" {
@@ -91,12 +90,25 @@ func newEngine(ctx context.Context, client *llm.Client, provider websearch.Provi
 		if state.Snapshot().Query != question {
 			return nil, fmt.Errorf("run %s belongs to a different question (%q)", opts.Resume, state.Snapshot().Query)
 		}
+		// A continued run runs under the dial it started under, whatever
+		// the resume request carries: shape and budgets derive from it.
+		if saved := state.Snapshot().Multiplier; saved > 0 {
+			mult = clampInt(saved, 1, 10)
+			budget = budgetFor(mult, opts.Deep)
+			if global.Research.MaxCostUSD > 0 {
+				budget.MaxCostUSD = global.Research.MaxCostUSD
+			}
+		}
 	} else {
 		state, err = NewRun(question, mode)
 		if err != nil {
 			return nil, err
 		}
+		state.Mutate(func(r *RunMeta) { r.Multiplier = mult })
+		_ = state.Checkpoint()
 	}
+
+	dossier := opts.Deep || mult >= DeepMultiplier
 
 	store := NewSourceStore(state.SourcesDir())
 	store.SetEventLogger(state.Event)

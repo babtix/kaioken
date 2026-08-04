@@ -132,6 +132,53 @@ func TestSafeFindingName(t *testing.T) {
 	}
 }
 
+// Stop-and-continue rests on the listing and the discard: interrupted runs
+// show up with enough to recognise them, finished ones never do, and a
+// discarded run is gone from both the list and the disk.
+func TestResumableRunsListAndDelete(t *testing.T) {
+	pinRunsHome(t)
+
+	mid, err := NewRun("what changed in Go 1.24 GC?", "auto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mid.Mutate(func(r *RunMeta) { r.Path = "fast"; r.Multiplier = 3 })
+	if err := mid.SetPhase(PhaseResearch); err != nil {
+		t.Fatal(err)
+	}
+
+	done, err := NewRun("finished question", "auto")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := done.SetPhase(PhaseDone); err != nil {
+		t.Fatal(err)
+	}
+
+	runs := ResumableRuns()
+	if len(runs) != 1 {
+		t.Fatalf("ResumableRuns = %d runs, want only the interrupted one: %+v", len(runs), runs)
+	}
+	if runs[0].Question != "what changed in Go 1.24 GC?" || runs[0].Phase != PhaseResearch || runs[0].Path != "fast" {
+		t.Errorf("the listing drifted: %+v", runs[0])
+	}
+
+	if err := DeleteRun(runIDOf(mid.Dir())); err != nil {
+		t.Fatal(err)
+	}
+	if len(ResumableRuns()) != 0 {
+		t.Error("a discarded run is still listed")
+	}
+	if _, err := os.Stat(mid.Dir()); !os.IsNotExist(err) {
+		t.Error("the discarded run's directory is still on disk")
+	}
+	for _, id := range []string{"../escape", ""} {
+		if err := DeleteRun(id); err == nil {
+			t.Errorf("DeleteRun(%q) must be refused", id)
+		}
+	}
+}
+
 // The delegation contract is all four fields or the subtopic does not
 // exist.
 func TestSubtopicContract(t *testing.T) {

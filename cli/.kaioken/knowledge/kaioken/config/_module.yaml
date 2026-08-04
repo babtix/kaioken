@@ -1,6 +1,6 @@
 description: Application configuration and global settings.
-file_count: 4
-generated_at: "2026-07-31T09:36:51Z"
+file_count: 5
+generated_at: "2026-08-04T16:22:45Z"
 id: kaioken/config
 model: nemotron-3-super:cloud
 scope:

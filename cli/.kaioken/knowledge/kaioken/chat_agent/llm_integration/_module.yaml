@@ -1,6 +1,6 @@
 description: Integration with various LLM providers (OpenRouter, etc.).
 file_count: 16
-generated_at: "2026-07-31T09:33:05Z"
+generated_at: "2026-08-04T16:17:24Z"
 id: kaioken/chat_agent/llm_integration
 model: nemotron-3-super:cloud
 scope:

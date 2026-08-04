@@ -73,6 +73,7 @@ Kaioken follows a layered architecture where high-level components depend on low
 ```
 cmd/kaioken/main.go        → Entry point (CLI commands)
 cmd/webnews/main.go        → Entry point for the serverless news site
+cmd/desktop/main.go        → Entry point for the desktop application
 internal/tui/tui.go        → Terminal UI (Bubble Tea)
 internal/agent/agent.go    → Chat agent (LLM interaction, tool execution)
 internal/wiki/wiki.go      → Knowledge engine (documentation generation)
@@ -82,9 +83,6 @@ internal/scan/scan.go      → Repository file inventory
 internal/plan/plan.go      → Module planning (modules.yaml)
 internal/codemap/codemap.go→ Source code parsing/symbol indexing
 internal/session/session.go→ Chat session persistence
-internal/state/state.go    → Wiki build state tracking
-internal/serve/serve.go    → Wiki HTTP server
-internal/gitx/gitx.go      → Git integration (hooks, diff
 internal/state/state.go    → Wiki build state tracking
 internal/serve/serve.go    → Wiki HTTP server
 internal/gitx/gitx.go      → Git integration (hooks, diffs)
@@ -122,16 +120,16 @@ Follow these workflows when contributing:
 
 Important considerations:
 - The TUI (`internal/tui/tui.go`) handles user input and orchestrates interactions
-- Agent tool execution (`internal/agent/agent.go`) requires user approval for state changes
+- Agent tool execution (`internal/agent/agent.go`) requires user approval for state changes and has been enhanced with improved permissions, context tracking, and directory notes
 - Wiki generation (`internal/wiki/wiki.go`) follows scan → plan → generate → update flow
-- Git operations (`internal/gitx/gitx.go`) respect `.gitignore` patterns (see below)
+- Git operations (`internal/gitx/gitx.go`) respect `.gitignore` patterns, which have been updated to ignore local dev and session artifacts
 - Configuration changes should work with both global and per-repo configs
-- The LLM provider integration now supports multiple providers (e.g., OpenRouter, OpenAI) and local models.
+- The LLM provider integration now supports multiple providers (e.g., OpenRouter, OpenAI) and local models, with per-operation model-role resolution (see `internal/config/config.go`)
 - The TUI includes a workspace explorer for navigating the repository structure and has been enhanced with research mode UI and other improvements.
 - Research mode has been added for deep research capabilities.
 - MCP server support has been added for model context protocol integration.
 - The knowledge engine maintains a persistent repo knowledge base to support incremental updates
-- The CLI has been extended with new endpoints for browser proxy, file-write, git write operations, and per-file diff (see `cmd/kaioken/main.go` for details)
+- The CLI has been extended with new endpoints for browser proxy, file-write, git write operations, per-file diff, git worktree helpers for isolated sub-agent checkouts, and hybrid research engine features including supervisor, router, and PDF exporter (see `cmd/kaioken/main.go` for details)
 
 ## Referenced Files
 - `go.mod` - Dependency declarations and Go version

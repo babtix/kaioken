@@ -91,6 +91,25 @@ var Providers = map[string]Provider{
 	"cloudflare-workers-ai": {KeyEnv: "CLOUDFLARE_API_KEY", RequiresBaseURL: true},
 }
 
+// NormalizeBaseURL strips whitespace, trailing slashes, and redundant path
+// suffixes (/chat/completions, /messages, /models) so endpoint URLs are always
+// well-formed regardless of how the user or config specifies base_url.
+func NormalizeBaseURL(raw string) string {
+	u := strings.TrimSpace(raw)
+	u = strings.TrimRight(u, "/")
+	for {
+		orig := u
+		u = strings.TrimSuffix(u, "/chat/completions")
+		u = strings.TrimSuffix(u, "/messages")
+		u = strings.TrimSuffix(u, "/models")
+		u = strings.TrimRight(u, "/")
+		if u == orig {
+			break
+		}
+	}
+	return u
+}
+
 // NewForProvider builds a client for a named provider. baseURLOverride wins
 // over the provider default; apiKey must be non-empty — except for local
 // endpoints, which have nobody to bill and so require none.
@@ -98,12 +117,12 @@ func NewForProvider(provName, baseURLOverride, model, apiKey string) (*Client, e
 	if IsLocal(provName) {
 		return NewLocal(provName, baseURLOverride, model)
 	}
-	base := baseURLOverride
+	base := NormalizeBaseURL(baseURLOverride)
 	keyEnv := "OPENROUTER_API_KEY"
 	var authHeader, protocol string
 	if p, ok := Providers[provName]; ok {
 		if base == "" {
-			base = p.BaseURL
+			base = NormalizeBaseURL(p.BaseURL)
 		}
 		keyEnv = p.KeyEnv
 		authHeader = p.AuthHeader
@@ -113,7 +132,7 @@ func NewForProvider(provName, baseURLOverride, model, apiKey string) (*Client, e
 				"(e.g. the Azure resource URL, or the Cloudflare account URL)", provName)
 		}
 	} else if base == "" {
-		base = defaultBaseURL
+		base = NormalizeBaseURL(defaultBaseURL)
 	}
 	if apiKey == "" {
 		return nil, fmt.Errorf("no API key — set %s or provide one with /key", keyEnv)
@@ -480,13 +499,14 @@ func (c *Client) setHeaders(req *http.Request) {
 // enabled; the model-specific invoke URL (/v1/chat/completions/{model})
 // routes through a different path that often still works.
 func (c *Client) chatURL() string {
+	base := NormalizeBaseURL(c.BaseURL)
 	if c.Protocol == protocolAnthropic {
-		return c.BaseURL + "/messages"
+		return base + "/messages"
 	}
 	if c.nvidiaModelURL {
-		return c.BaseURL + "/chat/completions/" + c.Model
+		return base + "/chat/completions/" + c.Model
 	}
-	return c.BaseURL + "/chat/completions"
+	return base + "/chat/completions"
 }
 
 // nvidia404 drives a two-step fallback for NVIDIA's generic router. When the
@@ -814,7 +834,7 @@ func (c *Client) ListModels(ctx context.Context, filter string) ([]ModelInfo, er
 	if c.Protocol == protocolAnthropic {
 		return c.anthropicListModels(ctx, filter)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/models", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, NormalizeBaseURL(c.BaseURL)+"/models", nil)
 	if err != nil {
 		return nil, err
 	}

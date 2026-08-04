@@ -10,6 +10,15 @@ import (
 
 func deepRun(t *testing.T, script *scriptedLLM, opts Options) *Report {
 	t.Helper()
+	rep, err := deepRunWith(t, script, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rep
+}
+
+func deepRunWith(t *testing.T, script *scriptedLLM, opts Options) (*Report, error) {
+	t.Helper()
 	pinHome(t)
 	srv := script.server(t)
 	t.Cleanup(srv.Close)
@@ -26,12 +35,8 @@ func deepRun(t *testing.T, script *scriptedLLM, opts Options) *Report {
 	}}
 
 	opts.Fetcher = fetch
-	rep, err := Run(context.Background(), newTestClient(t, srv.URL), search,
+	return Run(context.Background(), newTestClient(t, srv.URL), search,
 		"Is solar cheaper than nuclear in Europe?", opts, Progress{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return rep
 }
 
 // ×10 is a different product from ×3, not a bigger one. The dossier has to come
@@ -84,6 +89,28 @@ func TestDeepRunProducesADossier(t *testing.T) {
 	}
 	if unread == 0 {
 		t.Error("the coverage log dropped the page that could not be read")
+	}
+}
+
+// A failed chapter must not sink the dossier — the pipeline's own rule is
+// that a shorter dossier beats a failed one, and at this depth a single
+// provider refusal mid-write is an ordinary event, not a catastrophe.
+func TestDossierSurvivesAFailedChapter(t *testing.T) {
+	script := &scriptedLLM{failChapter: "What drives the gap"}
+	rep, err := deepRunWith(t, script, Options{Multiplier: 1, Deep: true, MaxRounds: 1, Concurrency: 4})
+	if err != nil {
+		t.Fatalf("one failed chapter sank the whole dossier: %v", err)
+	}
+	// The findings register mentions every researched question under a
+	// "### B<n>." heading, so the chapter's absence must be checked at
+	// section level, not by substring.
+	for _, sec := range SplitSections(rep.Markdown) {
+		if sec.Title == "What drives the gap" {
+			t.Error("the failed chapter has a section of its own in the dossier")
+		}
+	}
+	if !strings.Contains(rep.Markdown, "## How the two costs are measured") {
+		t.Error("the chapters that were written did not reach the dossier")
 	}
 }
 

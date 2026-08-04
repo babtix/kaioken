@@ -378,6 +378,7 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 				cfg = defaultCfg()
 			}
 			multiplier := intParam(params, "multiplier", 3)
+			resume := strings.TrimSpace(stringParam(params, "resume"))
 			limit, _ := cfg.EffectiveConcurrency(client.Model)
 
 			opts := research.Options{
@@ -386,6 +387,9 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 				MaxDuration: global.Research.ResearchTimeout(),
 				Concurrency: limit,
 				Mode:        stringParam(params, "mode"),
+				// Resume continues an interrupted run from its checkpoint —
+				// the engine validates that the question belongs to it.
+				Resume:      resume,
 				Verify:      boolParam(params, "verify") || global.Research.Verify,
 				Repo:        repo,
 			}

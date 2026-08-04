@@ -1,7 +1,7 @@
-- Use `yaml:"field,omitempty"` for optional fields in config structs
-- Provide a `Default()` function returning a Config with sensible defaults
-- When loading repo config, return error if missing; for global config, return empty zero value if missing
-- Save global config with restrictive permissions (0o600) due to API keys; repo config uses 0o644
-- Construct file paths via filepath.Join and helper functions (Path, GlobalPath, GlobalDir)
-- Respect KAIOKEN_HOME environment variable for overriding global config directory
-- In tests, set KAIOKEN_HOME to a temporary directory to avoid interfering with real user config
+- Use YAML struct tags for field serialization (e.g., `yaml:"version"`).
+- Represent optional fields that can be unset using pointers (e.g., `*bool` for `Enabled` in Compaction) to distinguish between false and unset.
+- Provide a Default() function to return a configuration with sensible default values.
+- In Load functions, validate and adjust loaded values (e.g., enforce minimum values for Concurrency and MaxModuleTokens).
+- When saving configuration, create the necessary directory if it does not exist (with appropriate permissions: 0o755 for repo config, 0o700 for global config due to containing API keys).
+- Include a header comment in saved configuration files explaining the file's purpose and usage.
+- In tests, isolate the environment by setting the KAIOKEN_HOME environment variable to a temporary directory to avoid modifying the user's actual configuration.

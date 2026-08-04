@@ -1,1 +1,1 @@
-The module uses the Go programming language (standard library only) and relies on the external `git` executable being available in the system's PATH. No additional frameworks or libraries are used.
+The module uses the Go standard library (context, exec, os, path/filepath, strings) and shells out to the git binary (requiring git in PATH). No external libraries or frameworks are used.

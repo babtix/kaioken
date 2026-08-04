@@ -1,1 +1,8 @@
-
+- Place the main package in ./cmd/kaioken.
+- Keep the module declaration at the root as `module kaioken` in go.mod.
+- Run unit tests with `go test ./...` (or `make test`).
+- Perform static analysis via `go vet ./...` (or `make vet`).
+- Enforce code style with `golangci-lint run ./...` if the linter is installed (or `make lint`).
+- Build the binary using `go build ./...` and produce a Windows executable with `go build -o kaioken.exe ./cmd/kaioken` (or `make build`).
+- Clean build artifacts via `make clean` (which removes `kaioken.exe`).
+- Dependencies are managed with Go modules; avoid vendoring unless explicitly required.

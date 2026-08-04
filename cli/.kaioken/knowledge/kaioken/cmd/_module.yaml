@@ -1,6 +1,6 @@
 description: Main function and command line setup.
-file_count: 9
-generated_at: "2026-07-31T09:35:30Z"
+file_count: 11
+generated_at: "2026-08-04T16:24:14Z"
 id: kaioken/cmd
 model: nemotron-3-super:cloud
 scope:

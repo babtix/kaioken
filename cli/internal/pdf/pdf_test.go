@@ -3,10 +3,21 @@ package pdf
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 )
+
+// pageObjectRe counts the page objects actually written to the file. The
+// \b keeps "/Type /Pages" — the tree node — out of the count.
+var pageObjectRe = regexp.MustCompile(`/Type /Page\b`)
+
+// writtenPages reports how many page objects the output really carries, as
+// opposed to how many the renderer thinks it laid out.
+func writtenPages(b []byte) int {
+	return len(pageObjectRe.FindAll(b, -1))
+}
 
 func sampleDoc(sections, sources int) *Document {
 	body := strings.Repeat(
@@ -58,6 +69,31 @@ func TestRenderProducesAValidMultiPagePDF(t *testing.T) {
 	}
 	if pages < 12 {
 		t.Errorf("rendered %d pages; a dossier of 12 sections must not come out shorter than 12", pages)
+	}
+	if got := writtenPages(buf.Bytes()); got != pages {
+		t.Errorf("the file carries %d page objects but Render reported %d — pages were laid out and then dropped from the output", got, pages)
+	}
+}
+
+// The contents page is filled by rewinding to a page reserved up front. The
+// underlying writer only emits pages up to the current one, so if the rewind
+// is not walked back to the last page, everything after the contents page —
+// the entire body of a dossier — silently leaves the file. This is that bug,
+// pinned: the written file must carry every page Render reports, and the
+// body's text must be inside it.
+func TestOutputCarriesEveryPageAfterTheContentsRewind(t *testing.T) {
+	var buf bytes.Buffer
+	pages, err := Render(sampleDoc(12, 40), &buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := writtenPages(buf.Bytes()); got != pages {
+		t.Fatalf("written pages = %d, reported = %d — the contents rewind dropped the body", got, pages)
+	}
+	// A three-page file was the signature of the bug: cover, contents and
+	// nothing else. A real dossier is tens of pages.
+	if pages < 12 {
+		t.Errorf("only %d pages written; the body never reached the file", pages)
 	}
 }
 

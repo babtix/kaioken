@@ -77,6 +77,9 @@ func fromSaved(s *research.SavedReport) *research.Report {
 		Incomplete: s.Incomplete,
 		Warnings:   s.Warnings,
 		Deep:       s.Deep,
+		// The signature's elapsed line should reflect the run, not the
+		// export; the store persists the duration for exactly this.
+		Elapsed: time.Duration(s.ElapsedMS) * time.Millisecond,
 	}
 	for _, src := range s.Sources {
 		rep.Sources = append(rep.Sources, research.Source{N: src.N, URL: src.URL, Title: src.Title})

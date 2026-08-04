@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 
@@ -59,13 +60,19 @@ func buildDossier(ctx context.Context, client *llm.Client, question string, find
 	}
 	pg.detail(fmt.Sprintf("%d sections", len(plans)))
 
+	// A stage of its own: this call runs between two visibly busy phases,
+	// and a trail that goes silent for a whole model call reads as a hang.
+	pg.stage("writing the short answer")
 	summary, err := shortAnswer(ctx, client, question, findings, asOf)
 	if err != nil {
-		return nil, "", err
+		// The lead paragraph is worth a retry, never worth the whole dossier:
+		// the chapters were planned and are about to be written regardless.
+		pg.detail("short answer failed; the dossier will open on its first chapter: " + err.Error())
+		summary = ""
 	}
 
 	pg.stage(fmt.Sprintf("writing %d sections", len(plans)))
-	bodies, err := writeSections(ctx, client, question, plans, findings, pool, budget, workers, asOf)
+	bodies, err := writeSections(ctx, client, question, plans, findings, pool, budget, workers, asOf, pg)
 	if err != nil {
 		return nil, "", err
 	}
@@ -81,7 +88,9 @@ func buildDossier(ctx context.Context, client *llm.Client, question string, find
 
 	deep := &Deep{Summary: summary}
 	var b strings.Builder
-	fmt.Fprintf(&b, "## Short answer\n\n%s\n", strings.TrimSpace(summary))
+	if strings.TrimSpace(summary) != "" {
+		fmt.Fprintf(&b, "## Short answer\n\n%s\n", strings.TrimSpace(summary))
+	}
 	for i, p := range plans {
 		body := strings.TrimSpace(bodies[i])
 		if body == "" {
@@ -192,8 +201,15 @@ Reply with the paragraph only. No heading, no preamble.`
 
 // writeSections writes every chapter in parallel, each against evidence
 // retrieved for that chapter rather than for the question as a whole.
+//
+// One chapter's failure must not sink the dossier: at this depth a provider
+// refusal, a rate-limit wall or a credit error striking a single request is
+// likely, and throwing away thirteen finished chapters for it is exactly the
+// loss the deep mode exists to prevent. Failures are recorded and reported;
+// the assembly skips the empty slot. Only when nothing was written at all
+// does the run fail — a document of appendices alone is not a dossier.
 func writeSections(ctx context.Context, client *llm.Client, question string, plans []sectionPlan,
-	findings []finding, pool *corpus, budget, workers int, asOf string) ([]string, error) {
+	findings []finding, pool *corpus, budget, workers int, asOf string, pg Progress) ([]string, error) {
 
 	ranks := pool.pageRanks()
 	lex := newLexicon(pool.chunks)
@@ -202,6 +218,8 @@ func writeSections(ctx context.Context, client *llm.Client, question string, pla
 	perSource := clampInt(topK/3, 2, 12)
 
 	out := make([]string, len(plans))
+	var mu sync.Mutex
+	var failed []string
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(workers)
 
@@ -211,14 +229,41 @@ func writeSections(ctx context.Context, client *llm.Client, question string, pla
 			evidence := evidenceFor(pool, p.Title+"\n"+p.Brief, ranks, lex, topK, perSource, budget)
 			body, err := writeSection(gctx, client, question, p, findings, evidence, asOf)
 			if err != nil {
-				return err
+				mu.Lock()
+				failed = append(failed, p.Title)
+				mu.Unlock()
+				pg.detail("chapter failed: " + p.Title + ": " + err.Error())
+				return nil // one failed chapter must not cancel the rest
 			}
 			out[i] = body
+			mu.Lock()
+			done := len(failed)
+			for _, bod := range out {
+				if bod != "" {
+					done++
+				}
+			}
+			mu.Unlock()
+			pg.detail(fmt.Sprintf("chapter %d/%d written: %s", done, len(plans), p.Title))
 			return nil
 		})
 	}
-	if err := g.Wait(); err != nil {
-		return nil, err
+	_ = g.Wait()
+
+	wrote := 0
+	for _, b := range out {
+		if b != "" {
+			wrote++
+		}
+	}
+	if wrote == 0 {
+		return nil, fmt.Errorf("no chapters could be written for the dossier (%d failed)", len(failed))
+	}
+	if len(failed) > 0 {
+		// "failed" is provisional here: the expansion pass that follows re-runs
+		// thin and empty chapters alike, so a failed chapter gets one implicit
+		// retry before it is truly left out.
+		pg.detail(fmt.Sprintf("%d of %d chapters written; %d failed, retrying them with the expansion pass", wrote, len(plans), len(failed)))
 	}
 	return out, nil
 }

@@ -82,7 +82,7 @@ var chapters = []chapter{
 		name: "browse", title: "Browsing and automation",
 		intro: "Reading a two-thousand-line chapter in an editor is rough; serve it\n" +
 			"instead. And let a git hook keep everything fresh without you asking.",
-		commands: []string{"serve", "hook"},
+		commands: []string{"serve", "publish", "hook"},
 	},
 	{
 		name: "misc", title: "Everything else",

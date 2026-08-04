@@ -52,6 +52,9 @@ type SavedReport struct {
 	Grounding *Grounding `json:"grounding,omitempty"`
 	// ReportPath is the repo-relative path of the rendered markdown.
 	ReportPath string    `json:"report_path,omitempty"`
+	// ElapsedMS is the wall clock the run took, persisted so a PDF exported
+	// weeks later signs the same duration the run actually took.
+	ElapsedMS  int64     `json:"elapsed_ms,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
@@ -141,6 +144,7 @@ func Save(dir string, rep *Report, reportPath string, prov Provenance) (*SavedRe
 		Cost:       rep.Cost,
 		Grounding:  rep.Grounding,
 		ReportPath: reportPath,
+		ElapsedMS:  rep.Elapsed.Milliseconds(),
 		CreatedAt:  time.Now().UTC(),
 	}
 	data, err := json.MarshalIndent(saved, "", "  ")

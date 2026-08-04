@@ -1,8 +1,8 @@
 description: A terminal AI coding assistant and knowledge engine.
 file_count: 3
-generated_at: "2026-07-31T06:43:45Z"
+generated_at: "2026-08-04T16:16:10Z"
 id: kaioken
-model: nvidia/nemotron-3-super-120b-a12b
+model: nemotron-3-super:cloud
 scope:
     - .gitignore
     - Kaioken-settings-logo.json

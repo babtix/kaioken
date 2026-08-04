@@ -1,1 +1,1 @@
-The planner module uses the gopkg.in/yaml.v3 package for YAML marshaling/unmarshaling, and depends on the internal packages kaioken/internal/config, kaioken/internal/llm, and kaioken/internal/scan (which in turn uses github.com/sabhiram/go-gitignore for .gitignore parsing).
+The module uses Go standard library (os, path/filepath, strings, context, fmt) and gopkg.in/yaml.v3 for YAML marshaling/unmarshaling. It depends on internal packages: config for directory constants, llm for the LLM client abstraction, and scan for repository scanning results.

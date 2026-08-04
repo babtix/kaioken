@@ -82,6 +82,8 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("GET /v1/workspaces/{id}/research/{slug}", s.handleGetResearch)
 	router.HandleFunc("POST /v1/workspaces/{id}/research/{slug}/export", s.handleExportResearch)
 	router.HandleFunc("DELETE /v1/workspaces/{id}/research/{slug}", s.handleDeleteResearch)
+	router.HandleFunc("GET /v1/research/runs", s.handleListResearchRuns)
+	router.HandleFunc("DELETE /v1/research/runs/{run_id}", s.handleDeleteResearchRun)
 
 	// Documents, wiki, cards, skills (T044–T056)
 	router.HandleFunc("GET /v1/workspaces/{id}/wiki/tree", s.handleWikiTree)

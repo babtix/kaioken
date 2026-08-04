@@ -1,1 +1,1 @@
-The module relies exclusively on the Go standard library, including net/http for HTTP requests, context for cancellation, encoding/json for JSON handling, sync for concurrent access to usage metrics, and time for delays and timeouts. No external frameworks or libraries are used.
+The module uses only the Go standard library, including net/http, encoding/json, context, sync, time, and strings. No external frameworks or libraries are employed.

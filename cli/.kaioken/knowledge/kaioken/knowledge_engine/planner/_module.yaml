@@ -1,8 +1,8 @@
 description: Planning module for knowledge generation workflow.
-file_count: 3
-generated_at: "2026-07-26T04:11:35Z"
+file_count: 5
+generated_at: "2026-08-04T16:23:36Z"
 id: kaioken/knowledge_engine/planner
-model: nvidia/nemotron-3-super-120b-a12b
+model: nemotron-3-super:cloud
 scope:
     - internal/plan
     - internal/scan
