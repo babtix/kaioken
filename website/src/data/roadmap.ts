@@ -94,6 +94,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Change-aware search",
         body: "Scopes queries to files modified in the last N commits via gitx — focuses investigation on the active work surface.",
+        done: true,
       },
     ],
   },
@@ -150,6 +151,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "run_tests",
         body: "Detects the test framework, runs targeted tests, and parses structured pass/fail for iteration.",
+        done: true,
       },
       {
         title: "git_operations",
@@ -204,6 +206,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Multi-repo federation",
         body: "A global knowledge index across repositories, so the agent can reference patterns from sibling projects via config.Global.",
+        done: true,
       },
     ],
   },
@@ -256,6 +259,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Pre-commit knowledge check",
         body: "Verifies knowledge cards are current before allowing a commit, warning on drift.",
+        done: true,
       },
       {
         title: "PR-triggered wiki update",
@@ -268,10 +272,12 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Test-gate on edits",
         body: "After edit_file, automatically run the affected package's tests before the agent continues.",
+        done: true,
       },
       {
         title: "Commit message generation",
         body: "Analyze the staged diff and generate a conventional commit message on demand.",
+        done: true,
       },
       {
         title: "Dependency update watcher",
@@ -342,6 +348,7 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
       {
         title: "Change impact analysis",
         body: "Given a file or symbol, trace all dependents and estimate the blast radius of a change.",
+        done: true,
       },
       {
         title: "Tech debt heatmap",
@@ -409,5 +416,6 @@ export const ARCH_ENABLERS: RoadmapItem[] = [
   {
     title: "Configuration profiles",
     body: "Named profiles (review, wiki, chat) that preset model, max_tokens, tools, and system prompt per workflow.",
+    done: true,
   },
 ]
