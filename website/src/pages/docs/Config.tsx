@@ -57,6 +57,22 @@ export default function Config() {
         wipe with <C>/notes clear</C>.
       </P>
 
+      <H2 id="routing">Model Routing</H2>
+      <P>
+        Map specific operational roles onto different models in <C>config.yaml</C>. Supported roles are{" "}
+        <C>plan</C>, <C>edit</C>, <C>task</C>, <C>compact</C>, <C>impact</C>, and <C>summarize</C>. If a role is unset, it falls back to the primary <C>model</C>.
+      </P>
+      <div className="pt-4">
+        <CodeBlock
+          title="config.yaml"
+          code={`models:
+  plan: anthropic/claude-3-5-sonnet
+  edit: anthropic/claude-3-5-sonnet
+  compact: google/gemini-2.0-flash-001
+  task: anthropic/claude-3-5-sonnet`}
+        />
+      </div>
+
       <H2 id="editable">Files meant to be edited</H2>
       <UL>
         <LI>

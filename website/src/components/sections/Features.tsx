@@ -18,8 +18,8 @@ export default function Features() {
         <SectionHeading
           index="01"
           eyebrow="what it does"
-          title="Six things, one binary"
-          description="Nothing here is a wrapper around a chat box. Each capability exists because long-form generation fails in a specific way, and each one addresses it mechanically."
+          title="Complete AI coding & knowledge engine"
+          description="Nothing here is a wrapper around a chat box. Each capability exists because long-form generation and coding agent loops fail in specific ways, and each one addresses them mechanically."
         />
 
         <div className="mt-12 grid gap-px overflow-hidden rounded-sm border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
