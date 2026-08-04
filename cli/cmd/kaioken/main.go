@@ -116,6 +116,10 @@ Commands:
   verify     Run the repo's build/test commands green: an agent diagnoses and
              fixes failures, then every command is re-run in plain Go as the
              final gate (-approve defaults to all here; exit 1 if the gate fails)
+  watch      Poll the working tree and print a line whenever new changed paths
+             appear since the watch started (-interval N seconds, default 5)
+  hub        Manage a cross-repo registry at ~/.kaioken/hub.yaml (list | add
+             [path] | remove <name> | status — exits 1 when any repo is stale)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
   upgrade    Update kaioken itself to the latest GitHub release
@@ -216,6 +220,10 @@ func main() {
 		err = cmdHandoff(ctx, args)
 	case "verify":
 		err = cmdVerify(ctx, args)
+	case "watch":
+		err = cmdWatch(ctx, args)
+	case "hub":
+		err = cmdHub(ctx, args)
 	case "hook":
 		err = cmdHook(args)
 	case "daemon":
@@ -301,6 +309,8 @@ type flags struct {
 	// compare turns `impact` into a prediction-vs-reality check against the
 	// newest saved report.
 	compare bool
+	// interval sets the polling interval in seconds for `watch`.
+	interval int
 }
 
 // cliExit carries an explicit process exit code alongside the error, for
@@ -369,6 +379,11 @@ func parseFlags(argv []string) flags {
 			}
 		case "-compare", "--compare":
 			f.compare = true
+		case "-interval", "--interval":
+			if i+1 < len(argv) {
+				i++
+				fmt.Sscanf(argv[i], "%d", &f.interval)
+			}
 		case "-force", "--force":
 			f.force = true
 		case "-full", "--full":
