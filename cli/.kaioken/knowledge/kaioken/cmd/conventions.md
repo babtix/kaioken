@@ -1,1 +1,9 @@
-
+- Command handlers must be named `cmd<Command>` (e.g., `cmdRun`, `cmdInit`) and accept `context.Context` and `flags` (from main.go) parameters, returning error.
+- The `flags` struct is populated by `parseFlags` in main.go, handling common flags and collecting positionals into `positional` (last) and `positionals` (slice).
+- For subcommand-based commands (`ext`, `mcp`), the first positional is the subcommand; additional positionals are arguments.
+- Error handling: return errors directly; main.go maps `errStale` to exit code 1 (no 'error:' prefix) and `*cliExit` to its embedded code/error.
+- Load configuration via `config.Load(f.repo)` (or `setup.EnsureConfig` for `init`).
+- Create LLM clients via `newClient(cfg, f)` (implemented in internal packages).
+- Output: normals to stdout, errors/logging to stderr; support `-json` for machine-readable output where applicable.
+- Usage tracking: `bookSpend` is called automatically in main.go post-execution.
+- Interactive runs (bare `kaioken` or `kaioken tui`) trigger `updateNotice` in main.go.

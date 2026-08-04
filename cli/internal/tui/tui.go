@@ -37,6 +37,7 @@ import (
 	"kaioken/internal/impact"
 	"kaioken/internal/llm"
 	"kaioken/internal/memory"
+	"kaioken/internal/onboard"
 	"kaioken/internal/plan"
 	"kaioken/internal/scan"
 	"kaioken/internal/serve"
@@ -1364,6 +1365,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		return m.startServe(args)
 	case "publish":
 		return m.startPublish()
+	case "onboard":
+		return m.startOnboard(args)
 	case "hook":
 		m.doHook(args)
 	case "status":
@@ -2041,6 +2044,37 @@ func (m *Model) doHook(args []string) {
 }
 
 // ---- wiki browser ----
+
+// startOnboard assembles ONBOARDING.md from the generated knowledge. All
+// local I/O, so it runs in the background and reports one line when done.
+func (m Model) startOnboard(args []string) (tea.Model, tea.Cmd) {
+	force := len(args) > 0 && strings.EqualFold(args[0], "force")
+	repo, ch := m.repo, m.events
+	m.appendLine(dimStyle.Render("assembling ONBOARDING.md…"))
+	go func() {
+		cfg, err := config.Load(repo)
+		if err != nil {
+			ch <- logMsg{errStyle.Render("onboard: " + err.Error())}
+			return
+		}
+		doc, err := onboard.Generate(repo, cfg)
+		if err != nil {
+			ch <- logMsg{errStyle.Render("onboard: " + err.Error())}
+			return
+		}
+		out := filepath.Join(repo, "ONBOARDING.md")
+		if _, serr := os.Stat(out); serr == nil && !force {
+			ch <- logMsg{errStyle.Render("ONBOARDING.md exists — /onboard force to overwrite")}
+			return
+		}
+		if err := os.WriteFile(out, []byte(doc), 0o644); err != nil {
+			ch <- logMsg{errStyle.Render("onboard: " + err.Error())}
+			return
+		}
+		ch <- logMsg{okStyle.Render("wrote " + out)}
+	}()
+	return m, nil
+}
 
 // startPublish renders the wiki to a static site in the background; the
 // render is all local I/O, so no spinner machinery is needed — one line when
@@ -2896,6 +2930,7 @@ var helpText = strings.Join([]string{
 	"                          loop on the gaps, write a cited report to .kaioken/research/",
 	"  /serve [port]           browse the wiki in a browser  ·  /serve stop",
 	"  /publish                render the wiki as a static site under .kaioken/site/",
+	"  /onboard [force]        write ONBOARDING.md — the day-one guide from your knowledge",
 	"  /hook [install|remove]  refresh the wiki automatically after every commit",
 	"  /scan /plan /cards      knowledge-card pipeline   ·   /status",
 	"  /notes [add <t>|clear]  steering notes injected into card prompts",

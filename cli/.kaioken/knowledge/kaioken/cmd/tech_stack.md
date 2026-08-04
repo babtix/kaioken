@@ -1,1 +1,1 @@
-
+The module uses the Go standard library for command-line parsing, context management, OS interactions, and signal handling. It depends on internal Kaioken packages (config, agent, impact, etc.) for core functionality like configuration, LLM client creation, and command execution.

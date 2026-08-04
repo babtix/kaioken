@@ -141,6 +141,11 @@ var commandGuides = map[string]string{
 		"becomes its own .html page and the navigation links between them, so the " +
 		"whole site works from a file share or any static host. Publish it to " +
 		"GitHub Pages, or hand the folder to a teammate who just wants a browser.",
+	"onboard": "Assembles ONBOARDING.md at the repository root from what Kaioken already " +
+		"knows: the entry-point wiki chapters, one line per knowledge card, the task " +
+		"guides, and the stack the scanner saw. It makes no LLM calls, so it cannot " +
+		"invent anything — it only collects. Use /onboard force to overwrite an " +
+		"existing guide.",
 	"hook": "Installs a git post-commit hook that runs /update in the background after " +
 		"every commit, so documentation never drifts. It appends a delimited block " +
 		"to the existing hook, so your other hooks are preserved. Remove it with " +

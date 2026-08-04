@@ -615,6 +615,17 @@ var commands = []command{
 		},
 	},
 	{
+		name: "onboard",
+		summary: "write the day-one ONBOARDING.md",
+		detail: "Assembles ONBOARDING.md at the repo root from the wiki chapters, knowledge " +
+			"cards, skills and scan inventory — the document you hand a new teammate. No LLM " +
+			"calls, so it never invents anything.",
+		examples: []example{
+			{"/onboard", "write ONBOARDING.md"},
+			{"/onboard force", "overwrite an existing guide"},
+		},
+	},
+	{
 		name: "hook", args: "[install|remove]",
 		summary: "auto-update the wiki after each commit",
 		detail: "Installs a git post-commit hook running /update in the background, so documentation " +

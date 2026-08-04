@@ -36,11 +36,11 @@
       "commit": "8b6e0fcd83c8daf836ebe3d527b248c28548e96a"
     },
     "kaioken/cmd": {
-      "source_hash": "3ee849d5c6a901f9d8da7c5fd68e509f23c97fa171f0e7b711fb17c9bd985786",
+      "source_hash": "c99e7a3b87181bd5c5fa17b24e7379b1c3281c2881cd098a3fe2408a4aaf71fe",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-04T16:24:14.1729354Z",
-      "file_count": 11,
-      "commit": "d795e5b7c5e3f071038a9861ba5eedd69463f1ab"
+      "generated_at": "2026-08-04T16:34:07.4620383Z",
+      "file_count": 13,
+      "commit": "3775b3a6c41faa687bfb6cce758dc7774be69a72"
     },
     "kaioken/config": {
       "source_hash": "5144caf8dbf23ff8beca5143932aebe50f506b82b55251c4d7f68aef0faf0009",

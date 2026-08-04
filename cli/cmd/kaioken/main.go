@@ -103,6 +103,8 @@ Commands:
   pack       Bundle the generated knowledge into one portable .tar.gz for an
              offline or air-gapped machine (-extract <file> unpacks one,
              -out overrides the archive path)
+  onboard    Write ONBOARDING.md — a day-one guide assembled from the wiki,
+             cards, skills and scan (-force overwrites an existing one)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
   upgrade    Update kaioken itself to the latest GitHub release
@@ -195,6 +197,8 @@ func main() {
 		err = cmdPublish(args)
 	case "pack":
 		err = cmdPack(args)
+	case "onboard":
+		err = cmdOnboard(args)
 	case "hook":
 		err = cmdHook(args)
 	case "daemon":
