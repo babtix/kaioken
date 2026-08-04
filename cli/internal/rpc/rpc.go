@@ -366,6 +366,7 @@ func (s *Server) startRun(ctx context.Context, text string) error {
 		MaxSteps:       25,
 		Mode:           s.mode,
 		MemoryDisabled: s.cfg.Memory.Disable,
+		Config:         s.cfg,
 	}
 	s.history = append(s.history, llm.Message{Role: "user", Content: text})
 	history := s.history

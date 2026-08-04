@@ -104,6 +104,10 @@ type Agent struct {
 	Notes *DirNotes
 	// Perms is the standing permissions ruleset. Nil uses default behavior (ask).
 	Perms *Ruleset
+	// Config carries the repo configuration for operation-level model
+	// routing: sub-agents and other delegated work may run on a different
+	// model than the conversation (see routedClient). Nil disables routing.
+	Config *config.Config
 
 	// qmu guards the steering and follow-up queues, which the front-end
 	// goroutine fills via Steer/FollowUp while Run drains them between turns.
@@ -260,6 +264,21 @@ func (a *Agent) Tools() []llm.Tool {
 }
 
 func raw(s string) json.RawMessage { return json.RawMessage(s) }
+
+// routedClient returns the client that should run a given operation role
+// ("task", "impact", "compact", …): the model the config maps that role to,
+// or the session client untouched when no routing is configured. WithModel
+// starts fresh usage counters, so each routed model meters its own spend.
+func (a *Agent) routedClient(role string) *llm.Client {
+	if a.Config == nil {
+		return a.Client
+	}
+	model := a.Config.ResolveModel(role)
+	if model == "" || model == a.Client.Model {
+		return a.Client // no routing configured for this role
+	}
+	return a.Client.WithModel(model)
+}
 
 // exec dispatches one tool call and returns a result string (errors are
 // returned as text so the model can recover, not as Go errors).

@@ -222,6 +222,7 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 			Mode:           mode,
 			MemoryDisabled: ws.MemoryDisabled(),
 			Budget:         ws.Budget(),
+			Config:         ws.Config(),
 		}
 
 		result, runErr := ag.Run(ctx, history)

@@ -1202,6 +1202,7 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 		Budget:          m.budget,
 		Context:         m.ctxTracker,
 		Notes:           m.dirNotes,
+		Config:          m.cfg,
 	}
 	conv := m.conversation
 	ch := m.events
@@ -1226,7 +1227,7 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 			}
 			if still, _ := agent.ShouldCompact(tracker, conv, model, ceiling); still {
 				ch <- busyMsg{true, "compacting context"}
-				compacted, note, err := agent.Compact(ctx, client, conv, model, ceiling)
+				compacted, note, err := agent.Compact(ctx, routedClient(client, m.cfg, "compact"), conv, model, ceiling)
 				if err == nil {
 					conv = compacted
 					ch <- compactedMsg{history: compacted, note: note, auto: true}
@@ -1786,6 +1787,20 @@ func (m *Model) showCost() {
 // history with system prompt + summary + the most recent turns, freeing up
 // context. The summarizing itself lives in internal/agent so this path and the
 // automatic one before a turn cannot drift apart.
+
+// routedClient returns the session client retargeted at the model the config
+// maps to role, or the client itself when the role is unrouted. Fresh usage
+// counters per routed model keep each role's spend legible in /cost.
+func routedClient(client *llm.Client, cfg *config.Config, role string) *llm.Client {
+	if cfg == nil {
+		return client
+	}
+	if m := cfg.ResolveModel(role); m != "" && m != client.Model {
+		return client.WithModel(m)
+	}
+	return client
+}
+
 func (m Model) startCompact() (tea.Model, tea.Cmd) {
 	if m.client == nil {
 		return m.needKey()
@@ -1799,7 +1814,7 @@ func (m Model) startCompact() (tea.Model, tea.Cmd) {
 	model, ceiling := m.cfg.Model, m.cfg.MaxTokens
 	go func() {
 		ch <- busyMsg{true, "compacting"}
-		history, note, err := agent.Compact(ctx, client, conv, model, ceiling)
+		history, note, err := agent.Compact(ctx, routedClient(client, m.cfg, "compact"), conv, model, ceiling)
 		if err != nil {
 			ch <- doneMsg{"compact", err}
 			ch <- busyMsg{false, ""}
@@ -2894,7 +2909,7 @@ func (m Model) needKey() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) configLines() []string {
-	return []string{
+	lines := []string{
 		"repo:        " + m.repo,
 		"model:       " + m.cfg.Model,
 		"provider:    " + m.cfg.Provider,
@@ -2903,6 +2918,13 @@ func (m Model) configLines() []string {
 		fmt.Sprintf("notes:       %d steering note(s)", len(m.cfg.Notes)),
 		fmt.Sprintf("auto-approve: %v", m.autoApprove),
 	}
+	// Operation-level model routing, when configured.
+	for _, role := range config.Roles {
+		if mod := m.cfg.Models[role]; mod != "" {
+			lines = append(lines, fmt.Sprintf("model %-8s %s", role+":", mod))
+		}
+	}
+	return lines
 }
 
 // ---- model picker item ----

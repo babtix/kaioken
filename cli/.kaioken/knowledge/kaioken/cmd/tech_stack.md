@@ -1,1 +1,1 @@
-The module uses the Go standard library (including bufio, context, errors, fmt, os, os/signal, path/filepath, runtime, strings, sync, time, encoding/json, and bytes) and relies on the project's internal packages for configuration (config), LLM interaction (llm), agent execution (agent and rpc), and other core functionalities (such as ext, gitdraft, handoff, impact, search, mcp, onboard, pack, serve, review, status, and usage).
+The module uses Go and the Go standard library

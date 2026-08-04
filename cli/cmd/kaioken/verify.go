@@ -77,6 +77,7 @@ func cmdVerify(ctx context.Context, f flags) error {
 		MaxSteps:       60, // a fix loop needs more room than one shot
 		Mode:           agent.ModeBuild,
 		MemoryDisabled: cfg.Memory.Disable,
+		Config:         cfg,
 	}
 	system := agent.SystemPrompt(agent.PromptInput{
 		Root: root, Mode: agent.ModeBuild, Model: client.Model, AllowRun: true, Notes: cfg.Notes,

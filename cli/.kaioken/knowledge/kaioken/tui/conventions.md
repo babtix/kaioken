@@ -1,8 +1,8 @@
-- Add new slash commands by appending to the commands slice in commands.go with a command struct containing name, aliases, args, summary, detail, guide, and examples
-- Handle the new command in the dispatch method of Model (tui.go) by adding a case for the command string
-- Use appendLine with appropriate style functions (errStyle, warnStyle, okStyle) to display messages in the transcript
-- For long-running operations, use a goroutine communicating via m.events channel, signaling start/end with busyMsg
-- Before modifying session state, call m.sess.Record(m.conversation); after changes, call m.saveSession()
-- Render assistant responses using the renderMarkdown function for markdown content
-- Use predefined lipgloss styles (promptStyle, hintStyle, etc.) for UI consistency
-- Check for busy state using m.guardBusy() (or m.busy) to prevent concurrent operations
+- Command handlers in tui.go must be named start* for async operations (e.g., startImpact) or do* for synchronous actions (e.g., doExt, doTheme).
+- New slash commands must be registered in the commands slice in commands.go with a command struct containing name, aliases, args, summary, detail, guide, and examples.
+- Error messages must be displayed using the errStyle (from theme.go) and appended to the transcript via m.appendLine(errStyle.Render(...)).
+- Asynchronous operations must use context.Context for cancellation and communicate results via the m.events channel using message types like logMsg, busyMsg, doneMsg, and domain-specific messages (e.g., impactMsg).
+- The TUI must guard against reentrant busy operations using m.guardBusy() before starting long-running tasks.
+- Styling must use the predefined lipgloss styles (promptStyle, hintStyle, etc.) that are set by the active theme (via applyTheme in theme.go).
+- Markdown rendering must use the cached renderer from markdown.go, which rebuilds on terminal resize.
+- Extension commands must use the ext package for installation, trust, and execution, and must follow the two-step trust flow for unsafe extensions.

@@ -29,6 +29,11 @@ func cmdImpact(ctx context.Context, f flags) error {
 	if err != nil {
 		return err
 	}
+	// Per-operation routing: impact predictions can run on their own model
+	// (a cheap one is usually plenty for blast-radius guessing).
+	if m := cfg.ResolveModel("impact"); m != "" && m != client.Model {
+		client = client.WithModel(m)
+	}
 
 	// The shared flag parser does not know -format, so it arrives among the
 	// positionals; everything that is not a flag pair is the intent.

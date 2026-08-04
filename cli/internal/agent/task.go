@@ -111,7 +111,7 @@ func (a *Agent) runTask(ctx context.Context, description, prompt, modeArg string
 	a.UI.Info(fmt.Sprintf("↳ sub-agent (%s): %s", mode, label))
 
 	sub := &Agent{
-		Client:   a.Client,
+		Client:   a.routedClient("task"),
 		Root:     a.Root,
 		UI:       subUI{parent: a.UI},
 		MaxSteps: subAgentSteps,

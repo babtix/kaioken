@@ -120,6 +120,7 @@ func cmdRun(ctx context.Context, f flags) error {
 		MaxSteps:       25,
 		Mode:           mode,
 		MemoryDisabled: cfg.Memory.Disable,
+		Config:         cfg,
 	}
 
 	system := agent.SystemPrompt(agent.PromptInput{
