@@ -26,6 +26,14 @@ func (c Change) Deleted() bool { return c.Status == "D" }
 
 // run executes a git subcommand inside repo and returns trimmed stdout.
 func run(ctx context.Context, repo string, args ...string) (string, error) {
+	out, err := runRaw(ctx, repo, args...)
+	return strings.TrimRight(out, "\r\n"), err
+}
+
+// runRaw executes a git subcommand and returns stdout untouched. Diff output
+// must keep its trailing newline — a unified patch that loses it is rejected
+// by `git apply` as corrupt — so callers that relay raw git output use this.
+func runRaw(ctx context.Context, repo string, args ...string) (string, error) {
 	full := append([]string{"-C", repo}, args...)
 	cmd := exec.CommandContext(ctx, "git", full...)
 	var out, errb bytes.Buffer
@@ -37,7 +45,7 @@ func run(ctx context.Context, repo string, args ...string) (string, error) {
 		}
 		return "", fmt.Errorf("git %s: %s", strings.Join(args, " "), msg)
 	}
-	return strings.TrimRight(out.String(), "\r\n"), nil
+	return out.String(), nil
 }
 
 // IsRepo reports whether repo sits inside a git work tree (and git is on PATH).
