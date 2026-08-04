@@ -255,6 +255,12 @@ func (a *Agent) Tools() []llm.Tool {
 	if a.Depth < maxSubAgentDepth {
 		tools = append(tools, taskTool(), todoTool())
 	}
+	// The writable delegate is only offered when the parent can write and is at
+	// the top level: a sub-agent that can re-delegate would amplify token spend
+	// unboundedly, and a read-only session has nothing useful to hand off.
+	if a.Depth == 0 && perms.CanWrite {
+		tools = append(tools, delegateTool())
+	}
 	// Runtime-registered tools follow extension rules: only the top-level
 	// agent sees them, filtered by the current mode's permissions.
 	if a.Depth == 0 {
@@ -357,6 +363,8 @@ func (a *Agent) execTool(ctx context.Context, tc llm.ToolCall) string {
 		rawResult = a.runCommand(ctx, getStr("command"), tc.ID, getNum("timeout"))
 	case "task":
 		rawResult = a.runTask(ctx, getStr("description"), getStr("prompt"), getStr("mode"))
+	case "delegate":
+		rawResult = a.runDelegate(ctx, getStr("description"), getStr("prompt"))
 	case "todo":
 		// Parsed from the raw arguments rather than the decoded map: the items
 		// are structured, and re-deriving them from map[string]any would mean
