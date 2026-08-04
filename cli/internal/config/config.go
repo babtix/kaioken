@@ -60,6 +60,28 @@ type Config struct {
 	// Theme names the TUI colour palette: "default", "light", or
 	// "highcontrast". Anything else leaves the default.
 	Theme string `yaml:"theme,omitempty"`
+	// Models maps an operation role onto the model that runs it. Known roles
+	// are listed in Roles. An empty or unknown role falls back to Model, so
+	// setting only one entry (say "compact") is a valid permanent state. This
+	// mirrors the research-role map in the global config.
+	Models map[string]string `yaml:"models,omitempty"`
+}
+
+// Roles are the operation roles ResolveModel understands. They name where a
+// cheaper or stronger model than the session default can pay for itself.
+var Roles = []string{"plan", "edit", "task", "compact", "impact", "summarize"}
+
+// ResolveModel returns the model configured for role, falling back to the
+// session default. A nil config resolves everything to the empty string, which
+// callers treat as "no routing configured".
+func (c *Config) ResolveModel(role string) string {
+	if c == nil {
+		return ""
+	}
+	if m := c.Models[role]; m != "" {
+		return m
+	}
+	return c.Model
 }
 
 // Compaction tunes the automatic pre-turn context compaction.
