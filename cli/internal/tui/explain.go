@@ -146,6 +146,11 @@ var commandGuides = map[string]string{
 		"guides, and the stack the scanner saw. It makes no LLM calls, so it cannot " +
 		"invent anything — it only collects. Use /onboard force to overwrite an " +
 		"existing guide.",
+	"draft": "Reads the diff of your current change, the repository's recent commit " +
+		"subjects, and your steering notes, then asks the model for a conventional-commit " +
+		"message and a what/why/how-to-test PR description in the project's own voice. " +
+		"It never stages or commits — the draft is for you to edit and use. Pass a " +
+		"baseline like HEAD~3 to cover committed work too.",
 	"hook": "Installs a git post-commit hook that runs /update in the background after " +
 		"every commit, so documentation never drifts. It appends a delimited block " +
 		"to the existing hook, so your other hooks are preserved. Remove it with " +

@@ -1,9 +1,8 @@
-- Command handlers must be named `cmd<Command>` (e.g., `cmdRun`, `cmdInit`) and accept `context.Context` and `flags` (from main.go) parameters, returning error.
-- The `flags` struct is populated by `parseFlags` in main.go, handling common flags and collecting positionals into `positional` (last) and `positionals` (slice).
-- For subcommand-based commands (`ext`, `mcp`), the first positional is the subcommand; additional positionals are arguments.
-- Error handling: return errors directly; main.go maps `errStale` to exit code 1 (no 'error:' prefix) and `*cliExit` to its embedded code/error.
-- Load configuration via `config.Load(f.repo)` (or `setup.EnsureConfig` for `init`).
-- Create LLM clients via `newClient(cfg, f)` (implemented in internal packages).
-- Output: normals to stdout, errors/logging to stderr; support `-json` for machine-readable output where applicable.
-- Usage tracking: `bookSpend` is called automatically in main.go post-execution.
-- Interactive runs (bare `kaioken` or `kaioken tui`) trigger `updateNotice` in main.go.
+- Command handler functions are named cmd<Command> (e.g., cmdRun, cmdInit) and return an error.
+- Common flags (-repo, -model, -module, -base, -port, -force, -full, -out, -token, -token-stdin) are parsed by the shared parseFlags function into a flags struct.
+- Command-specific flags (like -format, -severity, -only for review) are parsed from f.positionals within the handler function.
+- The repo field in flags defaults to "." (current directory) and is used as the target repository.
+- Error handling: Handlers return error; in main, if the error is errStale (from status.go), exit with code 1 without an "error:" prefix; if the error is of type *cliExit, use its code and error; otherwise, print "error:" and exit with code 1.
+- For JSON output, handlers check the jsonOut flag in flags to change the output format (e.g., in cmdStatus, cmdReview).
+- The force flag is used to bypass caching and regenerate outputs (e.g., in cmdIndex, cmdOnboard).
+- Output files specified by -out are made absolute if not already (e.g., in cmdImpact, cmdReview).

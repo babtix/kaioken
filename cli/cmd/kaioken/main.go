@@ -105,6 +105,9 @@ Commands:
              -out overrides the archive path)
   onboard    Write ONBOARDING.md — a day-one guide assembled from the wiki,
              cards, skills and scan (-force overwrites an existing one)
+  gitdraft   Draft a commit message + PR description for the current change,
+             grounded in the diff and the repo's own commit style
+             (positional: baseline rev, default HEAD = uncommitted work)
   hook       Manage the post-commit auto-update hook (install|remove|status)
   daemon     Serve the engine over a loopback HTTP API (used by Kaioken Desktop)
   upgrade    Update kaioken itself to the latest GitHub release
@@ -199,6 +202,8 @@ func main() {
 		err = cmdPack(args)
 	case "onboard":
 		err = cmdOnboard(args)
+	case "gitdraft", "draft":
+		err = cmdGitDraft(ctx, args)
 	case "hook":
 		err = cmdHook(args)
 	case "daemon":

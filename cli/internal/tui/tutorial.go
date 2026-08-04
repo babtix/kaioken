@@ -41,7 +41,7 @@ var chapters = []chapter{
 			"Replies stream as they arrive and render as markdown. The composer is\n" +
 			"multi-line: alt+enter (or ctrl+j) adds a newline, so pasting a stack\n" +
 			"trace works.",
-		commands: []string{"yolo", "mode", "undo", "diff", "stop", "queue"},
+		commands: []string{"yolo", "mode", "undo", "diff", "draft", "stop", "queue"},
 	},
 	{
 		name: "sessions", title: "Sessions and context",

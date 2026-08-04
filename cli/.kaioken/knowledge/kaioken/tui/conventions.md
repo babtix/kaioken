@@ -1,1 +1,9 @@
-
+- Commands must be registered in the `commands` slice in `internal/tui/commands.go` with a `command` struct containing name, aliases, args, summary, detail, guide, and examples.
+- Each command must have a corresponding handler method on the `Model` struct (following the naming pattern `do<Command>` or `start<Command>`) that returns `(tea.Model, tea.Cmd)`.
+- Handlers must be registered in the `dispatch` method (in `tui.go`) to route command strings to the appropriate method.
+- For long-running operations, handlers must set `m.busy = true`, spawn a goroutine, and communicate progress and results via the `m.events` channel using `busyMsg`, `logMsg`, and `doneMsg`.
+- Output to the transcript must use the `appendLine` method with appropriate styles from `theme.go` (e.g., `errStyle` for errors, `okStyle` for success).
+- The `guardBusy` method must be called at the start of handlers to prevent concurrent busy operations.
+- Markdown rendering for assistant replies must use the `renderMarkdown` function from `markdown.go`.
+- Session-modifying commands should call `m.saveSession()` to persist state before making changes.
+- Argument parsing should follow existing patterns (e.g., splitting the input string, handling optional flags).

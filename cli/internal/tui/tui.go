@@ -34,6 +34,7 @@ import (
 	"kaioken/internal/ext"
 	"kaioken/internal/generate"
 	"kaioken/internal/gitx"
+	"kaioken/internal/gitdraft"
 	"kaioken/internal/impact"
 	"kaioken/internal/llm"
 	"kaioken/internal/memory"
@@ -78,6 +79,12 @@ type agentDoneMsg struct {
 type modelsFetchedMsg struct {
 	models []llm.ModelInfo
 	err    error
+}
+
+// draftMsg carries a /draft result back from the LLM goroutine.
+type draftMsg struct {
+	text string
+	err  error
 }
 
 // extRegistryFetchedMsg carries the community extension index for the
@@ -499,6 +506,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.saveSession()
 		return m, listen(m.events)
+
+	case draftMsg:
+		m.busy = false
+		if msg.err != nil {
+			m.appendLine(errStyle.Render("draft: " + msg.err.Error()))
+			return m, nil
+		}
+		m.appendLine(msg.text)
+		m.appendLine(dimStyle.Render("draft only — nothing was committed · /copy to take it"))
+		return m, nil
 
 	case modelsFetchedMsg:
 		m.busy = false
@@ -1367,6 +1384,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		return m.startPublish()
 	case "onboard":
 		return m.startOnboard(args)
+	case "draft":
+		return m.startDraft(rest)
 	case "hook":
 		m.doHook(args)
 	case "status":
@@ -2044,6 +2063,25 @@ func (m *Model) doHook(args []string) {
 }
 
 // ---- wiki browser ----
+
+// startDraft asks the model for a commit message + PR description grounded
+// in the current diff. It is strictly advisory: nothing is staged or
+// committed from here.
+func (m Model) startDraft(base string) (tea.Model, tea.Cmd) {
+	if m.client == nil {
+		return m.needKey()
+	}
+	m.busy = true
+	m.busyText = "drafting the commit message"
+	client, cfg, repo := m.client, m.cfg, m.repo
+	return m, tea.Batch(
+		func() tea.Msg {
+			text, err := gitdraft.Draft(context.Background(), repo, cfg, client, base)
+			return draftMsg{text, err}
+		},
+		m.spin.Tick,
+	)
+}
 
 // startOnboard assembles ONBOARDING.md from the generated knowledge. All
 // local I/O, so it runs in the background and reports one line when done.
@@ -2931,6 +2969,7 @@ var helpText = strings.Join([]string{
 	"  /serve [port]           browse the wiki in a browser  ·  /serve stop",
 	"  /publish                render the wiki as a static site under .kaioken/site/",
 	"  /onboard [force]        write ONBOARDING.md — the day-one guide from your knowledge",
+	"  /draft [base]           draft a commit message + PR description for the current diff",
 	"  /hook [install|remove]  refresh the wiki automatically after every commit",
 	"  /scan /plan /cards      knowledge-card pipeline   ·   /status",
 	"  /notes [add <t>|clear]  steering notes injected into card prompts",

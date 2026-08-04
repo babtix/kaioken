@@ -197,3 +197,21 @@ func Subjects(ctx context.Context, repo, base string, limit int) ([]string, erro
 	}
 	return subjects, nil
 }
+
+// RecentSubjects lists the repo's most recent commit subjects across all
+// branches' reachable history — the house-style reference for drafting, which
+// must work even when the change being drafted is uncommitted.
+func RecentSubjects(ctx context.Context, repo string, limit int) ([]string, error) {
+	out, err := run(ctx, repo, "log", "--no-decorate", "--pretty=format:%h %s",
+		fmt.Sprintf("-n%d", limit))
+	if err != nil {
+		return nil, err
+	}
+	var subjects []string
+	for _, l := range strings.Split(out, "\n") {
+		if l = strings.TrimSpace(l); l != "" {
+			subjects = append(subjects, l)
+		}
+	}
+	return subjects, nil
+}

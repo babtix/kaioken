@@ -626,6 +626,17 @@ var commands = []command{
 		},
 	},
 	{
+		name: "draft", args: "[base]",
+		summary: "draft the commit message + PR description",
+		detail: "Reads the current diff, the repo's recent commit style and your steering " +
+			"notes, and asks the model for a conventional-commit message plus a what/why/how-to-" +
+			"test PR description. Advisory only — nothing is staged or committed.",
+		examples: []example{
+			{"/draft", "draft from the uncommitted changes"},
+			{"/draft HEAD~3", "draft from everything since that commit"},
+		},
+	},
+	{
 		name: "hook", args: "[install|remove]",
 		summary: "auto-update the wiki after each commit",
 		detail: "Installs a git post-commit hook running /update in the background, so documentation " +
