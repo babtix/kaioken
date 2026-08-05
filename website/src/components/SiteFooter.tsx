@@ -144,6 +144,16 @@ export default function SiteFooter() {
               ○ Portfolio
             </span>
           </div>
+          {/* discrete background preview link */}
+          <div className="mt-6">
+            <Link
+              to="/desktop-bg-preview"
+              className="font-mono text-[9px] text-kai-dim/30 hover:text-kai-dim transition-colors"
+              title="Desktop Background Preview Gallery"
+            >
+              bg gallery
+            </Link>
+          </div>
         </div>
 
         {override === "desktop" ? (

@@ -7,6 +7,7 @@ import Home from "@/pages/Home"
 import Next from "@/pages/Next"
 import Showcase from "@/pages/Showcase"
 import Desktop from "@/pages/Desktop"
+import DesktopBgPreview from "@/pages/DesktopBgPreview"
 import DocsLayout from "@/pages/docs/DocsLayout"
 import DocsIndex from "@/pages/docs/DocsIndex"
 import Install from "@/pages/docs/Install"
@@ -27,7 +28,7 @@ const PreviewDoc = React.lazy(() => import("@/pages/preview/PreviewDoc"))
 
 /** Home and desktop bring their own, richer backdrop — every other route gets
  *  the quiet one from here, so no page is left on flat black. */
-const OWN_BACKDROP = ["/", "/desktop"]
+const OWN_BACKDROP = ["/", "/desktop", "/desktop-bg-preview"]
 
 function RouteBackdrop() {
   const { pathname } = useLocation()
@@ -69,6 +70,7 @@ export default function DesktopApp() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/desktop" element={<Desktop />} />
+            <Route path="/desktop-bg-preview" element={<DesktopBgPreview />} />
             <Route path="/showcase" element={<Showcase />} />
             <Route path="/next" element={<Next />} />
             <Route path="/docs" element={<DocsLayout />}>

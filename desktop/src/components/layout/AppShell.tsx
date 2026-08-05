@@ -16,6 +16,8 @@ import { useWorkspaceStore } from "@/store/workspace"
 import { useExplorerStore } from "@/store/explorer"
 import { cn } from "@/lib/utils"
 
+import PageBackground from "@/components/PageBackground"
+
 const NAV_ROUTES = ["/chat", "/research", "/wiki", "/graph", "/cards", "/editor", "/browser", "/activity", "/extensions"]
 
 export default function AppShell() {
@@ -58,7 +60,8 @@ export default function AppShell() {
   const win = getCurrentWindow()
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-background">
+      <PageBackground />
     {/* Full-width titlebar across the top. Scanlines are the HUD texture —
         alpha sits at the threshold of perception, so it reads as depth, not
         pattern. */}

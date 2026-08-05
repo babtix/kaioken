@@ -225,6 +225,86 @@
   }
 }
 
+/* ── terminal texture & ambient page background ─────────────────────────── */
+
+.crt-scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    #00000059 2px 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+.term-grid {
+  background-image:
+    linear-gradient(to right, #ffffff08 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff08 1px, transparent 1px);
+  background-size: 3ch 1.5rem;
+}
+
+.kai-dots {
+  background-image: radial-gradient(var(--kai-dim) 1.1px, transparent 1.2px);
+  background-size: 26px 26px;
+}
+
+.kai-mesh {
+  background-image:
+    linear-gradient(to right, #ffffff14 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff14 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.kai-fade-down {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+}
+
+.kai-fade-hero {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+}
+
+.kai-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    #00000073 2px 3px
+  );
+}
+
+.kai-bloom {
+  border-radius: 50%;
+  filter: blur(80px);
+}
+
+.kai-vignette {
+  background: radial-gradient(
+    ellipse 80% 65% at 50% 40%,
+    transparent 0%,
+    color-mix(in oklab, var(--kai-black) 65%, transparent) 100%
+  );
+}
+
+.glow-orange {
+  text-shadow: 0 0 18px color-mix(in oklab, var(--kai-orange) 55%, transparent);
+}
+.glow-red {
+  text-shadow: 0 0 22px color-mix(in oklab, var(--kai-red) 50%, transparent);
+}
+
+@keyframes bloom-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -4%, 0) scale(1.08); }
+}
+.animate-bloom {
+  animation: bloom-drift 26s ease-in-out infinite;
+}
+
 @keyframes caret-blink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }

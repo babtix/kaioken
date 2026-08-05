@@ -274,16 +274,24 @@ function RepoPicker() {
         setDragging(false)
       }}
       className={cn(
-        "hud-grid flex h-full flex-col items-center justify-center gap-7 p-8 transition-colors",
+        "hud-grid relative flex h-full flex-col items-center justify-center gap-7 p-8 transition-colors overflow-hidden",
         dragging && "bg-accent/30"
       )}
     >
-      <div className="animate-charge text-center">
+      {/* hero ambient bloom for logo and initial action */}
+      <div className="animate-bloom kai-bloom pointer-events-none absolute left-1/2 top-1/3 h-[45vh] w-[65vw] -translate-x-1/2 -translate-y-1/2 bg-kai-orange/15" />
+
+      <div className="animate-charge text-center flex flex-col items-center z-10">
         <AsciiArt
           art={ASCII_LOGO}
           label="kaioken"
           className="text-[8px] sm:text-[13px] md:text-[16px]"
         />
+        <div className="mt-2.5 font-mono text-[9px] sm:text-[13px] opacity-70 tracking-wider">
+          <span className="text-kai-rose/50">══════════════════════════ </span>
+          <span className="font-bold text-kai-orange glow-orange">v1.3.0</span>
+          <span className="text-kai-rose/50"> ══════════════════════════</span>
+        </div>
       </div>
 
       <GlowButton onClick={pickFolder} busy={loading} className="px-6 py-2.5">
