@@ -73,3 +73,12 @@ web-news/.vercel/
 **/.kaioken/search_index.json
 **/.kaioken/mcp.json
 **/.kaioken/mcp_token
+
+# CLI Release packages
+cli/release/
+
+# website_pre prototype app
+website_pre/node_modules/
+website_pre/dist/
+website_pre/.vite/
+
