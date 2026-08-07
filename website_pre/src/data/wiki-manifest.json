@@ -1,0 +1,892 @@
+{
+  "generatedFrom": ".kaioken/wiki",
+  "readme": {
+    "file": "README.md",
+    "title": "Repository Wiki",
+    "words": 902
+  },
+  "sections": [
+    {
+      "slug": "getting-started",
+      "dir": "Getting Started",
+      "title": "Getting Started",
+      "docs": [
+        {
+          "slug": "getting-started",
+          "file": "Getting Started.md",
+          "title": "Getting Started",
+          "words": 901,
+          "hasMermaid": false,
+          "sources": [
+            "README.md",
+            "Makefile",
+            "go.mod",
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "basic-cli-commands-overview",
+          "file": "Basic CLI Commands Overview.md",
+          "title": "Basic CLI Commands Overview",
+          "words": 1155,
+          "hasMermaid": false,
+          "sources": [
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "building-the-binary",
+          "file": "Building the Binary.md",
+          "title": "Building the Binary",
+          "words": 288,
+          "hasMermaid": false,
+          "sources": [
+            "Makefile",
+            "go.mod"
+          ]
+        },
+        {
+          "slug": "initializing-a-repository",
+          "file": "Initializing a Repository.md",
+          "title": "Initializing a Repository",
+          "words": 521,
+          "hasMermaid": false,
+          "sources": [
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "installation",
+          "file": "Installation.md",
+          "title": "Installation",
+          "words": 365,
+          "hasMermaid": false,
+          "sources": [
+            "README.md",
+            "go.mod"
+          ]
+        },
+        {
+          "slug": "serving-the-generated-wiki",
+          "file": "Serving the Generated Wiki.md",
+          "title": "Serving the Generated Wiki",
+          "words": 815,
+          "hasMermaid": false,
+          "sources": [
+            "cmd/kaioken/main.go",
+            "README.md"
+          ]
+        },
+        {
+          "slug": "using-the-terminal-user-interface-tui",
+          "file": "Using the Terminal User Interface (TUI).md",
+          "title": "Using the Terminal User Interface (TUI)",
+          "words": 820,
+          "hasMermaid": false,
+          "sources": [
+            "README.md"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "architecture-overview",
+      "dir": "Architecture Overview",
+      "title": "Architecture Overview",
+      "docs": [
+        {
+          "slug": "architecture-overview",
+          "file": "Architecture Overview.md",
+          "title": "Architecture Overview",
+          "words": 2215,
+          "hasMermaid": true,
+          "sources": [
+            "internal/tui/tui.go",
+            "internal/agent/agent.go",
+            "internal/wiki/wiki.go",
+            "README.md"
+          ]
+        },
+        {
+          "slug": "chat-agent",
+          "file": "Chat Agent.md",
+          "title": "Chat Agent",
+          "words": 1007,
+          "hasMermaid": true,
+          "sources": [
+            "internal/agent/agent.go"
+          ]
+        },
+        {
+          "slug": "component-interactions-and-data-flow",
+          "file": "Component Interactions and Data Flow.md",
+          "title": "Component Interactions and Data Flow",
+          "words": 822,
+          "hasMermaid": true,
+          "sources": [
+            "internal/tui/tui.go",
+            "internal/agent/agent.go",
+            "internal/wiki/wiki.go"
+          ]
+        },
+        {
+          "slug": "dual-nature-chat-agent-and-knowledge-engine",
+          "file": "Dual Nature Chat Agent and Knowledge Engine.md",
+          "title": "Dual Nature: Chat Agent and Knowledge Engine",
+          "words": 2087,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go",
+            "internal/agent/agent.go",
+            "internal/wiki/wiki.go"
+          ]
+        },
+        {
+          "slug": "knowledge-engine-wiki-system",
+          "file": "Knowledge Engine (Wiki System).md",
+          "title": "Knowledge Engine (Wiki System)",
+          "words": 2040,
+          "hasMermaid": false,
+          "sources": [
+            "internal/wiki/wiki.go"
+          ]
+        },
+        {
+          "slug": "terminal-user-interface-tui",
+          "file": "Terminal User Interface (TUI).md",
+          "title": "Terminal User Interface (TUI)",
+          "words": 2726,
+          "hasMermaid": true,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "chat-agent",
+      "dir": "Chat Agent",
+      "title": "Chat Agent",
+      "docs": [
+        {
+          "slug": "chat-agent",
+          "file": "Chat Agent.md",
+          "title": "Chat Agent",
+          "words": 2182,
+          "hasMermaid": false,
+          "sources": [
+            "internal/agent/agent.go",
+            "internal/agent/tools.go",
+            "internal/agent/knowledge.go",
+            "internal/tui/commands.go",
+            "internal/tui/explain.go"
+          ]
+        },
+        {
+          "slug": "agent-core-loop-and-session-handling",
+          "file": "Agent Core Loop and Session Handling.md",
+          "title": "Agent Core Loop and Session Handling",
+          "words": 870,
+          "hasMermaid": false,
+          "sources": [
+            "internal/agent/agent.go"
+          ]
+        },
+        {
+          "slug": "knowledge-integration-from-the-wiki",
+          "file": "Knowledge Integration from the Wiki.md",
+          "title": "Knowledge Integration from the Wiki",
+          "words": 1162,
+          "hasMermaid": false,
+          "sources": [
+            "internal/agent/knowledge.go"
+          ]
+        },
+        {
+          "slug": "llm-interaction-and-tool-invocation",
+          "file": "LLM Interaction and Tool Invocation.md",
+          "title": "LLM Interaction and Tool Invocation",
+          "words": 643,
+          "hasMermaid": false,
+          "sources": [
+            "internal/agent/agent.go"
+          ]
+        },
+        {
+          "slug": "tool-system-definition-execution-and-approval-workflow",
+          "file": "Tool System Definition, Execution, and Approval Workflow.md",
+          "title": "Tool System: Definition, Execution, and Approval Workflow",
+          "words": 1361,
+          "hasMermaid": true,
+          "sources": [
+            "internal/agent/tools.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "knowledge-engine",
+      "dir": "Knowledge Engine",
+      "title": "Knowledge Engine",
+      "docs": [
+        {
+          "slug": "knowledge-engine",
+          "file": "Knowledge Engine.md",
+          "title": "Knowledge Engine",
+          "words": 2723,
+          "hasMermaid": true,
+          "sources": [
+            "internal/wiki/wiki.go",
+            "internal/plan/plan.go",
+            "internal/scan/scan.go",
+            "internal/state/state.go",
+            "internal/wiki/passes.go",
+            "internal/wiki/update.go"
+          ]
+        },
+        {
+          "slug": "incremental-wiki-updates",
+          "file": "Incremental Wiki Updates.md",
+          "title": "Incremental Wiki Updates",
+          "words": 1344,
+          "hasMermaid": false,
+          "sources": [
+            "internal/wiki/update.go",
+            "internal/state/state.go",
+            "internal/scan/scan.go",
+            "internal/wiki/wiki.go"
+          ]
+        },
+        {
+          "slug": "knowledge-card-generation-and-refinement",
+          "file": "Knowledge Card Generation and Refinement.md",
+          "title": "Knowledge Card Generation and Refinement",
+          "words": 1723,
+          "hasMermaid": false,
+          "sources": [
+            "internal/wiki/wiki.go",
+            "internal/wiki/passes.go"
+          ]
+        },
+        {
+          "slug": "module-planning",
+          "file": "Module Planning.md",
+          "title": "Module Planning",
+          "words": 1751,
+          "hasMermaid": true,
+          "sources": [
+            "internal/plan/plan.go"
+          ]
+        },
+        {
+          "slug": "repository-scanning",
+          "file": "Repository Scanning.md",
+          "title": "Repository Scanning",
+          "words": 1474,
+          "hasMermaid": true,
+          "sources": [
+            "internal/scan/scan.go"
+          ]
+        },
+        {
+          "slug": "state-management-for-incremental-updates",
+          "file": "State Management for Incremental Updates.md",
+          "title": "State Management for Incremental Updates",
+          "words": 1021,
+          "hasMermaid": false,
+          "sources": [
+            "internal/state/state.go"
+          ]
+        },
+        {
+          "slug": "wiki-outline-planning",
+          "file": "Wiki Outline Planning.md",
+          "title": "Wiki Outline Planning",
+          "words": 1440,
+          "hasMermaid": true,
+          "sources": [
+            "internal/wiki/wiki.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "terminal-user-interface-tui",
+      "dir": "Terminal User Interface (TUI)",
+      "title": "Terminal User Interface (TUI)",
+      "docs": [
+        {
+          "slug": "terminal-user-interface-tui",
+          "file": "Terminal User Interface (TUI).md",
+          "title": "Terminal User Interface (TUI)",
+          "words": 1231,
+          "hasMermaid": true,
+          "sources": [
+            "internal/tui/tui.go",
+            "internal/tui/palette.go",
+            "internal/tui/markdown.go",
+            "internal/tui/tutorial.go"
+          ]
+        },
+        {
+          "slug": "approval-workflow",
+          "file": "Approval Workflow.md",
+          "title": "Approval Workflow",
+          "words": 897,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "built-in-tutorial",
+          "file": "Built-in Tutorial.md",
+          "title": "Built-in Tutorial",
+          "words": 2678,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tutorial.go",
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "command-palette",
+          "file": "Command Palette.md",
+          "title": "Command Palette",
+          "words": 1887,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/palette.go",
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "keybindings-and-input-handling",
+          "file": "Keybindings and Input Handling.md",
+          "title": "Keybindings and Input Handling",
+          "words": 777,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "markdown-rendering",
+          "file": "Markdown Rendering.md",
+          "title": "Markdown Rendering",
+          "words": 698,
+          "hasMermaid": true,
+          "sources": [
+            "internal/tui/markdown.go",
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "session-management",
+          "file": "Session Management.md",
+          "title": "Session Management",
+          "words": 1504,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "status-line-and-footer",
+          "file": "Status Line and Footer.md",
+          "title": "Status Line and Footer",
+          "words": 1428,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        },
+        {
+          "slug": "tui-structure-and-main-loop",
+          "file": "TUI Structure and Main Loop.md",
+          "title": "TUI Structure and Main Loop",
+          "words": 2951,
+          "hasMermaid": false,
+          "sources": [
+            "internal/tui/tui.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "skills-system",
+      "dir": "Skills System",
+      "title": "Skills System",
+      "docs": [
+        {
+          "slug": "skills-system",
+          "file": "Skills System.md",
+          "title": "Skills System",
+          "words": 3319,
+          "hasMermaid": true,
+          "sources": [
+            "internal/skills/skills.go",
+            "internal/skills/generate.go",
+            "internal/skills/skills_test.go"
+          ]
+        },
+        {
+          "slug": "skill-generation",
+          "file": "Skill Generation.md",
+          "title": "Skill Generation",
+          "words": 2484,
+          "hasMermaid": true,
+          "sources": [
+            "internal/skills/generate.go",
+            "internal/skills/skills.go"
+          ]
+        },
+        {
+          "slug": "skill-refreshing-and-invalidation",
+          "file": "Skill Refreshing and Invalidation.md",
+          "title": "Skill Refreshing and Invalidation",
+          "words": 1995,
+          "hasMermaid": true,
+          "sources": [
+            "internal/skills/skills.go",
+            "internal/skills/generate.go"
+          ]
+        },
+        {
+          "slug": "skill-storage-loading-and-indexing",
+          "file": "Skill Storage, Loading, and Indexing.md",
+          "title": "Skill Storage, Loading, and Indexing",
+          "words": 1577,
+          "hasMermaid": true,
+          "sources": [
+            "internal/skills/skills.go",
+            "internal/skills/skills_test.go"
+          ]
+        },
+        {
+          "slug": "skill-structure-and-format",
+          "file": "Skill Structure and Format.md",
+          "title": "Skill Structure and Format",
+          "words": 1387,
+          "hasMermaid": false,
+          "sources": [
+            "internal/skills/skills.go",
+            "internal/skills/skills_test.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "git-integration",
+      "dir": "Git Integration",
+      "title": "Git Integration",
+      "docs": [
+        {
+          "slug": "git-integration",
+          "file": "Git Integration.md",
+          "title": "Git Integration",
+          "words": 1400,
+          "hasMermaid": false,
+          "sources": [
+            "internal/gitx/gitx.go",
+            "internal/gitx/hook.go",
+            "internal/agent/diff.go"
+          ]
+        },
+        {
+          "slug": "automatic-update-hooks",
+          "file": "Automatic Update Hooks.md",
+          "title": "Automatic Update Hooks",
+          "words": 1433,
+          "hasMermaid": true,
+          "sources": [
+            "internal/gitx/hook.go"
+          ]
+        },
+        {
+          "slug": "detecting-changes-since-last-build",
+          "file": "Detecting Changes Since Last Build.md",
+          "title": "Detecting Changes Since Last Build",
+          "words": 1868,
+          "hasMermaid": true,
+          "sources": [
+            "internal/gitx/gitx.go"
+          ]
+        },
+        {
+          "slug": "generating-diff-patches-and-previews",
+          "file": "Generating Diff Patches and Previews.md",
+          "title": "Generating Diff Patches and Previews",
+          "words": 825,
+          "hasMermaid": false,
+          "sources": [
+            "internal/gitx/gitx.go",
+            "internal/agent/diff.go"
+          ]
+        },
+        {
+          "slug": "git-repository-detection-and-basics",
+          "file": "Git Repository Detection and Basics.md",
+          "title": "Git Repository Detection and Basics",
+          "words": 1048,
+          "hasMermaid": false,
+          "sources": [
+            "internal/gitx/gitx.go"
+          ]
+        },
+        {
+          "slug": "viewing-commit-history",
+          "file": "Viewing Commit History.md",
+          "title": "Viewing Commit History",
+          "words": 404,
+          "hasMermaid": false,
+          "sources": [
+            "internal/gitx/gitx.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "code-mapping-and-indexing",
+      "dir": "Code Mapping and Indexing",
+      "title": "Code Mapping and Indexing",
+      "docs": [
+        {
+          "slug": "code-mapping-and-indexing",
+          "file": "Code Mapping and Indexing.md",
+          "title": "Code Mapping and Indexing",
+          "words": 2394,
+          "hasMermaid": false,
+          "sources": [
+            "internal/codemap/codemap.go",
+            "internal/codemap/index.go",
+            "internal/codemap/bundle.go",
+            "internal/codemap/parse_go.go",
+            "internal/codemap/parse_lines.go"
+          ]
+        },
+        {
+          "slug": "building-the-repository-index",
+          "file": "Building the Repository Index.md",
+          "title": "Building the Repository Index",
+          "words": 1241,
+          "hasMermaid": true,
+          "sources": [
+            "internal/codemap/index.go"
+          ]
+        },
+        {
+          "slug": "bundling-code-for-llm-context",
+          "file": "Bundling Code for LLM Context.md",
+          "title": "Bundling Code for LLM Context",
+          "words": 2296,
+          "hasMermaid": true,
+          "sources": [
+            "internal/codemap/bundle.go",
+            "internal/codemap/index.go",
+            "internal/codemap/codemap.go"
+          ]
+        },
+        {
+          "slug": "code-mapping-overview",
+          "file": "Code Mapping Overview.md",
+          "title": "Code Mapping Overview",
+          "words": 1134,
+          "hasMermaid": true,
+          "sources": [
+            "internal/codemap/codemap.go",
+            "internal/codemap/index.go"
+          ]
+        },
+        {
+          "slug": "generating-code-skeletons",
+          "file": "Generating Code Skeletons.md",
+          "title": "Generating Code Skeletons",
+          "words": 1617,
+          "hasMermaid": false,
+          "sources": [
+            "internal/codemap/codemap.go",
+            "internal/codemap/index.go"
+          ]
+        },
+        {
+          "slug": "parsing-individual-files",
+          "file": "Parsing Individual Files.md",
+          "title": "Parsing Individual Files",
+          "words": 2767,
+          "hasMermaid": false,
+          "sources": [
+            "internal/codemap/codemap.go",
+            "internal/codemap/parse_go.go",
+            "internal/codemap/parse_lines.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "serving-the-generated-wiki",
+      "dir": "Serving the Generated Wiki",
+      "title": "Serving the Generated Wiki",
+      "docs": [
+        {
+          "slug": "serving-the-generated-wiki",
+          "file": "Serving the Generated Wiki.md",
+          "title": "Serving the Generated Wiki",
+          "words": 2424,
+          "hasMermaid": false,
+          "sources": [
+            "internal/serve/serve.go",
+            "internal/serve/serve_test.go"
+          ]
+        },
+        {
+          "slug": "rendering-and-navigating-documentation",
+          "file": "Rendering and Navigating Documentation.md",
+          "title": "Rendering and Navigating Documentation",
+          "words": 1447,
+          "hasMermaid": false,
+          "sources": [
+            "internal/serve/serve.go"
+          ]
+        },
+        {
+          "slug": "searching-the-wiki",
+          "file": "Searching the Wiki.md",
+          "title": "Searching the Wiki",
+          "words": 1001,
+          "hasMermaid": false,
+          "sources": [
+            "internal/serve/serve.go"
+          ]
+        },
+        {
+          "slug": "server-routing-and-request-handling",
+          "file": "Server Routing and Request Handling.md",
+          "title": "Server Routing and Request Handling",
+          "words": 2175,
+          "hasMermaid": true,
+          "sources": [
+            "internal/serve/serve.go"
+          ]
+        },
+        {
+          "slug": "starting-the-wiki-server",
+          "file": "Starting the Wiki Server.md",
+          "title": "Starting the Wiki Server",
+          "words": 554,
+          "hasMermaid": false,
+          "sources": [
+            "internal/serve/serve.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "configuration",
+      "dir": "Configuration",
+      "title": "Configuration",
+      "docs": [
+        {
+          "slug": "configuration",
+          "file": "Configuration.md",
+          "title": "Configuration",
+          "words": 136,
+          "hasMermaid": false,
+          "sources": [
+            "internal/config/config.go",
+            "internal/config/global.go",
+            "internal/llm/budget.go",
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "behavior-toggles-and-advanced-settings",
+          "file": "Behavior Toggles and Advanced Settings.md",
+          "title": "Behavior Toggles and Advanced Settings",
+          "words": 1254,
+          "hasMermaid": false,
+          "sources": [
+            "internal/config/config.go",
+            "internal/config/global.go"
+          ]
+        },
+        {
+          "slug": "configuration-layers-and-precedence",
+          "file": "Configuration Layers and Precedence.md",
+          "title": "Configuration Layers and Precedence",
+          "words": 1472,
+          "hasMermaid": false,
+          "sources": [
+            "internal/config/config.go",
+            "internal/config/global.go",
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "configuration-structure-and-key-settings",
+          "file": "Configuration Structure and Key Settings.md",
+          "title": "Configuration Structure and Key Settings",
+          "words": 1005,
+          "hasMermaid": false,
+          "sources": [
+            "internal/config/config.go",
+            "internal/config/global.go"
+          ]
+        },
+        {
+          "slug": "managing-llm-providers-and-models",
+          "file": "Managing LLM Providers and Models.md",
+          "title": "Managing LLM Providers and Models",
+          "words": 1673,
+          "hasMermaid": false,
+          "sources": [
+            "internal/config/config.go",
+            "internal/llm/budget.go",
+            "cmd/kaioken/main.go"
+          ]
+        },
+        {
+          "slug": "token-budgets-and-concurrency",
+          "file": "Token Budgets and Concurrency.md",
+          "title": "Token Budgets and Concurrency",
+          "words": 1253,
+          "hasMermaid": false,
+          "sources": [
+            "internal/llm/budget.go",
+            "internal/config/config.go"
+          ]
+        },
+        {
+          "slug": "viewing-and-editing-configuration",
+          "file": "Viewing and Editing Configuration.md",
+          "title": "Viewing and Editing Configuration",
+          "words": 1302,
+          "hasMermaid": false,
+          "sources": [
+            "cmd/kaioken/main.go",
+            "internal/config/config.go",
+            "internal/config/global.go"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "development-guide",
+      "dir": "Development Guide",
+      "title": "Development Guide",
+      "docs": [
+        {
+          "slug": "development-guide",
+          "file": "Development Guide.md",
+          "title": "Development Guide",
+          "words": 687,
+          "hasMermaid": false,
+          "sources": [
+            "Makefile",
+            "go.mod",
+            ".gitignore"
+          ]
+        },
+        {
+          "slug": "building-the-project",
+          "file": "Building the Project.md",
+          "title": "Building the Project",
+          "words": 519,
+          "hasMermaid": false,
+          "sources": [
+            "Makefile"
+          ]
+        },
+        {
+          "slug": "linting-and-code-quality",
+          "file": "Linting and Code Quality.md",
+          "title": "Linting and Code Quality",
+          "words": 619,
+          "hasMermaid": false,
+          "sources": [
+            "Makefile"
+          ]
+        },
+        {
+          "slug": "making-changes-and-contributing",
+          "file": "Making Changes and Contributing.md",
+          "title": "Making Changes and Contributing",
+          "words": 638,
+          "hasMermaid": false,
+          "sources": [
+            "Makefile",
+            "go.mod",
+            ".gitignore"
+          ]
+        },
+        {
+          "slug": "running-tests",
+          "file": "Running Tests.md",
+          "title": "Running Tests",
+          "words": 796,
+          "hasMermaid": false,
+          "sources": [
+            "Makefile"
+          ]
+        },
+        {
+          "slug": "setting-up-the-development-environment",
+          "file": "Setting up the Development Environment.md",
+          "title": "Setting up the Development Environment",
+          "words": 242,
+          "hasMermaid": false,
+          "sources": [
+            "go.mod"
+          ]
+        },
+        {
+          "slug": "understanding-the-repository-structure",
+          "file": "Understanding the Repository Structure.md",
+          "title": "Understanding the Repository Structure",
+          "words": 679,
+          "hasMermaid": false,
+          "sources": [
+            ".gitignore",
+            "Makefile"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "research",
+      "dir": "Research",
+      "title": "Research",
+      "docs": [
+        {
+          "slug": "compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh",
+          "file": "compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh.md",
+          "title": "Compare the efficacy and adverse event profiles of SGLT2 inhibitors versus GLP-1 receptor agonists in patients with Type 2 diabetes who also have concurrent chronic kidney disease. Extract the sample sizes and p-values from the three most cited randomized controlled trials (RCTs) on this topic.",
+          "words": 30818,
+          "hasMermaid": false,
+          "sources": []
+        },
+        {
+          "slug": "is-solar-cheaper-than-nuclear-in-europe",
+          "file": "is-solar-cheaper-than-nuclear-in-europe.md",
+          "title": "is solar cheaper than nuclear in europe?",
+          "words": 1438,
+          "hasMermaid": false,
+          "sources": []
+        },
+        {
+          "slug": "last-cloud-llm-at-ollama",
+          "file": "last-cloud-llm-at-ollama.md",
+          "title": "last cloud llm at ollama",
+          "words": 1283,
+          "hasMermaid": false,
+          "sources": []
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "sections": 12,
+    "documents": 74,
+    "words": 131013
+  }
+}

@@ -1,0 +1,12 @@
+generated_at: "2026-07-25T17:57:38Z"
+model: nvidia/nemotron-3-super-120b-a12b
+section:
+    id: architecture_overview
+    title: Architecture Overview
+    goal: Describe the high-level architecture of kaioken, including its dual nature as a chat agent and knowledge engine, and core components like the TUI, agent, LLM integration, and wiki generation system.
+    files:
+        - README.md
+        - internal/tui/tui.go
+        - internal/agent/agent.go
+        - internal/wiki/wiki.go
+summary: This section describes kaioken's high-level architecture as a dual-purpose system combining an interactive chat agent with a knowledge engine. It covers the core components—TUI, agent, LLM integration, and wiki generation system—explaining their roles, interactions, and layered dependencies based on the provided source files.
