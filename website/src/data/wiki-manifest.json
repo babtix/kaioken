@@ -851,11 +851,42 @@
           ]
         }
       ]
+    },
+    {
+      "slug": "research",
+      "dir": "Research",
+      "title": "Research",
+      "docs": [
+        {
+          "slug": "compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh",
+          "file": "compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh.md",
+          "title": "Compare the efficacy and adverse event profiles of SGLT2 inhibitors versus GLP-1 receptor agonists in patients with Type 2 diabetes who also have concurrent chronic kidney disease. Extract the sample sizes and p-values from the three most cited randomized controlled trials (RCTs) on this topic.",
+          "words": 30818,
+          "hasMermaid": false,
+          "sources": []
+        },
+        {
+          "slug": "is-solar-cheaper-than-nuclear-in-europe",
+          "file": "is-solar-cheaper-than-nuclear-in-europe.md",
+          "title": "is solar cheaper than nuclear in europe?",
+          "words": 1438,
+          "hasMermaid": false,
+          "sources": []
+        },
+        {
+          "slug": "last-cloud-llm-at-ollama",
+          "file": "last-cloud-llm-at-ollama.md",
+          "title": "last cloud llm at ollama",
+          "words": 1283,
+          "hasMermaid": false,
+          "sources": []
+        }
+      ]
     }
   ],
   "stats": {
-    "sections": 11,
-    "documents": 71,
-    "words": 97474
+    "sections": 12,
+    "documents": 74,
+    "words": 131013
   }
 }

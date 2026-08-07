@@ -36,6 +36,7 @@ const SECTION_ORDER = [
   "Serving the Generated Wiki",
   "Configuration",
   "Development Guide",
+  "Research",
 ]
 
 const sectionRank = (dir) => {
