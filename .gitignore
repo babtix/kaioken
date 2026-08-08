@@ -86,6 +86,7 @@ website_pre/.vite/
 .env
 .env.*
 *.env
+!.env.example
 
 # Logs & debug outputs
 *.log
