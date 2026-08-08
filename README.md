@@ -554,7 +554,7 @@ We welcome contributions to kaioken! Here's how you can help:
 ### Development Setup
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/kaioken.git
+git clone https://github.com/babtix/kaioken.git
 cd kaioken
 
 # Install Go dependencies (for CLI)
@@ -587,4 +587,4 @@ npm run dev
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the License Zero Noncommercial Public License 2.0.1 - see the [LICENSE](LICENSE) file for details.
