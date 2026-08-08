@@ -82,3 +82,35 @@ website_pre/node_modules/
 website_pre/dist/
 website_pre/.vite/
 
+# Environment & secret files
+.env
+.env.*
+*.env
+
+# Logs & debug outputs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Image & media assets (screenshots, raw renders, and media files)
+*.png
+*.jpeg
+*.jpg
+*.gif
+*.webp
+*.mp4
+*.zip
+*.7z
+*.rar
+
+# Allow required app icons and favicons
+!desktop/src-tauri/icons/**
+!**/public/favicon.*
+!**/public/icons/**
+
+# IDE & Editor settings
+.vscode/
+.idea/
+
