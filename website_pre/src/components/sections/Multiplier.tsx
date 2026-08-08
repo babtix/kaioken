@@ -7,7 +7,7 @@ export default function Multiplier() {
     <section id="multiplier" className="relative border-t border-border py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
-          index="04"
+          index="03"
           eyebrow="the multiplier"
           title="×N buys passes, not padding"
           description="Above ×3 the multiplier used to mean “ask for more lines”. It now buys passes. Each level roughly doubles the calls per document — which is what a power-multiplier metaphor ought to mean."

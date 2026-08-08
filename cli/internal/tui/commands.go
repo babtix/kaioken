@@ -56,40 +56,12 @@ func (c command) matches(prefix string) int {
 	return 0
 }
 
-// commands is the full palette, grouped roughly as the help text is.
+// commands is the full palette, ordered by how often each command gets
+// reached for — most used first, so /help and the "/" completion list put
+// the everyday commands up top and the rarely-touched admin ones at the
+// bottom.
 var commands = []command{
-	// ---- getting started ----
-	{
-		name: "tutorial", args: "[chapter|command]",
-		summary: "guided walkthrough of every command",
-		detail: "Start here. With no argument it gives an overview and a first-run sequence. " +
-			"Pass a chapter to go deeper, or any command name to see just that one.",
-		guide: "The tutorial is organized into chapters that group related commands. " +
-			"Start with the overview, then drill into a chapter that matches what you " +
-			"are trying to do. For a single command's full reference page — syntax, " +
-			"workflow tips, and every example — use /explain instead.",
-		examples: []example{
-			{"/tutorial", "the overview and the chapter list"},
-			{"/tutorial knowledge", "everything about the documentation pipelines"},
-			{"/tutorial wiki", "just the /wiki command, in detail"},
-			{"/tutorial all", "the entire manual in one go"},
-		},
-	},
-	{
-		name: "explain", args: "[command]",
-		summary: "in-depth reference for every command",
-		detail: "Like /tutorial but goes deeper: full syntax, aliases, workflow guidance, " +
-			"tips and every example for each command. With no argument it shows a " +
-			"grouped index of all commands. Pass a command name for its full page.",
-		guide: "Use /explain when you know which command you want but need the full " +
-			"picture — syntax, aliases, when to reach for it, and worked examples. " +
-			"/explain all prints the complete reference in one go.",
-		examples: []example{
-			{"/explain", "grouped index of every command"},
-			{"/explain wiki", "the full reference page for /wiki"},
-			{"/explain all", "the complete command reference"},
-		},
-	},
+	// ---- most used every session ----
 	{
 		name: "help", aliases: []string{"h", "?"},
 		summary: "show all commands",
@@ -99,41 +71,40 @@ var commands = []command{
 		},
 	},
 	{
-		name: "init", args: "[force]",
-		summary: "full first-run setup: config, scan, AGENTS.md",
-		detail: "Writes the per-repo config (model, provider, scope excludes, steering notes), " +
-			"scans the repository, and generates AGENTS.md — the root instruction file an " +
-			"agent reads before editing: the real commands, the package boundaries, the " +
-			"gotchas. When a wiki or skills already exist, init writes AGENTS.md in their " +
-			"vocabulary and links to them. Re-running is safe: an existing AGENTS.md is left " +
-			"alone unless you pass force.",
+		name: "research", args: "[xN] <question>",
+		summary: "deep web search with a cited report",
+		detail: "Answers a question from the open web: plans subquestions, searches, reads " +
+			"pages, then searches again for whatever is still missing, and writes a cited " +
+			"report to .kaioken/research/. The same runs power the desktop app's Deep " +
+			"Search history. Needs a web-search API key (tavily, firecrawl, brave or exa) " +
+			"in ~/.kaioken/config.yaml on top of the LLM key.",
+		guide: "Research never reads the repository — it is for questions the code cannot " +
+			"answer: library comparisons, release notes, current best practice. The " +
+			"leading xN multiplier is the usual Kaioken dial: x1 is a quick look, x3 the " +
+			"default, higher digs deeper at real cost in searches and model calls. Every " +
+			"claim in the report cites a numbered source that was actually read. Reports " +
+			"land in .kaioken/research/<slug>.md and rerunning the same question " +
+			"overwrites its predecessor.",
 		examples: []example{
-			{"/init", "set the repo up (keeps an existing AGENTS.md)"},
-			{"/init force", "rewrite AGENTS.md from the current sources"},
+			{"/research what changed in Go 1.24 garbage collection?", "the default ×3 run"},
+			{"/research x1 is htmx still maintained?", "a quick, shallow look"},
+			{"/research x5 compare tauri and electron for a Go sidecar app", "dig deeper"},
 		},
 	},
 	{
-		name: "key", args: "[value]",
-		summary: "set the API key (blank = hidden prompt)",
-		detail: "Saved to ~/.kaioken/config.yaml with 0600 permissions, so it carries across " +
-			"repos and restarts. Typing /key with no value hides your input, which is what " +
-			"you want when someone is watching. Resolution order: this key, then the " +
-			"provider's environment variable.",
+		name: "wiki", args: "[xN] [force|update|retry]",
+		summary: "deep multi-pass wiki",
+		detail: "The main event. Pass 1 plans 8-16 sections over the whole repo; pass 2 plans each " +
+			"section in detail; pass 3 writes long-form chapters plus one document per subsection. " +
+			"The multiplier is the Kaioken dial: ×1 sections only, ×2 adds subsection documents, " +
+			"×3 (the default) goes deep, ×4 adds a critique-and-revise pass, ×10 adds grounding " +
+			"verification. An existing plan is reused so you can edit wiki_plan.yaml first.",
 		examples: []example{
-			{"/key", "prompt for the key with the input hidden"},
-			{"/key sk-or-v1-...", "set it inline (it will appear in the transcript)"},
-		},
-	},
-
-	// ---- chat and the agent ----
-	{
-		name:    "yolo",
-		summary: "toggle auto-approve for edits and commands",
-		detail: "Off by default: every file write, edit and shell command shows a diff and waits " +
-			"for y/n. Turning this on skips the prompt entirely — fast, and exactly as risky " +
-			"as it sounds. /undo still works afterwards.",
-		examples: []example{
-			{"/yolo", "toggle it; the footer shows 'yolo' while it is on"},
+			{"/wiki", "the default ×3 run"},
+			{"/wiki x1", "a fast, shallow pass"},
+			{"/wiki x10 force", "maximum depth, re-planning from scratch"},
+			{"/wiki retry", "regenerate only the sections that failed"},
+			{"/wiki update", "same as /update"},
 		},
 	},
 	{
@@ -156,6 +127,41 @@ var commands = []command{
 		},
 	},
 	{
+		name: "model", args: "[id|list]",
+		summary: "pick a model (no id = interactive picker)",
+		detail: "The picker fetches the provider's live catalog, so it is always current. Your " +
+			"choice is saved as the default for new repos.",
+		examples: []example{
+			{"/model", "browse and filter the catalog"},
+			{"/model anthropic/claude-sonnet-4.5", "set one directly"},
+			{"/model list", "print the catalog to the screen"},
+		},
+	},
+	{
+		name: "models", args: "[filter]",
+		summary: "list the provider's models",
+		examples: []example{
+			{"/models", "print the whole catalog"},
+			{"/models free", "only ids containing 'free'"},
+		},
+	},
+	{
+		name: "new", aliases: []string{"reset"},
+		summary: "start a fresh session (current one is saved)",
+		detail:  "Clears the model's context without losing anything — /resume brings the old one back.",
+		examples: []example{
+			{"/new", "start over with a clean context"},
+		},
+	},
+	{
+		name: "clear", aliases: []string{"cls"},
+		summary: "clear the screen",
+		detail:  "Only clears the display. The conversation is untouched — that is /new.",
+		examples: []example{
+			{"/clear", "wipe the transcript from view"},
+		},
+	},
+	{
 		name:    "undo",
 		summary: "revert the last file write/edit",
 		detail: "Kaioken records each file's contents before the agent changes it. Repeat to walk " +
@@ -170,6 +176,86 @@ var commands = []command{
 		detail:  "Runs git diff in the repo so you can review everything the agent changed at once.",
 		examples: []example{
 			{"/diff", "show uncommitted changes"},
+		},
+	},
+	{
+		name:    "compact",
+		summary: "summarize the conversation to free context",
+		detail: "Replaces older history with an LLM-written summary, keeping the system prompt and " +
+			"the most recent turns intact. Kaioken also reduces context on its own when a turn " +
+			"would not fit: first by dropping stale tool output (free, keeps the conversation), " +
+			"then by summarizing if that was not enough. Run it by hand when you would rather " +
+			"choose the moment, such as before starting a long task.",
+		examples: []example{
+			{"/compact", "summarize and continue"},
+		},
+	},
+	{
+		name: "cost", aliases: []string{"usage"},
+		summary: "token usage and spend for the active model",
+		detail: "Counts reset when you switch model or provider, since that starts a new client. " +
+			"On OpenRouter the real USD spend is shown too, and budget.warn_at / budget.hard_stop " +
+			"in config.yaml turn it into a guardrail.",
+		examples: []example{
+			{"/cost", "calls, prompt/output tokens, and USD spend so far"},
+		},
+	},
+	{
+		name:    "sessions",
+		summary: "list saved conversations",
+		detail:  "Conversations are saved per repo after every reply, under .kaioken/sessions/.",
+		examples: []example{
+			{"/sessions", "list them, newest first"},
+		},
+	},
+	{
+		name: "resume", args: "[id]",
+		summary: "reopen a saved conversation (no id = picker)",
+		detail: "Restores the full message history, so the model keeps its context. The transcript " +
+			"is replayed so you can see where you left off.",
+		examples: []example{
+			{"/resume", "pick from a searchable list"},
+			{"/resume 20260724-153012-4821", "jump straight to one"},
+		},
+	},
+	{
+		name: "key", args: "[value]",
+		summary: "set the API key (blank = hidden prompt)",
+		detail: "Saved to ~/.kaioken/config.yaml with 0600 permissions, so it carries across " +
+			"repos and restarts. Typing /key with no value hides your input, which is what " +
+			"you want when someone is watching. Resolution order: this key, then the " +
+			"provider's environment variable.",
+		examples: []example{
+			{"/key", "prompt for the key with the input hidden"},
+			{"/key sk-or-v1-...", "set it inline (it will appear in the transcript)"},
+		},
+	},
+	{
+		name:    "yolo",
+		summary: "toggle auto-approve for edits and commands",
+		detail: "Off by default: every file write, edit and shell command shows a diff and waits " +
+			"for y/n. Turning this on skips the prompt entirely — fast, and exactly as risky " +
+			"as it sounds. /undo still works afterwards.",
+		examples: []example{
+			{"/yolo", "toggle it; the footer shows 'yolo' while it is on"},
+		},
+	},
+	{
+		name: "thinking", args: "[off|low|medium|high]",
+		summary: "set the model's reasoning depth",
+		detail: "Reasoning models can spend extra tokens thinking before they answer. " +
+			"This sets how much: off sends nothing, low/medium/high request increasing " +
+			"depth. Applied where the endpoint supports it — OpenRouter, OpenAI, and " +
+			"Anthropic; other hosts are left untouched rather than risking a rejected " +
+			"request.",
+		guide: "Depth is a cost dial, not a quality switch: a rename needs none, an " +
+			"architecture question benefits from high. The level applies to the active " +
+			"client and resets on /model or /provider switches. With no argument the " +
+			"current level is shown.",
+		examples: []example{
+			{"/thinking", "show the current level"},
+			{"/thinking high", "maximum reasoning depth"},
+			{"/thinking off", "back to plain replies"},
 		},
 	},
 	{
@@ -198,59 +284,7 @@ var commands = []command{
 			{"/queue clear", "drop the queued messages"},
 		},
 	},
-	{
-		name: "fork", args: "[turns]",
-		summary: "rewind the conversation to retry a different way",
-		detail: "Rewinds the active branch by the given number of user turns (default 1). " +
-			"Nothing is deleted: the rewound turns stay in the session tree, and the " +
-			"next message you send grows a sibling branch instead.",
-		guide: "Use /fork when an approach went wrong and re-explaining would poison the " +
-			"context: rewind past the bad turns and ask again. The abandoned turns are " +
-			"still there — /tree lists every branch and switches between them, so a fork " +
-			"is an experiment, not a deletion.",
-		examples: []example{
-			{"/fork", "rewind the last turn"},
-			{"/fork 3", "rewind the last three turns"},
-		},
-	},
-	{
-		name: "tree", args: "[n [summarize]]",
-		summary: "list conversation branches and switch between them",
-		detail: "Every /fork, compaction, or retry leaves a branch in the session tree. " +
-			"/tree lists the branch tips; /tree <n> makes one of them the active " +
-			"conversation. Adding summarize also briefs the model on the branch you " +
-			"are leaving, so its lessons carry over.",
-		guide: "Branches accumulate whenever history diverges — a /fork, an auto-compaction, " +
-			"a retried approach. /tree shows each tip with its newest prompt and age; the " +
-			"active one is starred. Switching replays the transcript so you can see where " +
-			"that branch stands. Use the summarize variant when the abandoned branch " +
-			"learned something the new one should know — it costs one model call.",
-		examples: []example{
-			{"/tree", "list the branches"},
-			{"/tree 2", "switch to branch 2"},
-			{"/tree 2 summarize", "switch and brief the model on the branch left behind"},
-		},
-	},
-
-	// ---- sessions ----
-	{
-		name:    "sessions",
-		summary: "list saved conversations",
-		detail:  "Conversations are saved per repo after every reply, under .kaioken/sessions/.",
-		examples: []example{
-			{"/sessions", "list them, newest first"},
-		},
-	},
-	{
-		name: "resume", args: "[id]",
-		summary: "reopen a saved conversation (no id = picker)",
-		detail: "Restores the full message history, so the model keeps its context. The transcript " +
-			"is replayed so you can see where you left off.",
-		examples: []example{
-			{"/resume", "pick from a searchable list"},
-			{"/resume 20260724-153012-4821", "jump straight to one"},
-		},
-	},
+	// ---- common ----
 	{
 		name: "switch", args: "[id]",
 		summary: "save this session and open another",
@@ -265,198 +299,6 @@ var commands = []command{
 		examples: []example{
 			{"/switch", "save, then pick a session"},
 			{"/switch 20260724-153012-4821", "save, then open that one"},
-		},
-	},
-	{
-		name: "import", args: "<path>",
-		summary: "bring an external transcript in as a new session",
-		detail: "Reads a saved session file, a JSON array of messages, or JSONL with one " +
-			"message per line, stores it as a new session in this repo, and opens it. " +
-			"Lines that are not messages are skipped, so other tools' event logs import too.",
-		guide: "Use /import to continue a conversation that started somewhere else: a session " +
-			"file copied from another repo, a transcript exported by another tool, or a JSONL " +
-			"event log. The import becomes a normal session — saved, listed, resumable — and " +
-			"the conversation you were in is saved before the switch, so nothing is lost.",
-		examples: []example{
-			{"/import C:\\tmp\\transcript.jsonl", "import and open a transcript"},
-		},
-	},
-	{
-		name: "new", aliases: []string{"reset"},
-		summary: "start a fresh session (current one is saved)",
-		detail:  "Clears the model's context without losing anything — /resume brings the old one back.",
-		examples: []example{
-			{"/new", "start over with a clean context"},
-		},
-	},
-	{
-		name:    "compact",
-		summary: "summarize the conversation to free context",
-		detail: "Replaces older history with an LLM-written summary, keeping the system prompt and " +
-			"the most recent turns intact. Kaioken also reduces context on its own when a turn " +
-			"would not fit: first by dropping stale tool output (free, keeps the conversation), " +
-			"then by summarizing if that was not enough. Run it by hand when you would rather " +
-			"choose the moment, such as before starting a long task.",
-		examples: []example{
-			{"/compact", "summarize and continue"},
-		},
-	},
-	{
-		name:    "learn",
-		summary: "distill this session into a skill",
-		detail: "Reviews the session and, if it taught something worth keeping, writes or patches " +
-			"a skill in .kaioken/skills/ so the agent loads it before doing this task again. Also " +
-			"writes a digest the recall tool can find later, and reinforces any skill consulted. " +
-			"Runs automatically at session end when memory.learn >= 5; /learn forces it now.",
-		examples: []example{
-			{"/learn", "turn this session's lessons into a skill"},
-		},
-	},
-	{
-		name:    "copy",
-		summary: "copy the last reply to the clipboard",
-		examples: []example{
-			{"/copy", "copy the model's most recent answer"},
-		},
-	},
-	{
-		name: "cost", aliases: []string{"usage"},
-		summary: "token usage and spend for the active model",
-		detail: "Counts reset when you switch model or provider, since that starts a new client. " +
-			"On OpenRouter the real USD spend is shown too, and budget.warn_at / budget.hard_stop " +
-			"in config.yaml turn it into a guardrail.",
-		examples: []example{
-			{"/cost", "calls, prompt/output tokens, and USD spend so far"},
-		},
-	},
-	{
-		name: "clear", aliases: []string{"cls"},
-		summary: "clear the screen",
-		detail:  "Only clears the display. The conversation is untouched — that is /new.",
-		examples: []example{
-			{"/clear", "wipe the transcript from view"},
-		},
-	},
-
-	// ---- model and provider ----
-	{
-		name: "model", args: "[id|list]",
-		summary: "pick a model (no id = interactive picker)",
-		detail: "The picker fetches the provider's live catalog, so it is always current. Your " +
-			"choice is saved as the default for new repos.",
-		examples: []example{
-			{"/model", "browse and filter the catalog"},
-			{"/model anthropic/claude-sonnet-4.5", "set one directly"},
-			{"/model list", "print the catalog to the screen"},
-		},
-	},
-	{
-		name: "models", args: "[filter]",
-		summary: "list the provider's models",
-		examples: []example{
-			{"/models", "print the whole catalog"},
-			{"/models free", "only ids containing 'free'"},
-		},
-	},
-	{
-		name: "thinking", args: "[off|low|medium|high]",
-		summary: "set the model's reasoning depth",
-		detail: "Reasoning models can spend extra tokens thinking before they answer. " +
-			"This sets how much: off sends nothing, low/medium/high request increasing " +
-			"depth. Applied where the endpoint supports it — OpenRouter, OpenAI, and " +
-			"Anthropic; other hosts are left untouched rather than risking a rejected " +
-			"request.",
-		guide: "Depth is a cost dial, not a quality switch: a rename needs none, an " +
-			"architecture question benefits from high. The level applies to the active " +
-			"client and resets on /model or /provider switches. With no argument the " +
-			"current level is shown.",
-		examples: []example{
-			{"/thinking", "show the current level"},
-			{"/thinking high", "maximum reasoning depth"},
-			{"/thinking off", "back to plain replies"},
-		},
-	},
-	{
-		name: "provider", args: "[name|list]",
-		summary: "switch API provider (no arg = list all)",
-		detail: "Any OpenAI-compatible endpoint works: openrouter, openai, groq, together, " +
-			"deepseek, mistral, ollama, fireworks, perplexity, xai, cerebras, sambanova, " +
-			"huggingface, cohere, anyscale. Each keeps its own saved key.",
-		examples: []example{
-			{"/provider", "list all providers with their details"},
-			{"/provider list", "same — show all available providers"},
-			{"/provider groq", "switch to Groq"},
-		},
-	},
-	{
-		name: "repo", args: "<path>",
-		summary: "point at a different repository",
-		detail:  "Everything — chat tools, the knowledge engine, skills — retargets to the new path.",
-		examples: []example{
-			{`/repo D:\work\other-project`, "work somewhere else without restarting"},
-		},
-	},
-	{
-		name:    "config",
-		summary: "show the active configuration",
-		examples: []example{
-			{"/config", "model, provider, repo, scope and notes"},
-		},
-	},
-	{
-		name: "theme", args: "[default|light|highcontrast]",
-		summary: "switch the colour palette",
-		detail: "Three palettes ship built-in: default (for dark terminals), light (for white " +
-			"backgrounds), and highcontrast (for accessibility or projectors). The choice " +
-			"is saved in .kaioken/config.yaml and applies on the next start.",
-		guide: "Use /theme with no argument to see what is active; give a name to switch. " +
-			"Switching is instant: every style in the terminal updates immediately, so a " +
-			"quick flip between default and light tells you which suits your current ambient.",
-		examples: []example{
-			{"/theme", "show the active theme"},
-			{"/theme light", "switch and save"},
-		},
-	},
-	{
-		name:    "session",
-		summary: "stats for the current session",
-		detail: "Shows the active session's id, title, turn count, model, token estimates, " +
-			"cost (when the provider reports it), epoch count, and lineage if forked.",
-		guide: "/session is a quick health check: how long is this conversation, how much " +
-			"has it cost, and how close is it to triggering compaction. Useful before a " +
-			"long task to decide whether to /compact or /new first.",
-		examples: []example{
-			{"/session", "show stats for the current session"},
-		},
-	},
-	{
-		name: "notes", args: "[add <text>|clear]",
-		summary: "steering notes injected into prompts",
-		detail: "The human-in-the-loop channel. Notes are injected verbatim into every generation " +
-			"prompt, so use them for the tribal knowledge the code does not state — conventions, " +
-			"guardrails, 'never do X here'. This is the highest-leverage way to improve output.",
-		examples: []example{
-			{"/notes", "show the current notes"},
-			{"/notes add Every admin mutation must be audit-logged.", "teach the generator a rule"},
-			{"/notes clear", "remove them all"},
-		},
-	},
-
-	// ---- knowledge engine ----
-	{
-		name: "wiki", args: "[xN] [force|update|retry]",
-		summary: "deep multi-pass wiki",
-		detail: "The main event. Pass 1 plans 8-16 sections over the whole repo; pass 2 plans each " +
-			"section in detail; pass 3 writes long-form chapters plus one document per subsection. " +
-			"The multiplier is the Kaioken dial: ×1 sections only, ×2 adds subsection documents, " +
-			"×3 (the default) goes deep, ×4 adds a critique-and-revise pass, ×10 adds grounding " +
-			"verification. An existing plan is reused so you can edit wiki_plan.yaml first.",
-		examples: []example{
-			{"/wiki", "the default ×3 run"},
-			{"/wiki x1", "a fast, shallow pass"},
-			{"/wiki x10 force", "maximum depth, re-planning from scratch"},
-			{"/wiki retry", "regenerate only the sections that failed"},
-			{"/wiki update", "same as /update"},
 		},
 	},
 	{
@@ -507,26 +349,148 @@ var commands = []command{
 		},
 	},
 	{
-		name: "research", args: "[xN] <question>",
-		summary: "deep web search with a cited report",
-		detail: "Answers a question from the open web: plans subquestions, searches, reads " +
-			"pages, then searches again for whatever is still missing, and writes a cited " +
-			"report to .kaioken/research/. The same runs power the desktop app's Deep " +
-			"Search history. Needs a web-search API key (tavily, firecrawl, brave or exa) " +
-			"in ~/.kaioken/config.yaml on top of the LLM key.",
-		guide: "Research never reads the repository — it is for questions the code cannot " +
-			"answer: library comparisons, release notes, current best practice. The " +
-			"leading xN multiplier is the usual Kaioken dial: x1 is a quick look, x3 the " +
-			"default, higher digs deeper at real cost in searches and model calls. Every " +
-			"claim in the report cites a numbered source that was actually read. Reports " +
-			"land in .kaioken/research/<slug>.md and rerunning the same question " +
-			"overwrites its predecessor.",
+		name: "provider", args: "[name|list]",
+		summary: "switch API provider (no arg = list all)",
+		detail: "Any OpenAI-compatible endpoint works: openrouter, openai, groq, together, " +
+			"deepseek, mistral, ollama, fireworks, perplexity, xai, cerebras, sambanova, " +
+			"huggingface, cohere, anyscale. Each keeps its own saved key.",
 		examples: []example{
-			{"/research what changed in Go 1.24 garbage collection?", "the default ×3 run"},
-			{"/research x1 is htmx still maintained?", "a quick, shallow look"},
-			{"/research x5 compare tauri and electron for a Go sidecar app", "dig deeper"},
+			{"/provider", "list all providers with their details"},
+			{"/provider list", "same — show all available providers"},
+			{"/provider groq", "switch to Groq"},
 		},
 	},
+	{
+		name:    "config",
+		summary: "show the active configuration",
+		examples: []example{
+			{"/config", "model, provider, repo, scope and notes"},
+		},
+	},
+	{
+		name:    "session",
+		summary: "stats for the current session",
+		detail: "Shows the active session's id, title, turn count, model, token estimates, " +
+			"cost (when the provider reports it), epoch count, and lineage if forked.",
+		guide: "/session is a quick health check: how long is this conversation, how much " +
+			"has it cost, and how close is it to triggering compaction. Useful before a " +
+			"long task to decide whether to /compact or /new first.",
+		examples: []example{
+			{"/session", "show stats for the current session"},
+		},
+	},
+	{
+		name: "notes", args: "[add <text>|clear]",
+		summary: "steering notes injected into prompts",
+		detail: "The human-in-the-loop channel. Notes are injected verbatim into every generation " +
+			"prompt, so use them for the tribal knowledge the code does not state — conventions, " +
+			"guardrails, 'never do X here'. This is the highest-leverage way to improve output.",
+		examples: []example{
+			{"/notes", "show the current notes"},
+			{"/notes add Every admin mutation must be audit-logged.", "teach the generator a rule"},
+			{"/notes clear", "remove them all"},
+		},
+	},
+	{
+		name: "fork", args: "[turns]",
+		summary: "rewind the conversation to retry a different way",
+		detail: "Rewinds the active branch by the given number of user turns (default 1). " +
+			"Nothing is deleted: the rewound turns stay in the session tree, and the " +
+			"next message you send grows a sibling branch instead.",
+		guide: "Use /fork when an approach went wrong and re-explaining would poison the " +
+			"context: rewind past the bad turns and ask again. The abandoned turns are " +
+			"still there — /tree lists every branch and switches between them, so a fork " +
+			"is an experiment, not a deletion.",
+		examples: []example{
+			{"/fork", "rewind the last turn"},
+			{"/fork 3", "rewind the last three turns"},
+		},
+	},
+	{
+		name: "tree", args: "[n [summarize]]",
+		summary: "list conversation branches and switch between them",
+		detail: "Every /fork, compaction, or retry leaves a branch in the session tree. " +
+			"/tree lists the branch tips; /tree <n> makes one of them the active " +
+			"conversation. Adding summarize also briefs the model on the branch you " +
+			"are leaving, so its lessons carry over.",
+		guide: "Branches accumulate whenever history diverges — a /fork, an auto-compaction, " +
+			"a retried approach. /tree shows each tip with its newest prompt and age; the " +
+			"active one is starred. Switching replays the transcript so you can see where " +
+			"that branch stands. Use the summarize variant when the abandoned branch " +
+			"learned something the new one should know — it costs one model call.",
+		examples: []example{
+			{"/tree", "list the branches"},
+			{"/tree 2", "switch to branch 2"},
+			{"/tree 2 summarize", "switch and brief the model on the branch left behind"},
+		},
+	},
+	{
+		name:    "verify",
+		summary: "run the repo's build/test gate",
+		detail: "Detects the repo's own verification commands (Makefile check, go build+test, " +
+			"npm test) and runs them, reporting each verdict. Ask the agent to fix whatever " +
+			"fails, then verify again — the gate's word is final. The headless CLI version " +
+			"(kaioken verify) adds an automatic fix loop.",
+		examples: []example{
+			{"/verify", "run the gate and show each verdict"},
+		},
+	},
+	{
+		name: "init", args: "[force]",
+		summary: "full first-run setup: config, scan, AGENTS.md",
+		detail: "Writes the per-repo config (model, provider, scope excludes, steering notes), " +
+			"scans the repository, and generates AGENTS.md — the root instruction file an " +
+			"agent reads before editing: the real commands, the package boundaries, the " +
+			"gotchas. When a wiki or skills already exist, init writes AGENTS.md in their " +
+			"vocabulary and links to them. Re-running is safe: an existing AGENTS.md is left " +
+			"alone unless you pass force.",
+		examples: []example{
+			{"/init", "set the repo up (keeps an existing AGENTS.md)"},
+			{"/init force", "rewrite AGENTS.md from the current sources"},
+		},
+	},
+	{
+		name: "draft", args: "[base]",
+		summary: "draft the commit message + PR description",
+		detail: "Reads the current diff, the repo's recent commit style and your steering " +
+			"notes, and asks the model for a conventional-commit message plus a what/why/how-to-" +
+			"test PR description. Advisory only — nothing is staged or committed.",
+		examples: []example{
+			{"/draft", "draft from the uncommitted changes"},
+			{"/draft HEAD~3", "draft from everything since that commit"},
+		},
+	},
+	{
+		name: "import", args: "<path>",
+		summary: "bring an external transcript in as a new session",
+		detail: "Reads a saved session file, a JSON array of messages, or JSONL with one " +
+			"message per line, stores it as a new session in this repo, and opens it. " +
+			"Lines that are not messages are skipped, so other tools' event logs import too.",
+		guide: "Use /import to continue a conversation that started somewhere else: a session " +
+			"file copied from another repo, a transcript exported by another tool, or a JSONL " +
+			"event log. The import becomes a normal session — saved, listed, resumable — and " +
+			"the conversation you were in is saved before the switch, so nothing is lost.",
+		examples: []example{
+			{"/import C:\\tmp\\transcript.jsonl", "import and open a transcript"},
+		},
+	},
+	{
+		name: "templates", aliases: []string{"template"},
+		summary: "list prompt templates (/t:<name> runs one)",
+		detail: "Templates are parameterized prompts in .kaioken/templates/<name>.md. " +
+			"{{placeholders}} are filled from key=value arguments; leftover words land in " +
+			"{{args}}. /t:<name> expands the file and sends it as a normal chat message.",
+		guide: "A template captures a request you keep retyping — \"review X for Y\", \"write " +
+			"a migration for Z\" — as a versioned file the whole team shares. Write " +
+			".kaioken/templates/review.md containing 'Review {{file}} focusing on {{args}}', " +
+			"then /t:review file=main.go error handling sends the expanded prompt. " +
+			"Placeholders left unfilled stop the send and are named, so a half-filled " +
+			"prompt never reaches the model silently.",
+		examples: []example{
+			{"/templates", "list templates and their placeholders — then /t:<name> [key=value…] sends one"},
+		},
+	},
+	// ---- less common ----
 	{
 		name: "ext", aliases: []string{"extension", "extensions"},
 		args:    "[list|install|remove|update|search|trust|tools|…]",
@@ -578,19 +542,64 @@ var commands = []command{
 		},
 	},
 	{
-		name: "templates", aliases: []string{"template"},
-		summary: "list prompt templates (/t:<name> runs one)",
-		detail: "Templates are parameterized prompts in .kaioken/templates/<name>.md. " +
-			"{{placeholders}} are filled from key=value arguments; leftover words land in " +
-			"{{args}}. /t:<name> expands the file and sends it as a normal chat message.",
-		guide: "A template captures a request you keep retyping — \"review X for Y\", \"write " +
-			"a migration for Z\" — as a versioned file the whole team shares. Write " +
-			".kaioken/templates/review.md containing 'Review {{file}} focusing on {{args}}', " +
-			"then /t:review file=main.go error handling sends the expanded prompt. " +
-			"Placeholders left unfilled stop the send and are named, so a half-filled " +
-			"prompt never reaches the model silently.",
+		name: "theme", args: "[default|light|highcontrast]",
+		summary: "switch the colour palette",
+		detail: "Three palettes ship built-in: default (for dark terminals), light (for white " +
+			"backgrounds), and highcontrast (for accessibility or projectors). The choice " +
+			"is saved in .kaioken/config.yaml and applies on the next start.",
+		guide: "Use /theme with no argument to see what is active; give a name to switch. " +
+			"Switching is instant: every style in the terminal updates immediately, so a " +
+			"quick flip between default and light tells you which suits your current ambient.",
 		examples: []example{
-			{"/templates", "list templates and their placeholders — then /t:<name> [key=value…] sends one"},
+			{"/theme", "show the active theme"},
+			{"/theme light", "switch and save"},
+		},
+	},
+	{
+		name: "repo", args: "<path>",
+		summary: "point at a different repository",
+		detail:  "Everything — chat tools, the knowledge engine, skills — retargets to the new path.",
+		examples: []example{
+			{`/repo D:\work\other-project`, "work somewhere else without restarting"},
+		},
+	},
+	{
+		name:    "learn",
+		summary: "distill this session into a skill",
+		detail: "Reviews the session and, if it taught something worth keeping, writes or patches " +
+			"a skill in .kaioken/skills/ so the agent loads it before doing this task again. Also " +
+			"writes a digest the recall tool can find later, and reinforces any skill consulted. " +
+			"Runs automatically at session end when memory.learn >= 5; /learn forces it now.",
+		examples: []example{
+			{"/learn", "turn this session's lessons into a skill"},
+		},
+	},
+	{
+		name:    "handoff",
+		summary: "write a continuation briefing for this session",
+		detail: "Distills the current session into goal, decisions, state and open threads, " +
+			"appends the collapsed transcript, and writes the document under .kaioken/handoffs/ " +
+			"— what a teammate or a fresh agent needs to pick the work up.",
+		examples: []example{
+			{"/handoff", "brief the current session"},
+		},
+	},
+	{
+		name:    "copy",
+		summary: "copy the last reply to the clipboard",
+		examples: []example{
+			{"/copy", "copy the model's most recent answer"},
+		},
+	},
+	{
+		name: "hook", args: "[install|remove]",
+		summary: "auto-update the wiki after each commit",
+		detail: "Installs a git post-commit hook running /update in the background, so documentation " +
+			"never drifts. It appends a delimited block, so an existing hook is preserved.",
+		examples: []example{
+			{"/hook", "report whether it is installed"},
+			{"/hook install", "refresh docs after every commit"},
+			{"/hook remove", "take it back out"},
 		},
 	},
 	{
@@ -604,8 +613,40 @@ var commands = []command{
 			{"/serve stop", "shut it down"},
 		},
 	},
+	// ---- rarely used ----
 	{
-		name: "publish",
+		name: "tutorial", args: "[chapter|command]",
+		summary: "guided walkthrough of every command",
+		detail: "Start here. With no argument it gives an overview and a first-run sequence. " +
+			"Pass a chapter to go deeper, or any command name to see just that one.",
+		guide: "The tutorial is organized into chapters that group related commands. " +
+			"Start with the overview, then drill into a chapter that matches what you " +
+			"are trying to do. For a single command's full reference page — syntax, " +
+			"workflow tips, and every example — use /explain instead.",
+		examples: []example{
+			{"/tutorial", "the overview and the chapter list"},
+			{"/tutorial knowledge", "everything about the documentation pipelines"},
+			{"/tutorial wiki", "just the /wiki command, in detail"},
+			{"/tutorial all", "the entire manual in one go"},
+		},
+	},
+	{
+		name: "explain", args: "[command]",
+		summary: "in-depth reference for every command",
+		detail: "Like /tutorial but goes deeper: full syntax, aliases, workflow guidance, " +
+			"tips and every example for each command. With no argument it shows a " +
+			"grouped index of all commands. Pass a command name for its full page.",
+		guide: "Use /explain when you know which command you want but need the full " +
+			"picture — syntax, aliases, when to reach for it, and worked examples. " +
+			"/explain all prints the complete reference in one go.",
+		examples: []example{
+			{"/explain", "grouped index of every command"},
+			{"/explain wiki", "the full reference page for /wiki"},
+			{"/explain all", "the complete command reference"},
+		},
+	},
+	{
+		name:    "publish",
 		summary: "render the wiki as a static site",
 		detail: "Writes .kaioken/wiki/ out as plain HTML under .kaioken/site/ — no server, no " +
 			"Kaioken needed to read it. The artifact to put on GitHub Pages or share with " +
@@ -615,7 +656,7 @@ var commands = []command{
 		},
 	},
 	{
-		name: "onboard",
+		name:    "onboard",
 		summary: "write the day-one ONBOARDING.md",
 		detail: "Assembles ONBOARDING.md at the repo root from the wiki chapters, knowledge " +
 			"cards, skills and scan inventory — the document you hand a new teammate. No LLM " +
@@ -623,49 +664,6 @@ var commands = []command{
 		examples: []example{
 			{"/onboard", "write ONBOARDING.md"},
 			{"/onboard force", "overwrite an existing guide"},
-		},
-	},
-	{
-		name: "draft", args: "[base]",
-		summary: "draft the commit message + PR description",
-		detail: "Reads the current diff, the repo's recent commit style and your steering " +
-			"notes, and asks the model for a conventional-commit message plus a what/why/how-to-" +
-			"test PR description. Advisory only — nothing is staged or committed.",
-		examples: []example{
-			{"/draft", "draft from the uncommitted changes"},
-			{"/draft HEAD~3", "draft from everything since that commit"},
-		},
-	},
-	{
-		name: "handoff",
-		summary: "write a continuation briefing for this session",
-		detail: "Distills the current session into goal, decisions, state and open threads, " +
-			"appends the collapsed transcript, and writes the document under .kaioken/handoffs/ " +
-			"— what a teammate or a fresh agent needs to pick the work up.",
-		examples: []example{
-			{"/handoff", "brief the current session"},
-		},
-	},
-	{
-		name: "verify",
-		summary: "run the repo's build/test gate",
-		detail: "Detects the repo's own verification commands (Makefile check, go build+test, " +
-			"npm test) and runs them, reporting each verdict. Ask the agent to fix whatever " +
-			"fails, then verify again — the gate's word is final. The headless CLI version " +
-			"(kaioken verify) adds an automatic fix loop.",
-		examples: []example{
-			{"/verify", "run the gate and show each verdict"},
-		},
-	},
-	{
-		name: "hook", args: "[install|remove]",
-		summary: "auto-update the wiki after each commit",
-		detail: "Installs a git post-commit hook running /update in the background, so documentation " +
-			"never drifts. It appends a delimited block, so an existing hook is preserved.",
-		examples: []example{
-			{"/hook", "report whether it is installed"},
-			{"/hook install", "refresh docs after every commit"},
-			{"/hook remove", "take it back out"},
 		},
 	},
 	{
@@ -704,8 +702,6 @@ var commands = []command{
 			{"/status", "which modules are up to date, changed or missing"},
 		},
 	},
-
-	// ---- misc ----
 	{
 		name: "version", aliases: []string{"v"},
 		summary: "print the Kaioken version",

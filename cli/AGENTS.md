@@ -13,8 +13,8 @@ Kaioken is a terminal-based AI coding assistant that combines an interactive cha
 ## Architecture
 - CLI entry point: `cmd/kaioken/main.go` defines commands (init, scan, plan, generate, wiki, update, export, models, status, skills, hook, serve)
 - TUI: `internal/tui/tui.go` handles user input/output and forwards messages to agent
-- Agent: `internal/agent/agent.go` processes LLM interactions and executes approved tools (file edits, command runs)
-- Knowledge engine: `internal/wiki/wiki.go` generates documentation; invoked by `wiki`/`update` commands. `kaioken update` refreshes the wiki from the git diff and then revises changed modules' knowledge cards (`internal/generate/update.go`)
+- Agent: `internal/agent/agent.go` processes user messages, invokes LLM with tools (e.g., read_file, edit_file), and manages approvals via UI
+- Knowledge engine: `internal/wiki/wiki.go` generates documentation; invoked by `wiki`/`update` commands. `kaioken update` uses `gitx.Changes` to find changes since last build and updates affected documentation via `wiki.Update`
 - Export: `internal/export/export.go` flattens generated cards/wiki/skills into CLAUDE.md, AGENTS.md, .cursorrules or CONTEXT.md (`kaioken export <target>`; no LLM calls)
 - LLM client: `internal/llm/openrouter.go` handles provider communication (OpenRouter, etc.). On OpenRouter it requests usage accounting, so `Client.CostUSD` reports real spend; `internal/agent/budget.go` turns `budget: {warn_at, hard_stop}` (USD, in `.kaioken/config.yaml`) into session guardrails
 - Dependencies flow inward: high-level (cmd, tui) → mid-level (agent, wiki, llm) → utilities (scan, plan, codemap, state, skills, serve, gitx); config is cross-cutting

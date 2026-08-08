@@ -20,17 +20,25 @@ interface ResearchCardProps {
   summary: string
   words: number
   slug: string
+  depth?: string
 }
 
-function ResearchCard({ title, summary, words, slug }: ResearchCardProps) {
+function ResearchCard({ title, summary, words, slug, depth }: ResearchCardProps) {
   return (
     <Link
       to={`/preview/research/${slug}`}
       className="group block rounded-md border border-border bg-card p-5 transition-colors hover:border-kai-orange/45 hover:bg-kai-panel"
     >
-      <h3 className="font-mono text-[13.5px] font-bold text-foreground transition-colors group-hover:text-kai-orange">
-        {title}
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-mono text-[13.5px] font-bold text-foreground transition-colors group-hover:text-kai-orange">
+          {title}
+        </h3>
+        {depth ? (
+          <span className="rounded-sm border border-kai-orange/40 bg-kai-orange/10 px-1.5 py-0.5 font-mono text-[10px] text-kai-amber">
+            {depth}
+          </span>
+        ) : null}
+      </div>
       <p className="mt-3 font-sans text-[13px] leading-relaxed text-muted-foreground">{summary}</p>
       <div className="mt-4 flex items-center justify-between">
         <span className="font-mono text-[11px] text-kai-dim">
@@ -220,19 +228,197 @@ export default function Showcase() {
             summary="No head-to-head RCTs exist — all evidence is indirect via placebo-controlled trials. CREDENCE (n=4,401, P=0.00001), DAPA-CKD (n=4,304, P<0.001), EMPA-KIDNEY (n=6,609, P<0.001) show SGLT2 inhibitors reduce composite renal outcomes vs placebo. Network meta-analyses favor SGLT2i for renal composites (HR 0.76) and heart failure hospitalization (HR 0.75), with no MACE difference (HR 1.03). GLP-1RAs have more GI events (12% vs 0%); SGLT2i have 3.5× higher genital mycotic infection risk."
             words={30818}
             slug="compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh"
+            depth="×10"
           />
           <ResearchCard
             title="Solar vs Nuclear LCOE in Europe"
             summary="Utility-scale solar LCOE in 2026: Spain ~$0.03/kWh, Italy ~$0.035/kWh, Germany ~$0.04/kWh, UK ~$0.05/kWh. Nuclear retains advantage at low discount rates (~3.8% WACC) due to capital-intensive structure; advantage erodes as discount rates rise (nuclear LCOE increases ~3× from 0% to 10% vs ~2.25× for solar). System integration costs for solar intermittency not reflected in basic LCOE. Externalities (carbon, health) favor nuclear's low-carbon profile."
             words={1438}
             slug="is-solar-cheaper-than-nuclear-in-europe"
+            depth="×3"
           />
           <ResearchCard
             title="Cloud LLMs at Ollama"
             summary="Survey of cloud LLM availability through Ollama as of July 2025. Covers OpenAI, Anthropic, Google, and other providers accessible via Ollama's OpenAI-compatible endpoints. Includes model catalogs, pricing tiers, and integration notes for local development workflows."
             words={1283}
             slug="last-cloud-llm-at-ollama"
+            depth="×3"
           />
+        </div>
+      </section>
+
+      {/* Kaioken vs Gemini Deep Search Benchmark Section */}
+      <section className="mx-auto mt-20 max-w-6xl px-4 sm:px-6">
+        <SectionHeading
+          eyebrow="head-to-head benchmark"
+          title={
+            <>
+              Kaioken Research <span className="text-kai-orange">vs</span> Gemini Deep Search
+            </>
+          }
+          description="We submitted the exact same clinical prompt to both research engines: compare SGLT2 inhibitors vs GLP-1 receptor agonists in T2D with CKD and extract RCT sample sizes and p-values. Here is how their unedited outputs compare."
+        />
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
+          {/* Kaioken Research */}
+          <div className="relative overflow-hidden rounded-md border border-kai-orange/45 bg-card p-6 shadow-md transition-colors hover:border-kai-orange/70 hover:bg-kai-panel/40">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 rounded-full bg-kai-orange animate-pulse" />
+                <span className="font-mono text-[12px] font-bold text-kai-orange uppercase tracking-wider">
+                  Kaioken Research
+                </span>
+              </div>
+              <span className="rounded-sm border border-kai-orange/40 bg-kai-orange/10 px-2 py-0.5 font-mono text-[11px] text-kai-amber">
+                ×10 Depth · 30,818 Words
+              </span>
+            </div>
+
+            <h3 className="mt-4 font-mono text-[16px] font-bold text-foreground">
+              Deep Epistemic Rigor & Premise Deconstruction
+            </h3>
+
+            <p className="mt-2.5 font-sans text-[13.5px] leading-relaxed text-muted-foreground">
+              Kaioken immediately recognized that <strong className="text-foreground font-semibold">no head-to-head RCTs exist</strong> in clinical literature comparing SGLT2i vs GLP-1RA directly in CKD. Instead of forcing a flawed comparison, it deconstructed the prompt flaw, mapped the star-network geometry of indirect meta-analyses, evaluated transitivity assumptions, and cited 117+ references.
+            </p>
+
+            <ul className="mt-4 space-y-2 font-sans text-[13px] text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 font-bold text-kai-orange">✓</span>
+                <span><strong className="text-foreground">Deconstructed Prompt Flaw:</strong> Identified structural absence of direct RCTs.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 font-bold text-kai-orange">✓</span>
+                <span><strong className="text-foreground">Statistical Depth:</strong> Full transitivity analysis, NMA network geometry, & subgroup P-values.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 font-bold text-kai-orange">✓</span>
+                <span><strong className="text-foreground">Safety Auditing:</strong> Exact Risk Ratios for GMI (3.49), DKA (2.36), & GI intolerance (12% vs 0%).</span>
+              </li>
+            </ul>
+
+            <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4">
+              <span className="font-mono text-[11px] text-kai-dim">
+                1,190 lines · 235 KB · 117+ Citations
+              </span>
+              <Link
+                to="/preview/research/compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh"
+                className="inline-flex items-center gap-1.5 font-mono text-[12px] font-bold text-kai-orange transition-colors hover:underline"
+              >
+                Read Kaioken Report
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Gemini Deep Search */}
+          <div className="relative overflow-hidden rounded-md border border-border bg-card p-6 transition-colors hover:border-kai-dim/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 rounded-full bg-blue-400" />
+                <span className="font-mono text-[12px] font-bold text-blue-400 uppercase tracking-wider">
+                  Gemini Deep Search
+                </span>
+              </div>
+              <span className="rounded-sm border border-border bg-muted/30 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+                Standard · 5,967 Words
+              </span>
+            </div>
+
+            <h3 className="mt-4 font-mono text-[16px] font-bold text-foreground">
+              High-Level Synthesis & Direct Summarization
+            </h3>
+
+            <p className="mt-2.5 font-sans text-[13.5px] leading-relaxed text-muted-foreground">
+              Gemini accepted the prompt at face value and generated a structured overview in French. It produced a 3-RCT comparison table including FLOW (a GLP-1RA placebo trial) alongside CREDENCE and DAPA-CKD, treating indirect evidence as a direct comparison without evaluating network transitivity.
+            </p>
+
+            <ul className="mt-4 space-y-2 font-sans text-[13px] text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 font-bold text-kai-dim">–</span>
+                <span><strong className="text-foreground">Accepted Prompt Premise:</strong> Took premise at face value and forced 3 placebo RCTs into table.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 font-bold text-kai-dim">–</span>
+                <span><strong className="text-foreground">High-Level Overview:</strong> Summarized clinical trials & mechanisms in 5.9k words (French).</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 font-bold text-kai-dim">–</span>
+                <span><strong className="text-foreground">Citations:</strong> Light inline reference brackets without comprehensive bibliography.</span>
+              </li>
+            </ul>
+
+            <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4">
+              <span className="font-mono text-[11px] text-kai-dim">
+                182 lines · 52 KB · Inline References
+              </span>
+              <Link
+                to="/preview/research/gemini-sglt2-vs-glp-1-in-ckd"
+                className="inline-flex items-center gap-1.5 font-mono text-[12px] font-bold text-blue-400 transition-colors hover:underline"
+              >
+                Read Gemini Report
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Comparison Table */}
+        <div className="mt-8 overflow-hidden rounded-md border border-border bg-card">
+          <div className="border-b border-border bg-kai-panel/60 px-5 py-3.5">
+            <h4 className="font-mono text-[13px] font-bold text-foreground">
+              Feature-by-Feature Benchmark Breakdown
+            </h4>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-sans text-[13px]">
+              <thead>
+                <tr className="border-b border-border bg-muted/20 font-mono text-[11px] text-kai-dim uppercase tracking-wider">
+                  <th className="px-5 py-3">Metric / Feature</th>
+                  <th className="px-5 py-3 font-bold text-kai-orange">Kaioken Research</th>
+                  <th className="px-5 py-3 font-bold text-blue-400">Gemini Deep Search</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                <tr>
+                  <td className="px-5 py-3.5 font-mono font-semibold text-foreground">Report Depth</td>
+                  <td className="px-5 py-3.5 font-mono font-bold text-kai-amber">30,818 words (1,190 lines)</td>
+                  <td className="px-5 py-3.5 font-mono text-muted-foreground">5,967 words (182 lines)</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono font-semibold text-foreground">Premise Rigor</td>
+                  <td className="px-5 py-3.5 text-foreground">
+                    <span className="mr-2 rounded bg-kai-orange/15 px-1.5 py-0.5 font-mono text-[10.5px] font-bold text-kai-orange">PASSED</span>
+                    Identified 0 head-to-head RCTs exist & deconstructed prompt flaw
+                  </td>
+                  <td className="px-5 py-3.5 text-muted-foreground">
+                    <span className="mr-2 rounded bg-muted px-1.5 py-0.5 font-mono text-[10.5px]">ACCEPTED</span>
+                    Accepted prompt & forced 3 placebo RCTs into comparison table
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono font-semibold text-foreground">Statistical Geometry</td>
+                  <td className="px-5 py-3.5 text-foreground">Star-network NMA geometry, transitivity checks, NNT & subgroup P-values</td>
+                  <td className="px-5 py-3.5 text-muted-foreground">Direct trial outcome summaries & qualitative HR listings</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono font-semibold text-foreground">Sample Size Auditing</td>
+                  <td className="px-5 py-3.5 text-foreground">Flagged active-arm (2,202) vs total cohort (4,401) reporting errors in secondary lit</td>
+                  <td className="px-5 py-3.5 text-muted-foreground">Standard reported RCT total numbers (n=4,401; n=4,304; n=3,533)</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono font-semibold text-foreground">Safety Quantification</td>
+                  <td className="px-5 py-3.5 text-foreground">Exact Risk Ratios: GMI RR 3.49, DKA RR 2.36, GI 12% vs 0%, AKI protection</td>
+                  <td className="px-5 py-3.5 text-muted-foreground">Qualitative safety summary (mycotic risk, GI intolerance, retinopathy)</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono font-semibold text-foreground">Citation Grounding</td>
+                  <td className="px-5 py-3.5 text-foreground">117+ fully indexed references with primary care generalizability metrics</td>
+                  <td className="px-5 py-3.5 text-muted-foreground">Inline citation numbers without comprehensive bibliography</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

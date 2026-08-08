@@ -143,9 +143,15 @@ Everything else in the base spec — the retriever interface, source store and d
 
 ---
 
-## 7. Open question for next iteration
+## 7. Resolved: the classification boundary
 
-The router's classification boundary is the piece most worth pressure-testing before implementation: what specific signal — query length, presence of multiple named entities, explicit comparison language, prior turns in the conversation — should trip fast→deep, and how much false-escalation (fast path could have handled it) is acceptable against false-containment (deep path was needed but fast path ran alone)?
+The open question here was what specific signal — query length, named-entity count, explicit comparison language — should trip fast→deep.
+
+The shipped answer is that no such signal works on its own. The first implementation scored those features and only asked a model when the score landed in a narrow middle band; in practice the score was wrong in both directions, because it measures wording and the decision is about meaning. "Compare" in a subordinate clause is not a comparison, three capitalised words are often one subject, and a genuinely multi-stranded question need not contain any trigger word at all.
+
+The router now asks the model on every auto-routed question — one cheap call, bounded by a short timeout — and has it enumerate the independent strands it sees before choosing, so the verdict rests on a decomposition rather than a guess. The keyword scoring survives only as the fallback for an unreachable or failing router model.
+
+The error-rate question stands answered as before: false-containment is cheap because escalation catches it mid-run, false-escalation is not, so both the prompt and the fallback lean fast on a genuine toss-up.
 
 ---
 

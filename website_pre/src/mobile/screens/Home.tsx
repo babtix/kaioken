@@ -44,10 +44,10 @@ export default function Home() {
       <Hero />
       <Features />
       <Pipeline />
-      <Research />
       <MultiplierDial />
-      <Quality />
       <Commands />
+      <Quality />
+      <Research />
       <OutputTree />
       <QuickStart />
       <DesktopTeaser />
@@ -228,7 +228,7 @@ function Research() {
   return (
     <Section id="research">
       <SectionHead
-        index="03"
+        index="06"
         eyebrow="deep research"
         title={
           <>
@@ -302,7 +302,7 @@ function MultiplierDial() {
   return (
     <Section id="multiplier">
       <SectionHead
-        index="04"
+        index="03"
         eyebrow="the multiplier"
         title="×N buys passes, not padding"
         lead="Each level roughly doubles the calls per document — which is what a power-multiplier metaphor ought to mean."
@@ -393,7 +393,7 @@ function Commands() {
   return (
     <Section id="commands">
       <SectionHead
-        index="06"
+        index="04"
         eyebrow="slash commands"
         title={<>{total} commands, four groups</>}
         lead="Everything the TUI answers to. Tap a group to open it."

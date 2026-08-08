@@ -125,6 +125,14 @@ func newHarness(t *testing.T, repo, baseURL string) *rpcHarness {
 	return &rpcHarness{t: t, toSrv: inW, frames: frames, done: done}
 }
 
+func (h *rpcHarness) close() {
+	_ = h.toSrv.Close()
+	select {
+	case <-h.done:
+	case <-time.After(5 * time.Second):
+	}
+}
+
 func (h *rpcHarness) send(id int, method string, params map[string]any) {
 	h.t.Helper()
 	req := map[string]any{"jsonrpc": "2.0", "id": id, "method": method}
@@ -199,7 +207,7 @@ func TestRPCPromptToCompletion(t *testing.T) {
 	if _, err := h.toSrv.Write([]byte("\n")); err != nil {
 		t.Fatal(err)
 	}
-	_ = h.toSrv.Close()
+	h.close()
 }
 
 func TestRPCApprovalDenied(t *testing.T) {
@@ -247,7 +255,7 @@ func TestRPCApprovalDenied(t *testing.T) {
 		t.Errorf("tool result should say declined, got %q", resultText)
 	}
 	h.waitFor(isEvent("agent_end"))
-	_ = h.toSrv.Close()
+	h.close()
 }
 
 func TestRPCUnknownMethod(t *testing.T) {
@@ -261,5 +269,5 @@ func TestRPCUnknownMethod(t *testing.T) {
 	if resp["error"] == nil {
 		t.Fatalf("expected an error response, got %v", resp)
 	}
-	_ = h.toSrv.Close()
+	h.close()
 }

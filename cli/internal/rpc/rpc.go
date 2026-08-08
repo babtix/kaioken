@@ -79,6 +79,7 @@ type Server struct {
 	cancelRun context.CancelFunc
 	runCtx    context.Context
 	approvals map[string]chan bool
+	wg        sync.WaitGroup
 }
 
 // Serve reads requests from in and writes responses and event notifications
@@ -121,6 +122,7 @@ func Serve(ctx context.Context, repo string, cfg *config.Config, client *llm.Cli
 		s.cancelRun()
 	}
 	s.mu.Unlock()
+	s.wg.Wait()
 	return sc.Err()
 }
 
@@ -374,7 +376,9 @@ func (s *Server) startRun(ctx context.Context, text string) error {
 	s.cancelRun = cancel
 	s.runCtx = runCtx
 
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		hist, err := agent.RunWithEvents(runCtx, ag, history, s.emit)
 		cancel()
 		s.mu.Lock()

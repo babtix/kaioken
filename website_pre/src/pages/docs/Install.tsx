@@ -95,12 +95,13 @@ $env:OPENROUTER_API_KEY = "sk-or-..."`}
       <Steps
         items={[
           <>
-            <C>kaioken init</C> creates <C>.kaioken/config.yaml</C> — review the model, the scope
-            excludes, and the steering notes.
+            <C>kaioken init</C> is the whole first run: it writes <C>.kaioken/config.yaml</C>,
+            scans the repo, and writes <C>AGENTS.md</C> — the instruction file agents read before
+            editing. Review the model, the scope excludes, and the steering notes.
           </>,
           <>
-            <C>kaioken scan</C> prints an inventory so you can see exactly what will be analyzed
-            before spending a token.
+            <C>kaioken scan</C> re-prints the inventory whenever you want to see exactly what will
+            be analyzed before spending a token.
           </>,
           <>
             <C>kaioken plan</C> has the LLM propose <C>modules.yaml</C>. Edit it — module
@@ -131,6 +132,30 @@ kaioken models claude        # discover model ids`}
         past a threshold. A model id ending in <C>:free</C> caps parallelism at 2 — those tiers
         rate-limit hard.
       </Callout>
+
+      <H2 id="research-key">Optional: a web-search key</H2>
+      <P>
+        <C>kaioken research</C> is the one feature that needs a second key, because it reads the
+        open web rather than your repo. Put a <C>tavily</C>, <C>firecrawl</C>, <C>brave</C> or{" "}
+        <C>exa</C> key under <C>keys:</C> in <C>~/.kaioken/config.yaml</C> and{" "}
+        <C>/research</C> starts working. Everything else runs on the LLM key alone.
+      </P>
+
+      <H2 id="upgrade">Staying up to date</H2>
+      <P>
+        Kaioken updates itself from its GitHub releases. Interactive launches check in the
+        background and let a later command print the notice, so the TUI is never corrupted
+        mid-frame.
+      </P>
+      <div className="pt-4">
+        <CodeBlock
+          title="powershell"
+          prompt
+          code={`kaioken upgrade check        # is there a newer release?
+kaioken upgrade              # install it
+kaioken version              # what is running now`}
+        />
+      </div>
 
       <H2 id="website">Running this site locally</H2>
       <div className="pt-4">

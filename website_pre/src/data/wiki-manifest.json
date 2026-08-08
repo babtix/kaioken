@@ -858,6 +858,14 @@
       "title": "Research",
       "docs": [
         {
+          "slug": "gemini-sglt2-vs-glp-1-in-ckd",
+          "file": "gemini_SGLT2 vs GLP-1 in CKD.md",
+          "title": "**Analyse Comparative de l'Efficacité et des Profils d'Événements Indésirables des Inhibiteurs du SGLT2 et des Agonistes des Récepteurs du GLP-1 chez les Patients Atteints de Diabète de Type 2 et de Maladie Rénale Chronique**",
+          "words": 5967,
+          "hasMermaid": false,
+          "sources": []
+        },
+        {
           "slug": "compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh",
           "file": "compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh.md",
           "title": "Compare the efficacy and adverse event profiles of SGLT2 inhibitors versus GLP-1 receptor agonists in patients with Type 2 diabetes who also have concurrent chronic kidney disease. Extract the sample sizes and p-values from the three most cited randomized controlled trials (RCTs) on this topic.",
@@ -886,7 +894,7 @@
   ],
   "stats": {
     "sections": 12,
-    "documents": 74,
-    "words": 131013
+    "documents": 75,
+    "words": 136980
   }
 }

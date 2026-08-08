@@ -10,7 +10,7 @@ export default function Commands() {
     <section id="commands" className="relative border-t border-border py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
-          index="06"
+          index="04"
           eyebrow="slash commands"
           title="Drive everything from inside"
           description="Type “/” in the TUI and the palette filters as you go — arrows move, tab completes, enter runs. Long operations stream progress live and never freeze the UI; ctrl+c cancels an in-flight run."

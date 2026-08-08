@@ -7,6 +7,8 @@ export const GITHUB_URL = "https://github.com/babtix/kaioken"
 
 export const NEWS_URL = "https://kaioken-news.vercel.app"
 
+export const PORTFOLIO_URL = "https://babtich.vercel.app/"
+
 export const ASCII_LOGO = `██╗  ██╗  █████╗  ██╗  ██████╗  ██╗  ██╗ ███████╗ ███╗   ██╗
 ██║ ██╔╝ ██╔══██╗ ██║ ██╔═══██╗ ██║ ██╔╝ ██╔════╝ ████╗  ██║
 █████╔╝  ███████║ ██║ ██║   ██║ █████╔╝  █████╗   ██╔██╗ ██║
@@ -238,26 +240,57 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       },
       {
         name: "/wiki",
-        args: "[xN] [force]",
+        args: "[xN] [force|update|retry]",
         summary:
           "DEEP wiki: global plan → per-section plans → long docs. ×3 is the default depth.",
       },
-      { name: "/wiki retry", summary: "Regenerate only the sections that failed last run." },
-      { name: "/skills", args: "[force|name]", summary: "Build task guides an AI loads while working here." },
-      { name: "/skills list", summary: "Show the generated skills." },
       {
         name: "/update",
         args: "[<base-rev>]",
         summary:
           "Incremental: git-diff against the commit the wiki was built from, and revise only the invalidated documents.",
       },
-      { name: "/plan", summary: "LLM proposes modules.yaml — edit it, then generate." },
-      { name: "/cards", args: "[force|id]", summary: "Generate knowledge cards — all, one module, or force a rebuild." },
-      { name: "/scan", summary: "Scan the repo, print an inventory." },
-      { name: "/status", summary: "Per-module freshness." },
+      { name: "/skills", args: "[force|list|name]", summary: "Build task guides an AI loads while working here." },
+      {
+        name: "/impact",
+        args: "<change description>",
+        summary:
+          "Predict the blast radius of a change before editing: symbols, files, modules, stale docs and skills, tests to re-run — each claim checked against the symbol index.",
+      },
       { name: "/publish", args: "[-out <dir>]", summary: "Render the wiki as a static HTML site — no server needed." },
       { name: "/pack", args: "[-out <file>]", summary: "Bundle knowledge into a portable .tar.gz archive." },
-      { name: "/onboard", args: "[-force]", summary: "Write ONBOARDING.md assembled from wiki, cards, and skills." },
+      { name: "/onboard", args: "[force]", summary: "Write ONBOARDING.md assembled from wiki, cards, and skills." },
+      { name: "/scan", summary: "Scan the repo, print an inventory." },
+      { name: "/plan", summary: "LLM proposes modules.yaml — edit it, then generate." },
+      { name: "/cards", args: "[force|id]", summary: "Generate knowledge cards — all, one module, or force a rebuild." },
+      { name: "/status", summary: "Per-module freshness." },
+      { name: "/wiki retry", summary: "Regenerate only the sections that failed last run." },
+    ],
+  },
+  {
+    id: "agent",
+    label: "Agent control",
+    icon: "Waypoints",
+    blurb: "How much the agent may do, how you steer it, and how a wrong turn gets rewound.",
+    commands: [
+      {
+        name: "/mode",
+        args: "[build|plan|general|explore]",
+        summary:
+          "Switch the permission mode: build is full access, plan and explore are read-only, general keeps every tool but always asks first.",
+      },
+      { name: "/undo", summary: "Roll back the last applied change." },
+      { name: "/diff", summary: "Review the changes the agent has proposed or applied." },
+      { name: "/compact", summary: "Summarize the conversation to reclaim context." },
+      { name: "/yolo", summary: "Auto-approve file changes and commands for this session." },
+      { name: "/thinking", args: "[off|low|medium|high]", summary: "Set how many tokens a reasoning model spends before answering." },
+      { name: "/stop", summary: "Cancel whatever is in flight; streamed text is kept." },
+      { name: "/queue", args: "[clear]", summary: "Type while it works and the message is queued as steering — this shows or drops what is waiting." },
+      { name: "/fork", args: "[turns]", summary: "Rewind the last N user turns and retry differently — the old turns stay as a branch." },
+      { name: "/tree", args: "[n [summarize]]", summary: "List conversation branches and switch between them." },
+      { name: "/verify", summary: "Run build/test commands and auto-fix failures, then re-run them in plain Go as the gate." },
+      { name: "/templates", summary: "List prompt templates — /t:<name> key=value expands and sends one." },
+      { name: "/learn", summary: "Distill this session into a skill the agent loads next time." },
     ],
   },
   {
@@ -266,16 +299,18 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     icon: "FolderGit2",
     blurb: "Point at code, browse output, keep conversations.",
     commands: [
-      { name: "/serve", args: "[port]", summary: "Browse the generated wiki in a browser · /serve stop." },
-      { name: "/hook", args: "[install|remove]", summary: "Refresh the wiki automatically after every commit." },
-      { name: "/repo", args: "<path>", summary: "Point at a different repository." },
-      { name: "/sessions", summary: "List saved conversations." },
-      { name: "/resume", args: "[id]", summary: "Reopen a saved conversation." },
       { name: "/new", summary: "Start a fresh session — the current one is saved." },
+      { name: "/sessions", summary: "List saved conversations." },
+      { name: "/resume", args: "[id]", summary: "Reopen a saved conversation — no id opens a searchable picker." },
+      { name: "/switch", args: "[id]", summary: "Save this session, then open another." },
       { name: "/notes", args: "[add <t>|clear]", summary: "View or edit steering notes injected into prompts." },
-      { name: "/init", summary: "Create .kaioken/config.yaml in the target repo." },
+      { name: "/init", args: "[force]", summary: "Full first-run setup: config.yaml, a scan, and AGENTS.md." },
       { name: "/draft", args: "[base]", summary: "Draft conventional commit message + PR description grounded in diff." },
+      { name: "/import", args: "<path>", summary: "Bring an external transcript in as a new session." },
+      { name: "/repo", args: "<path>", summary: "Point at a different repository." },
       { name: "/handoff", args: "[session-id]", summary: "Write a continuation briefing from a saved session." },
+      { name: "/hook", args: "[install|remove]", summary: "Refresh the wiki automatically after every commit." },
+      { name: "/serve", args: "[port]", summary: "Browse the generated wiki in a browser · /serve stop." },
       { name: "/hub", args: "[list|add|remove|status]", summary: "Cross-repo registry — track and check freshness across multiple repos." },
     ],
   },
@@ -285,29 +320,43 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     icon: "Cpu",
     blurb: "~20 built-in providers, most OpenAI-compatible, plus Anthropic's native API.",
     commands: [
+      { name: "/model", args: "[id|list]", summary: "Set the generation model — no id opens the live catalog picker." },
       { name: "/models", args: "[filter]", summary: "List the provider's models." },
-      { name: "/model", args: "<id>", summary: "Set the generation model." },
-      { name: "/provider", args: "<name>", summary: "Switch API provider (openrouter, openai, anthropic, groq, …)." },
+      { name: "/cost", summary: "Calls, tokens and USD spend so far — budget.warn_at turns it into a guardrail." },
       { name: "/key", args: "[value]", summary: "Set API key in-memory — blank opens a hidden prompt." },
-      { name: "/cost", summary: "What the session has spent." },
+      { name: "/provider", args: "[name|list]", summary: "Switch API provider (openrouter, openai, anthropic, groq, …)." },
       { name: "/config", summary: "Show active configuration and per-operation model roles." },
+      { name: "/session", summary: "Stats for the current session — length, context used." },
+      { name: "/theme", args: "[default|light|highcontrast]", summary: "Switch the colour palette." },
+    ],
+  },
+  {
+    id: "extensions",
+    label: "Extensions",
+    icon: "Puzzle",
+    blurb: "Community packages installed from GitHub releases, inert until you trust them.",
+    commands: [
+      {
+        name: "/ext",
+        args: "[browse|install|remove|update|search|trust|…]",
+        summary:
+          "Manage extensions. Declarative ones only contribute skills; mcp and wasm ones stay inert until /ext trust shows you exactly what they would run.",
+      },
+      { name: "/x", args: "[ext command [args]]", summary: "Run a command a trusted wasm extension contributed, in its sandbox." },
     ],
   },
   {
     id: "session",
-    label: "Editing & utility",
+    label: "Learning & utility",
     icon: "Terminal",
-    blurb: "The small commands you reach for mid-run.",
+    blurb: "The manual is in the app, plus the small commands you reach for mid-run.",
     commands: [
-      { name: "/verify", summary: "Run build/test commands and auto-fix failures with a background agent." },
-      { name: "/watch", args: "[-interval <s>]", summary: "Poll working tree for drift and notify on new changed paths." },
-      { name: "/diff", summary: "Review the changes the agent has proposed or applied." },
-      { name: "/undo", summary: "Roll back the last applied change." },
-      { name: "/yolo", summary: "Auto-approve file changes and commands for this session." },
-      { name: "/compact", summary: "Summarize the conversation to reclaim context." },
-      { name: "/copy", summary: "Copy the last reply to the clipboard." },
-      { name: "/clear", summary: "Clear the transcript." },
       { name: "/help", summary: "List every command." },
+      { name: "/clear", summary: "Clear the screen — the conversation is untouched." },
+      { name: "/copy", summary: "Copy the last reply to the clipboard." },
+      { name: "/tutorial", args: "[chapter|command]", summary: "Guided walkthrough — an overview, a chapter, or a single command." },
+      { name: "/explain", args: "[command|all]", summary: "The full reference page for one command, or the whole manual." },
+      { name: "/version", summary: "Version, Go build and platform." },
       { name: "/quit", summary: "Exit the TUI." },
     ],
   },
@@ -439,9 +488,13 @@ export const OUTPUT_TREE: TreeNode[] = [
   { name: "wiki_state.yaml", note: "the commit the wiki reflects (+ failed sections)", depth: 1, kind: "file" },
   { name: "state.json", note: "per-module source hashes → incremental updates", depth: 1, kind: "file" },
   { name: "risk.json", note: "scan risk flags (secrets, credential files, large binaries)", depth: 1, kind: "file" },
+  { name: "search_index.json", note: "lexical (+ optional vector) index behind kaioken search", depth: 1, kind: "file" },
   { name: "site/", note: "static HTML wiki export generated by /publish", depth: 1, kind: "dir" },
-  { name: "sessions/", note: "saved chat conversations → /resume", depth: 1, kind: "dir" },
+  { name: "sessions/", note: "saved chat conversations + digests → /resume, recall", depth: 1, kind: "dir" },
   { name: "handoffs/", note: "continuation briefings generated by /handoff", depth: 1, kind: "dir" },
+  { name: "research/", note: "cited reports from /research — markdown, json, and PDF for deep runs", depth: 1, kind: "dir" },
+  { name: "impact/", note: "saved blast-radius predictions, scored by impact -compare", depth: 1, kind: "dir" },
+  { name: "templates/", note: "parameterized prompts sent with /t:<name>", depth: 1, kind: "edit" },
   { name: "skills/", note: "task guides an agent loads while working", depth: 1, kind: "dir" },
   { name: "wiki/", note: "the deep wiki: one folder per section, plus CHANGELOG.md", depth: 1, kind: "dir" },
   { name: "KNOWLEDGE.md", note: "index an agent reads first", depth: 1, kind: "file" },
@@ -472,10 +525,10 @@ kaioken wiki                 # deep multi-pass wiki (×3 by default)
 kaioken update               # after code changes: git-diff-driven refresh`
 
 export const ROADMAP = [
-  "Desktop version (Wails wrapper around the same engine — serve is the seed)",
-  "Conversation-memory extraction and card self-iteration",
-  "Diff-driven updates for knowledge cards (today update covers the wiki)",
-  "Export targets (--export qoder, --export claude-md)",
+  "Specialist sub-agents: a refactor agent, a test writer, a debug agent",
+  "A migration agent that upgrades dependencies and applies codemods",
+  "Card self-iteration — cards that revise themselves as the module drifts",
+  "More export targets beyond claude-md, agents-md, cursor-rules and context-md",
 ]
 
 /* ── deep research ─────────────────────────────────────────────────────── */

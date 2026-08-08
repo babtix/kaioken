@@ -9,6 +9,7 @@
 - [Scriptable CLI](#scriptable-cli)
 - [Incremental updates (`kaioken update`)](#incremental-updates-kaioken-update)
 - [Skills (`kaioken skills`)](#skills-kaioken-skills)
+- [Deep research engine (`kaioken research` / `/research`)](#deep-research-engine-kaioken-research--research)
 - [Browsing the wiki (`kaioken serve`)](#browsing-the-wiki-kaioken-serve)
 - [How output quality is engineered](#how-output-quality-is-engineered)
 - [Output layout (inside the target repo)](#output-layout-inside-the-target-repo)
@@ -88,6 +89,7 @@ Drive everything with slash-commands from inside it:
 /wiki [xN] [force]      DEEP wiki: global plan → per-section plans → long docs
                         ×3 is the default depth (×2 adds subsection docs, ×1 sections only)
 /wiki retry             regenerate only the sections that failed last run
+/research [xN] <query>  ask open web: fast loop or multi-agent research dossier
 /skills [force|name]    build task guides an AI loads while working here
 /skills list            show the generated skills
 /update [<base-rev>]    incremental: git-diff against the commit the wiki was built
@@ -212,6 +214,22 @@ The TUI suggests `/skills` once a wiki or card run finishes, since that is when
 there is something to build on. The chat agent lists skills first in its
 knowledge catalog and is told to open a matching one *before* starting a task.
 
+## Deep research engine (`kaioken research` / `/research`)
+
+Ask the open web a complex question and get a grounded, cited dossier:
+
+```powershell
+kaioken research "what changed in Go 1.24 GC?"
+kaioken research x3 -mode deep "compare OSS auth designs"
+/research x2 is solar cheaper than nuclear in europe?
+kaioken research -resume <run_id>
+```
+
+- **Router**: A light model determines whether the prompt needs a single search loop or a multi-agent deep research run.
+- **Decomposition**: A supervisor splits the topic into distinct sub-questions and assigns each to an isolated worker agent.
+- **Parallel Workers**: Workers search the web, fetch and read web pages, gap-check findings, and cite sources precisely.
+- **Dossier Output**: Generates structured markdown + JSON + signed PDF reports in `.kaioken/research/`.
+
 ## Browsing the wiki (`kaioken serve`)
 
 Reading a two-thousand-line chapter in an editor is rough. `serve` renders
@@ -302,6 +320,7 @@ the run starts.
 ├─ state.json        per-module source hashes → incremental updates
 ├─ sessions/         saved chat conversations → /resume
 ├─ skills/           task guides an agent loads while working (SKILL.md each)
+├─ research/         cited research dossiers (.md, .json, .pdf)
 ├─ wiki/             the deep wiki: one folder per section, plus CHANGELOG.md
 ├─ KNOWLEDGE.md      index an agent reads first
 └─ knowledge/<module>/

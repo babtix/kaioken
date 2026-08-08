@@ -13,6 +13,10 @@ import DocsIndex from "@/pages/docs/DocsIndex"
 import Install from "@/pages/docs/Install"
 import Tui from "@/pages/docs/Tui"
 import CommandsDoc from "@/pages/docs/CommandsDoc"
+import Agent from "@/pages/docs/Agent"
+import Research from "@/pages/docs/Research"
+import Impact from "@/pages/docs/Impact"
+import Integrations from "@/pages/docs/Integrations"
 import Wiki from "@/pages/docs/Wiki"
 import Cards from "@/pages/docs/Cards"
 import Skills from "@/pages/docs/Skills"
@@ -78,11 +82,15 @@ export default function DesktopApp() {
               <Route path="install" element={<Install />} />
               <Route path="tui" element={<Tui />} />
               <Route path="commands" element={<CommandsDoc />} />
+              <Route path="agent" element={<Agent />} />
+              <Route path="research" element={<Research />} />
+              <Route path="impact" element={<Impact />} />
               <Route path="wiki" element={<Wiki />} />
               <Route path="cards" element={<Cards />} />
               <Route path="skills" element={<Skills />} />
               <Route path="update" element={<Update />} />
               <Route path="config" element={<Config />} />
+              <Route path="integrations" element={<Integrations />} />
               <Route path="output" element={<OutputDoc />} />
             </Route>
             <Route path="/preview" element={<PreviewLayout />}>

@@ -4,7 +4,7 @@ import { Smartphone, Terminal } from "lucide-react"
 import AsciiArt from "@/components/AsciiArt"
 import GithubMark from "@/components/GithubMark"
 import LinkButton from "@/components/LinkButton"
-import { BUILDER_ART, BUILDER_NAME, GITHUB_URL, NEWS_URL, PROVIDERS } from "@/data/content"
+import { BUILDER_ART, BUILDER_NAME, GITHUB_URL, NEWS_URL, PORTFOLIO_URL, PROVIDERS } from "@/data/content"
 import { setLayoutOverride, useLayoutOverride } from "@/lib/viewport"
 
 const COLUMNS: { heading: string; links: { label: string; to: string; external?: boolean }[] }[] = [
@@ -181,12 +181,14 @@ export default function SiteFooter() {
               >
                 ○ Instagram
               </a>
-              <span
-                className="flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 font-mono text-[11px] text-kai-dim/50 cursor-default"
-                title="Coming soon"
+              <a
+                href={PORTFOLIO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 font-mono text-[11px] text-kai-dim transition-all hover:border-kai-amber/40 hover:text-kai-amber hover:bg-kai-amber/5"
               >
                 ○ Portfolio
-              </span>
+              </a>
             </div>
             {/* discrete background preview link */}
             <div className="mt-6">

@@ -7,6 +7,42 @@ const NOTES_YAML = `notes:
      sibling ws_router authenticating via short-lived JWT in the token query param."
   - "Every admin mutation must be audit-logged via the AuditLog model."`
 
+const BLOCKS_YAML = `budget:
+  warn_at: 5.00          # USD — warn past this
+  hard_stop: 20.00       # USD — refuse to continue
+
+memory:
+  learn: 5               # turns before a session distils itself into a skill
+  max_skills: 40
+
+search:
+  embed_model: openai/text-embedding-3-small
+  embed_provider: openai
+
+compaction:
+  reserve_tokens: 8000
+  keep_recent_tokens: 24000`
+
+const GLOBAL_YAML = `default_provider: openrouter
+default_model: anthropic/claude-sonnet-4.5
+
+keys:
+  openrouter: sk-or-...
+  tavily: tvly-...        # web search, for research
+
+research:
+  search_provider: tavily
+  max_rounds: 4
+  max_minutes: 20
+  mode: auto              # auto | fast | deep
+  verify: false
+  max_cost_usd: 3.00
+
+selfupdate:
+  enabled: true
+  channel: stable
+  notify_only: false`
+
 export default function Config() {
   return (
     <DocPage
@@ -18,8 +54,10 @@ export default function Config() {
         <CodeBlock title="powershell" prompt code={`kaioken init`} />
       </div>
       <P>
-        From inside the TUI, <C>/init</C> does the same and <C>/config</C> shows what is currently
-        active.
+        <C>init</C> is the whole first run, not just a file: it writes <C>.kaioken/config.yaml</C>,
+        scans the repo, and writes <C>AGENTS.md</C> — the instruction file agents read before
+        editing. <C>-force</C> rewrites an existing <C>AGENTS.md</C>. From inside the TUI,{" "}
+        <C>/init</C> does the same and <C>/config</C> shows what is currently active.
       </P>
 
       <H2 id="providers">Providers</H2>
@@ -57,7 +95,7 @@ export default function Config() {
         wipe with <C>/notes clear</C>.
       </P>
 
-      <H2 id="routing">Model Routing</H2>
+      <H2 id="routing">Model routing</H2>
       <P>
         Map specific operational roles onto different models in <C>config.yaml</C>. Supported roles are{" "}
         <C>plan</C>, <C>edit</C>, <C>task</C>, <C>compact</C>, <C>impact</C>, and <C>summarize</C>. If a role is unset, it falls back to the primary <C>model</C>.
@@ -72,6 +110,54 @@ export default function Config() {
   task: anthropic/claude-3-5-sonnet`}
         />
       </div>
+
+      <H2 id="budget">Budgets, memory and search</H2>
+      <P>
+        Three optional blocks turn behaviour that is otherwise implicit into something you set. All
+        of them live in the same per-repo <C>config.yaml</C>.
+      </P>
+      <div className="pt-4">
+        <CodeBlock
+          title="config.yaml"
+          code={BLOCKS_YAML}
+        />
+      </div>
+      <UL>
+        <LI>
+          <C>budget</C> — <C>warn_at</C> prints a warning past that spend, <C>hard_stop</C> refuses
+          to continue. On OpenRouter the real USD figure is available, so this is a guardrail rather
+          than an estimate.
+        </LI>
+        <LI>
+          <C>memory</C> — <C>learn</C> is how many turns a session needs before it distils itself
+          into a skill at close; <C>disable</C> turns the whole mechanism off, and{" "}
+          <C>max_skills</C> caps how many it may keep.
+        </LI>
+        <LI>
+          <C>search</C> — set <C>embed_model</C> (with its own provider and base URL when it differs)
+          and <C>kaioken index</C> adds a semantic half to the lexical index. Leave it out and search
+          stays purely offline.
+        </LI>
+        <LI>
+          <C>compaction</C> — <C>reserve_tokens</C> and <C>keep_recent_tokens</C> tune when context
+          reduction kicks in and how much recent conversation it protects.
+        </LI>
+      </UL>
+
+      <H2 id="global">The global file</H2>
+      <P>
+        Machine-wide settings live in <C>~/.kaioken/config.yaml</C>, separate from any repo: the
+        default provider and model, the per-provider API keys, self-update behaviour, extra local
+        endpoints, and the research defaults.
+      </P>
+      <div className="pt-4">
+        <CodeBlock title="~/.kaioken/config.yaml" code={GLOBAL_YAML} />
+      </div>
+      <Callout kind="note" title="Research needs a search key">
+        The web-search key is separate from the LLM key. <C>tavily</C>, <C>firecrawl</C>,{" "}
+        <C>brave</C> and <C>exa</C> are supported; with Firecrawl in the set its scrape API reads
+        the pages too.
+      </Callout>
 
       <H2 id="editable">Files meant to be edited</H2>
       <UL>
@@ -95,7 +181,8 @@ export default function Config() {
         <LI>A wiki run prints its estimated calls and tokens before starting.</LI>
         <LI>Past a threshold it asks for confirmation.</LI>
         <LI>
-          <C>/cost</C> shows what the current session has spent.
+          <C>/cost</C> shows what the current session has spent; <C>kaioken usage</C> aggregates it
+          across sessions by operation, model and workspace.
         </LI>
         <LI>
           <C>/compact</C> summarizes the conversation to reclaim context rather than paying for it

@@ -30,10 +30,10 @@ export default function Home() {
 
       <Features />
       <Pipeline />
-      <Research />
       <Multiplier />
-      <Quality />
       <Commands />
+      <Quality />
+      <Research />
       <OutputTree />
       <QuickStart />
 

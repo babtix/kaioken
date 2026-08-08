@@ -63,7 +63,7 @@ func readUntilN(t *testing.T, p PTY, marker string, want int, timeout time.Durat
 				return sb.String()
 			}
 			sb.Write(c.b)
-			if strings.Contains(sb.String(), marker) {
+			if strings.Count(sb.String(), marker) >= want {
 				return sb.String()
 			}
 		case <-deadline:
