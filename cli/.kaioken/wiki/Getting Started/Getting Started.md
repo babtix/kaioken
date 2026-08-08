@@ -129,7 +129,7 @@ Here is a reference of the available CLI commands:
 | Command | Description |
 |---------|-------------|
 | `init` | Create `.kaioken/config.yaml` in the target repo |
-| `scan` | Scan the repo and print an inventory summary |
+| `scan` | Scan the repo and print an inventory summary (flags secrets, credentials, and generated files) |
 | `plan` | Propose a module tree with the LLM → `.kaioken/modules.yaml` (editable) |
 | `generate` | Generate knowledge cards for all modules (skips unchanged ones) |
 | `status` | Show module freshness (changed / up-to-date / missing) |
@@ -144,6 +144,15 @@ Here is a reference of the available CLI commands:
 | `logo` | Print the KAIOKEN wordmark |
 | `version` | Print the version |
 | `help` | Print usage information |
+| `hub` | Cross-repo registry and freshness status |
+| `watch` | Drift notification poller |
+| `verify` | Agent fix loop with Go gate |
+| `impact` | Compare scoring predictions against actual changes |
+| `handoff` | Write session continuation briefings |
+| `gitdraft` | Draft commit messages from the diff |
+| `onboard` | Generate a day-one guide from knowledge |
+| `pack` | Bundle knowledge for offline machines |
+| `publish` | Render the wiki as a static site |
 
 Note: The `tui` command is the default when no command is given.
 

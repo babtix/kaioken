@@ -107,6 +107,61 @@ export default function Showcase() {
       <Section className="pt-8">
         <SectionHead
           index="02"
+          eyebrow="head-to-head"
+          title="Kaioken vs Gemini Deep Search"
+          lead="Same clinical prompt submitted to both research engines. Unedited head-to-head comparison."
+        />
+
+        <div className="mt-5 space-y-4">
+          {/* Kaioken Mobile Card */}
+          <div className="rounded-md border border-kai-orange/45 bg-card p-4">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-bold text-kai-orange uppercase">
+                Kaioken Research
+              </span>
+              <span className="rounded bg-kai-orange/10 px-1.5 py-0.5 font-mono text-[10px] text-kai-amber">
+                30,818 words
+              </span>
+            </div>
+            <h4 className="mt-2 font-mono text-[13.5px] font-bold text-foreground">
+              Deep Rigor & Premise Deconstruction
+            </h4>
+            <p className="mt-1.5 font-sans text-[12.5px] leading-relaxed text-muted-foreground">
+              Identified 0 head-to-head RCTs exist in CKD literature, deconstructed prompt flaw, mapped star-network NMA geometry, and cited 117+ references.
+            </p>
+            <Action to="/preview/research/compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh" className="mt-3">
+              Read Kaioken Report (30.8k w)
+              <ArrowRight className="size-3.5" aria-hidden />
+            </Action>
+          </div>
+
+          {/* Gemini Mobile Card */}
+          <div className="rounded-md border border-border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] font-bold text-blue-400 uppercase">
+                Gemini Deep Search
+              </span>
+              <span className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                5,967 words
+              </span>
+            </div>
+            <h4 className="mt-2 font-mono text-[13.5px] font-bold text-foreground">
+              High-Level Overview (French)
+            </h4>
+            <p className="mt-1.5 font-sans text-[12.5px] leading-relaxed text-muted-foreground">
+              Accepted prompt at face value, forcing 3 placebo-controlled RCTs into a comparison table without analyzing indirect network transitivity.
+            </p>
+            <Action to="/preview/research/gemini-sglt2-vs-glp-1-in-ckd" variant="outline" className="mt-3">
+              Read Gemini Report (5.9k w)
+              <ArrowRight className="size-3.5" aria-hidden />
+            </Action>
+          </div>
+        </div>
+      </Section>
+
+      <Section className="pt-8">
+        <SectionHead
+          index="03"
           eyebrow="the plan it produced"
           title={<>{WIKI_STATS.sections} sections, planned then verified</>}
           lead="The outline came from wiki_plan.yaml — proposed by the model, editable by hand before a single chapter was generated."
@@ -143,7 +198,7 @@ export default function Showcase() {
 
       <Section className="pt-8">
         <SectionHead
-          index="03"
+          index="04"
           eyebrow="reproduce it"
           title="Two commands on your own repo"
           lead="The scan is free and the plan is a file you can edit. The cost estimate prints before anything expensive runs."

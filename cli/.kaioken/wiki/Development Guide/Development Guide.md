@@ -74,6 +74,7 @@ Kaioken follows a layered architecture where high-level components depend on low
 cmd/kaioken/main.go        → Entry point (CLI commands)
 cmd/webnews/main.go        → Entry point for the serverless news site
 cmd/desktop/main.go        → Entry point for the desktop application
+cmd/website_pre/main.go    → Entry point for the website_pre prototype app
 internal/tui/tui.go        → Terminal UI (Bubble Tea)
 internal/agent/agent.go    → Chat agent (LLM interaction, tool execution)
 internal/wiki/wiki.go      → Knowledge engine (documentation generation)
@@ -129,7 +130,7 @@ Important considerations:
 - Research mode has been added for deep research capabilities.
 - MCP server support has been added for model context protocol integration.
 - The knowledge engine maintains a persistent repo knowledge base to support incremental updates
-- The CLI has been extended with new endpoints for browser proxy, file-write, git write operations, per-file diff, git worktree helpers for isolated sub-agent checkouts, and hybrid research engine features including supervisor, router, and PDF exporter (see `cmd/kaioken/main.go` for details)
+- The CLI has been extended with new endpoints for browser proxy, file-write, git write operations, per-file diff, git worktree helpers for isolated sub-agent checkouts, and hybrid research engine features including supervisor, router, and PDF exporter, as well as new commands such as hub, watch, verify, impact, handoff, gitdraft, onboard, pack, and publish (see `cmd/kaioken/main.go` for details)
 
 ## Referenced Files
 - `go.mod` - Dependency declarations and Go version

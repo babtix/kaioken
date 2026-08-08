@@ -36,6 +36,29 @@ export const DOCS_NAV: DocSection[] = [
     ],
   },
   {
+    heading: "the agent",
+    links: [
+      {
+        to: "/docs/agent",
+        label: "Modes & memory",
+        blurb: "Permission modes, steering, branching, what it remembers.",
+        icon: "Waypoints",
+      },
+      {
+        to: "/docs/research",
+        label: "Deep research",
+        blurb: "The router, the fast path, the deep path, the dossier.",
+        icon: "Globe",
+      },
+      {
+        to: "/docs/impact",
+        label: "Impact & review",
+        blurb: "Predict a change, review a diff, run the build gate.",
+        icon: "Radar",
+      },
+    ],
+  },
+  {
     heading: "the engine",
     links: [
       {
@@ -70,8 +93,14 @@ export const DOCS_NAV: DocSection[] = [
       {
         to: "/docs/config",
         label: "Configuration",
-        blurb: "config.yaml, providers, steering notes.",
+        blurb: "config.yaml, providers, model roles, budgets.",
         icon: "FolderGit2",
+      },
+      {
+        to: "/docs/integrations",
+        label: "Integrations",
+        blurb: "MCP, search index, export, extensions, headless.",
+        icon: "Plug",
       },
       {
         to: "/docs/output",

@@ -20,25 +20,36 @@ export default function SectionHeading({
 }: SectionHeadingProps) {
   return (
     <div className={cn("max-w-3xl", align === "center" && "mx-auto text-center", className)}>
+      {/* Eyebrow pill */}
       <div
         className={cn(
-          "flex items-center gap-2 font-mono text-[11px] tracking-[0.25em] uppercase",
-          align === "center" && "justify-center"
+          "inline-flex items-center gap-2 rounded-full border border-border/70 bg-kai-panel/60 px-3 py-1",
+          align === "center" && "mx-auto"
         )}
       >
-        <span className="text-kai-orange" aria-hidden>
+        <span className="text-kai-orange text-[10px]" aria-hidden>
           ▎
         </span>
-        {index ? <span className="text-kai-amber">{index}</span> : null}
-        <span className="text-muted-foreground">{eyebrow}</span>
+        {index ? (
+          <span className="font-mono text-[11px] font-bold text-kai-amber">{index}</span>
+        ) : null}
+        <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+          {eyebrow}
+        </span>
       </div>
-      <h2 className="mt-3 text-balance font-mono text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+
+      <h2
+        className={cn(
+          "mt-4 text-balance font-mono font-bold tracking-tight text-foreground",
+          "text-3xl sm:text-4xl"
+        )}
+      >
         {title}
       </h2>
       {description ? (
         <p
           className={cn(
-            "mt-4 font-sans text-[15px] leading-relaxed text-muted-foreground",
+            "mt-4 font-sans text-[15px] leading-relaxed text-muted-foreground sm:text-base",
             align === "center" && "mx-auto"
           )}
         >

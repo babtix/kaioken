@@ -8,7 +8,7 @@ export default function Research() {
     <section id="research" className="relative border-t border-border py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
-          index="03"
+          index="06"
           eyebrow="deep research"
           title={
             <>
@@ -62,6 +62,60 @@ export default function Research() {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+
+        {/* Real research reports generated in .kaioken/research/ */}
+        <div className="mt-12 rounded-sm border border-border/80 bg-kai-panel/40 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-[1px] bg-kai-orange" aria-hidden />
+              <span className="font-mono text-[11px] tracking-[0.15em] text-kai-dim uppercase">
+                generated artifacts in .kaioken/research/
+              </span>
+            </div>
+            <span className="font-mono text-[11px] text-kai-amber">
+              3 unedited live runs shipped
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <a
+              href="/preview/research/is-solar-cheaper-than-nuclear-in-europe"
+              className="group rounded-sm border border-border bg-card p-3.5 transition-colors hover:border-kai-orange/60"
+            >
+              <span className="font-mono text-[10px] text-kai-dim">REPORT · 1,438 WORDS</span>
+              <h4 className="mt-1 font-mono text-[12.5px] font-bold text-foreground group-hover:text-kai-orange">
+                Solar vs Nuclear LCOE in Europe
+              </h4>
+              <p className="mt-1 font-sans text-[11.5px] text-muted-foreground line-clamp-2">
+                Utility-scale solar LCOE comparison across Spain, Italy, Germany and UK.
+              </p>
+            </a>
+            <a
+              href="/preview/research/compare-the-efficacy-and-adverse-event-profiles-of-sglt2-inh"
+              className="group rounded-sm border border-border bg-card p-3.5 transition-colors hover:border-kai-orange/60"
+            >
+              <span className="font-mono text-[10px] text-kai-dim">REPORT · 30,818 WORDS</span>
+              <h4 className="mt-1 font-mono text-[12.5px] font-bold text-foreground group-hover:text-kai-orange">
+                SGLT2 vs GLP-1 in T2D with CKD
+              </h4>
+              <p className="mt-1 font-sans text-[11.5px] text-muted-foreground line-clamp-2">
+                No head-to-head RCTs exist — all evidence is indirect via placebo-controlled trials. CREDENCE, DAPA-CKD, EMPA-KIDNEY analysis.
+              </p>
+            </a>
+            <a
+              href="/preview/research/last-cloud-llm-at-ollama"
+              className="group rounded-sm border border-border bg-card p-3.5 transition-colors hover:border-kai-orange/60"
+            >
+              <span className="font-mono text-[10px] text-kai-dim">REPORT · 1,283 WORDS</span>
+              <h4 className="mt-1 font-mono text-[12.5px] font-bold text-foreground group-hover:text-kai-orange">
+                Cloud LLMs at Ollama
+              </h4>
+              <p className="mt-1 font-sans text-[11.5px] text-muted-foreground line-clamp-2">
+                Integration patterns, host configuration & remote provider endpoints.
+              </p>
+            </a>
           </div>
         </div>
       </div>

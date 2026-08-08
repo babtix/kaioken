@@ -1,1 +1,1 @@
-The module uses the Go standard library and the kaioken internal packages (such as config, llm, agent, session, etc.). No external frameworks or libraries are directly imported in the provided source files.
+The module is written in Go and uses the Go standard library (context, fmt, os, etc.). It relies on the project's internal packages (e.g., internal/config, internal/llm, internal/agent) for core functionality but does not directly import external frameworks or libraries beyond the standard library.

@@ -85,7 +85,7 @@ function CategorySection({ cat }: { cat: RoadmapCategory }) {
           {cat.items.map((item) => (
             <article
               key={item.title}
-              className="group relative bg-card p-5 transition-colors duration-200 hover:bg-kai-panel"
+              className="group relative glass p-5 transition-all duration-300 hover:brightness-110"
             >
               {/* gutter bar on hover */}
               <span
@@ -146,7 +146,7 @@ export default function Next() {
         {/* stats bar */}
         <dl className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-border bg-border sm:grid-cols-4">
           {SUMMARY_STATS.map((s) => (
-            <div key={s.label} className="bg-card px-5 py-5">
+            <div key={s.label} className="glass px-5 py-5">
               <dt className="font-mono text-[10.5px] tracking-[0.2em] text-kai-dim uppercase">
                 {s.label}
               </dt>
@@ -156,7 +156,7 @@ export default function Next() {
         </dl>
 
         {/* context note */}
-        <div className="mt-6 rounded-sm border border-border bg-card p-5">
+        <div className="mt-6 rounded-sm p-5 glass">
           <p className="font-mono text-[12.5px] leading-relaxed text-kai-dim">
             <span className="text-kai-orange">▎</span> These enhancements extend the current
             architecture — the{" "}
@@ -192,7 +192,7 @@ export default function Next() {
             {ARCH_ENABLERS.map((item, i) => (
               <li
                 key={item.title}
-                className="group flex gap-4 border-b border-border bg-card px-5 py-4 transition-colors last:border-b-0 hover:bg-kai-panel"
+                className="group flex gap-4 border-b border-white/[0.06] glass px-5 py-4 transition-all duration-200 last:border-b-0"
               >
                 <span className="mt-px shrink-0 font-mono text-[11px] text-kai-dim">
                   {String(i + 1).padStart(2, "0")}

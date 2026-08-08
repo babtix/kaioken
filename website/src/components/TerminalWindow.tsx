@@ -27,13 +27,13 @@ export default function TerminalWindow({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-sm border border-border bg-card",
-        "shadow-[0_24px_60px_-24px_#000]",
+        "overflow-hidden rounded-sm border border-white/[0.07] glass-deep",
+        "shadow-[0_24px_60px_-24px_#000,inset_0_1px_0_rgba(255,255,255,0.05)]",
         className
       )}
       {...props}
     >
-      <div className="flex items-center gap-2 border-b border-border bg-kai-panel px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-white/[0.06] bg-kai-panel/80 px-3 py-2">
         {/* the only place raw red/green appear at full strength */}
         <span className="size-2.5 rounded-[1px] bg-kai-red/70" />
         <span className="size-2.5 rounded-[1px] bg-kai-amber/70" />

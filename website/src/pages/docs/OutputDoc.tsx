@@ -55,7 +55,35 @@ export default function OutputDoc() {
           re-billed.
         </LI>
         <LI>
-          <C>sessions/</C> — saved chat conversations, reopened with <C>/resume</C>.
+          <C>sessions/</C> — saved chat conversations, reopened with <C>/resume</C>. A short digest
+          is written beside each closed session so <C>recall</C> can search past work without
+          re-reading whole transcripts.
+        </LI>
+        <LI>
+          <C>search_index.json</C> — the corpus index behind <C>kaioken search</C>. The lexical half
+          rebuilds itself whenever the corpus changes; vectors are added only by{" "}
+          <C>kaioken index</C>.
+        </LI>
+      </UL>
+
+      <H2 id="reports">Reports</H2>
+      <P>
+        Three directories hold output that is a record rather than a document, each named by the
+        command that wrote it.
+      </P>
+      <UL>
+        <LI>
+          <C>research/</C> — one <C>.md</C> report per question, alongside a <C>.json</C> record of
+          findings, sources, the route taken and the cost. Deep runs add a rendered PDF. Re-asking
+          the same question overwrites its predecessor.
+        </LI>
+        <LI>
+          <C>impact/</C> — timestamped blast-radius predictions, which is what lets{" "}
+          <C>kaioken impact -compare</C> score the newest one against what actually changed.
+        </LI>
+        <LI>
+          <C>handoffs/</C> — continuation briefings: goal, decisions, state, open threads, plus the
+          transcript.
         </LI>
       </UL>
 

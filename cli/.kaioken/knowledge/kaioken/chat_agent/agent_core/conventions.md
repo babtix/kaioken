@@ -1,9 +1,9 @@
-- Use mutexes for shared state (e.g., Agent.qmu, BudgetGuard.mu, DirNotes.mu) and hold locks for the entire critical section.
-- Check for nil at the start of methods in nil-safe types (e.g., ContextTracker, Bus, DirNotes) and degrade gracefully.
-- Emit events via the bus.Emit method with an Event pointer; the bus is nil-safe and handlers run synchronously.
-- Group consecutive read-only tool calls for parallel execution in runToolCalls (tool_executor.go) using the parallelSafe helper.
-- Anchor context estimation on provider-reported tokens (ctxtrack.go) and estimate only new messages since the anchor.
-- Strip all existing reminder blocks from user messages before applying the current turn's reminder to the last user message (reminders.go).
-- Ensure budget warnings fire exactly once per guard using a mutex-protected flag (budget.go).
-- Protect ContextEpoch snapshots with a RWMutex and truncate EpochID to 12 characters (epoch.go).
-- Bound tool output by line and byte limits, spill excess to .kaioken/tool-output/, and return a bounded excerpt with a truncation notice (tool_store.go).
+- Agent methods for user actions are PascalCase (Steer, FollowUp) while internal helpers are lowerCamelCase (drainSteering, bus).
+- Constants are in ALL_CAPS (e.g., delegateSteps, maxDirNoteBytes).
+- Runtime tools are registered via agent.RegisterTool and unregistered via UnregisterTool (tool_registry.go).
+- Event handlers subscribe via events.Bus.Subscribe (for specific types) or SubscribeAll.
+- Tool results indicating errors are prefixed with "error: " (tool_executor.go: isErrResult).
+- The Agent.Run method returns the updated conversation history or an error (context cancellation or max steps exceeded).
+- The Agent.UI interface is used for all front-end interactions (streaming, approvals, etc.).
+- Tool execution batches consecutive read-only tools for parallelism (tool_executor.go: runToolCalls).
+- The Agent.bus() method returns the agent's own events.Bus or the process-wide default.

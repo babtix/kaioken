@@ -17,10 +17,12 @@ import {
   BUILDER_NAME,
   GITHUB_URL,
   NEWS_URL,
+  PORTFOLIO_URL,
   PROVIDERS,
 } from "@/data/content"
 
 const CONTACTS = [
+  { label: "Portfolio", value: "babtich.vercel.app", href: PORTFOLIO_URL },
   { label: "GitHub", value: "github.com/babtix", href: "https://github.com/babtix" },
   { label: "Email", value: "babtichelhabib@gmail.com", href: "mailto:babtichelhabib@gmail.com" },
   {
@@ -112,16 +114,6 @@ export default function More() {
               plain
             />
           ))}
-          <div className="flex min-h-[56px] items-center gap-3 bg-card px-4 py-3.5 opacity-55">
-            <span className="min-w-0 flex-1">
-              <span className="block font-mono text-[13.5px] font-bold text-foreground">
-                Portfolio
-              </span>
-              <span className="mt-1 block font-sans text-[12.5px] text-muted-foreground">
-                coming soon
-              </span>
-            </span>
-          </div>
         </RowGroup>
       </Section>
 

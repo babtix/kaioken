@@ -29,7 +29,12 @@ export default function LinkButton({
   className,
   children,
 }: LinkButtonProps) {
-  const classes = cn(buttonVariants({ variant, size }), "rounded-sm font-mono", className)
+  // rounded-md gives a more modern feel; active:scale-[0.97] is the press micro-animation
+  const classes = cn(
+    buttonVariants({ variant, size }),
+    "rounded-md font-mono active:scale-[0.97] transition-transform",
+    className
+  )
 
   if (to) {
     return (

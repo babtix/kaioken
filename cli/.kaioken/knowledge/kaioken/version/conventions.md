@@ -1,8 +1,6 @@
-Package name must be "version".
-Export the build version as a var (Version) to allow ldflags override; do not make it a const.
-Export the API contract version as a const integer (ContractVersion).
-Document Version with a comment explaining manual bumping and ldflags override usage.
-Document ContractVersion with a comment describing when it should be bumped and the associated API changes.
-Use PascalCase for exported identifiers.
-Do not add init() functions or unnecessary dependencies; rely on zero‑initialization.
-No error handling is required for this package.
+Exported variables that must be overridable via build flags are declared as vars (not const).
+Exported constants are used for immutable values such as the API contract version.
+Exported identifiers use camelCase (Version, ContractVersion).
+Package name matches its directory (version).
+File includes a package comment describing its purpose and usage.
+No external libraries are imported; the file relies only on the Go standard library.

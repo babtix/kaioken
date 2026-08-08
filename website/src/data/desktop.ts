@@ -403,6 +403,14 @@ export const SHORTCUT_GROUPS: { group: string; items: { keys: string; label: str
       { keys: "Ctrl+W", label: "Close tab" },
     ],
   },
+  {
+    group: "Workspaces",
+    items: [
+      { keys: "Ctrl+O", label: "Open workspace" },
+      { keys: "Ctrl+R", label: "Reload workspace state" },
+      { keys: "Ctrl+Shift+F", label: "Global symbol search" },
+    ],
+  },
 ]
 
 /* ── platforms and building ─────────────────────────────────────────────── */
@@ -425,14 +433,14 @@ export const PLATFORMS: Platform[] = [
   {
     id: "macos",
     label: "macOS",
-    artifacts: "Disk image (.dmg)",
-    note: "Uses the system WebKit — no bundled browser engine.",
+    artifacts: "Coming soon",
+    note: "Disk image (.dmg) · Uses the system WebKit.",
   },
   {
     id: "linux",
     label: "Linux",
-    artifacts: "Debian package + AppImage",
-    note: "Needs webkit2gtk; the .deb declares it.",
+    artifacts: "Coming soon",
+    note: "Debian package + AppImage · Requires webkit2gtk.",
   },
 ]
 

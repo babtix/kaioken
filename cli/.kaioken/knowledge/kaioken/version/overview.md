@@ -1,1 +1,1 @@
-The internal/version package provides the Kaioken build version and API contract version that are shared by the CLI and TUI components.
+The internal/version package provides the Kaioken build version and API contract version shared by the CLI and TUI components.

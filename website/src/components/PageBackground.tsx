@@ -41,21 +41,27 @@ export default function PageBackground({
       <div className={cn("kai-dots kai-fade-down absolute inset-0", simple ? "opacity-30" : "opacity-45")} />
 
       {simple ? (
-        /* one quiet light source overhead, and nothing over the type */
-        <div className="animate-bloom kai-bloom absolute -top-[32vh] left-1/2 h-[55vh] w-[80vw] -translate-x-1/2 bg-kai-orange/[0.07]" />
+        /* two quiet light sources — orange overhead + secondary amber — so glass panels catch light */
+        <>
+          <div className="animate-bloom kai-bloom absolute -top-[28vh] left-1/2 h-[65vh] w-[90vw] -translate-x-1/2 bg-kai-orange/[0.10]" />
+          <div
+            className="animate-bloom kai-bloom absolute -bottom-[20vh] -right-[10vw] h-[40vh] w-[40vw] bg-kai-amber/[0.05]"
+            style={{ animationDelay: "-12s" }}
+          />
+        </>
       ) : (
         <>
           {/* character grid, only where the hero sits */}
           <div className="term-grid kai-fade-hero absolute inset-x-0 top-0 h-screen opacity-80" />
 
-          {/* three off-screen light sources */}
-          <div className="animate-bloom kai-bloom absolute -top-[30vh] left-1/2 h-[65vh] w-[85vw] -translate-x-1/2 bg-kai-orange/12" />
+          {/* three off-screen light sources — slightly brighter for glass reflections */}
+          <div className="animate-bloom kai-bloom absolute -top-[28vh] left-1/2 h-[75vh] w-[90vw] -translate-x-1/2 bg-kai-orange/[0.14]" />
           <div
-            className="animate-bloom kai-bloom absolute -bottom-[25vh] -left-[15vw] h-[50vh] w-[45vw] bg-kai-red/[0.07]"
+            className="animate-bloom kai-bloom absolute -bottom-[25vh] -left-[15vw] h-[55vh] w-[50vw] bg-kai-red/[0.09]"
             style={{ animationDelay: "-9s" }}
           />
           <div
-            className="animate-bloom kai-bloom absolute -right-[15vw] bottom-[-20vh] h-[50vh] w-[45vw] bg-kai-amber/[0.06]"
+            className="animate-bloom kai-bloom absolute -right-[15vw] bottom-[-20vh] h-[55vh] w-[50vw] bg-kai-amber/[0.08]"
             style={{ animationDelay: "-17s" }}
           />
 

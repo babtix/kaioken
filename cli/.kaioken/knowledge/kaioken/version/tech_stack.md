@@ -1,1 +1,1 @@
-Go programming language (standard library only).
+Go (standard library only).

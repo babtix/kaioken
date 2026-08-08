@@ -90,7 +90,7 @@ graph TD
 
 ### Component Responsibilities
 
-- **cli/cmd/kaioken/main.go**: Entry point; defines CLI commands (`init`, `scan`, `plan`, `generate`, `wiki`, `update`, `models`, `status`, `skills`, `hook`, `serve`) and depends on all internal packages.
+- **cli/cmd/kaioken/main.go**: Entry point; defines CLI commands (`init`, `scan`, `plan`, `generate`, `wiki`, `update`, `models`, `status`, `skills`, `hook`, `serve`, `hub`, `watch`, `verify`, `impact`, `handoff`, `gitdraft`, `onboard`, `pack`, `publish`) and depends on all internal packages.
 - **cli/internal/tui/tui.go**: Terminal UI (Bubble Tea); handles user input, displays output, and orchestrates interactions with agent, LLM, session, skills, wiki, serve, codemap, scan, plan, state, and gitx. Now includes a workspace explorer UI for navigating repository structure and symbols.
 - **cli/internal/agent/agent.go**: Chat agent; processes user messages, invokes LLM with tools (which have been enhanced to include permissions, context tracking, and directory notes features), and manages approvals via UI; depends on llm, config, codemap, scan, session, skills, wiki, and state.
 - **cli/internal/wiki/wiki.go**: Knowledge engine; generates modules, knowledge cards, and wiki documentation; functions as a repository knowledge base for incremental updates and contextual awareness; depends on scan, plan, llm, config, codemap, state, state, and skills.
@@ -108,15 +108,5 @@ graph TD
 - **cli/internal/supervisor/**: Supervisor; oversees agent operations and task coordination; depends on config.
 - **cli/internal/router/**: Router; directs requests to appropriate LLMs or tools based on context; depends on config.
 - **cli/internal/pdfexporter/**: PDF exporter; converts wiki content or notes to PDF format; depends on config.
-
-## Key Components
-
-### Command Line Interface (`cli/cmd/kaioken/main.go`)
-
-The CLI entry point defines all user-facing commands and orchestrates high-level operations by delegating to internal packages.
-
-| Declaration | Line Range | Description |
-|-------------|------------|-------------|
-| | | |
 
 <!-- kaioken:files internal/tui/tui.go,internal/agent/agent.go,internal/wiki/wiki.go -->

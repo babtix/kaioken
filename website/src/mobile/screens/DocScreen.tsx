@@ -17,11 +17,15 @@ const CONTENT: Record<string, React.LazyExoticComponent<React.ComponentType>> = 
   install: React.lazy(() => import("@/pages/docs/Install")),
   tui: React.lazy(() => import("@/pages/docs/Tui")),
   commands: React.lazy(() => import("@/pages/docs/CommandsDoc")),
+  agent: React.lazy(() => import("@/pages/docs/Agent")),
+  research: React.lazy(() => import("@/pages/docs/Research")),
+  impact: React.lazy(() => import("@/pages/docs/Impact")),
   wiki: React.lazy(() => import("@/pages/docs/Wiki")),
   cards: React.lazy(() => import("@/pages/docs/Cards")),
   skills: React.lazy(() => import("@/pages/docs/Skills")),
-  update: React.lazy(() => import("@/pages/docs/Update")),
   config: React.lazy(() => import("@/pages/docs/Config")),
+  integrations: React.lazy(() => import("@/pages/docs/Integrations")),
+  update: React.lazy(() => import("@/pages/docs/Update")),
   output: React.lazy(() => import("@/pages/docs/OutputDoc")),
 }
 
