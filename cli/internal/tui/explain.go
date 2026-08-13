@@ -132,6 +132,23 @@ var commandGuides = map[string]string{
 		"on. Each SKILL.md names real files, follows local conventions, and lists " +
 		"the mistakes people actually make. The chat agent loads them automatically " +
 		"via read_knowledge.",
+	"prism": "Retrieval over documents you import, as opposed to the wiki Kaioken " +
+		"generates. Documents go into named modules and questions are scoped to " +
+		"one, so a question about contracts never surfaces a cardiology chapter. " +
+		"Each document is chunked twice: small children get embedded and searched, " +
+		"their larger parents are what reach the model, so the match is precise " +
+		"and the context is whole.\n\n" +
+		"The part worth understanding is the relevance gate. Plain search always " +
+		"returns its best matches, even when the answer is simply not in the " +
+		"corpus — and a model handed those will use them. With a utility model " +
+		"configured, every candidate is graded before it is used, and when nothing " +
+		"passes the answer is 'no source found'. That is a useful answer, and one " +
+		"a pipeline without a gate cannot give.\n\n" +
+		"Hence the three flags on every result. sourced: a graded source backs it. " +
+		"UNGRADED: the gate never ran, so the context is unverified however good it " +
+		"looks. DEGRADED: retrieval ran on a reduced pipeline. They stay separate " +
+		"because one flag cannot distinguish 'the corpus has no answer' from " +
+		"'retrieval is broken', and those call for opposite responses.",
 	"serve": "Renders .kaioken/wiki/ as a local website with sidebar navigation, search " +
 		"and mermaid diagrams. Runs in the background so chat stays usable. Reading " +
 		"a two-thousand-line chapter in an editor is rough; serve it instead. Use " +

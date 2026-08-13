@@ -187,6 +187,13 @@ type Model struct {
 	// budget shares the client's lifetime: it watches the client's cumulative
 	// spend, so both reset together on a /model or /provider switch.
 	budget *agent.BudgetGuard
+	// prismModule is the imported-document module /prism queries against.
+	// Selecting one is a session choice, not a config setting: a user moves
+	// between corpora far more often than they change how retrieval works.
+	prismModule string
+	// prismPendingRm is the module a repeated /prism rm would delete, which is
+	// the only confirmation a line-oriented interface can offer.
+	prismPendingRm string
 	// ctxTracker holds the provider's own measurement of the conversation's
 	// size, which is what compaction decides on. It outlives the per-turn
 	// Agent, and resets alongside the client — a different model tokenizes
@@ -448,6 +455,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.flushLive("")
 		m.appendLine(msg.line)
 		return m, listen(m.events)
+
+	case prismDoneMsg:
+		if msg.err != nil {
+			m.appendLine(errStyle.Render(msg.err.Error()))
+			return m, nil
+		}
+		for _, l := range msg.lines {
+			m.appendLine(l)
+		}
+		return m, nil
 
 	case streamDeltaMsg:
 		m.live += msg.text
@@ -797,6 +814,43 @@ func (m *Model) doQueue(arg string) {
 	default:
 		m.appendLine(dimStyle.Render(fmt.Sprintf("%d message(s) queued — /queue clear to drop them", n)))
 	}
+}
+
+// doBTW records an aside: something the agent should know, with nothing asked
+// of it. No turn starts — the message joins the conversation and the model
+// reads it when it next replies. While a chat turn is in flight the aside goes
+// through the steering queue instead, because Run owns the conversation for
+// the duration and appending to m.conversation there would be overwritten by
+// the history the run returns.
+func (m *Model) doBTW(text string) {
+	aside := agent.Aside(text)
+	if aside == "" {
+		m.appendLine(dimStyle.Render("usage: /btw <something the agent should know> — noted, no reply"))
+		return
+	}
+	if m.runningAgent != nil {
+		m.runningAgent.Steer(aside)
+		m.echoAside(text, "noted — reaches the agent after its current step")
+		return
+	}
+	m.conversation = append(m.conversation, llm.Message{Role: "user", Content: aside})
+	m.echoAside(text, "noted — the agent will see it on its next reply")
+	m.saveSession()
+}
+
+// echoAside renders an aside in the transcript. Deliberately not the "›"
+// prompt of a real message: nothing was asked, so it should not read like a
+// turn that is waiting for an answer.
+func (m *Model) echoAside(text, note string) {
+	m.appendLine("")
+	for i, l := range strings.Split(strings.TrimSpace(text), "\n") {
+		prefix := dimStyle.Render("btw ")
+		if i > 0 {
+			prefix = gutterStyle.Render("    ")
+		}
+		m.appendLine(prefix + userStyle.Render(l))
+	}
+	m.appendLine(gutterStyle.Render("    ") + dimStyle.Render(note))
 }
 
 // stopCurrent cancels whatever is running (chat turn, plan/generate/wiki/
@@ -1317,6 +1371,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		m.stopCurrent()
 	case "queue":
 		m.doQueue(rest)
+	case "btw":
+		m.doBTW(rest)
 	case "tree":
 		m.doTree(rest)
 	case "fork":
@@ -1348,6 +1404,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		for _, l := range m.configLines() {
 			m.appendLine(l)
 		}
+	case "prism":
+		return m.doPrism(args, rest)
 	case "model":
 		if rest == "" {
 			return m.openModelPicker()
@@ -1893,6 +1951,10 @@ func modeSummary(md agent.Mode) string {
 		return "full toolset, but every repo-changing action asks first"
 	case agent.ModeExplore:
 		return "read-only — search and explain the codebase"
+	case agent.ModeReview:
+		return "read-only — code review, security audits and diff analysis"
+	case agent.ModePrism:
+		return "grounded retrieval — automatically answer using imported PRISM documents"
 	default:
 		return "full access — write, edit and run tools (default)"
 	}

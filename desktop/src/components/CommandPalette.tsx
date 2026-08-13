@@ -50,7 +50,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
       { to: "/browser", label: "Browser" },
       { to: "/wiki", label: "Wiki" },
       { to: "/graph", label: "Graph" },
-      { to: "/cards", label: "Cards" }, { to: "/activity", label: "Activity" },
+      { to: "/cards", label: "Cards" }, { to: "/prism", label: "PRISM" }, { to: "/activity", label: "Activity" },
       { to: "/extensions", label: "Extensions" },
       { to: "/cost", label: "Cost" },
       { to: "/settings", label: "Settings" },

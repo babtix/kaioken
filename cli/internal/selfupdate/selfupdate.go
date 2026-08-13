@@ -1,16 +1,20 @@
 // Package selfupdate upgrades the running kaioken binary in place from the
 // project's GitHub releases. The flow is deliberately boring: query the
 // latest release, compare versions, download the asset that matches this
-// OS/arch, verify its SHA-256 against checksums.txt, verify cosign signature,
+// OS/arch, verify it (see verify.go — the cosign signature over checksums.txt
+// first, then the binary's SHA-256 against the entry that signature covers),
 // then swap the binary with a rename dance (a running exe on Windows can be
 // renamed but never overwritten).
+//
+// Verification is not optional. A release that does not ship the material to
+// check is refused rather than installed with a warning: this code replaces
+// the executable the user is already trusting, so "probably fine" is not a
+// state it may proceed from.
 package selfupdate
 
 import (
-	"bufio"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
+
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -55,15 +59,19 @@ var httpClient = &http.Client{Timeout: 5 * time.Minute}
 
 // Release describes the newest published build relevant to this machine.
 type Release struct {
-	Version      string // "1.2.0", no leading v
-	AssetName    string // e.g. kaioken-v1.2.0-windows-amd64.exe
-	AssetURL     string
-	ChecksumURL  string // empty when the release ships no checksums.txt
-	SigURL       string // empty when the release ships no .sig
-	PatchURL     string // empty when the release ships no .patch (bsdiff)
-	ReleaseNotes string // markdown release notes from the release body
-	PublishedAt  time.Time
-	Channel      string // stable, beta, nightly
+	Version   string // "1.2.0", no leading v
+	AssetName string // e.g. kaioken-v1.2.0-windows-amd64.exe
+	AssetURL  string
+	// The release signs checksums.txt, not each binary — see verify.go. All
+	// three are required to install; empty means the release did not publish
+	// it, which Apply treats as fatal rather than as a reason to skip a check.
+	ChecksumURL     string
+	ChecksumSigURL  string
+	ChecksumCertURL string
+	PatchURL        string // empty when the release ships no .patch (bsdiff)
+	ReleaseNotes    string // markdown release notes from the release body
+	PublishedAt     time.Time
+	Channel         string // stable, beta, nightly
 }
 
 // ReleaseInfo holds the raw release data from GitHub API
@@ -167,8 +175,15 @@ func processRelease(rel ReleaseInfo, current string, channel string) (*Release, 
 			out.AssetURL = a.URL
 		case "checksums.txt":
 			out.ChecksumURL = a.URL
-		case want + ".sig":
-			out.SigURL = a.URL
+		// goreleaser signs the checksum file, so these names are fixed rather
+		// than derived from the per-platform asset. Looking for
+		// "<asset>.sig" instead — as this did until the signature path was
+		// wired up — matches an artifact no release has ever published, which
+		// is why the verification stub was never once executed.
+		case "checksums.txt.sig":
+			out.ChecksumSigURL = a.URL
+		case "checksums.txt.pem":
+			out.ChecksumCertURL = a.URL
 		case want + ".patch":
 			out.PatchURL = a.URL
 		}
@@ -227,16 +242,11 @@ func Apply(ctx context.Context, rel *Release, progressFunc func(downloaded, tota
 		return "", err
 	}
 
-	if rel.ChecksumURL != "" {
-		if err := verifyChecksum(ctx, staged, rel); err != nil {
-			return "", err
-		}
-	}
-
-	if rel.SigURL != "" {
-		if err := verifySignature(ctx, staged, rel); err != nil {
-			return "", err
-		}
+	// Fail closed. This binary is about to replace the one the user is
+	// running, so anything short of a verified signature over a checksum that
+	// matches is a refusal — not a warning followed by installing it anyway.
+	if err := verifyRelease(ctx, staged, rel); err != nil {
+		return "", err
 	}
 
 	if err := os.Chmod(staged, 0o755); err != nil {
@@ -397,85 +407,12 @@ func RefreshInBackground(dir, current, channel string, every time.Duration) {
 	}()
 }
 
-// verifyChecksum downloads checksums.txt and compares the staged file's
-// SHA-256 to the line matching the asset name. Format: "<hex>  <name>".
-func verifyChecksum(ctx context.Context, staged string, rel *Release) error {
-	resp, err := get(ctx, rel.ChecksumURL)
-	if err != nil {
-		return fmt.Errorf("fetching checksums.txt: %w", err)
-	}
-	defer resp.Body.Close()
+// Verification lives in verify.go: the release signs checksums.txt, so the
+// signature check and the hash check are one gate, not two independent ones.
 
-	want := ""
-	sc := bufio.NewScanner(resp.Body)
-	for sc.Scan() {
-		fields := strings.Fields(sc.Text())
-		if len(fields) == 2 && fields[1] == rel.AssetName {
-			want = strings.ToLower(fields[0])
-			break
-		}
-	}
-	if err := sc.Err(); err != nil {
-		return fmt.Errorf("reading checksums.txt: %w", err)
-	}
-	if want == "" {
-		return fmt.Errorf("checksums.txt has no entry for %s", rel.AssetName)
-	}
-
-	f, err := os.Open(staged)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return err
-	}
-	got := hex.EncodeToString(h.Sum(nil))
-	if got != want {
-		return fmt.Errorf("checksum mismatch for %s: got %s, want %s — download corrupted or tampered, not installed", rel.AssetName, got, want)
-	}
-	return nil
-}
-
-// verifySignature downloads the .sig file and verifies it against the
-// staged binary using cosign keyless verification (Sigstore).
-// For now this is a stub that always succeeds if a signature file is present.
-// Full sigstore-go integration will be added when the API stabilizes.
-func verifySignature(ctx context.Context, staged string, rel *Release) error {
-	// Download the signature file
-	resp, err := get(ctx, rel.SigURL)
-	if err != nil {
-		return fmt.Errorf("fetching signature: %w", err)
-	}
-	defer resp.Body.Close()
-
-	sigBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("reading signature: %w", err)
-	}
-
-	// Read the staged binary
-	binBytes, err := os.ReadFile(staged)
-	if err != nil {
-		return fmt.Errorf("reading staged binary: %w", err)
-	}
-
-	// For now, just verify the signature file exists and has content
-	// Full sigstore keyless verification requires proper bundle parsing
-	// which depends on the exact sigstore-go API
-	if len(sigBytes) == 0 {
-		return fmt.Errorf("empty signature file")
-	}
-
-	// TODO: Implement proper keyless verification using sigstore-go
-	// when the API stabilizes. The signature from GitHub Actions
-	// will be a cosign bundle with the cert chain.
-	_ = binBytes
-	_ = sigBytes
-
-	return nil
-}
+// openFile is os.Open, named so verify.go reads without an os. prefix on the
+// one filesystem call it makes.
+func openFile(path string) (*os.File, error) { return os.Open(path) }
 
 // download streams url into path (0600 until the caller chmods it).
 // If progressFunc is provided, it is called periodically with bytes downloaded and total.

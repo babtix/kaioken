@@ -64,6 +64,7 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("GET /v1/workspaces/{id}/sessions/{sid}", s.handleGetSession)
 	router.HandleFunc("DELETE /v1/workspaces/{id}/sessions/{sid}", s.handleDeleteSession)
 	router.HandleFunc("POST /v1/workspaces/{id}/sessions/{sid}/messages", s.handleSendMessage)
+	router.HandleFunc("POST /v1/workspaces/{id}/sessions/{sid}/aside", s.handleSessionAside)
 	router.HandleFunc("POST /v1/workspaces/{id}/sessions/{sid}/compact", s.handleCompactSession)
 	router.HandleFunc("POST /v1/approvals/{approval_id}", s.handleResolveApproval)
 	router.HandleFunc("POST /v1/workspaces/{id}/undo", s.handleUndo)
@@ -113,6 +114,18 @@ func newMux(s *Server) http.Handler {
 	router.HandleFunc("GET /v1/settings/local", s.handleLocalProviders)
 	router.HandleFunc("POST /v1/settings/local", s.handleAddLocalProvider)
 	router.HandleFunc("PUT /v1/settings/embed", s.handlePutEmbed)
+	router.HandleFunc("GET /v1/settings/prism", s.handleGetPrismSettings)
+	router.HandleFunc("PUT /v1/settings/prism", s.handlePutPrismSettings)
+
+	// PRISM: retrieval over imported documents, scoped per workspace.
+	router.HandleFunc("GET /v1/workspaces/{id}/prism", s.handlePrismStatus)
+	router.HandleFunc("POST /v1/workspaces/{id}/prism/modules", s.handlePrismCreateModule)
+	router.HandleFunc("PATCH /v1/workspaces/{id}/prism/modules/{slug}", s.handlePrismUpdateModule)
+	router.HandleFunc("DELETE /v1/workspaces/{id}/prism/modules/{slug}", s.handlePrismDeleteModule)
+	router.HandleFunc("GET /v1/workspaces/{id}/prism/modules/{slug}/documents", s.handlePrismDocuments)
+	router.HandleFunc("POST /v1/workspaces/{id}/prism/modules/{slug}/documents", s.handlePrismImport)
+	router.HandleFunc("DELETE /v1/workspaces/{id}/prism/modules/{slug}/documents/{doc}", s.handlePrismDeleteDocument)
+	router.HandleFunc("POST /v1/workspaces/{id}/prism/query", s.handlePrismQuery)
 
 	// Cost dashboard (per-user, like settings)
 	router.HandleFunc("GET /v1/usage", s.handleUsageLedger)

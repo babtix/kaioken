@@ -177,9 +177,12 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build history: system prompt (if empty session) + saved messages + new user message.
+	// Build history: system prompt (if the session has none yet) + saved
+	// messages + new user message. The test is for a system message rather
+	// than an empty session because an aside can put a user message in front
+	// of the first real turn, and that session still needs its prompt.
 	history := make([]llm.Message, 0, len(sess.Messages)+2)
-	if len(sess.Messages) == 0 {
+	if !hasSystemMessage(sess.Messages) {
 		history = append(history, llm.Message{
 			Role:    "system",
 			Content: agent.SystemPrompt(agent.PromptInput{
@@ -199,7 +202,8 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		maxSteps = 25
 	}
 
-	// Start the agent run.
+	// Start the agent run. The agent is built inside the run goroutine, so
+	// steering is wired up from there — see rec.SetSteer below.
 	run := s.runs.Start(ws, "chat", map[string]any{"session_id": sid}, func(ctx context.Context, rec *RunRecord) error {
 		ui := &chatUI{
 			hub:         s.hub,
@@ -224,6 +228,10 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 			Budget:         ws.Budget(),
 			Config:         ws.Config(),
 		}
+		// While this run owns the conversation, /btw is the only way in: the
+		// aside endpoint hands the text to Steer, which injects it before the
+		// next model call.
+		rec.SetSteer(ag.Steer)
 
 		result, runErr := ag.Run(ctx, history)
 		// Save the session regardless of outcome. Record derives the title
@@ -250,6 +258,74 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		"run_id":     run.ID,
 		"session_id": sid,
 	})
+}
+
+// hasSystemMessage reports whether a saved conversation already carries its
+// system prompt.
+func hasSystemMessage(msgs []llm.Message) bool {
+	for _, m := range msgs {
+		if m.Role == "system" {
+			return true
+		}
+	}
+	return false
+}
+
+// POST /v1/workspaces/{id}/sessions/{sid}/aside
+//
+// The /btw channel: record context for the agent without starting a turn. If
+// a chat run owns this session right now the aside is steered into it and
+// lands after the current step; otherwise it is appended to the saved
+// conversation and the model reads it on its next reply. Either way nothing
+// runs and no tokens are spent here.
+func (s *Server) handleSessionAside(w http.ResponseWriter, r *http.Request) {
+	ws := s.workspaceFromRequest(w, r)
+	if ws == nil {
+		return
+	}
+	sid := r.PathValue("sid")
+	repo := filepath.FromSlash(ws.Path)
+
+	var body struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, codeBadRequest, "content is required", "")
+		return
+	}
+	aside := agent.Aside(body.Content)
+	if aside == "" {
+		writeError(w, http.StatusBadRequest, codeBadRequest, "content is required", "")
+		return
+	}
+
+	sess, err := session.Load(repo, sid)
+	if err != nil {
+		writeError(w, http.StatusNotFound, codeNotFound, "session not found", "")
+		return
+	}
+
+	if s.runs.SteerSession(ws.ID, sid, aside) {
+		writeJSON(w, http.StatusAccepted, map[string]any{"session_id": sid, "queued": true})
+		return
+	}
+
+	// No live run: the saved conversation is the durable place for it. A
+	// session that has not had its first turn yet has no system prompt to sit
+	// behind — handleSendMessage adds one when it finds none, so the aside
+	// can simply go first.
+	// Record, not a bare append: the session is stored as a branch tree and
+	// Messages is the view of the active branch, so a write that skips
+	// Record's syncTree is silently dropped by the next save.
+	sess.Record(append(sess.Messages, llm.Message{Role: "user", Content: aside}))
+	if err := sess.Save(repo); err != nil {
+		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
+		return
+	}
+	s.hub.Publish("session.updated", map[string]any{
+		"workspace_id": ws.ID, "session": toSessionMeta(sess),
+	})
+	writeJSON(w, http.StatusOK, map[string]any{"session_id": sid, "queued": false})
 }
 
 // POST /v1/workspaces/{id}/sessions/{sid}/compact

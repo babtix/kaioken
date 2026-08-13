@@ -84,6 +84,9 @@ Commands:
   index      Build the search index over the generated wiki, cards and skills
              (-force rebuilds from scratch; embeddings when configured)
   search     Query that index from the terminal (positional: the query)
+  prism      Retrieve over documents you import, grouped into modules, with a
+             relevance gate that says when nothing actually answers the
+             question (modules | new | rm | import | docs | ask | status)
   review     Review a diff against the repo's documented conventions and
              skills (-base sets the baseline; -out writes the report)
   research   Answer a question from the open web: a router picks the fast
@@ -200,6 +203,8 @@ func main() {
 		err = cmdIndex(ctx, args)
 	case "search":
 		err = cmdSearch(ctx, args)
+	case "prism":
+		err = cmdPrism(ctx, args)
 	case "review":
 		err = cmdReview(ctx, args)
 	case "usage", "cost":
@@ -1016,12 +1021,9 @@ func cmdUpgrade(ctx context.Context, f flags) error {
 		return nil
 	}
 	fmt.Printf("updating %s → %s (%s, %s channel)…\n", version.Version, rel.Version, rel.AssetName, channel)
-	if rel.ChecksumURL == "" {
-		fmt.Println("warning: release ships no checksums.txt — skipping integrity check")
-	}
-	if rel.SigURL == "" {
-		fmt.Println("warning: release ships no signature — skipping signature verification")
-	}
+	// No pre-flight warnings: missing verification material is not something
+	// to note on the way past. Apply refuses the install and says which
+	// artifact was absent.
 
 	// The progress line redraws itself with \r, so it needs a closing
 	// newline before the result — but only when it was actually drawn.

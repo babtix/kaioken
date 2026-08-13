@@ -513,6 +513,10 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 
 	ws.SetAllowRun(body.AllowRun)
 	ws.RebuildConfig()
+	// The PRISM engine caches a resolved embedder and utility client from this
+	// file, so it has to be rebuilt or the next query answers from the wiring
+	// the user just changed away from.
+	s.invalidatePrism()
 	s.hub.Publish("workspace.changed", map[string]any{"workspace_id": ws.ID, "fields": []string{"config"}})
 	writeJSON(w, http.StatusOK, configResponse(ws))
 }

@@ -154,6 +154,16 @@ func (a *Agent) Tools() []llm.Tool {
 			Parameters: raw(`{"type":"object","properties":{
 				"doc":{"type":"string","description":"a path from the catalog, e.g. '.kaioken/wiki/Architecture'; omit to list everything"}}}`),
 		}},
+		{Type: "function", Function: llm.FunctionDef{
+			Name: "query_prism",
+			Description: "Query imported PRISM knowledge documents using Precision Retrieval with " +
+				"Intelligent Source Matching (hybrid BM25 + semantic vector search with relevance gating). " +
+				"Returns verified parent chunks and relevance flags. Use it to find facts in imported documents.",
+			Parameters: raw(`{"type":"object","properties":{
+				"query":{"type":"string","description":"search query or question to retrieve context for"},
+				"module":{"type":"string","description":"optional module slug to scope retrieval to; omit to search default/first module"}},
+				"required":["query"]}`),
+		}},
 	}
 	// recall is read-only — it scans past-session digests, never touching disk —
 	// so it is offered in every mode. It is the L2 session-recall layer.
@@ -333,6 +343,8 @@ func (a *Agent) execTool(ctx context.Context, tc llm.ToolCall) string {
 		rawResult = a.search(getStr("query"))
 	case "read_knowledge":
 		rawResult = a.readKnowledge(getStr("doc"))
+	case "query_prism":
+		rawResult = a.queryPrism(ctx, getStr("query"), getStr("module"))
 	case "recall":
 		rawResult = a.recall(getStr("query"))
 	case "write_file":

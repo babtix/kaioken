@@ -30,7 +30,7 @@ import { api } from "@/lib/api"
 import { humanize } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 import { formatRelativeTime } from "@/lib/format"
-import { filterCommands, resolveCommand, type SlashAction } from "@/lib/slash"
+import { asideBody, filterCommands, resolveCommand, type SlashAction } from "@/lib/slash"
 import type { ChatMessage, RepoFile } from "@/lib/types"
 
 export default function Chat() {
@@ -38,7 +38,7 @@ export default function Chat() {
   const openWorkspace = useWorkspaceStore((s) => s.open)
   const {
     sessions, activeSessionId, messages, streamBuffer, isStreaming, approval, error,
-    loadSessions, newSession, openSession, deleteSession, send, cancel, clearView, resolveApproval, activeRunId,
+    loadSessions, newSession, openSession, deleteSession, send, aside, cancel, clearView, resolveApproval, activeRunId,
   } = useChatStore()
 
   const startRun = useRunsStore((s) => s.start)
@@ -203,6 +203,22 @@ export default function Chat() {
           window.close()
         }
         break
+      case "aside": {
+        if (!action.text.trim()) {
+          pushToast("info", "Nothing to note", "/btw <something the agent should know> — noted, no reply.")
+          break
+        }
+        stickToBottom.current = true
+        const queued = await aside(ws!.id, action.text)
+        pushToast(
+          "success",
+          "Noted",
+          queued
+            ? "Reaches the agent after its current step."
+            : "The agent will see it on its next reply."
+        )
+        break
+      }
       case "note":
         pushToast("info", action.title, action.body)
         break
@@ -211,17 +227,23 @@ export default function Chat() {
 
   async function handleSend() {
     const text = input.trim()
-    if (!text || isStreaming) return
+    if (!text) return
 
     // A line that names a real command runs it rather than talking to the
     // model. An unknown "/foo" falls through and is sent as prose.
     const slash = resolveCommand(text)
     if (slash) {
+      const action = slash.cmd.action(slash.arg)
+      // Commands wait their turn while a reply streams — with one exception.
+      // An aside is *for* that moment: it joins the live run as steering, so
+      // blocking it would defeat the point of having it.
+      if (isStreaming && action.kind !== "aside") return
       setInput("")
-      await runSlash(slash.cmd.action(slash.arg))
+      await runSlash(action)
       return
     }
 
+    if (isStreaming) return
     setInput("")
     stickToBottom.current = true
     if (!activeSessionId) await newSession(ws!.id)
@@ -531,6 +553,24 @@ function ChatIntro({ model, onPick }: { model: string; onPick: (t: string) => vo
  *  re-parses the markdown of) the transcript above it. */
 const MessageRow = memo(function MessageRow({ msg }: { msg: ChatMessage }) {
   if (msg.role === "user") {
+    // An aside is a user message on the wire, but it asked for nothing — so
+    // it gets a quiet marginal note rather than the blue request bubble, and
+    // the framing the model reads is stripped back off.
+    const noted = asideBody(msg.content)
+    if (noted !== null) {
+      return (
+        <div className="animate-slide-up mb-4 flex justify-end">
+          <div className="max-w-[85%] border-r-2 border-kai-dim/40 pr-2.5">
+            <p className="text-right font-mono text-[9px] tracking-wide text-kai-dim uppercase">
+              btw
+            </p>
+            <p className="mt-0.5 text-right whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-kai-dim italic">
+              {noted}
+            </p>
+          </div>
+        </div>
+      )
+    }
     return (
       <div className="animate-slide-up mb-4 flex justify-end">
         <div className="max-w-[85%] rounded-lg rounded-br-sm border border-kai-blue/25 bg-kai-blue/[0.07] px-3 py-2">

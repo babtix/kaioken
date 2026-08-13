@@ -75,7 +75,7 @@ func TestDelegateAbsentAtDepth1(t *testing.T) {
 // TestDelegateAbsentInReadOnlyMode checks that the delegate tool is not offered
 // when the agent cannot write — a read-only delegate has nothing extra to offer.
 func TestDelegateAbsentInReadOnlyMode(t *testing.T) {
-	for _, mode := range []Mode{ModePlan, ModeExplore, ModeReview} {
+	for _, mode := range []Mode{ModePlan, ModeExplore, ModeReview, ModePrism} {
 		a := &Agent{Depth: 0, Mode: mode}
 		for _, tool := range a.Tools() {
 			if tool.Function.Name == "delegate" {

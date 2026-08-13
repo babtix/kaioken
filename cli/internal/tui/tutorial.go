@@ -41,7 +41,7 @@ var chapters = []chapter{
 			"Replies stream as they arrive and render as markdown. The composer is\n" +
 			"multi-line: alt+enter (or ctrl+j) adds a newline, so pasting a stack\n" +
 			"trace works.",
-		commands: []string{"yolo", "mode", "undo", "diff", "draft", "verify", "stop", "queue"},
+		commands: []string{"yolo", "mode", "undo", "diff", "draft", "verify", "stop", "queue", "btw"},
 	},
 	{
 		name: "sessions", title: "Sessions and context",
@@ -64,8 +64,12 @@ var chapters = []chapter{
 			"  CARDS are short, fixed-schema context blocks per module, meant to be\n" +
 			"  fed to an AI agent cheaply before it touches code.\n\n" +
 			"They are independent — run either, or both. Once a wiki exists, /update\n" +
-			"keeps it current from the git diff instead of regenerating everything.",
-		commands: []string{"wiki", "update", "scan", "plan", "cards", "status", "impact", "research"},
+			"keeps it current from the git diff instead of regenerating everything.\n\n" +
+			"  PRISM is the third corpus, and the only one you fill yourself: import\n" +
+			"  documents into a module and ask questions scoped to it. Its answers\n" +
+			"  say whether a graded source actually backs them, so 'nothing here\n" +
+			"  answers that' is a result rather than a plausible-looking guess.",
+		commands: []string{"wiki", "update", "scan", "plan", "cards", "status", "impact", "research", "prism"},
 	},
 	{
 		name: "skills", title: "Skills: teaching an agent your project",

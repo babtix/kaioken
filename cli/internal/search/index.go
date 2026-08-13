@@ -12,6 +12,8 @@ import (
 	"sync"
 
 	"kaioken/internal/config"
+	"kaioken/internal/embed"
+	"kaioken/internal/textrank"
 )
 
 // Index is a searchable snapshot of a repository's generated knowledge.
@@ -31,7 +33,7 @@ type Index struct {
 	// disabled or a batch failed — search handles a partially-embedded index.
 	Vectors [][]float32 `json:"vectors,omitempty"`
 
-	lx   *lexicon
+	lx   *textrank.Lexicon
 	once sync.Once
 }
 
@@ -61,7 +63,7 @@ type Query struct {
 	Limit   int
 	// Embedder, when set, adds the semantic half. Callers that want a purely
 	// offline search leave it nil.
-	Embedder Embedder
+	Embedder embed.Embedder
 }
 
 func indexPath(repo string) string {
@@ -97,7 +99,7 @@ func Open(repo string) (*Index, error) {
 // Build refreshes the index and computes any missing embeddings. This is the
 // expensive path, called from `kaioken index` and after a wiki generation —
 // not from a query.
-func Build(ctx context.Context, repo string, emb Embedder, progress func(done, total int)) (*Index, error) {
+func Build(ctx context.Context, repo string, emb embed.Embedder, progress func(done, total int)) (*Index, error) {
 	fp := corpusFingerprint(repo)
 	idx, err := build(repo, fp)
 	if err != nil {
@@ -161,7 +163,7 @@ func (ix *Index) reuseVectors(old *Index) {
 }
 
 // embedMissing fills in vectors for chunks that have none.
-func (ix *Index) embedMissing(ctx context.Context, emb Embedder, progress func(done, total int)) error {
+func (ix *Index) embedMissing(ctx context.Context, emb embed.Embedder, progress func(done, total int)) error {
 	if emb.ID() != ix.EmbedModel {
 		// Different model, different space — nothing carries over.
 		ix.Vectors = nil
@@ -184,8 +186,8 @@ func (ix *Index) embedMissing(ctx context.Context, emb Embedder, progress func(d
 	}
 
 	done := 0
-	for start := 0; start < len(todo); start += embedBatch {
-		end := start + embedBatch
+	for start := 0; start < len(todo); start += embed.BatchSize {
+		end := start + embed.BatchSize
 		if end > len(todo) {
 			end = len(todo)
 		}
@@ -218,10 +220,12 @@ func (ix *Index) embedMissing(ctx context.Context, emb Embedder, progress func(d
 // prepare computes the token/lexicon state a query needs, once.
 func (ix *Index) prepare() {
 	ix.once.Do(func() {
+		tokens := make([][]string, len(ix.Chunks))
 		for i := range ix.Chunks {
-			ix.Chunks[i].tokens = analyze(ix.Chunks[i].Heading + " " + ix.Chunks[i].Text)
+			ix.Chunks[i].tokens = textrank.Analyze(ix.Chunks[i].Heading + " " + ix.Chunks[i].Text)
+			tokens[i] = ix.Chunks[i].tokens
 		}
-		ix.lx = buildLexicon(ix.Chunks)
+		ix.lx = textrank.NewLexicon(tokens)
 	})
 }
 
@@ -262,35 +266,36 @@ func (ix *Index) Search(ctx context.Context, q Query) ([]Result, error) {
 	}
 
 	allowed := ix.filter(q)
-	terms := analyze(text)
+	terms := textrank.Analyze(text)
 
-	lexRanked := make([]ranked, 0, len(allowed))
+	lexRanked := make([]textrank.Ranked, 0, len(allowed))
 	for _, ci := range allowed {
-		s := ix.lx.score(terms, &ix.Chunks[ci]) + phraseBonus(text, &ix.Chunks[ci])
+		c := &ix.Chunks[ci]
+		s := ix.lx.Score(terms, c.tokens) + textrank.PhraseBonus(text, c.Text+" "+c.Heading)
 		if s > 0 {
-			lexRanked = append(lexRanked, ranked{chunk: ci, score: s})
+			lexRanked = append(lexRanked, textrank.Ranked{ID: ci, Score: s})
 		}
 	}
-	lexRanked = topN(lexRanked, candidatePool)
+	lexRanked = textrank.TopN(lexRanked, candidatePool)
 
-	var semRanked []ranked
+	var semRanked []textrank.Ranked
 	if q.Embedder != nil && ix.Semantic() {
 		vecs, err := q.Embedder.Embed(ctx, []string{text})
 		if err == nil && len(vecs) == 1 {
-			semRanked = make([]ranked, 0, len(allowed))
+			semRanked = make([]textrank.Ranked, 0, len(allowed))
 			for _, ci := range allowed {
 				if ci >= len(ix.Vectors) || ix.Vectors[ci] == nil {
 					continue
 				}
-				semRanked = append(semRanked, ranked{chunk: ci, score: dot(vecs[0], ix.Vectors[ci])})
+				semRanked = append(semRanked, textrank.Ranked{ID: ci, Score: embed.Dot(vecs[0], ix.Vectors[ci])})
 			}
-			semRanked = topN(semRanked, candidatePool)
+			semRanked = textrank.TopN(semRanked, candidatePool)
 		}
 		// An embedding failure mid-query is not fatal: BM25 already has an
 		// answer, and a search that degrades quietly beats one that errors.
 	}
 
-	fused := fuse(lexRanked, semRanked)
+	fused := textrank.RRF([][]textrank.Ranked{lexRanked, semRanked}, candidatePool)
 	return ix.materialize(fused, lexRanked, semRanked, q.Limit), nil
 }
 
@@ -320,44 +325,17 @@ func (ix *Index) filter(q Query) []int {
 	return out
 }
 
-// rrfK damps the contribution of low ranks in reciprocal-rank fusion. 60 is
-// the value from the original paper and behaves well without tuning — which
-// matters here because the two rankers produce scores on incomparable scales
-// and normalising them would need calibration data nobody has.
-const rrfK = 60.0
-
-func fuse(lex, sem []ranked) []ranked {
-	if len(sem) == 0 {
-		return lex
-	}
-	if len(lex) == 0 {
-		return sem
-	}
-	combined := map[int]float64{}
-	for rank, r := range lex {
-		combined[r.chunk] += 1 / (rrfK + float64(rank+1))
-	}
-	for rank, r := range sem {
-		combined[r.chunk] += 1 / (rrfK + float64(rank+1))
-	}
-	out := make([]ranked, 0, len(combined))
-	for chunk, score := range combined {
-		out = append(out, ranked{chunk: chunk, score: score})
-	}
-	return topN(out, candidatePool)
-}
-
 // materialize turns ranked chunks into results, collapsing multiple hits in
 // one document to its best chunk — three passages from the same chapter push
 // out three other chapters the caller would rather see.
-func (ix *Index) materialize(fused, lex, sem []ranked, limit int) []Result {
+func (ix *Index) materialize(fused, lex, sem []textrank.Ranked, limit int) []Result {
 	lexScore := map[int]float64{}
 	for _, r := range lex {
-		lexScore[r.chunk] = r.score
+		lexScore[r.ID] = r.Score
 	}
 	semScore := map[int]float64{}
 	for _, r := range sem {
-		semScore[r.chunk] = r.score
+		semScore[r.ID] = r.Score
 	}
 
 	seen := map[string]bool{}
@@ -366,7 +344,7 @@ func (ix *Index) materialize(fused, lex, sem []ranked, limit int) []Result {
 		if len(out) >= limit {
 			break
 		}
-		c := ix.Chunks[r.chunk]
+		c := ix.Chunks[r.ID]
 		d := ix.Docs[c.DocID]
 		key := string(d.Kind) + "\x00" + d.Path
 		if seen[key] {
@@ -381,9 +359,9 @@ func (ix *Index) materialize(fused, lex, sem []ranked, limit int) []Result {
 			Heading:  c.Heading,
 			Line:     c.Line,
 			Snippet:  snippet(c.Text),
-			Score:    r.score,
-			Lexical:  lexScore[r.chunk],
-			Semantic: semScore[r.chunk],
+			Score:    r.Score,
+			Lexical:  lexScore[r.ID],
+			Semantic: semScore[r.ID],
 		})
 	}
 	return out
@@ -463,10 +441,3 @@ func (ix *Index) Sections() []string {
 
 // ErrEmpty reports a repo with nothing generated to search.
 var ErrEmpty = errors.New("nothing indexed — run `kaioken wiki` or `kaioken generate` first")
-
-func envOr(name string) string {
-	if name == "" {
-		return ""
-	}
-	return os.Getenv(name)
-}

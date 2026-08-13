@@ -9,10 +9,13 @@ cli/kaioken-test
 
 # GoReleaser output (snapshot and release builds)
 /dist/
+/release/
+/realise/
 
 # Session and state (local-only)
 **/.kaioken/sessions/
 **/.kaioken/site/
+**/.kaioken/prism/
 *.tar.gz
 .kaioken/config.yaml
 .kaioken/research/

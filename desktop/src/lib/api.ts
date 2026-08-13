@@ -1,6 +1,6 @@
 import { authHeaders, base } from "./daemon"
 import type { Graph as WikiGraph } from "./graph/types"
-import type { EmbedSettings, ErrorEnvelope, WikiSearchResponse, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, LocalProviderStatus, LocalProvidersResponse, ModuleStatus, RepoFile, ResearchExport, ResearchReport, ResumableRun, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, UsageResponse, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
+import type { EmbedSettings, ErrorEnvelope, PrismAnswer, PrismDocument, PrismDocumentStatus, PrismModule, PrismSettings, PrismStatus, WikiSearchResponse, Estimate, ExtInstallReport, ExtRegistryEntry, ExtTool, ExtUpdateResult, ExtensionInfo, FileTreeResponse, GitDiffResponse, GitStatusResponse, Health, LocalProviderStatus, LocalProvidersResponse, ModuleStatus, RepoFile, ResearchExport, ResearchReport, ResumableRun, RunRecord, ScanResult, SessionFull, SessionMeta, Skill, Usage, UsageResponse, WikiTree, Workspace, WorkspaceConfig, WorkspaceList } from "./types"
 
 // Parses the §2.1 error envelope; carries enough for a component to branch
 // on err.code (e.g. "no_api_key") instead of printing a stack trace.
@@ -115,6 +115,11 @@ export const api = {
   deleteSession: (wsId: string, sid: string) => req<void>("DELETE", `/workspaces/${wsId}/sessions/${sid}`),
   sendMessage: (wsId: string, sid: string, content: string, opts?: { auto_approve?: boolean; allow_run?: boolean; max_steps?: number }) =>
     req<{ run_id: string; session_id: string }>("POST", `/workspaces/${wsId}/sessions/${sid}/messages`, { content, ...opts }),
+  /** /btw — record context for the agent without starting a turn. `queued`
+   *  is true when a live run took it as steering rather than the saved
+   *  conversation. */
+  sendAside: (wsId: string, sid: string, content: string) =>
+    req<{ session_id: string; queued: boolean }>("POST", `/workspaces/${wsId}/sessions/${sid}/aside`, { content }),
   resolveApproval: (approvalId: string, decision: "approve" | "deny" | "approve_all") =>
     req<void>("POST", `/approvals/${approvalId}`, { decision }),
   undo: (wsId: string) => req<{ path: string; restored: boolean; deleted: boolean; depth: number }>("POST", `/workspaces/${wsId}/undo`),
@@ -213,6 +218,39 @@ export const api = {
     req<LocalProviderStatus>("POST", "/settings/local", body),
   putEmbed: (body: { model: string; provider?: string; base_url?: string }) =>
     req<EmbedSettings>("PUT", "/settings/embed", body),
+
+  // PRISM: retrieval over imported documents. Modules and documents are
+  // workspace-scoped; the settings below are the cross-workspace defaults.
+  prismStatus: (id: string) => req<PrismStatus>("GET", `/workspaces/${id}/prism`),
+  createPrismModule: (id: string, body: { name: string; slug?: string; description?: string }) =>
+    req<PrismModule>("POST", `/workspaces/${id}/prism/modules`, body),
+  updatePrismModule: (
+    id: string,
+    slug: string,
+    body: { name?: string; description?: string; system_prompt?: string },
+  ) => req<PrismModule>("PATCH", `/workspaces/${id}/prism/modules/${slug}`, body),
+  deletePrismModule: (id: string, slug: string) =>
+    req<{ deleted: string }>("DELETE", `/workspaces/${id}/prism/modules/${slug}`),
+  prismDocuments: (id: string, slug: string) =>
+    req<{ documents: PrismDocument[] }>("GET", `/workspaces/${id}/prism/modules/${slug}/documents`),
+  // Ingestion is detached from this request: embedding a long document is
+  // minutes of work. The 202 acknowledges the job; poll prismDocuments for
+  // the status the ingestor writes as it goes.
+  importPrismDocument: (id: string, slug: string, body: { path?: string; filename?: string; text?: string }) =>
+    req<{ module: string; filename: string; status: PrismDocumentStatus }>(
+      "POST",
+      `/workspaces/${id}/prism/modules/${slug}/documents`,
+      body,
+    ),
+  deletePrismDocument: (id: string, slug: string, doc: string) =>
+    req<{ deleted: string }>("DELETE", `/workspaces/${id}/prism/modules/${slug}/documents/${doc}`),
+  prismQuery: (
+    id: string,
+    body: { query: string; module: string; top_k?: number; variants?: number; no_grade?: boolean; agent?: boolean },
+  ) => req<PrismAnswer>("POST", `/workspaces/${id}/prism/query`, body),
+
+  prismSettings: () => req<PrismSettings>("GET", "/settings/prism"),
+  putPrismSettings: (body: Partial<PrismSettings>) => req<PrismSettings>("PUT", "/settings/prism", body),
 
   // Cost dashboard. Named apart from usage() above, which reports one live
   // client's counters; this is the durable cross-workspace history.

@@ -173,6 +173,17 @@ type Client struct {
 	// withThinking. See thinking.go.
 	Thinking string
 
+	// Temperature overrides the per-call sampling temperature. Nil keeps each
+	// call site's default, which is low but not zero.
+	//
+	// A pointer because zero is a meaningful setting, not an absent one.
+	// Control-plane calls — relevance grading, query rewriting, routing a
+	// question down one branch or another — need determinism: a temperature
+	// above zero makes the same question take different paths on different
+	// runs, which is unevaluable, uncacheable, and impossible to reproduce
+	// from a bug report.
+	Temperature *float64
+
 	usageMu      sync.Mutex
 	calls        int
 	promptToks   int
@@ -298,11 +309,28 @@ func (c *Client) WithModel(model string) *Client {
 		BaseURL:    c.BaseURL,
 		Model:      model,
 		HTTP:       c.HTTP,
-		AuthHeader: c.AuthHeader,
-		Protocol:   c.Protocol,
-		MaxTokens:  c.MaxTokens,
-		Thinking:   c.Thinking,
+		AuthHeader:  c.AuthHeader,
+		Protocol:    c.Protocol,
+		MaxTokens:   c.MaxTokens,
+		Thinking:    c.Thinking,
+		Temperature: c.Temperature,
 	}
+}
+
+// temp resolves the sampling temperature for one call: the client's override
+// when set, otherwise the call site's own default.
+func (c *Client) temp(dflt float64) float64 {
+	if c.Temperature != nil {
+		return *c.Temperature
+	}
+	return dflt
+}
+
+// tempPtr is temp for request types that distinguish an absent temperature
+// from an explicit zero.
+func (c *Client) tempPtr(dflt float64) *float64 {
+	v := c.temp(dflt)
+	return &v
 }
 
 // CostUSD returns the session's cumulative spend in USD and whether that
@@ -398,7 +426,7 @@ func (c *Client) Chat(ctx context.Context, system, user string) (string, error) 
 			{Role: "system", Content: system},
 			{Role: "user", Content: user},
 		},
-		Temperature: 0.2,
+		Temperature: c.temp(0.2),
 	})
 	if err != nil {
 		return "", err

@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { api, ApiError } from "@/lib/api"
 import { humanize } from "@/lib/errors"
+import { ASIDE_PREFIX } from "@/lib/slash"
 import { useToastStore } from "@/store/toast"
 import type { Approval, ChatMessage, KaiEvent, SessionMeta } from "@/lib/types"
 
@@ -25,6 +26,9 @@ type ChatState = {
   newSession: (wsId: string) => Promise<void>
   deleteSession: (wsId: string, sid: string) => Promise<void>
   send: (wsId: string, content: string, opts?: { auto_approve?: boolean; allow_run?: boolean }) => Promise<void>
+  /** /btw — record context for the agent without starting a turn. Resolves to
+   *  true when a live run took it as steering. */
+  aside: (wsId: string, content: string) => Promise<boolean>
   cancel: (runId: string) => Promise<void>
   /** Wipe the transcript from view only — the session on the server is untouched. */
   clearView: () => void
@@ -161,6 +165,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const h = humanize(err)
       useToastStore.getState().push("error", h.title, h.body, h.action)
       set({ isStreaming: false, error: h.title })
+    }
+  },
+
+  aside: async (wsId: string, content: string) => {
+    let sid = get().activeSessionId
+    if (!sid) {
+      // An aside is worth a session of its own: the user is telling the agent
+      // something before asking for anything, which is exactly the case /btw
+      // exists for.
+      await get().newSession(wsId)
+      sid = get().activeSessionId
+      if (!sid) return false
+    }
+    try {
+      const res = await api.sendAside(wsId, sid, content)
+      // Show it immediately, framed the way the server stored it so the
+      // transcript matches a later reload.
+      set((s) => ({ messages: [...(s.messages || []), { role: "user", content: ASIDE_PREFIX + content.trim() }] }))
+      return res.queued
+    } catch (err) {
+      const h = humanize(err)
+      useToastStore.getState().push("error", h.title, h.body, h.action)
+      return false
     }
   },
 

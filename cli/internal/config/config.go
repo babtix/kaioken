@@ -49,6 +49,11 @@ type Config struct {
 	// Search configures knowledge retrieval. Zero values leave search purely
 	// lexical, which needs no model, no key and no network.
 	Search Search `yaml:"search,omitempty"`
+	// Prism configures retrieval over imported documents, which is a separate
+	// corpus from the generated knowledge Search covers. Zero values are a
+	// working configuration: local embeddings if a server is running, no
+	// relevance gate, single-query retrieval.
+	Prism Prism `yaml:"prism,omitempty"`
 	// Compaction tunes automatic context compaction. Zero values keep the
 	// built-in behavior: enabled, with window-derived budgets.
 	Compaction Compaction `yaml:"compaction,omitempty"`
@@ -116,6 +121,70 @@ type Search struct {
 	// self-hosted gateway or a non-default Ollama port.
 	EmbedBaseURL string `yaml:"embed_base_url,omitempty"`
 }
+
+// Prism configures retrieval over imported documents.
+//
+// No model id is defaulted here. Which model to spend on is a deployment
+// decision, and an absent setting degrades the affected stage honestly —
+// without an embedding model retrieval is lexical and reports itself degraded,
+// without a utility model the relevance gate does not run and every result
+// reports itself ungraded — rather than silently picking one nobody chose.
+type Prism struct {
+	// EmbedModel overrides the embedding model for imported documents. Empty
+	// means resolve automatically: a local server already serving an embedding
+	// model, then EmbedFallbackModel on the named provider, then lexical only.
+	EmbedModel string `yaml:"embed_model,omitempty"`
+	// EmbedProvider names the provider supplying the endpoint and key.
+	EmbedProvider string `yaml:"embed_provider,omitempty"`
+	// EmbedBaseURL overrides the provider endpoint.
+	EmbedBaseURL string `yaml:"embed_base_url,omitempty"`
+	// EmbedFallbackModel is the hosted embedding model used when nothing is
+	// configured and no local server is running. Empty means do not fall back
+	// to a paid endpoint without being asked.
+	EmbedFallbackModel string `yaml:"embed_fallback_model,omitempty"`
+	// EmbedFallbackProvider names the provider for EmbedFallbackModel.
+	EmbedFallbackProvider string `yaml:"embed_fallback_provider,omitempty"`
+
+	// UtilityModel is the cheap instruct model behind the relevance gate,
+	// query expansion, and the agent's router and planner. It runs once per
+	// candidate chunk, so it should be the cheapest model that can follow a
+	// one-word instruction. Empty disables every gate that needs it.
+	UtilityModel string `yaml:"utility_model,omitempty"`
+	// UtilityProvider names the provider for UtilityModel. Empty uses the
+	// workspace provider.
+	UtilityProvider string `yaml:"utility_provider,omitempty"`
+
+	// Mode is "static" (single-shot retrieval, the default) or "agent"
+	// (adaptive routing with decomposition for multi-step questions).
+	Mode string `yaml:"mode,omitempty"`
+	// TopK bounds the fused candidates carried into grading. Zero uses the
+	// built-in default.
+	TopK int `yaml:"top_k,omitempty"`
+	// Variants is the RAG-Fusion breadth, 1 to 4. Above 1 the query is
+	// expanded into alternative phrasings and every ranking is fused. Cost
+	// scales linearly, so raise it only where evaluation shows it pays.
+	Variants int `yaml:"variants,omitempty"`
+	// Grade toggles the corrective relevance gate. Unset means enabled
+	// whenever a utility model is available; false turns it off and every
+	// result then reports itself ungraded, as it must.
+	Grade *bool `yaml:"grade,omitempty"`
+
+	// ParentTokens, ChildTokens and ChildOverlap tune chunking. Changing them
+	// only affects documents imported afterwards. Zero uses the defaults.
+	ParentTokens int `yaml:"parent_tokens,omitempty"`
+	ChildTokens  int `yaml:"child_tokens,omitempty"`
+	ChildOverlap int `yaml:"child_overlap,omitempty"`
+
+	// CacheTTLSeconds bounds how stale a repeated question's answer can be.
+	// Zero uses the built-in default.
+	CacheTTLSeconds int `yaml:"cache_ttl_seconds,omitempty"`
+}
+
+// GradeEnabled resolves the tri-state Grade flag: unset means enabled.
+func (p Prism) GradeEnabled() bool { return p.Grade == nil || *p.Grade }
+
+// AgentMode reports whether retrieval should take the agentic path.
+func (p Prism) AgentMode() bool { return strings.EqualFold(p.Mode, "agent") }
 
 // Budget is the per-session spending guardrail. Both thresholds are USD;
 // zero disables the threshold.

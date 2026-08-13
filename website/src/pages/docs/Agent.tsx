@@ -17,6 +17,14 @@ const MODES = [
     body: "Read-only as well, for when you are only asking questions about the code.",
   },
   {
+    name: "review",
+    body: "Read-only code review mode for security audits, diff analysis, and architecture inspection.",
+  },
+  {
+    name: "prism",
+    body: "Precision knowledge retrieval mode — automatically retrieves and grounds answers in imported PRISM documents on every turn.",
+  },
+  {
     name: "general",
     body: "Every tool available, but a mandatory prompt on every change — even with /yolo on.",
   },
@@ -26,6 +34,7 @@ const TOOLS = [
   { name: "read_file", body: "open a file, or a line range of one" },
   { name: "list_files", body: "walk the tree inside the target repo" },
   { name: "search", body: "grep the repo for a pattern" },
+  { name: "query_prism", body: "hybrid BM25 + semantic vector search with relevance gating over imported PRISM documents" },
   { name: "write_file", body: "create or replace a file — behind approval" },
   { name: "edit_file", body: "a unique-match replacement — behind approval" },
   { name: "run_command", body: "run a shell command in the repo — behind approval" },

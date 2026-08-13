@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Beaker, Check, ChevronDown, Cpu, ExternalLink, Eye, EyeOff, GitBranch, Globe,
-  KeyRound, Loader2, Save, Search, Settings as SettingsIcon, Trash2,
+  KeyRound, Library, Loader2, Save, Search, Settings as SettingsIcon, Trash2,
   TriangleAlert, X,
 } from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
@@ -15,6 +15,7 @@ import {
   type SearchSettings,
 } from "@/components/SearchProviderPicker"
 import LocalModels from "@/components/LocalModels"
+import PrismSettings from "@/components/PrismSettings"
 import { cn } from "@/lib/utils"
 import type { EmbedSettings } from "@/lib/types"
 
@@ -386,6 +387,16 @@ export default function Settings() {
         defaultOpen={false}
       >
         <LocalModels embed={embed} onEmbedChange={setEmbed} />
+      </SettingsSection>
+
+      {/* ── 3b. PRISM: retrieval over imported documents ──────────── */}
+      <SettingsSection
+        id="prism"
+        icon={Library}
+        title="PRISM — imported documents"
+        defaultOpen={false}
+      >
+        <PrismSettings />
       </SettingsSection>
 
       {/* ── 4. LLM Providers (collapsed by default) ──────────────── */}

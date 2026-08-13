@@ -108,14 +108,16 @@ var commands = []command{
 		},
 	},
 	{
-		name: "mode", args: "[build|plan|general|explore]",
+		name: "mode", args: "[build|plan|general|explore|review|prism]",
 		summary: "switch the agent's permission mode",
-		detail: "Build is the full-access default. Plan and explore are read-only — the agent can " +
-			"inspect but not change anything; general keeps every tool but always asks first. " +
+		detail: "Build is the full-access default. Plan, explore, review, and prism are read-only — the agent can " +
+			"inspect or retrieve but not change files; general keeps every tool but always asks first. " +
+			"In prism mode, every user question automatically retrieves and grounds answers from imported documents. " +
 			"Switching mid-conversation tells the model its toolset changed, and the mode is " +
 			"saved with the session so /resume restores it.",
 		guide: "Use /mode plan when you want a proposal you can review before anything is " +
-			"touched, /mode explore when you are only asking questions about the code, and " +
+			"touched, /mode explore when you are asking questions about the code, /mode review for code review and security audits, " +
+			"/mode prism when you want answers grounded in your imported PRISM documents, and " +
 			"/mode general when you want full capability with a mandatory prompt on every " +
 			"change — even with /yolo on. Bare /mode shows where you are; switching back to " +
 			"build restores the default. The switch is announced to the model mid-conversation, " +
@@ -123,6 +125,7 @@ var commands = []command{
 		examples: []example{
 			{"/mode", "show the current mode and the alternatives"},
 			{"/mode plan", "read-only: propose changes without applying them"},
+			{"/mode prism", "grounded retrieval: answer from imported PRISM documents"},
 			{"/mode build", "back to full access"},
 		},
 	},
@@ -284,6 +287,25 @@ var commands = []command{
 			{"/queue clear", "drop the queued messages"},
 		},
 	},
+	{
+		name: "btw", args: "<text>",
+		summary: "tell the agent something without asking for a reply",
+		detail: "Drops context into the conversation without starting a turn. The model reads it " +
+			"before its next reply instead of answering it now, so nothing is spent until you " +
+			"actually ask something. Use it for what you just remembered: a file that moved, a " +
+			"test already known to be flaky, a constraint you forgot to mention. While the agent " +
+			"is working the aside joins the steering queue and lands after the current step.",
+		guide: "Three channels carry context and they differ in reach. /notes is permanent and " +
+			"repo-wide — injected into every prompt, forever. A plain message is a request, and " +
+			"the agent answers it. /btw sits between them: this conversation only, no answer, no " +
+			"cost until the next real turn. Reach for it whenever you would otherwise send a " +
+			"message ending in \"no need to respond\". The aside is saved with the session, so " +
+			"/resume brings it back with everything else.",
+		examples: []example{
+			{"/btw staging is down, ignore those integration failures", "context the agent cannot see"},
+			{"/btw I renamed parseArgs to parseCLIArgs on disk just now", "tell it the ground truth changed"},
+		},
+	},
 	// ---- common ----
 	{
 		name: "switch", args: "[id]",
@@ -365,6 +387,35 @@ var commands = []command{
 		summary: "show the active configuration",
 		examples: []example{
 			{"/config", "model, provider, repo, scope and notes"},
+		},
+	},
+	{
+		name: "prism", args: "[subcommand]",
+		summary: "retrieve over documents you import, grouped into modules",
+		detail: "PRISM is a separate corpus from the wiki: you import documents into a " +
+			"module and ask questions scoped to it. Retrieval is hybrid (BM25 plus " +
+			"vectors), and when a utility model is configured a relevance gate drops " +
+			"chunks that do not actually answer the question — so 'no source found' " +
+			"is an answer it can give.\n\n" +
+			"Every answer carries three flags. sourced means a graded source backs it; " +
+			"UNGRADED means the gate never ran, so the context is unverified however " +
+			"good it looks; DEGRADED means retrieval ran on a reduced pipeline. They " +
+			"are separate because one flag cannot tell 'the corpus has no answer' " +
+			"from 'retrieval is broken'.",
+		guide: "Start with /prism new, /prism import, then just ask. /prism set shows " +
+			"every knob and writes it to this workspace's config — an embedding model " +
+			"turns on the semantic half, a utility model turns on the relevance gate.",
+		examples: []example{
+			{"/prism", "status: which models are wired in, and the module list"},
+			{`/prism new "Contract Law"`, "create a module and select it"},
+			{"/prism use contract-law", "switch the active module"},
+			{"/prism import ./docs", "ingest a file or a whole directory"},
+			{"/prism docs", "per-document ingestion status"},
+			{"/prism what does clause 4 say", "ask the active module"},
+			{"/prism set", "show every setting and its default"},
+			{"/prism set utility_model openai/gpt-4o-mini", "turn on the relevance gate"},
+			{"/prism set mode agent", "route multi-step questions through decomposition"},
+			{"/prism set variants 3", "enable RAG-Fusion at three phrasings"},
 		},
 	},
 	{

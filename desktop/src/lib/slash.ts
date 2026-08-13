@@ -22,6 +22,7 @@ export type SlashAction =
   | { kind: "sessioninfo" }
   | { kind: "quit" }
   | { kind: "note"; title: string; body?: string }
+  | { kind: "aside"; text: string }
 
 export type SlashCommand = {
   name: string
@@ -32,6 +33,16 @@ export type SlashCommand = {
   group: string
   /** Built from the typed argument string (everything after the name). */
   action: (arg: string) => SlashAction
+}
+
+/** The marker /btw puts in front of an aside so the model reads it as context
+ *  rather than a request. Must match agent.AsidePrefix in
+ *  cli/internal/agent/aside.go — the daemon writes it, this file reads it. */
+export const ASIDE_PREFIX = "[aside: context only, no reply needed now]\n"
+
+/** The user's own words from a framed aside, or null for any other message. */
+export function asideBody(content: string): string | null {
+  return content.startsWith(ASIDE_PREFIX) ? content.slice(ASIDE_PREFIX.length) : null
 }
 
 /** Parse an `xN` multiplier argument, as `/wiki x3` in the TUI. */
@@ -130,10 +141,17 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "copy", summary: "copy the last reply to the clipboard", group: "Conversation", action: () => ({ kind: "copy" }) },
   {
     name: "mode",
-    args: "[build|plan|general|explore]",
+    args: "[build|plan|general|explore|review|prism]",
     summary: "agent permission modes (terminal)",
     group: "Conversation",
     action: () => ({ kind: "note", title: "No permission modes here", body: "The desktop agent asks before every change — the yolo and shell toggles are the dials." }),
+  },
+  {
+    name: "btw",
+    args: "<text>",
+    summary: "tell the agent something without asking for a reply",
+    group: "Conversation",
+    action: (arg) => ({ kind: "aside", text: arg }),
   },
   { name: "queue", args: "[clear]", summary: "queued steering messages (terminal)", group: "Conversation", action: () => tuiOnly("Steering queue") },
   { name: "fork", args: "[turns]", summary: "rewind the conversation (terminal)", group: "Conversation", action: () => tuiOnly("/fork") },

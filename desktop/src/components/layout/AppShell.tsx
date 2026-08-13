@@ -14,11 +14,12 @@ import ErrorBoundary from "@/components/ErrorBoundary"
 import { Badge, Button, Kbd, Skeleton } from "@/components/ui"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useExplorerStore } from "@/store/explorer"
+import { isTauri } from "@/lib/daemon"
 import { cn } from "@/lib/utils"
 
 import PageBackground from "@/components/PageBackground"
 
-const NAV_ROUTES = ["/chat", "/research", "/wiki", "/graph", "/cards", "/editor", "/browser", "/activity", "/extensions"]
+const NAV_ROUTES = ["/chat", "/research", "/wiki", "/graph", "/cards", "/prism", "/editor", "/browser", "/activity", "/extensions"]
 
 export default function AppShell() {
   const active = useWorkspaceStore((s) => s.active)
@@ -32,8 +33,11 @@ export default function AppShell() {
   const [initialising, setInitialising] = useState(false)
   const [maximized, setMaximized] = useState(false)
 
-  // Track maximized state so the icon updates correctly.
+  // Track maximized state so the icon updates correctly. Skipped outside
+  // Tauri: there is no native window to ask, and getCurrentWindow() throws
+  // rather than returning something inert.
   useEffect(() => {
+    if (!isTauri()) return
     const win = getCurrentWindow()
     win.isMaximized().then(setMaximized).catch(() => {})
     let cleanup: (() => void) | undefined
@@ -57,7 +61,10 @@ export default function AppShell() {
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [navigate, toggleExplorer])
 
-  const win = getCurrentWindow()
+  // The browser tab draws its own chrome, so the custom titlebar buttons have
+  // nothing to drive — rendering them would just be three broken controls.
+  const native = isTauri()
+  const win = native ? getCurrentWindow() : null
 
   return (
     <div className="relative flex h-screen flex-col overflow-hidden bg-background">
@@ -117,17 +124,19 @@ export default function AppShell() {
       )}
 
       {/* Window controls */}
-      <div className="titlebar-no-drag ml-2 flex shrink-0 items-center gap-0.5">
-        <WinBtn label="Minimize" onClick={() => win.minimize()} hoverClass="hover:bg-kai-line/40">
-          <Minus size={11} />
-        </WinBtn>
-        <WinBtn label={maximized ? "Restore" : "Maximize"} onClick={() => win.toggleMaximize()} hoverClass="hover:bg-kai-line/40">
-          <Maximize2 size={10} />
-        </WinBtn>
-        <WinBtn label="Close" onClick={() => win.close()} hoverClass="hover:bg-red-700 hover:text-white">
-          <X size={11} />
-        </WinBtn>
-      </div>
+      {win && (
+        <div className="titlebar-no-drag ml-2 flex shrink-0 items-center gap-0.5">
+          <WinBtn label="Minimize" onClick={() => win.minimize()} hoverClass="hover:bg-kai-line/40">
+            <Minus size={11} />
+          </WinBtn>
+          <WinBtn label={maximized ? "Restore" : "Maximize"} onClick={() => win.toggleMaximize()} hoverClass="hover:bg-kai-line/40">
+            <Maximize2 size={10} />
+          </WinBtn>
+          <WinBtn label="Close" onClick={() => win.close()} hoverClass="hover:bg-red-700 hover:text-white">
+            <X size={11} />
+          </WinBtn>
+        </div>
+      )}
     </header>
 
     {/* Body row: NavRail | main content | optional explorer */}

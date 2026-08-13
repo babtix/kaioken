@@ -69,11 +69,17 @@ func TestTrustedAssetURL(t *testing.T) {
 func TestCheckFindsMatchingAsset(t *testing.T) {
 	asset := AssetName("1.1.0")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The signature artifacts are named after checksums.txt, not after
+		// the per-platform binary — this is exactly what the release
+		// publishes, and looking for "<asset>.sig" instead is what left
+		// signature verification unreachable.
 		fmt.Fprintf(w, `{"tag_name":"v1.1.0","assets":[
 			{"name":"checksums.txt","browser_download_url":"%s/checksums.txt"},
+			{"name":"checksums.txt.sig","browser_download_url":"%s/checksums.txt.sig"},
+			{"name":"checksums.txt.pem","browser_download_url":"%s/checksums.txt.pem"},
 			{"name":"%s","browser_download_url":"%s/%s"},
 			{"name":"kaioken-v1.1.0-plan9-mips","browser_download_url":"%s/other"}
-		]}`, srvURL(r), asset, srvURL(r), asset, srvURL(r))
+		]}`, srvURL(r), srvURL(r), srvURL(r), asset, srvURL(r), asset, srvURL(r))
 	}))
 	defer srv.Close()
 	oldAPI := ghAPI
@@ -87,8 +93,16 @@ func TestCheckFindsMatchingAsset(t *testing.T) {
 	if rel == nil || rel.AssetName != asset || !newer {
 		t.Fatalf("Check = %+v newer=%v, want asset %q and newer=true", rel, newer, asset)
 	}
+	// All three are required to install; a release whose signature artifacts
+	// go unrecognised is one Apply will refuse outright.
 	if rel.ChecksumURL == "" {
 		t.Error("ChecksumURL not picked up")
+	}
+	if rel.ChecksumSigURL == "" {
+		t.Error("ChecksumSigURL not picked up — signature verification would be unreachable")
+	}
+	if rel.ChecksumCertURL == "" {
+		t.Error("ChecksumCertURL not picked up — signature verification would be unreachable")
 	}
 
 	// Same release against itself: nothing newer.
@@ -220,41 +234,33 @@ func TestRefreshHonorsInterval(t *testing.T) {
 // asset URLs share the ghAPI prefix and pass trustedAssetURL.
 func srvURL(r *http.Request) string { return "http://" + r.Host }
 
-func TestVerifyChecksum(t *testing.T) {
+// The hash half of verification, against a checksums.txt that the signature
+// half has already vouched for — verify.go now fetches it once and checks the
+// signature before this ever runs.
+func TestMatchChecksum(t *testing.T) {
 	dir := t.TempDir()
 	staged := filepath.Join(dir, "staged.bin")
 	payload := []byte("new binary bytes")
 	if err := os.WriteFile(staged, payload, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	sum := sha256.Sum256(payload)
+	sum := hex.EncodeToString(sha256Of(payload))
+	const asset = "kaioken-v1.1.0-test"
 
-	serve := func(body string) *httptest.Server {
-		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, body)
-		}))
-	}
-
-	good := serve(hex.EncodeToString(sum[:]) + "  kaioken-v1.1.0-test\n")
-	defer good.Close()
-	rel := &Release{AssetName: "kaioken-v1.1.0-test", ChecksumURL: good.URL}
-	if err := verifyChecksum(context.Background(), staged, rel); err != nil {
+	if err := matchChecksum(staged, []byte(sum+"  "+asset+"\n"), asset); err != nil {
 		t.Errorf("valid checksum rejected: %v", err)
 	}
-
-	bad := serve("deadbeef  kaioken-v1.1.0-test\n")
-	defer bad.Close()
-	rel.ChecksumURL = bad.URL
-	if err := verifyChecksum(context.Background(), staged, rel); err == nil {
+	if err := matchChecksum(staged, []byte("deadbeef  "+asset+"\n"), asset); err == nil {
 		t.Error("corrupted checksum accepted")
 	}
-
-	missing := serve("deadbeef  some-other-file\n")
-	defer missing.Close()
-	rel.ChecksumURL = missing.URL
-	if err := verifyChecksum(context.Background(), staged, rel); err == nil {
+	if err := matchChecksum(staged, []byte("deadbeef  some-other-file\n"), asset); err == nil {
 		t.Error("missing checksum entry accepted")
 	}
+}
+
+func sha256Of(b []byte) []byte {
+	sum := sha256.Sum256(b)
+	return sum[:]
 }
 
 func TestSwapReplacesAndKeepsRollback(t *testing.T) {

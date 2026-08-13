@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom"
 import { openInBrowser } from "@/lib/openInBrowser"
 import { BookOpen, Code2, FolderOpen, Globe, Layers, MessageSquare, Puzzle, Radar, Settings, Store, Wallet, Waypoints, Zap } from "lucide-react"
+import { PrismIcon } from "@/components/common/PrismIcon"
 import { cn } from "@/lib/utils"
 import { REGISTRY_WEB_URL } from "@/lib/links"
 import { useWorkspaceStore } from "@/store/workspace"
@@ -17,6 +18,11 @@ const NAV_ITEMS = [
   { to: "/wiki", icon: BookOpen, label: "Wiki", key: "3" },
   { to: "/graph", icon: Waypoints, label: "Graph", key: "4" },
   { to: "/cards", icon: Layers, label: "Cards", key: "5" },
+  // PRISM is the fourth knowledge view and the only one the user fills
+  // themselves, so it sits with the other three rather than among the tools.
+  // No number: the row is already full, and it belongs to whoever has
+  // documents to import rather than to every session.
+  { to: "/prism", icon: PrismIcon, label: "PRISM", key: "" },
   { to: "/editor", icon: Code2, label: "Editor", key: "6" },
   { to: "/browser", icon: Globe, label: "Browser", key: "7" },
   { to: "/activity", icon: Zap, label: "Activity", key: "8" },

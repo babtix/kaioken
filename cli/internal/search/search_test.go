@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"kaioken/internal/config"
+	"kaioken/internal/embed"
 )
 
 // fixture builds a small repo with a wiki, a card and a skill.
@@ -246,9 +247,9 @@ func (s *stubEmbedder) Embed(_ context.Context, texts []string) ([][]float32, er
 	for i, t := range texts {
 		if strings.Contains(strings.ToLower(t), "segment") ||
 			strings.Contains(strings.ToLower(t), "durability") {
-			out[i] = normalize([]float32{1, 0})
+			out[i] = embed.Normalize([]float32{1, 0})
 		} else {
-			out[i] = normalize([]float32{0, 1})
+			out[i] = embed.Normalize([]float32{0, 1})
 		}
 	}
 	return out, nil
@@ -341,25 +342,6 @@ func (brokenEmbedder) ID() string { return "stub@test" }
 func (brokenEmbedder) Dims() int  { return 2 }
 func (brokenEmbedder) Embed(context.Context, []string) ([][]float32, error) {
 	return nil, os.ErrDeadlineExceeded
-}
-
-func TestAnalyzeSplitsIdentifiers(t *testing.T) {
-	got := analyze("handleWikiSearch snake_case_name HTTPServer v2Client")
-	want := []string{"wiki", "search", "snake", "case", "name", "http", "server", "client"}
-	for _, w := range want {
-		if !contains(got, w) {
-			t.Errorf("analyze() missing %q; got %v", w, got)
-		}
-	}
-}
-
-func contains(hay []string, needle string) bool {
-	for _, h := range hay {
-		if h == needle {
-			return true
-		}
-	}
-	return false
 }
 
 func TestSnippetStaysWithinBudget(t *testing.T) {

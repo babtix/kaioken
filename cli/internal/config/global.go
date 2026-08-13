@@ -27,6 +27,11 @@ type Global struct {
 	// config wins; this is where a user points every workspace at one local
 	// embedding server once instead of per repo.
 	Search Search `yaml:"search,omitempty"`
+	// Prism sets the cross-repo default for imported-document retrieval. A
+	// repo's own config wins field by field; this is where a user points every
+	// workspace at one local embedding server and one cheap utility model
+	// once, instead of repeating it per repo.
+	Prism Prism `yaml:"prism,omitempty"`
 	// Local lists user-defined local model endpoints (Ollama, LM Studio,
 	// llama.cpp, vLLM). They join the built-in provider registry at runtime so
 	// the rest of the system cannot tell a local endpoint from a hosted one.

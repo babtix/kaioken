@@ -74,7 +74,7 @@ func (c *Client) ChatWithToolsStream(ctx context.Context, messages []Message, to
 	var body []byte
 	var err error
 	if c.Protocol == protocolAnthropic {
-		body, err = anthropicStreamBody(c.Model, messages, tools)
+		body, err = anthropicStreamBody(c.Model, c.tempPtr(0.3), messages, tools)
 	} else {
 		reqBody := toolChatRequest{
 			Model:         c.Model,

@@ -470,6 +470,99 @@ export type EmbedSettings = {
   enabled: boolean
 }
 
+// --- PRISM: retrieval over imported documents ---
+
+export type PrismModule = {
+  slug: string
+  name: string
+  description?: string
+  system_prompt?: string
+  /** Counts only documents that reached "ready" — what is actually retrievable. */
+  document_count: number
+  chunk_count: number
+  created_at: string
+  updated_at: string
+}
+
+export type PrismDocumentStatus = "processing" | "ready" | "failed"
+
+export type PrismDocument = {
+  id: string
+  filename: string
+  source?: string
+  status: PrismDocumentStatus
+  child_count: number
+  parent_count: number
+  bytes: number
+  /** Set on a failed document, in terms the importer can act on. */
+  error?: string
+  created_at: string
+  updated_at: string
+}
+
+/** Which tier of the local-first resolution supplied the embedding endpoint. */
+export type PrismEmbedSource = "config" | "local" | "hosted" | "none"
+
+export type PrismStatus = {
+  status: string
+  embed: { source: PrismEmbedSource; detail: string; model: string }
+  /** Empty means the relevance gate cannot run. */
+  utility: string
+  mode: "static" | "agent"
+  options: { top_k: number; variants: number; grade: boolean }
+  modules: PrismModule[]
+}
+
+export type PrismStep = {
+  iteration: number
+  query: string
+  chunk_count: number
+  source_found: boolean
+  degraded: boolean
+  note?: string
+}
+
+export type PrismAnswer = {
+  query: string
+  module: string
+  /**
+   * The three flags are deliberately separate. One boolean cannot distinguish
+   * "the corpus has no answer" from "retrieval is broken", and those call for
+   * opposite responses — so a UI must render all three, never fold them into
+   * a single "found" state.
+   */
+  source_found: boolean
+  /** False means the gate never ran: the context is unverified however good it looks. */
+  graded: boolean
+  /** True means retrieval ran on a reduced pipeline; quality is below normal. */
+  degraded: boolean
+  chunks: string[]
+  route: "simple" | "complex"
+  sub_questions: string[]
+  unresolved?: string[]
+  steps?: PrismStep[]
+  elapsed_ms: number
+}
+
+export type PrismSettings = {
+  embed_model: string
+  embed_provider: string
+  embed_base_url: string
+  embed_fallback_model: string
+  embed_fallback_provider: string
+  utility_model: string
+  utility_provider: string
+  mode: "static" | "agent"
+  top_k: number
+  variants: number
+  grade: boolean
+  parent_tokens: number
+  child_tokens: number
+  child_overlap: number
+  cache_ttl_seconds: number
+  max_variants: number
+}
+
 // --- Cost dashboard ---
 
 export type UsageBucket = {

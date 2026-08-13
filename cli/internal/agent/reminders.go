@@ -43,6 +43,13 @@ const exploreReminder = `Explore mode is active. You are read-only: no file edit
 commands. Your job is to find things and explain them. Report concrete paths and line numbers
 so the user can act on what you found.`
 
+const reviewReminder = `Review mode is active. You are read-only: no file edits, no shell
+commands. Focus on code review, security audits, diff analysis, and identifying regressions.`
+
+const prismReminder = `PRISM mode is active. Precision Retrieval with Intelligent Source Matching is engaged:
+you are in a grounded knowledge retrieval phase. Answer the user's questions grounded in the
+imported PRISM document context. Cite sources and indicate relevant module references.`
+
 // buildSwitchReminder fires once the mode has returned to build after a
 // stretch of planning. Without it a model that spent ten turns forbidden from
 // editing keeps producing plans, having learned the shape of the conversation
@@ -110,6 +117,10 @@ func reminderFor(conv []llm.Message, mode Mode) string {
 		return planReminder
 	case ModeExplore:
 		return exploreReminder
+	case ModeReview:
+		return reviewReminder
+	case ModePrism:
+		return prismReminder
 	case ModeGeneral:
 		return generalReminder
 	}
@@ -132,7 +143,7 @@ func wasRestricted(conv []llm.Message) bool {
 			continue
 		}
 		switch modeFromSwitch(msg.Content) {
-		case ModePlan, ModeExplore:
+		case ModePlan, ModeExplore, ModeReview, ModePrism:
 			return true
 		}
 	}

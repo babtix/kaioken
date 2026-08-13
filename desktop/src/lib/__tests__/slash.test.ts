@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { filterCommands, resolveCommand } from "../slash"
+import { ASIDE_PREFIX, asideBody, filterCommands, resolveCommand } from "../slash"
 import { detectTrigger } from "@/components/chat/Autocomplete"
 
 describe("detectTrigger", () => {
@@ -89,5 +89,25 @@ describe("resolveCommand", () => {
   it("returns null for prose and unknown commands, so they send as messages", () => {
     expect(resolveCommand("what does /wiki do?")).toBeNull()
     expect(resolveCommand("/notacommand")).toBeNull()
+  })
+
+  it("carries /btw's whole argument through as an aside", () => {
+    const r = resolveCommand("/btw staging is down, x3 failures are expected")!
+    // No xN parsing, no flag sniffing — the text is the payload.
+    expect(r.cmd.action(r.arg)).toEqual({
+      kind: "aside",
+      text: "staging is down, x3 failures are expected",
+    })
+  })
+})
+
+describe("asideBody", () => {
+  it("round-trips the framing the daemon stores", () => {
+    expect(asideBody(ASIDE_PREFIX + "the file moved")).toBe("the file moved")
+  })
+
+  it("leaves an ordinary user message alone", () => {
+    expect(asideBody("btw the file moved")).toBeNull()
+    expect(asideBody("")).toBeNull()
   })
 })

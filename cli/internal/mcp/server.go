@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"kaioken/internal/config"
+	"kaioken/internal/embed"
 	"kaioken/internal/llm"
 	"kaioken/internal/search"
 	"kaioken/internal/version"
@@ -52,7 +53,7 @@ type Server struct {
 	mu       sync.Mutex
 	cfg      *config.Config
 	index    *search.Index
-	embedder search.Embedder
+	embedder embed.Embedder
 
 	// initialized flips on the client's initialize call. Tools stay callable
 	// before it — some clients probe tools/list first — but the flag lets the
@@ -169,7 +170,7 @@ func (s *Server) search(ctx context.Context, q search.Query) ([]search.Result, e
 			return nil, err
 		}
 		s.index = idx
-		s.embedder, _ = search.NewEmbedder(search.EmbedConfigFor(s.repo))
+		s.embedder, _ = embed.New(embed.ConfigFor(s.repo))
 	}
 	idx, emb := s.index, s.embedder
 	s.mu.Unlock()

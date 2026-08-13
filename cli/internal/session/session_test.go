@@ -141,6 +141,23 @@ func TestDeriveTitle(t *testing.T) {
 			},
 			want: "lots of space",
 		},
+		{
+			// A conversation opened with /btw begins with a framed aside. The
+			// marker is machinery — the user's words are the title.
+			name: "bracketed annotation skipped",
+			messages: []llm.Message{
+				{Role: "user", Content: "[aside: context only, no reply needed now]\nstaging is down"},
+			},
+			want: "staging is down",
+		},
+		{
+			name: "annotation with nothing after it falls through",
+			messages: []llm.Message{
+				{Role: "user", Content: "[aside: context only, no reply needed now]"},
+				{Role: "user", Content: "explain the auth flow"},
+			},
+			want: "explain the auth flow",
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

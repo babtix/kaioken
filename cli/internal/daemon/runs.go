@@ -55,6 +55,7 @@ type RunRecord struct {
 	mu            sync.Mutex
 	cancel        context.CancelFunc
 	finishSummary map[string]any // set by the run fn before returning
+	steer         func(string)   // set by chat runs; see SetSteer
 }
 
 // runRecordJSON mirrors RunRecord's exported fields for MarshalJSON's
@@ -211,6 +212,53 @@ func (rs *Runs) Cancel(id string) error {
 		r.cancel()
 	}
 	return nil
+}
+
+// SetSteer registers how to deliver a mid-run user message. Only chat runs
+// have somewhere to put one, so only they call this; for every other kind
+// Steer stays a no-op rather than a special case at the call site.
+func (r *RunRecord) SetSteer(fn func(string)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.steer = fn
+}
+
+// Steer hands a user message to the running agent, to be injected before its
+// next model call. Reports whether anything took it: false when the run is not
+// a chat run, or has already finished.
+func (r *RunRecord) Steer(text string) bool {
+	r.mu.Lock()
+	fn, live := r.steer, r.State == RunRunning || r.State == RunQueued
+	r.mu.Unlock()
+	if fn == nil || !live {
+		return false
+	}
+	fn(text)
+	return true
+}
+
+// SteerSession delivers a message to the workspace's active chat run for the
+// given session, if there is one. Reports whether it was taken.
+func (rs *Runs) SteerSession(workspaceID, sessionID, text string) bool {
+	rs.mu.RLock()
+	var target *RunRecord
+	for _, r := range rs.byID {
+		if r.WorkspaceID != workspaceID || r.Kind != "chat" {
+			continue
+		}
+		// Finished runs for this session are still in the registry — the
+		// retention window keeps the last 50 — so skip anything not live or
+		// the first match could be yesterday's conversation.
+		if r.State != RunRunning && r.State != RunQueued {
+			continue
+		}
+		if sid, _ := r.Params["session_id"].(string); sid == sessionID {
+			target = r
+			break
+		}
+	}
+	rs.mu.RUnlock()
+	return target != nil && target.Steer(text)
 }
 
 // ActiveKind reports whether a run of the given kind is active (running or

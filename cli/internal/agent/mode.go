@@ -27,6 +27,8 @@ const (
 	ModeExplore Mode = "explore"
 	// ModeReview is read-only, focused on code review, security audits, and diff analysis.
 	ModeReview Mode = "review"
+	// ModePrism focuses on grounded retrieval and answering questions from imported PRISM documents.
+	ModePrism Mode = "prism"
 )
 
 // Permissions describes what a mode lets the agent do.
@@ -40,7 +42,7 @@ type Permissions struct {
 // are treated as build so that a zero-value Agent keeps today's behavior.
 func PermissionsFor(m Mode) Permissions {
 	switch m {
-	case ModePlan, ModeExplore, ModeReview:
+	case ModePlan, ModeExplore, ModeReview, ModePrism:
 		return Permissions{CanWrite: false, CanRun: false, ForceApproval: false}
 	case ModeGeneral:
 		return Permissions{CanWrite: true, CanRun: true, ForceApproval: true}
@@ -66,8 +68,10 @@ func ParseMode(s string) (Mode, error) {
 		return ModeExplore, nil
 	case ModeReview:
 		return ModeReview, nil
+	case ModePrism, "prisme":
+		return ModePrism, nil
 	}
-	return "", fmt.Errorf("unknown mode %q (valid modes: build, plan, general, explore, review)", s)
+	return "", fmt.Errorf("unknown mode %q (valid modes: build, plan, general, explore, review, prism)", s)
 }
 
 // PromptGuidance returns a mode-specific snippet appended to the system
@@ -86,6 +90,10 @@ func (m Mode) PromptGuidance() string {
 	case ModeReview:
 		return "You are in review mode: focus on code review, security analysis, architectural consistency, " +
 			"and identifying potential bugs or regressions. You cannot modify files or run commands."
+	case ModePrism:
+		return "You are in prism mode: every question is answered using PRISM's precision retrieval over " +
+			"imported documents. Focus on reading and synthesizing answers grounded strictly in the " +
+			"verified PRISM context. You cannot modify files or run commands."
 	default:
 		return ""
 	}
@@ -94,7 +102,7 @@ func (m Mode) PromptGuidance() string {
 // Valid reports whether m is one of the recognized modes.
 func (m Mode) Valid() bool {
 	switch m {
-	case ModeBuild, ModePlan, ModeGeneral, ModeExplore, ModeReview:
+	case ModeBuild, ModePlan, ModeGeneral, ModeExplore, ModeReview, ModePrism:
 		return true
 	}
 	return false
@@ -102,6 +110,6 @@ func (m Mode) Valid() bool {
 
 // AllModes lists the recognized modes in display order.
 func AllModes() []Mode {
-	return []Mode{ModeBuild, ModePlan, ModeGeneral, ModeExplore, ModeReview}
+	return []Mode{ModeBuild, ModePlan, ModeGeneral, ModeExplore, ModeReview, ModePrism}
 }
 

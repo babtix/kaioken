@@ -111,6 +111,12 @@ func (a *Agent) Run(ctx context.Context, history []llm.Message) (_ []llm.Message
 	bus.Emit(&events.Event{Type: events.AgentStart, Depth: a.Depth})
 	defer func() { bus.Emit(&events.Event{Type: events.AgentEnd, Depth: a.Depth, Err: err}) }()
 
+	// In PRISM mode, automatically query and inject grounded knowledge context
+	// from imported PRISM modules for the active user prompt.
+	if a.Mode == ModePrism {
+		history = a.injectPrismContext(ctx, history)
+	}
+
 	// Refresh the turn's reminders against the prompt they govern. This runs
 	// here rather than in a front-end so the TUI and the daemon cannot drift
 	// on which constraints the model is actually told about.

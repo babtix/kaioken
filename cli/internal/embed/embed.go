@@ -1,4 +1,13 @@
-package search
+// Package embed turns text into vectors.
+//
+// Embeddings ride on the OpenAI-compatible /embeddings shape, which is what
+// OpenAI, OpenRouter, Together, DeepInfra, Mistral, Voyage and — the one that
+// matters most here — a local Ollama all speak. That means the semantic half
+// of retrieval can run entirely offline against nomic-embed-text with no key.
+//
+// The package is shared by every retriever in the repository, so a corpus
+// embedded by one is comparable with a query embedded by another.
+package embed
 
 import (
 	"bytes"
@@ -8,17 +17,13 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"kaioken/internal/config"
 	"kaioken/internal/llm"
 )
-
-// Embeddings ride on the OpenAI-compatible /embeddings shape, which is what
-// OpenAI, Together, DeepInfra, Mistral, Voyage and — the one that matters
-// most here — a local Ollama all speak. That means the semantic half of
-// search can run entirely offline against nomic-embed-text with no key.
 
 // Embedder turns text into vectors.
 type Embedder interface {
@@ -31,9 +36,9 @@ type Embedder interface {
 	Dims() int
 }
 
-// EmbedConfig describes where to get embeddings. Zero value means disabled,
-// which leaves search lexical-only.
-type EmbedConfig struct {
+// Config describes where to get embeddings. Zero value means disabled, which
+// leaves retrieval lexical-only.
+type Config struct {
 	// Provider is a key in llm.Providers, or empty to use BaseURL directly.
 	Provider string
 	// BaseURL overrides the provider default.
@@ -45,20 +50,19 @@ type EmbedConfig struct {
 }
 
 // Enabled reports whether a model was configured.
-func (c EmbedConfig) Enabled() bool { return strings.TrimSpace(c.Model) != "" }
+func (c Config) Enabled() bool { return strings.TrimSpace(c.Model) != "" }
 
-// EmbedConfigFor resolves the embedding setup for a repo: workspace config
-// first, then the global defaults, then the key store. Returns a disabled
-// config when no embedding model is set anywhere — the common case, and not
-// an error.
-func EmbedConfigFor(repo string) EmbedConfig {
+// ConfigFor resolves the embedding setup for a repo: workspace config first,
+// then the global defaults, then the key store. Returns a disabled config when
+// no embedding model is set anywhere — a supported state, not an error.
+func ConfigFor(repo string) Config {
 	g := config.LoadGlobal()
 	cfg, err := config.Load(repo)
 	if err != nil {
 		cfg = config.Default()
 	}
 
-	ec := EmbedConfig{
+	ec := Config{
 		Provider: cfg.Search.EmbedProvider,
 		BaseURL:  cfg.Search.EmbedBaseURL,
 		Model:    cfg.Search.EmbedModel,
@@ -72,18 +76,28 @@ func EmbedConfigFor(repo string) EmbedConfig {
 	if ec.BaseURL == "" {
 		ec.BaseURL = g.Search.EmbedBaseURL
 	}
-	if ec.Provider != "" {
+	return WithEndpoint(ec)
+}
+
+// WithEndpoint fills in the endpoint and key a named provider implies, so a
+// caller that knows only a provider name and a model id gets a usable config.
+func WithEndpoint(ec Config) Config {
+	if ec.Provider == "" {
+		return ec
+	}
+	g := config.LoadGlobal()
+	if ec.APIKey == "" {
 		ec.APIKey = g.Keys[ec.Provider]
-		if ec.APIKey == "" {
-			if p, ok := llm.Providers[ec.Provider]; ok && p.KeyEnv != "" {
-				ec.APIKey = envOr(p.KeyEnv)
-			}
-		}
-		if ec.BaseURL == "" {
-			if p, ok := llm.Providers[ec.Provider]; ok {
-				ec.BaseURL = p.BaseURL
-			}
-		}
+	}
+	p, known := llm.Providers[ec.Provider]
+	if !known {
+		return ec
+	}
+	if ec.APIKey == "" && p.KeyEnv != "" {
+		ec.APIKey = os.Getenv(p.KeyEnv)
+	}
+	if ec.BaseURL == "" {
+		ec.BaseURL = p.BaseURL
 	}
 	return ec
 }
@@ -97,14 +111,18 @@ type httpEmbedder struct {
 	dims    int
 }
 
-// NewEmbedder builds an embedder, or returns nil when embeddings are off.
-func NewEmbedder(c EmbedConfig) (Embedder, error) {
+// New builds an embedder, or returns nil when embeddings are off.
+func New(c Config) (Embedder, error) {
 	if !c.Enabled() {
 		return nil, nil
 	}
 	base := strings.TrimSuffix(strings.TrimSpace(c.BaseURL), "/")
 	if base == "" {
 		return nil, fmt.Errorf("embedding model %q has no endpoint — set search.embed_provider or search.embed_base_url", c.Model)
+	}
+	// Ollama and local OpenAI-compatible endpoints host /embeddings under /v1.
+	if strings.HasSuffix(base, ":11434") || (c.Provider == "ollama" && !strings.HasSuffix(base, "/v1")) {
+		base += "/v1"
 	}
 	return &httpEmbedder{
 		baseURL: base,
@@ -117,15 +135,15 @@ func NewEmbedder(c EmbedConfig) (Embedder, error) {
 func (e *httpEmbedder) ID() string { return e.model + "@" + e.baseURL }
 func (e *httpEmbedder) Dims() int  { return e.dims }
 
-// embedBatch is how many passages go in one request. Large enough to amortise
-// round trips, small enough that a local model with a modest batch limit and
-// a 120s timeout still finishes.
-const embedBatch = 32
+// BatchSize is how many passages go in one request. Large enough to amortise
+// round trips, small enough that a local model with a modest batch limit and a
+// 120s timeout still finishes.
+const BatchSize = 32
 
 func (e *httpEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	out := make([][]float32, 0, len(texts))
-	for start := 0; start < len(texts); start += embedBatch {
-		end := start + embedBatch
+	for start := 0; start < len(texts); start += BatchSize {
+		end := start + BatchSize
 		if end > len(texts) {
 			end = len(texts)
 		}
@@ -184,7 +202,7 @@ func (e *httpEmbedder) embedOnce(ctx context.Context, texts []string) ([][]float
 		if idx < 0 || idx >= len(out) {
 			return nil, fmt.Errorf("embedding response index %d out of range", idx)
 		}
-		out[idx] = normalize(d.Embedding)
+		out[idx] = Normalize(d.Embedding)
 	}
 	for i, v := range out {
 		if v == nil {
@@ -197,9 +215,9 @@ func (e *httpEmbedder) embedOnce(ctx context.Context, texts []string) ([][]float
 	return out, nil
 }
 
-// normalize scales to unit length so cosine similarity is a plain dot
-// product, which is the whole inner loop of a query.
-func normalize(v []float32) []float32 {
+// Normalize scales to unit length so cosine similarity is a plain dot product,
+// which is the whole inner loop of a query.
+func Normalize(v []float32) []float32 {
 	var sum float64
 	for _, x := range v {
 		sum += float64(x) * float64(x)
@@ -214,10 +232,10 @@ func normalize(v []float32) []float32 {
 	return v
 }
 
-// dot is cosine similarity for already-normalised vectors. Mismatched widths
+// Dot is cosine similarity for already-normalised vectors. Mismatched widths
 // score zero rather than panicking: a stale index should degrade to lexical,
 // not crash a search.
-func dot(a, b []float32) float64 {
+func Dot(a, b []float32) float64 {
 	if len(a) != len(b) || len(a) == 0 {
 		return 0
 	}

@@ -90,6 +90,14 @@ type rpcHarness struct {
 	toSrv  io.WriteCloser
 	frames <-chan map[string]any
 	done   <-chan error
+	// pending holds frames read off the wire that no waitFor wanted yet.
+	// Responses and events are written by different goroutines, so their
+	// relative order is not guaranteed — agent.approve unblocks the agent
+	// (which emits approval_resolved) before it writes its own response, and
+	// either can reach the writer first. Buffering makes waitFor
+	// order-independent; discarding non-matching frames would let a test hang
+	// for 15s whenever the event won the race.
+	pending []map[string]any
 }
 
 func newHarness(t *testing.T, repo, baseURL string) *rpcHarness {
@@ -145,9 +153,18 @@ func (h *rpcHarness) send(id int, method string, params map[string]any) {
 	}
 }
 
-// waitFor reads frames until pred matches or the timeout passes.
+// waitFor returns the first frame matching pred, from what has already been
+// read or from the wire. Frames that do not match are kept in h.pending for a
+// later waitFor rather than dropped, so a test never depends on the order two
+// goroutines happened to reach the writer in.
 func (h *rpcHarness) waitFor(pred func(map[string]any) bool) map[string]any {
 	h.t.Helper()
+	for i, m := range h.pending {
+		if pred(m) {
+			h.pending = append(h.pending[:i], h.pending[i+1:]...)
+			return m
+		}
+	}
 	deadline := time.After(15 * time.Second)
 	for {
 		select {
@@ -158,6 +175,7 @@ func (h *rpcHarness) waitFor(pred func(map[string]any) bool) map[string]any {
 			if pred(m) {
 				return m
 			}
+			h.pending = append(h.pending, m)
 		case <-deadline:
 			h.t.Fatal("timed out waiting for a frame")
 		}
@@ -168,6 +186,30 @@ func isResponse(id int) func(map[string]any) bool {
 	return func(m map[string]any) bool {
 		v, ok := m["id"].(float64)
 		return ok && int(v) == id
+	}
+}
+
+// waitFor must not drop frames it was not asked for. agent.approve unblocks
+// the agent goroutine — which emits approval_resolved — before writing its
+// own response, so either can reach the writer first. This feeds the losing
+// order deterministically; before the harness buffered, the discarded event
+// left the next waitFor to burn its 15s deadline, which is what CI saw.
+func TestHarnessWaitForKeepsUnmatchedFrames(t *testing.T) {
+	ch := make(chan map[string]any, 4)
+	ch <- map[string]any{"method": "event", "params": map[string]any{"kind": "approval_resolved", "approved": false}}
+	ch <- map[string]any{"id": float64(2), "result": map[string]any{"ok": true}}
+	h := &rpcHarness{t: t, frames: ch}
+
+	if got := h.waitFor(isResponse(2)); got["id"].(float64) != 2 {
+		t.Fatalf("waitFor(isResponse(2)) returned %v", got)
+	}
+	// The event arrived first and was skipped over — it must still be there.
+	ev := h.waitFor(isEvent("approval_resolved"))
+	if params := ev["params"].(map[string]any); params["kind"] != "approval_resolved" {
+		t.Fatalf("waitFor(isEvent) returned %v", ev)
+	}
+	if len(h.pending) != 0 {
+		t.Errorf("pending = %v, want empty once both frames were consumed", h.pending)
 	}
 }
 

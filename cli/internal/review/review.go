@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"kaioken/internal/config"
+	"kaioken/internal/embed"
 	"kaioken/internal/gitx"
 	"kaioken/internal/llm"
 	"kaioken/internal/search"
@@ -250,7 +251,7 @@ func gatherContext(ctx context.Context, repo string, cfg *config.Config,
 		pg.detail("no generated knowledge — reviewing against the code alone")
 		return b.String(), cited
 	}
-	emb, _ := search.NewEmbedder(search.EmbedConfigFor(repo))
+	emb, _ := embed.New(embed.ConfigFor(repo))
 
 	// One query per changed area, deduplicated by document, so a ten-file
 	// change does not send ten copies of the same chapter.

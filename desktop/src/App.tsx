@@ -25,6 +25,7 @@ const Cards = lazy(() => import("@/routes/Cards"))
 const Extensions = lazy(() => import("@/routes/Extensions"))
 const Settings = lazy(() => import("@/routes/Settings"))
 const Research = lazy(() => import("@/routes/Research"))
+const Prism = lazy(() => import("@/routes/Prism"))
 const Cost = lazy(() => import("@/routes/Cost"))
 
 export default function App() {
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="graph" element={<Graph />} />
         <Route path="activity" element={<Activity />} />
         <Route path="cards" element={<Cards />} />
+        <Route path="prism" element={<Prism />} />
         <Route path="extensions" element={<Extensions />} />
         <Route path="cost" element={<Cost />} />
         <Route path="settings" element={<Settings />} />

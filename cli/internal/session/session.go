@@ -284,16 +284,31 @@ func List(repo string) ([]Meta, error) {
 	return metas, nil
 }
 
+// firstTitleLine returns the first line of a message that says something
+// about the conversation. A line that is wholly enclosed in square brackets
+// is an annotation the front-end prepended, not the user's words — /btw
+// frames asides that way — so it is skipped rather than becoming the title.
+func firstTitleLine(content string) string {
+	for _, line := range strings.Split(strings.TrimSpace(content), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			continue
+		}
+		return line
+	}
+	return ""
+}
+
 // deriveTitle summarises a conversation by its first user message.
 func deriveTitle(messages []llm.Message) string {
 	for _, msg := range messages {
 		if msg.Role != "user" {
 			continue
 		}
-		line := strings.TrimSpace(msg.Content)
-		if i := strings.IndexByte(line, '\n'); i != -1 {
-			line = line[:i]
-		}
+		line := firstTitleLine(msg.Content)
 		line = strings.Join(strings.Fields(line), " ")
 		if line == "" {
 			continue

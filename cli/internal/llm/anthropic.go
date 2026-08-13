@@ -31,7 +31,9 @@ type anthropicRequest struct {
 	System      any                `json:"system,omitempty"`
 	Messages    []anthropicMessage `json:"messages"`
 	Tools       []anthropicTool    `json:"tools,omitempty"`
-	Temperature float64            `json:"temperature,omitempty"`
+	// Temperature is a pointer so an explicit zero survives omitempty. A
+	// deterministic call is exactly the case a plain float64 would drop.
+	Temperature *float64 `json:"temperature,omitempty"`
 	Stream      bool               `json:"stream,omitempty"`
 }
 
@@ -237,7 +239,7 @@ func (c *Client) anthropicSend(ctx context.Context, system string, messages []an
 		System:      anthropicSystem(system),
 		Messages:    messages,
 		Tools:       tools,
-		Temperature: 0.3,
+		Temperature: c.tempPtr(0.3),
 	})
 	if err != nil {
 		return Message{}, err
@@ -263,7 +265,7 @@ func (c *Client) anthropicSend(ctx context.Context, system string, messages []an
 }
 
 // anthropicStreamBody builds the streaming request body for ChatWithToolsStream.
-func anthropicStreamBody(model string, messages []Message, tools []Tool) ([]byte, error) {
+func anthropicStreamBody(model string, temperature *float64, messages []Message, tools []Tool) ([]byte, error) {
 	system, msgs := toAnthropicMessages(messages)
 	applyCacheBreakpoints(msgs)
 	return json.Marshal(anthropicRequest{
@@ -271,7 +273,7 @@ func anthropicStreamBody(model string, messages []Message, tools []Tool) ([]byte
 		System:      anthropicSystem(system),
 		Messages:    msgs,
 		Tools:       toAnthropicTools(tools),
-		Temperature: 0.3,
+		Temperature: temperature,
 		Stream:      true,
 	})
 }

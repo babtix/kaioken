@@ -275,9 +275,9 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     commands: [
       {
         name: "/mode",
-        args: "[build|plan|general|explore]",
+        args: "[build|plan|general|explore|review|prism]",
         summary:
-          "Switch the permission mode: build is full access, plan and explore are read-only, general keeps every tool but always asks first.",
+          "Switch the permission mode: build is full access, plan/explore/review/prism are read-only (prism automatically grounds answers in imported documents), and general keeps every tool but always asks first.",
       },
       { name: "/undo", summary: "Roll back the last applied change." },
       { name: "/diff", summary: "Review the changes the agent has proposed or applied." },

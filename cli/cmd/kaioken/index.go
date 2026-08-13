@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"kaioken/internal/config"
+	"kaioken/internal/embed"
 	"kaioken/internal/search"
 )
 
@@ -24,8 +25,8 @@ func cmdIndex(ctx context.Context, f flags) error {
 		_ = os.Remove(filepath.Join(repo, config.Dir, "search_index.json"))
 	}
 
-	ec := search.EmbedConfigFor(repo)
-	emb, err := search.NewEmbedder(ec)
+	ec := embed.ConfigFor(repo)
+	emb, err := embed.New(ec)
 	if err != nil {
 		return err
 	}
@@ -91,7 +92,7 @@ func cmdSearch(ctx context.Context, f flags) error {
 	if err != nil {
 		return err
 	}
-	emb, _ := search.NewEmbedder(search.EmbedConfigFor(f.repo))
+	emb, _ := embed.New(embed.ConfigFor(f.repo))
 
 	hits, err := idx.Search(ctx, search.Query{Text: query, Limit: 10, Embedder: emb})
 	if err != nil {

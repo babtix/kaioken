@@ -12,8 +12,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
+	"kaioken/internal/prism"
 	"kaioken/internal/version"
 )
 
@@ -37,6 +39,15 @@ type Server struct {
 	mgr       *Manager
 	runs      *Runs
 	approvals *Approvals
+
+	// prisms holds one PRISM engine per workspace, built on first use.
+	//
+	// Not per request. An engine owns the store's lock, the tokenised view of
+	// each module and the retrieval cache, so building a fresh one per request
+	// throws all three away — and, worse, gives two concurrent requests two
+	// different locks over the same files, which is not a lock at all.
+	prismMu sync.Mutex
+	prisms  map[string]*prism.Engine
 }
 
 // Run serves until ctx is cancelled, POST /v1/shutdown is called, or the

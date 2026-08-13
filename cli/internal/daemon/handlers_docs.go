@@ -12,6 +12,7 @@ import (
 	"unicode"
 
 	"kaioken/internal/config"
+	"kaioken/internal/embed"
 	"kaioken/internal/plan"
 	"kaioken/internal/search"
 	"kaioken/internal/skills"
@@ -217,7 +218,7 @@ func (s *Server) handleWikiSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	// Embedding is opt-in per workspace; when it is off this stays nil and the
 	// search is pure BM25 with no network call on the request path.
-	query.Embedder, _ = search.NewEmbedder(search.EmbedConfigFor(repo))
+	query.Embedder, _ = embed.New(embed.ConfigFor(repo))
 
 	hits, err := idx.Search(r.Context(), query)
 	if err != nil {
