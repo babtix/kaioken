@@ -172,11 +172,17 @@ func (e *engine) runSupervisor(ctx context.Context, brief string, subs []Subtopi
 
 	loaded, _ := e.state.LoadFindings()
 	results := append([]Finding(nil), loaded...)
-	objectives := map[string]bool{}
-	for _, s := range subs {
-		objectives[strings.ToLower(strings.TrimSpace(s.Objective))] = true
-	}
-	nextID := len(subs) + 1
+
+	// Only objectives that are already SETTLED start out claimed. Seeding this
+	// from the plan instead — which is what it used to do — meant the supervisor
+	// was handed a list of pending strands, asked to dispatch them, and then
+	// refused every dispatch that quoted one, on the grounds that it was
+	// "already covered". Nothing had been researched at all. The deep path only
+	// produced findings when the model happened to reword an objective enough to
+	// miss an exact match, so an obedient model got an empty run and a loose one
+	// researched something slightly different from the plan.
+	objectives := settledObjectives(loaded, subs, e.state.Snapshot().Plan)
+	nextID := nextSubtopicID(subs, e.state.Snapshot().Plan)
 	spawned := len(loaded)
 
 	messages := []llm.Message{
@@ -226,7 +232,9 @@ func (e *engine) runSupervisor(ctx context.Context, brief string, subs []Subtopi
 					replies = append(replies, toolReply(tc, "Rejected: "+why))
 					continue
 				}
-				objectives[strings.ToLower(strings.TrimSpace(sub.Objective))] = true
+				// Claimed at dispatch, not at plan time: this is what stops the
+				// same strand being spawned twice across two waves.
+				objectives[normObjective(sub.Objective)] = true
 				batch = append(batch, *sub)
 				ids = append(ids, tc.ID)
 			default:
@@ -269,6 +277,56 @@ func (e *engine) runSupervisor(ctx context.Context, brief string, subs []Subtopi
 	return results, nil
 }
 
+// normObjective is the comparison form for an objective: dedup is about the
+// same question asked twice, not the same string typed twice.
+func normObjective(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
+
+// settledObjectives returns the objectives that must not be dispatched again
+// because a finding already answers them.
+//
+// A finding names only its SubtopicID, so the objective is recovered from the
+// plan. Both the planned strands and the run state's plan are consulted: waves
+// append supervisor-spawned strands to the latter, and a resumed run's findings
+// often belong to those rather than to the original decomposition.
+func settledObjectives(findings []Finding, plans ...[]Subtopic) map[string]bool {
+	byID := map[string]string{}
+	for _, plan := range plans {
+		for _, s := range plan {
+			if obj := normObjective(s.Objective); obj != "" {
+				byID[s.ID] = obj
+			}
+		}
+	}
+	settled := map[string]bool{}
+	for _, f := range findings {
+		if obj, ok := byID[f.SubtopicID]; ok {
+			settled[obj] = true
+		}
+	}
+	return settled
+}
+
+// nextSubtopicID is the first id a supervisor-spawned strand may take.
+//
+// Ids are assigned as sub-N and must not collide with a strand that already
+// exists, including ones a previous wave appended to the run state. Counting
+// the plan length is not enough for a resumed run, so the highest N actually in
+// use decides.
+func nextSubtopicID(plans ...[]Subtopic) int {
+	highest := 0
+	for _, plan := range plans {
+		for _, s := range plan {
+			var n int
+			if _, err := fmt.Sscanf(s.ID, "sub-%d", &n); err == nil && n > highest {
+				highest = n
+			}
+		}
+	}
+	return highest + 1
+}
+
 // acceptDispatch validates one conduct_research call against the delegation
 // contract and the spawn budget. It returns the accepted subtopic, or the
 // reason it was refused.
@@ -293,8 +351,8 @@ func (e *engine) acceptDispatch(argsJSON string, objectives map[string]bool, nex
 	if !sub.Complete() {
 		return nil, "incomplete delegation contract — supply objective, format, sources and bounds"
 	}
-	if objectives[strings.ToLower(sub.Objective)] {
-		return nil, "this objective is already covered by an existing subtopic or finding"
+	if objectives[normObjective(sub.Objective)] {
+		return nil, "this objective is already settled by a finding, or a worker is already researching it"
 	}
 	if *spawned >= maxDeepSubtopics {
 		return nil, fmt.Sprintf("spawn budget exhausted (%d subtopics)", maxDeepSubtopics)
