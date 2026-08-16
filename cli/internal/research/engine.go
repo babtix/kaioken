@@ -244,9 +244,7 @@ func (e *engine) execute(ctx context.Context) (*Report, error) {
 		if why, ok := e.shouldEscalate(out); ok {
 			e.pg.detail("escalating to the deep path: " + why)
 			e.state.Event("escalate", why)
-			e.mu.Lock()
-			e.escalated = true
-			e.mu.Unlock()
+			e.markEscalated()
 			e.state.Mutate(func(r *RunMeta) {
 				r.Path = "deep"
 				r.EscalatedFrom = "fast"
@@ -293,9 +291,7 @@ func (e *engine) execute(ctx context.Context) (*Report, error) {
 	// wants the grounding flags, a fast path that may still escalate needs
 	// the signal — and is skipped only when nothing could follow from it.
 	var grounding *Grounding
-	citeWanted := e.opts.Verify || e.route == RouteDeep ||
-		(e.mode == "auto" && !e.escalated && !e.dossier)
-	if citeWanted && !e.costReached() {
+	if e.wantsCitePass() && !e.costReached() {
 		if err := e.state.SetPhase(PhaseCite); err != nil {
 			return nil, err
 		}
@@ -314,9 +310,7 @@ func (e *engine) execute(ctx context.Context) (*Report, error) {
 	if grounding != nil && grounding.LoadBearingFailed() && e.canEscalateAfterCite() {
 		e.pg.detail("escalating to the deep path: citation grounding failed a load-bearing claim")
 		e.state.Event("escalate", "citation grounding failed a load-bearing claim")
-		e.mu.Lock()
-		e.escalated = true
-		e.mu.Unlock()
+		e.markEscalated()
 		e.state.Mutate(func(r *RunMeta) {
 			r.Path = "deep"
 			if r.EscalatedFrom == "" {
@@ -403,11 +397,45 @@ func (e *engine) execute(ctx context.Context) (*Report, error) {
 	}, nil
 }
 
+// markEscalated promotes the run to the deep path.
+//
+// Both the flag and the route move together, and they must. Escalation used
+// to update only the persisted r.Path, leaving e.route saying "fast" for the
+// rest of the run -- so wantsCitePass below failed all three of its terms at
+// once and skipped grounding entirely, on exactly the runs that had just
+// promoted themselves because the fast path was not rigorous enough.
+func (e *engine) markEscalated() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.escalated, e.route = true, RouteDeep
+}
+
+// wantsCitePass reports whether the grounding pass could still change
+// this run: a deep path wants the flags, and a fast path that may yet
+// escalate needs the signal. It is skipped only when nothing could follow
+// from it.
+//
+// This reads e.route, which is why escalation must update it. While it did
+// not, an escalated auto run failed all three terms at once and skipped
+// grounding entirely -- on exactly the runs that promoted themselves
+// because the fast path was not rigorous enough.
+func (e *engine) wantsCitePass() bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.opts.Verify || e.route == RouteDeep ||
+		(e.mode == "auto" && !e.escalated && !e.dossier)
+}
+
 // canEscalateAfterCite reports whether a post-cite promotion is still on
 // the table: auto mode only, once per run, and with budget left.
+//
+// It does not test e.route. Escalation now sets it to deep, so a route test
+// here would be false for every run that had escalated and true only for
+// ones that had not -- which is what !e.escalated already says, and says
+// without silently disabling the second promotion the first time one fires.
 func (e *engine) canEscalateAfterCite() bool {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.mode == "auto" && !e.escalated && !e.dossier &&
-		e.route == RouteFast && !e.costReached() && !e.deadline()
+		!e.costReached() && !e.deadline()
 }
