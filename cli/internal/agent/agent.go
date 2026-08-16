@@ -122,11 +122,29 @@ func (a *Agent) Run(ctx context.Context, history []llm.Message) (_ []llm.Message
 	// on which constraints the model is actually told about.
 	history = ApplyReminders(history, a.Mode)
 
+	// lastCompact is the step a compaction was last attempted at. It starts far
+	// enough back that the first one is never rate-limited.
+	lastCompact := -recompactCooldown
+
 	for i := 0; i < steps; i++ {
 		if ctx.Err() != nil {
 			return history, ctx.Err()
 		}
 		bus.Emit(&events.Event{Type: events.TurnStart, Step: i, Depth: a.Depth})
+
+		// Shrink the context before the request rather than after the provider
+		// rejects it. Overflow is not recoverable in place: once the request
+		// fails, the history that failed to send is the only history there is,
+		// and it is already too large — so the reduction has to happen while the
+		// failure is still hypothetical.
+		//
+		// This is the top of the loop, and it has to be. Anywhere later in the
+		// iteration the conversation is mid-turn, with an assistant message
+		// whose tool_calls are not all answered yet; compaction may only split
+		// on a user message, and rewriting history across that boundary produces
+		// something the provider rejects outright. See splitForCompaction.
+		history, lastCompact = a.manageContext(ctx, history, i, lastCompact)
+
 		// The budget check runs before the call, not after: the point is to
 		// refuse the spend, not to report it. A warning joins the conversation
 		// as a context update so the model economizes for the rest of the

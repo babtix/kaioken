@@ -252,6 +252,66 @@ func Compact(ctx context.Context, client *llm.Client, conv []llm.Message, model 
 	return kept, note, nil
 }
 
+// recompactCooldown is how many steps must pass between compaction attempts
+// within one run.
+//
+// Compaction is not guaranteed to get under the limit. A single enormous tool
+// result survives into the verbatim tail, and the summary of everything before
+// it may not free enough to offset it — so the very next step would find the
+// conversation still over the limit and pay for another summary that cannot
+// help either. Without a cooldown that repeats every step until the budget or
+// the step count runs out, which is the expensive way to fail.
+const recompactCooldown = 3
+
+// manageContext shrinks the conversation before a turn runs, and reports the
+// step at which a compaction was last attempted so the caller can rate-limit
+// the next one.
+//
+// Two steps, cheapest first, matching what the TUI has always done before a
+// run: pruning erases the bodies of stale tool results for free and keeps every
+// message in place, while summarizing costs a model call and replaces them.
+// Most turns need neither and the cheap check is all that runs.
+//
+// Nothing here is fatal. A compaction that fails leaves the history untouched
+// and the turn proceeds: it may still fit, and losing the conversation to a
+// failed attempt at saving it would be the worse outcome.
+func (a *Agent) manageContext(ctx context.Context, history []llm.Message, step, lastCompact int) ([]llm.Message, int) {
+	if a.Client == nil || !CompactionEnabled() {
+		return history, lastCompact
+	}
+	model, ceiling := a.Client.Model, a.Client.MaxTokens
+	need, used := ShouldCompact(a.Context, history, model, ceiling)
+	if !need {
+		return history, lastCompact
+	}
+
+	if pruned, freed, note := Prune(history, model, ceiling); freed > 0 {
+		history = pruned
+		used -= freed
+		a.UI.Info(note)
+	}
+	if still, _ := ShouldCompact(a.Context, history, model, ceiling); !still {
+		return history, lastCompact
+	}
+	if step-lastCompact < recompactCooldown {
+		return history, lastCompact
+	}
+
+	// The attempt is recorded before it runs, so a failure rate-limits the next
+	// one exactly as a success does. A compaction that errors is no cheaper to
+	// repeat than one that did not free enough.
+	lastCompact = step
+	compacted, note, err := Compact(ctx, a.routedClient("compact"), history, model, ceiling)
+	if err != nil {
+		if ctx.Err() == nil {
+			a.UI.Info(fmt.Sprintf("context is large (~%d tokens) and auto-compaction failed: %v", used, err))
+		}
+		return history, lastCompact
+	}
+	a.UI.Info(note)
+	return compacted, lastCompact
+}
+
 // splitForCompaction divides a conversation into the part to summarize and the
 // part to keep verbatim.
 //
