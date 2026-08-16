@@ -205,8 +205,12 @@ func CommandPrefix(command string) string {
 // is what an approval of "git status" would be about, and the rest must not
 // ride along on it.
 func commandTokens(command string) []string {
+	command = strings.TrimSpace(command)
+	if i := strings.IndexAny(command, "\r\n"); i >= 0 {
+		command = command[:i]
+	}
 	var out []string
-	for _, raw := range strings.Fields(strings.TrimSpace(command)) {
+	for _, raw := range strings.Fields(command) {
 		if isShellOperator(raw) {
 			break
 		}
@@ -240,7 +244,13 @@ func canonicalTarget(action, target string) string {
 // Chainable reports whether a command line chains or substitutes other
 // commands. Such a line must never be covered by a stored rule: the rule was
 // written about its first command, and the rest is unexamined.
+//
+// Both sh and PowerShell treat newlines as command separators just like `;`,
+// so multiline commands are chained commands even without an explicit operator token.
 func Chainable(command string) bool {
+	if strings.ContainsAny(command, "\r\n\x00") {
+		return true
+	}
 	for _, raw := range strings.Fields(command) {
 		if isShellOperator(raw) {
 			return true
