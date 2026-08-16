@@ -208,10 +208,11 @@ func (c *Client) doStream(ctx context.Context, body []byte, onDelta func(string)
 func parseSSE(ctx context.Context, r io.Reader, onDelta func(string), record func(*usage)) (Message, bool, error) {
 	reader := bufio.NewReaderSize(r, 64*1024)
 	var (
-		content strings.Builder
-		calls   = map[int]*ToolCall{}
-		order   []int
-		emitted bool
+		content      strings.Builder
+		calls        = map[int]*ToolCall{}
+		order        []int
+		emitted      bool
+		finishReason string
 	)
 
 	for {
@@ -236,6 +237,9 @@ func parseSSE(ctx context.Context, r io.Reader, onDelta func(string), record fun
 				record(chunk.Usage)
 			}
 			for _, ch := range chunk.Choices {
+				if ch.FinishReason != "" {
+					finishReason = ch.FinishReason
+				}
 				if ch.Delta.Content != "" {
 					content.WriteString(ch.Delta.Content)
 					if onDelta != nil {
@@ -272,10 +276,31 @@ func parseSSE(ctx context.Context, r io.Reader, onDelta func(string), record fun
 		}
 	}
 
-	msg := Message{Role: "assistant", Content: content.String()}
 	sort.Ints(order)
+
+	// An unanswerable or truncated tool call (missing ID, missing function name,
+	// malformed JSON arguments, or a stream truncated by max_tokens mid-call)
+	// poisons every subsequent turn in the conversation: the agent must return
+	// one tool result per tool call, and the provider will reject any result
+	// with an invalid/missing tool_call_id or garbage arguments with a 400.
+	if finishReason == "length" && len(order) > 0 {
+		name := calls[order[len(order)-1]].Function.Name
+		return Message{}, !emitted, fmt.Errorf("the provider's stream ended mid-tool-call (finish_reason=length); arguments for %q are incomplete", name)
+	}
+
+	msg := Message{Role: "assistant", Content: content.String()}
 	for _, idx := range order {
-		msg.ToolCalls = append(msg.ToolCalls, *calls[idx])
+		tc := calls[idx]
+		if strings.TrimSpace(tc.Function.Name) == "" {
+			return Message{}, !emitted, fmt.Errorf("the provider streamed a tool call with no function name")
+		}
+		if strings.TrimSpace(tc.ID) == "" {
+			return Message{}, !emitted, fmt.Errorf("the provider streamed a tool call with no id")
+		}
+		if tc.Function.Arguments != "" && !json.Valid([]byte(tc.Function.Arguments)) {
+			return Message{}, !emitted, fmt.Errorf("the provider streamed malformed JSON arguments for tool %q", tc.Function.Name)
+		}
+		msg.ToolCalls = append(msg.ToolCalls, *tc)
 	}
 	return msg, false, nil
 }

@@ -250,3 +250,154 @@ func TestChatStreamCancellation(t *testing.T) {
 		t.Fatal("expected cancellation to surface as an error")
 	}
 }
+
+func TestParseSSEWellFormedToolCalls(t *testing.T) {
+	body := sse(
+		`{"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_b","type":"function","function":{"name":"write_file","arguments":"{\"content\":"}}]}}]}`,
+		`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_a","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"a.txt\"}"}}]}}]}`,
+		`{"choices":[{"delta":{"tool_calls":[{"index":1,"function":{"arguments":"\"hello\"}"}}]}}]}`,
+	)
+	msg, retryable, err := parseSSE(context.Background(), strings.NewReader(body), nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if retryable {
+		t.Errorf("retryable = true on success, want false")
+	}
+	if len(msg.ToolCalls) != 2 {
+		t.Fatalf("expected 2 tool calls, got %d", len(msg.ToolCalls))
+	}
+	if msg.ToolCalls[0].ID != "call_a" || msg.ToolCalls[1].ID != "call_b" {
+		t.Errorf("tool calls out of index order: %s, %s", msg.ToolCalls[0].ID, msg.ToolCalls[1].ID)
+	}
+	if msg.ToolCalls[0].Function.Arguments != `{"path":"a.txt"}` {
+		t.Errorf("call a args = %q", msg.ToolCalls[0].Function.Arguments)
+	}
+	if msg.ToolCalls[1].Function.Arguments != `{"content":"hello"}` {
+		t.Errorf("call b args = %q", msg.ToolCalls[1].Function.Arguments)
+	}
+}
+
+func TestParseSSETruncatedJSONArguments(t *testing.T) {
+	body := sse(
+		`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"cli/internal/ag"}}]}}]}`,
+	)
+	_, retryable, err := parseSSE(context.Background(), strings.NewReader(body), nil, nil)
+	if err == nil {
+		t.Fatal("expected error on truncated JSON arguments, got nil")
+	}
+	if !strings.Contains(err.Error(), "malformed JSON arguments for tool \"read_file\"") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+	if !retryable {
+		t.Errorf("retryable = false, want true when no prose was emitted")
+	}
+
+	bodyWithProse := sse(
+		`{"choices":[{"delta":{"content":"Reading file..."}}]}`,
+		`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"read_file","arguments":"{\"path\":"}}]}}]}`,
+	)
+	var seen string
+	_, retryableAfterProse, errAfterProse := parseSSE(context.Background(), strings.NewReader(bodyWithProse), func(s string) { seen += s }, nil)
+	if errAfterProse == nil {
+		t.Fatal("expected error on truncated JSON arguments, got nil")
+	}
+	if seen != "Reading file..." {
+		t.Errorf("prose delta not received: %q", seen)
+	}
+	if retryableAfterProse {
+		t.Errorf("retryable = true after prose emitted, want false")
+	}
+}
+
+func TestParseSSEFinishReasonLengthInsideToolCall(t *testing.T) {
+	body := sse(
+		`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"edit_file","arguments":"{\"path\":\"main.go\",\"content\":\"func"}}]}}]}`,
+		`{"choices":[{"finish_reason":"length","delta":{}}]}`,
+	)
+	_, retryable, err := parseSSE(context.Background(), strings.NewReader(body), nil, nil)
+	if err == nil {
+		t.Fatal("expected error for finish_reason=length with tool call, got nil")
+	}
+	if !strings.Contains(err.Error(), "finish_reason=length") || !strings.Contains(err.Error(), `"edit_file"`) {
+		t.Errorf("unexpected error message: %v", err)
+	}
+	if !retryable {
+		t.Errorf("retryable = false, want true when no prose was emitted")
+	}
+}
+
+func TestParseSSEMissingToolCallID(t *testing.T) {
+	body := sse(
+		`{"choices":[{"delta":{"tool_calls":[{"index":0,"type":"function","function":{"name":"read_file","arguments":"{\"path\":\"main.go\"}"}}]}}]}`,
+	)
+	_, retryable, err := parseSSE(context.Background(), strings.NewReader(body), nil, nil)
+	if err == nil {
+		t.Fatal("expected error on missing tool call id, got nil")
+	}
+	if !strings.Contains(err.Error(), "no id") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+	if !retryable {
+		t.Errorf("retryable = false, want true")
+	}
+}
+
+func TestParseSSEMissingToolCallFunctionName(t *testing.T) {
+	body := sse(
+		`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"arguments":"{\"path\":\"main.go\"}"}}]}}]}`,
+	)
+	_, retryable, err := parseSSE(context.Background(), strings.NewReader(body), nil, nil)
+	if err == nil {
+		t.Fatal("expected error on missing function name, got nil")
+	}
+	if !strings.Contains(err.Error(), "no function name") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+	if !retryable {
+		t.Errorf("retryable = false, want true")
+	}
+}
+
+func TestParseSSEFinishReasonLengthPureProse(t *testing.T) {
+	body := sse(
+		`{"choices":[{"delta":{"content":"This is a long response that got cut off"}}]}`,
+		`{"choices":[{"finish_reason":"length","delta":{}}]}`,
+	)
+	msg, retryable, err := parseSSE(context.Background(), strings.NewReader(body), nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error for pure prose with length finish_reason: %v", err)
+	}
+	if retryable {
+		t.Errorf("retryable = true, want false")
+	}
+	if msg.Content != "This is a long response that got cut off" {
+		t.Errorf("content = %q", msg.Content)
+	}
+	if len(msg.ToolCalls) != 0 {
+		t.Errorf("expected 0 tool calls, got %d", len(msg.ToolCalls))
+	}
+}
+
+func TestParseSSEEmptyToolCallArguments(t *testing.T) {
+	body := sse(
+		`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_0","type":"function","function":{"name":"get_time","arguments":""}}]}}]}`,
+	)
+	msg, retryable, err := parseSSE(context.Background(), strings.NewReader(body), nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error for empty tool call arguments: %v", err)
+	}
+	if retryable {
+		t.Errorf("retryable = true, want false")
+	}
+	if len(msg.ToolCalls) != 1 {
+		t.Fatalf("expected 1 tool call, got %d", len(msg.ToolCalls))
+	}
+	tc := msg.ToolCalls[0]
+	if tc.ID != "call_0" || tc.Function.Name != "get_time" {
+		t.Errorf("unexpected tool call: %+v", tc)
+	}
+	if tc.Function.Arguments != "" {
+		t.Errorf("arguments = %q, want empty string", tc.Function.Arguments)
+	}
+}
