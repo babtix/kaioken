@@ -7,6 +7,26 @@ style, not test coverage for its own sake.
 Baseline as of this audit: `go vet ./...` clean, `go test ./...` green. Every defect
 below is therefore invisible to the current test suite — that is itself a finding.
 
+## Status
+
+**Phases 1 and 2 are landed** on `fix/phase1-agent-logic` (8 commits, ~1 300 lines of new
+tests). Phases 3 and 4 are still open.
+
+| Fix | Commit |
+|---|---|
+| 1.3 newline bypasses standing permissions | `c2fd998` |
+| 1.4 invalid tool calls from a stream | `953fd8a` |
+| 1.2 sub-agent `derive()` | `a3d476b` |
+| 1.1 compaction inside `Run` | `bbb73fe` |
+| 2.1 supervisor rejects its own plan | `bc32915` |
+| 2.2 escalated runs skip grounding | `7fe80bc` |
+| 2.4 worker evidence cap credits an unread source | `73b29d9` |
+| 2.3 resume drops the gap query plan | `8bc959e` |
+
+Each fix ships with tests that fail without it. Two items in §1.5 remain open (the step
+budget consumed by steering, and `normalizeToLF` rewriting mixed line endings); §2.5
+(worker cancellation) is also still open.
+
 ---
 
 ## Summary of what is actually wrong
@@ -266,12 +286,15 @@ near-duplicates and then hard-refuses all further writes, which reads to the age
 Smaller in volume, but it is what lets phases 1–3 regress.
 
 - **Every defect above passes the test suite.** The tests are unit-shaped and cover
-  the components; nothing exercises a seam. Each phase should land with at least one
-  integration test that drives a whole loop against a scripted fake client — a
-  25-step run that overflows the window, a supervisor that dispatches its plan, a
-  resumed fast run.
+  the components; nothing exercises a seam. *(Addressed for phases 1–2: each fix landed
+  with tests driven against the scripted fake client in `agent_run_test.go`, and the
+  escalation and permission fixes were verified to fail when the fix is reverted.)*
 - **45 goroutine launch sites, 58 mutexes.** Run the suite under `-race` in CI; it does
-  not appear in `.github/` today.
+  not appear in `.github/` today. Note `-race` needs cgo and a C toolchain, so it cannot
+  run on a stock Windows dev box — CI is the only place it will actually execute.
+- **Add a `.gitattributes`.** The repo has none, so on Windows every file git touches is
+  rewritten LF→CRLF. `gofmt -l` currently reports *every* file in `internal/research` as
+  unformatted for this reason alone, which makes real formatting drift invisible.
 - `RunState.Mutate` + `Checkpoint` is called from inside `errgroup` workers
   ([supervisor.go:330](../cli/internal/research/supervisor.go)) — verify the write path
   is atomic (temp file + rename) or a crash mid-checkpoint corrupts a resumable run.
