@@ -142,21 +142,18 @@ func (a *Agent) runDelegate(ctx context.Context, description, prompt string) str
 	defer gitx.WorktreeRemove(context.Background(), a.Root, dir)
 	a.UI.Info(fmt.Sprintf("↳ delegate (%s): working in %s", label, dir))
 
-	sub := &Agent{
-		Client:   a.routedClient("task"),
-		Root:     dir,
-		UI:       delegateUI{parent: a.UI},
-		MaxSteps: delegateSteps,
-		Mode:     ModeBuild,
-		AllowRun: true,
-		Depth:    a.Depth + 1,
-		// Same client bills both agents, so the same guard watches both.
-		Budget: a.Budget,
-		Events: a.bus(),
-		// No Config on purpose: the delegate is one level down and its work
-		// is already routed through the "task" role above.
-		NoStream: true,
-	}
+	sub := a.derive()
+	sub.Client = a.routedClient("task")
+	sub.Root = dir // the throwaway worktree
+	sub.UI = delegateUI{parent: a.UI}
+	sub.MaxSteps = delegateSteps
+	sub.Mode = ModeBuild
+	sub.AllowRun = true
+	// Memory is disabled unconditionally: the delegate's root is a throwaway
+	// worktree that is removed as soon as the task ends, so anything `remember`
+	// wrote there would be destroyed. Project memory is the parent's to keep,
+	// not the delegate's.
+	sub.MemoryDisabled = true
 	history := []llm.Message{
 		{Role: "system", Content: delegatePrompt(dir, prompt)},
 		{Role: "user", Content: prompt},

@@ -110,26 +110,16 @@ func (a *Agent) runTask(ctx context.Context, description, prompt, modeArg string
 	}
 	a.UI.Info(fmt.Sprintf("↳ sub-agent (%s): %s", mode, label))
 
-	sub := &Agent{
-		Client:   a.routedClient("task"),
-		Root:     a.Root,
-		UI:       subUI{parent: a.UI},
-		MaxSteps: subAgentSteps,
-		Mode:     mode,
-		Depth:    a.Depth + 1,
-		// The same client bills both agents, so the same guard watches both:
-		// a delegated investigation must not out-spend the session's budget.
-		Budget: a.Budget,
-		// The parent's bus observes the delegate too; subscribers separate the
-		// streams by Event.Depth.
-		Events: a.bus(),
-		// A sub-agent never streams: its prose would interleave with the
-		// parent's in the front-end's live region, and nobody is reading it
-		// token by token anyway.
-		NoStream: true,
-		// AllowRun stays false and AutoApprove stays irrelevant — explore and
-		// plan withhold every repo-changing tool, so nothing can prompt.
-	}
+	sub := a.derive()
+	sub.Client = a.routedClient("task")
+	sub.UI = subUI{parent: a.UI}
+	sub.MaxSteps = subAgentSteps
+	sub.Mode = mode
+	// Root stays a.Root. AllowRun is inherited rather than forced false, which is
+	// safe only because mode is always explore or plan here and PermissionsFor
+	// gives both CanRun: false — run_command is offered on AllowRun && CanRun, so
+	// the mode gate is the one actually holding it back. Give this call site a
+	// mode with CanRun: true and the tool would appear.
 
 	history := []llm.Message{
 		{Role: "system", Content: subAgentPrompt(a.Root, prompt)},
