@@ -204,32 +204,48 @@ func fenceDocument(doc Document, cap int) string {
 		doc.Hash[:12], doc.ID, doc.Title, safe)
 }
 
+// selectEvidence picks the documents a worker actually read that will fit in
+// one compression call, returning the fenced text and the hashes it covers.
+//
+// The two results describe the same documents, and that is the whole point. A
+// hash used to be recorded before the cap was checked, so the one document
+// that busted the budget was never rendered, never sent to the model and
+// never influenced the summary -- yet still shipped in Finding.SourceHash.
+// toLegacyFinding turns that into the citation set and the confidence verdict,
+// where len(cites) >= 2 is half of what earns a "high" rating, so a finding
+// backed by one real source and one phantom could be reported as high
+// confidence and the phantom listed among the references.
+//
+// The dedup set is still marked before the cap check, which is harmless: the
+// cap ends the loop outright, so there is no later iteration for it to affect.
+func selectEvidence(fetchedIDs []string, lookup func(string) (Document, bool),
+	docCap, evidenceCap int) (parts, order []string) {
+
+	hashes := map[string]bool{}
+	total := 0
+	for _, id := range fetchedIDs {
+		doc, ok := lookup(id)
+		if !ok || hashes[doc.Hash] {
+			continue
+		}
+		hashes[doc.Hash] = true
+		part := fenceDocument(doc, docCap)
+		if total+len(part) > evidenceCap {
+			break
+		}
+		total += len(part)
+		parts = append(parts, part)
+		order = append(order, doc.Hash)
+	}
+	return parts, order
+}
+
 // compress is the separate cheap-model call that turns a worker's raw
 // reads into a finding: prose plus atomic claims tied to source hashes.
 // Extracting the claims here — not at write time — is what makes the
 // citation pass cheap and accurate later.
 func (e *engine) compress(ctx context.Context, sub Subtopic, fetchedIDs []string) (Finding, error) {
-	var parts []string
-	hashes := map[string]bool{}
-	var order []string
-	total := 0
-	for _, id := range fetchedIDs {
-		doc, ok := e.store.Seen(id)
-		if !ok {
-			continue
-		}
-		if hashes[doc.Hash] {
-			continue
-		}
-		hashes[doc.Hash] = true
-		order = append(order, doc.Hash)
-		part := fenceDocument(doc, workerDocCap)
-		if total+len(part) > workerEvidenceCap {
-			break
-		}
-		total += len(part)
-		parts = append(parts, part)
-	}
+	parts, order := selectEvidence(fetchedIDs, e.store.Seen, workerDocCap, workerEvidenceCap)
 
 	if len(parts) == 0 {
 		return Finding{
