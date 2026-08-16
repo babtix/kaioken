@@ -91,6 +91,16 @@ type FastState struct {
 	Findings []finding `json:"findings,omitempty"`
 	Queries  []string  `json:"queries,omitempty"`
 	Round    int       `json:"round,omitempty"`
+	// Pending is the search list the next round will issue, and Gaps the audit
+	// that produced it. Both are checkpointed because a resume that drops them
+	// throws away the model call that found them: the run would go back to
+	// searching the original question instead of the specific gaps, which is
+	// the whole difference between round three and round one.
+	//
+	// omitempty on both keeps a checkpoint written by an older build loading
+	// cleanly, with the fields simply empty.
+	Pending []string   `json:"pending,omitempty"`
+	Gaps    *gapReport `json:"gaps,omitempty"`
 }
 
 // RunMeta is the durable metadata of one research run.

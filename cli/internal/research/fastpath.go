@@ -71,9 +71,12 @@ func (e *engine) runFast(ctx context.Context) (pathOutcome, error) {
 		}
 		out.pendingQueries = queries
 	} else {
-		// A resumed run re-derives its next queries from what is still open;
-		// when nothing is recorded it simply searches the question itself.
-		out.pendingQueries = []string{e.question}
+		// A resumed run picks up the query plan the last gap audit produced, so
+		// it goes back for what was actually missing. Only when nothing is
+		// recorded -- an older checkpoint, or a run interrupted before its first
+		// audit -- does it fall back to searching the question itself.
+		out.pendingQueries = resumeQueries(snap.Fast, e.question)
+		out.lastGaps = snap.Fast.Gaps
 	}
 
 	rounds := e.shape.rounds
@@ -207,6 +210,16 @@ func (e *engine) runFast(ctx context.Context) (pathOutcome, error) {
 	return out, nil
 }
 
+// resumeQueries is the query list a resumed run starts from: the pending plan
+// the last gap audit produced, or the question itself when the checkpoint
+// carries none.
+func resumeQueries(fast FastState, question string) []string {
+	if len(fast.Pending) > 0 {
+		return append([]string(nil), fast.Pending...)
+	}
+	return []string{question}
+}
+
 // checkpointFast persists the loop state after a round: a crash between
 // rounds then loses nothing at all.
 func (e *engine) checkpointFast(out pathOutcome) {
@@ -217,6 +230,8 @@ func (e *engine) checkpointFast(out pathOutcome) {
 			Findings: findings,
 			Queries:  append([]string(nil), out.queries...),
 			Round:    out.roundsRun,
+			Pending:  append([]string(nil), out.pendingQueries...),
+			Gaps:     out.lastGaps,
 		}
 	})
 	_ = e.state.Checkpoint()
