@@ -94,7 +94,9 @@ Commands:
              report (positional: optional xN multiplier, then the question;
              -out overrides the report path). -mode auto|fast|deep pins the
              path; -resume <run id> continues an interrupted run; -verify
-             cross-checks load-bearing claims independently.
+             cross-checks load-bearing claims independently. -fetcher
+             auto|http|headless|firecrawl picks how pages are read: auto
+             re-reads client-rendered pages in a local headless browser.
              x10 — or -deep at any multiplier — produces a deep dossier
              instead: up to ~480 pages read over 8 rounds, written as a
              sectioned document with a findings register, a search log and a
@@ -302,9 +304,11 @@ type flags struct {
 	deep bool
 	pdf  bool
 	// resume reopens an interrupted research run by id; verify turns on
-	// opt-in cross-path checking of load-bearing claims.
-	resume string
-	verify bool
+	// opt-in cross-path checking of load-bearing claims; fetcher pins how
+	// pages are read.
+	resume  string
+	verify  bool
+	fetcher string
 	// check turns `status` into the CI drift gate: no fixes, just an exit
 	// code a pipeline can gate on.
 	check bool
@@ -413,6 +417,11 @@ func parseFlags(argv []string) flags {
 			if i+1 < len(argv) {
 				i++
 				f.mode = argv[i]
+			}
+		case "-fetcher", "--fetcher":
+			if i+1 < len(argv) {
+				i++
+				f.fetcher = argv[i]
 			}
 		case "-approve", "--approve":
 			if i+1 < len(argv) {
@@ -1097,6 +1106,7 @@ func cmdResearch(ctx context.Context, f flags) error {
 		Mode:        f.mode,
 		Resume:      f.resume,
 		Verify:      f.verify || global.Research.Verify,
+		FetcherMode: f.fetcher,
 		Repo:        f.repo,
 	}
 
