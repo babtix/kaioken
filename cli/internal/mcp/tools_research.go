@@ -7,7 +7,6 @@ import (
 
 	"kaioken/internal/config"
 	"kaioken/internal/research"
-	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
 )
 
@@ -66,13 +65,6 @@ func researchRun(ctx callContext, raw json.RawMessage) (*ToolResult, error) {
 	}
 	if opts.MaxRounds == 0 {
 		opts.MaxRounds = global.Research.MaxRounds
-	}
-	// Firecrawl in the active set means its scrape API reads the pages too,
-	// with the built-in fetcher as fallback — same rule as the CLI and daemon.
-	if strings.Contains(provider.Name(), "firecrawl") {
-		if fk := websearch.KeyFor("firecrawl", global.Keys); fk != "" {
-			opts.Fetcher = webfetch.NewFirecrawl(fk, nil)
-		}
 	}
 	opts.Concurrency, _ = ctx.srv.config().EffectiveConcurrency(client.Model)
 

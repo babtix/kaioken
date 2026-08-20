@@ -33,7 +33,6 @@ import (
 	"kaioken/internal/skills"
 	"kaioken/internal/tui"
 	"kaioken/internal/version"
-	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
 	"kaioken/internal/wiki"
 )
@@ -1099,13 +1098,6 @@ func cmdResearch(ctx context.Context, f flags) error {
 		Resume:      f.resume,
 		Verify:      f.verify || global.Research.Verify,
 		Repo:        f.repo,
-	}
-	// Same rule as the daemon: Firecrawl in the active search set means its
-	// scrape API reads the pages too, with the built-in fetcher as fallback.
-	if strings.Contains(provider.Name(), "firecrawl") {
-		if fk := websearch.KeyFor("firecrawl", global.Keys); fk != "" {
-			opts.Fetcher = webfetch.NewFirecrawl(fk, nil)
-		}
 	}
 
 	limit, _ := cfg.EffectiveConcurrency(client.Model)

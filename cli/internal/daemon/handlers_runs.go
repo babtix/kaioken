@@ -16,7 +16,6 @@ import (
 	"kaioken/internal/research"
 	"kaioken/internal/version"
 	"kaioken/internal/skills"
-	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
 	"kaioken/internal/wiki"
 )
@@ -395,14 +394,6 @@ func (s *Server) runFn(ws *Workspace, kind string, params map[string]any) (func(
 			}
 			if opts.Mode == "" {
 				opts.Mode = global.Research.Mode
-			}
-			// Firecrawl in the active search set means its scrape API reads
-			// the pages too (with the built-in fetcher as per-URL fallback).
-			// Pinning "tavily" therefore means zero Firecrawl calls at all.
-			if strings.Contains(provider.Name(), "firecrawl") {
-				if fk := websearch.KeyFor("firecrawl", global.Keys); fk != "" {
-					opts.Fetcher = webfetch.NewFirecrawl(fk, nil)
-				}
 			}
 
 			// SetProgress alone only mutates the record — the hub publish is

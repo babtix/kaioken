@@ -14,7 +14,6 @@ import (
 	"kaioken/internal/reportpdf"
 	"kaioken/internal/research"
 	"kaioken/internal/version"
-	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
 )
 
@@ -58,14 +57,6 @@ func (m Model) startResearch(rest string) (tea.Model, tea.Cmd) {
 		Mode:        global.Research.Mode,
 		Verify:      global.Research.Verify,
 		Repo:        m.repo,
-	}
-	// Same rule as the CLI and daemon: Firecrawl in the active search set
-	// means its scrape API reads the pages too, with the built-in fetcher
-	// as fallback.
-	if strings.Contains(provider.Name(), "firecrawl") {
-		if fk := websearch.KeyFor("firecrawl", global.Keys); fk != "" {
-			opts.Fetcher = webfetch.NewFirecrawl(fk, nil)
-		}
 	}
 	limit, _ := m.cfg.EffectiveConcurrency(m.client.Model)
 	opts.Concurrency = limit
