@@ -113,6 +113,7 @@ func (f *FirecrawlFetcher) scrape(ctx context.Context, rawURL string) (*Page, er
 		Title:     out.Data.Metadata.Title,
 		Text:      collapse(out.Data.Markdown),
 		FetchedAt: time.Now(),
+		Via:       "firecrawl",
 	}, nil
 }
 

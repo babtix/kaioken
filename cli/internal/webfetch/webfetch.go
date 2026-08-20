@@ -36,6 +36,19 @@ type Page struct {
 	// half-read page.
 	Truncated bool
 	FetchedAt time.Time
+	// Via names the tier that produced this page: "http", "headless" or
+	// "firecrawl". It is reported, not persisted — SourceStore.Put,
+	// corpus.Source and the SavedSource wire shape the desktop reads all
+	// stop at the text, and threading provenance into them is a wire change
+	// that belongs with whatever surface would display it.
+	Via string
+
+	// htmlLen is the size of the markup this page was extracted from, kept
+	// only so looksUnrendered can compare it against the text that came out.
+	// A page with a lot of markup and almost no prose is the signature of a
+	// client-rendered shell. Unexported because it is a detail of how the
+	// page was read, not a property of the page.
+	htmlLen int
 }
 
 // Defaults chosen so one hostile or merely enormous page cannot stall a round.
@@ -52,6 +65,19 @@ const (
 type ErrBlockedAddress struct{ Reason string }
 
 func (e *ErrBlockedAddress) Error() string { return "blocked address: " + e.Reason }
+
+// ErrHTTPStatus reports a response that arrived intact but was not a 200. It
+// is typed so a caller can tell 403 (often a challenge page a real browser
+// clears) from 404 (nothing there to clear), without matching on strings.
+type ErrHTTPStatus struct {
+	URL        string
+	StatusCode int
+	Status     string
+}
+
+func (e *ErrHTTPStatus) Error() string {
+	return fmt.Sprintf("fetching %s: %s", e.URL, e.Status)
+}
 
 // Fetcher downloads pages. The zero value is not usable — call New.
 type Fetcher struct {
@@ -170,7 +196,7 @@ func (f *Fetcher) Fetch(ctx context.Context, rawURL string) (*Page, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("fetching %s: %s", rawURL, resp.Status)
+		return nil, &ErrHTTPStatus{URL: rawURL, StatusCode: resp.StatusCode, Status: resp.Status}
 	}
 
 	ctype := strings.ToLower(strings.TrimSpace(strings.SplitN(resp.Header.Get("Content-Type"), ";", 2)[0]))
@@ -208,6 +234,8 @@ func (f *Fetcher) Fetch(ctx context.Context, rawURL string) (*Page, error) {
 		FinalURL:  resp.Request.URL.String(),
 		Truncated: truncated,
 		FetchedAt: time.Now(),
+		Via:       "http",
+		htmlLen:   len(body),
 	}
 	if strings.HasPrefix(ctype, "text/plain") {
 		page.Text = collapse(string(body))
