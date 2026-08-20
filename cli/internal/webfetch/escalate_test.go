@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -24,6 +25,16 @@ func shellDoc() string {
 	sb.WriteString(`</head><body><div id="root"></div>`)
 	sb.WriteString(`<script>window.__DATA__={"a":1};</script></body></html>`)
 	return sb.String()
+}
+
+func TestBlockedIPCoversTheWholeThisHostBlock(t *testing.T) {
+	// Only 0.0.0.0 is IsUnspecified, but all of 0.0.0.0/8 is reserved and
+	// some kernels route it to loopback.
+	for _, addr := range []string{"0.0.0.0", "0.0.0.1", "0.1.2.3", "0.255.255.255"} {
+		if reason := blockedIP(net.ParseIP(addr)); reason == "" {
+			t.Errorf("blockedIP(%s) = \"\", want it refused", addr)
+		}
+	}
 }
 
 func TestLooksUnrenderedFlagsSPAShells(t *testing.T) {

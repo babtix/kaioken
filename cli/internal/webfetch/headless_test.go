@@ -290,6 +290,31 @@ func countProfileDirs(t *testing.T) int {
 	return n
 }
 
+// An HTTP proxy carries TCP only, so anything Chrome sends over UDP leaves
+// without passing the address guard. WebRTC is the way a page gets at UDP.
+func TestHeadlessRefusesNonProxiedUDP(t *testing.T) {
+	// chromedp's options are opaque closures over an unexported allocator, so
+	// there is nothing to inspect at runtime. Asserting on the source is the
+	// honest way to make removing one of these flags fail a test rather than
+	// silently reopen a path out of the proxy.
+	src, err := os.ReadFile("headless.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustSet := []string{
+		"force-webrtc-ip-handling-policy", // WebRTC would otherwise open UDP directly
+		"disable_non_proxied_udp",
+		"disable-quic",        // HTTP/3 would otherwise skip the proxy
+		"proxy-bypass-list",   // Chrome exempts localhost by default
+		`"no-sandbox", false`, // chromedp adds it itself when running as root
+	}
+	for _, want := range mustSet {
+		if !strings.Contains(string(src), want) {
+			t.Errorf("headless.go no longer sets %q — traffic could leave unguarded", want)
+		}
+	}
+}
+
 // Runs everywhere: no browser needed to prove the constructor refuses when
 // there is none.
 func TestNewHeadlessErrorsWhenNoBrowserIsFound(t *testing.T) {

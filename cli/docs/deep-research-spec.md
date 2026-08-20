@@ -354,6 +354,11 @@ Three details are load-bearing and should not be "simplified" later:
   everything the proxy exists to close.
 - **`--proxy-bypass-list=<-loopback>`.** Chrome bypasses the proxy for localhost by
   default, which would let a page reach a service on the user's own machine.
+- **WebRTC is disabled and non-proxied UDP refused.** An HTTP/CONNECT proxy carries
+  TCP only, so WebRTC opens UDP sockets straight through the host stack — a page
+  could probe local UDP services or push scraped text to an arbitrary endpoint with
+  none of it passing the guard. This is the one bypass that survives all the TCP-side
+  work, and it is why `force-webrtc-ip-handling-policy=disable_non_proxied_udp` is set.
 - **Refusals drop the connection, they do not return a body.** A proxy 403 with an
   explanation in it is rendered *as the document*, so a blocked address would be
   extracted and quoted as though the site had said it. A refusal is a network error,

@@ -302,6 +302,14 @@ func (h *HeadlessFetcher) allocatorOptions(profileDir, proxyAddr string) []chrom
 		// skip the proxy altogether — the one flag whose absence silently
 		// reopens everything the proxy exists to close.
 		chromedp.Flag("disable-quic", true),
+		// The other way out is UDP. An HTTP/CONNECT proxy only carries TCP,
+		// so WebRTC opens its own sockets straight through the host stack:
+		// a page could probe local UDP services or push scraped text to an
+		// arbitrary endpoint without any of it passing the address guard.
+		// Nothing here needs peer connections, so refuse non-proxied UDP and
+		// turn the feature off as well.
+		chromedp.Flag("force-webrtc-ip-handling-policy", "disable_non_proxied_udp"),
+		chromedp.Flag("webrtc-ip-handling-policy", "disable_non_proxied_udp"),
 
 		// chromedp adds --no-sandbox by itself when running as root. The
 		// renderer sandbox is the boundary between a hostile page and the
@@ -310,7 +318,7 @@ func (h *HeadlessFetcher) allocatorOptions(profileDir, proxyAddr string) []chrom
 		chromedp.Flag("no-sandbox", false),
 		// chromedp's defaults disable site-per-process. Keep site isolation
 		// on: this browser runs untrusted script by design.
-		chromedp.Flag("disable-features", "Translate,BlinkGenPropertyTrees"),
+		chromedp.Flag("disable-features", "Translate,BlinkGenPropertyTrees,WebRTC,WebRtcHideLocalIpsWithMdns"),
 
 		// Drop the automation tells. This defeats the crudest bot checks and
 		// nothing more — Cloudflare, DataDome and friends fingerprint canvas,

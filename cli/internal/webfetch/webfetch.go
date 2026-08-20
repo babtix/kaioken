@@ -129,6 +129,11 @@ func blockedIP(ip net.IP) string {
 	}
 	if v4 := ip.To4(); v4 != nil {
 		switch {
+		case v4[0] == 0:
+			// 0.0.0.0/8, "this host on this network" (RFC 6890). Only
+			// 0.0.0.0 itself is IsUnspecified, but the whole block is
+			// reserved and some kernels route 0.0.0.1 to loopback.
+			return "this-host network " + ip.String()
 		case v4[0] == 255:
 			return "broadcast " + ip.String()
 		case v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127:
