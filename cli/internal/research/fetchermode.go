@@ -112,3 +112,35 @@ func fallbackPhrase(rendering bool) string {
 	}
 	return "HTTP (no local browser found)"
 }
+
+// FetcherModes lists the accepted values, for a settings surface that wants to
+// offer them without hardcoding a second copy of the list.
+var FetcherModes = []string{"auto", "firecrawl", "headless", "http"}
+
+// ValidFetcherMode reports whether mode is one this package accepts. Empty is
+// valid and means auto.
+func ValidFetcherMode(mode string) bool {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	if mode == "" {
+		return true
+	}
+	for _, m := range FetcherModes {
+		if m == mode {
+			return true
+		}
+	}
+	return false
+}
+
+// DescribeFetcher reports in one sentence how pages will be read under the
+// current configuration, and whether that configuration is usable.
+//
+// It answers by resolving the real thing rather than describing it separately,
+// so a settings screen and an actual run can never disagree.
+func DescribeFetcher(global *config.Global) (detail string, ok bool) {
+	_, detail, err := resolveFetcher(Options{}, global)
+	if err != nil {
+		return err.Error(), false
+	}
+	return detail, true
+}

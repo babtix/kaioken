@@ -12,6 +12,8 @@ import (
 
 	"kaioken/internal/config"
 	"kaioken/internal/llm"
+	"kaioken/internal/research"
+	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
 )
 
@@ -102,7 +104,40 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 		"providers":        providers,
 		"search":           searchSettings(g),
 		"embed":            embedSettings(g),
+		"fetcher":          fetcherSettings(g),
 	})
+}
+
+// fetcherSettings reports how research reads pages, so the UI can show the
+// tier that will actually run rather than only the value on disk. The two can
+// differ: auto downgrades silently when no browser is installed, and a
+// Firecrawl key is what turns the scraper on.
+func fetcherSettings(g *config.Global) map[string]any {
+	detail, ok := research.DescribeFetcher(g)
+
+	browser, browserErr := webfetch.BrowserPath()
+	out := map[string]any{
+		"mode":             g.Research.FetcherMode, // "" means auto
+		"modes":            research.FetcherModes,
+		"detail":           detail,
+		"ok":               ok,
+		"browser":          browser,
+		"firecrawl_key":    false,
+		"firecrawl_env":    websearch.Registry["firecrawl"].KeyEnv,
+		"firecrawl_signup": websearch.Registry["firecrawl"].Signup,
+	}
+	if browserErr != nil {
+		out["browser_error"] = browserErr.Error()
+	}
+	if key := websearch.KeyFor("firecrawl", g.Keys); key != "" {
+		out["firecrawl_key"] = true
+		out["firecrawl_key_source"] = "env"
+		if strings.TrimSpace(g.Keys["firecrawl"]) != "" {
+			out["firecrawl_key_source"] = "config"
+		}
+		out["firecrawl_hint"] = keyHint(key)
+	}
+	return out
 }
 
 // embedSettings reports the retrieval configuration, so the UI can say whether
@@ -214,6 +249,9 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		// Pointer, because "" is a meaningful value here: it resets the
 		// search selection back to "every provider with a key".
 		SearchProvider *string `json:"search_provider"`
+		// Pointer for the same reason: "" resets the page-reading tier to
+		// auto, which is a choice and not an absence.
+		FetcherMode *string `json:"fetcher_mode"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, codeBadRequest, "invalid JSON", "")
@@ -234,6 +272,21 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		g.Research.SearchProvider = sel
 	}
+	if body.FetcherMode != nil {
+		mode := strings.ToLower(strings.TrimSpace(*body.FetcherMode))
+		if mode == "auto" {
+			// Store the default as empty, matching how the config file reads
+			// when the user has never touched it.
+			mode = ""
+		}
+		if !research.ValidFetcherMode(mode) {
+			writeError(w, http.StatusBadRequest, codeBadRequest,
+				fmt.Sprintf("unknown fetcher mode %q (want %s)", *body.FetcherMode,
+					strings.Join(research.FetcherModes, ", ")), "")
+			return
+		}
+		g.Research.FetcherMode = mode
+	}
 	if err := g.Save(); err != nil {
 		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")
 		return
@@ -242,6 +295,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		"default_provider": g.DefaultProvider,
 		"default_model":    g.DefaultModel,
 		"search_provider":  g.Research.SearchProvider,
+		"fetcher":          fetcherSettings(g),
 	})
 }
 

@@ -470,6 +470,31 @@ export type EmbedSettings = {
   enabled: boolean
 }
 
+/**
+ * How research reads the pages it finds, as opposed to how it finds them.
+ *
+ * `mode` is what is configured; `detail` is what a run will actually do. They
+ * differ whenever a tier is unavailable — auto falls back silently when no
+ * browser is installed, and Firecrawl only engages once a key exists — so the
+ * UI shows `detail` rather than restating `mode`.
+ */
+export type FetcherSettings = {
+  /** "" means auto, matching how the config file reads when never touched. */
+  mode: "" | "auto" | "firecrawl" | "headless" | "http"
+  modes: string[]
+  detail: string
+  /** False when the configured mode cannot run; `detail` then says why. */
+  ok: boolean
+  /** Path to the browser that would be launched, "" when none was found. */
+  browser: string
+  browser_error?: string
+  firecrawl_key: boolean
+  firecrawl_key_source?: "config" | "env"
+  firecrawl_hint?: string
+  firecrawl_env: string
+  firecrawl_signup: string
+}
+
 // --- PRISM: retrieval over imported documents ---
 
 export type PrismModule = {

@@ -24,8 +24,9 @@ export function normalizeSelection(v: string): string {
 /**
  * SearchProviderPicker chooses which search engine(s) a research run asks.
  * "Both" fans the query out to every vendor with a key and merges the
- * results; a single name pins one — pinning Tavily means zero Firecrawl
- * calls, search or scrape. Keyless vendors render disabled rather than
+ * results; a single name pins one. This governs search only — how pages are
+ * read is a separate setting, and a Firecrawl key now drives its scraper
+ * whatever is picked here. Keyless vendors render disabled rather than
  * hidden, so the way to enable them stays discoverable.
  */
 export function SearchProviderPicker({

@@ -17,7 +17,8 @@ import {
 import LocalModels from "@/components/LocalModels"
 import PrismSettings from "@/components/PrismSettings"
 import { cn } from "@/lib/utils"
-import type { EmbedSettings } from "@/lib/types"
+import FetcherSettings from "@/components/FetcherSettings"
+import type { EmbedSettings, FetcherSettings as FetcherSettingsType } from "@/lib/types"
 
 type Provider = {
   name: string
@@ -156,6 +157,7 @@ export default function Settings() {
   const [providers, setProviders] = useState<Provider[] | null>(null)
   const [search, setSearch] = useState<SearchSettings | null>(null)
   const [embed, setEmbed] = useState<EmbedSettings | null>(null)
+  const [fetcher, setFetcher] = useState<FetcherSettingsType | null>(null)
   const [config, setConfig] = useState<any>(null)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -169,6 +171,7 @@ export default function Settings() {
         setProviders(s.providers || [])
         setSearch(s.search ?? null)
         setEmbed(s.embed ?? null)
+        setFetcher(s.fetcher ?? null)
       })
       .catch(() => setProviders([]))
   }, [])
@@ -191,6 +194,9 @@ export default function Settings() {
     setProviders(s.providers || [])
     setSearch(s.search ?? null)
     setEmbed(s.embed ?? null)
+    // A saved key can flip which tier runs, so the fetcher block has to
+    // refresh alongside the provider list rather than keep a stale answer.
+    setFetcher(s.fetcher ?? null)
   }
 
   async function setSearchProvider(v: string) {
@@ -245,7 +251,8 @@ export default function Settings() {
             <p className="font-mono text-[10px] leading-relaxed text-kai-dim">
               Which engine answers research queries. <span className="text-kai-text">Both</span>{" "}
               asks every vendor with a key and merges results; picking one pins it.
-              With Firecrawl active, its scraper also reads the pages.
+              This decides how pages are <span className="text-kai-text">found</span>; how
+              they are read is set below.
             </p>
 
             <SearchProviderPicker
@@ -260,6 +267,12 @@ export default function Settings() {
               <SearchKeyCard key={sp.name} provider={sp} onSaved={reloadProviders} />
             ))}
           </div>
+
+          {fetcher && (
+            <div className="border-t border-border">
+              <FetcherSettings fetcher={fetcher} onChange={setFetcher} />
+            </div>
+          )}
         </SettingsSection>
       )}
 
