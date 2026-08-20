@@ -276,19 +276,38 @@ func (p *guardProxy) handleConnect(w http.ResponseWriter, r *http.Request) {
 	wg.Wait()
 }
 
+// refusePlain rejects a proxied request by dropping the connection.
+//
+// It must not write a body. A browser renders whatever comes back as the
+// document, so a refusal with an explanation in it would be handed to the
+// extractor and quoted as though the site had said it. Closing the connection
+// is reported as a network error instead, which is what a refusal actually is.
+//
+// CONNECT does not need this: a non-200 answer to CONNECT is already a
+// tunnel failure to the browser, never a page.
+func refusePlain(w http.ResponseWriter) {
+	if hj, ok := w.(http.Hijacker); ok {
+		if conn, _, err := hj.Hijack(); err == nil {
+			conn.Close()
+			return
+		}
+	}
+	http.Error(w, "refused", http.StatusForbidden)
+}
+
 // handlePlain forwards an ordinary proxied request. Chrome sends absolute-form
 // request URIs to a proxy, so r.URL already carries the scheme and host.
 func (p *guardProxy) handlePlain(w http.ResponseWriter, r *http.Request) {
 	if r.URL == nil || r.URL.Host == "" {
-		http.Error(w, "proxy requires an absolute URL", http.StatusBadRequest)
+		refusePlain(w)
 		return
 	}
 	if err := checkScheme(r.URL); err != nil {
-		http.Error(w, "scheme not proxied", http.StatusForbidden)
+		refusePlain(w)
 		return
 	}
 	if port := r.URL.Port(); port != "" && !allowedProxyPort(port) {
-		http.Error(w, "only ports 80 and 443 are proxied", http.StatusForbidden)
+		refusePlain(w)
 		return
 	}
 
@@ -307,12 +326,9 @@ func (p *guardProxy) handlePlain(w http.ResponseWriter, r *http.Request) {
 	// nobody re-checks.
 	resp, err := p.tr.RoundTrip(out)
 	if err != nil {
-		status := http.StatusBadGateway
-		var blocked *ErrBlockedAddress
-		if errors.As(err, &blocked) {
-			status = http.StatusForbidden
-		}
-		http.Error(w, "upstream refused", status)
+		// Blocked or simply unreachable, the browser must see a failed
+		// request rather than a page describing the failure.
+		refusePlain(w)
 		return
 	}
 	defer resp.Body.Close()
