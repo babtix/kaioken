@@ -6,11 +6,10 @@
 // is not a public HTTP endpoint, caps what a single response can cost, and
 // hands back plain text rather than markup.
 //
-// The address check happens at dial time, not when the URL is parsed. A
-// hostname that resolves to a public address during validation can resolve to
-// 127.0.0.1 a moment later when the connection is actually made (DNS
-// rebinding); checking the IP the dialer is about to connect to closes that
-// window, and covers redirects for free.
+// The address check happens at dial time, not when the URL is parsed, so a
+// hostname cannot resolve somewhere public during validation and somewhere
+// private a moment later. That guard lives in dialer.go, shared by this
+// fetcher and by the proxy the headless tier points a browser at.
 package webfetch
 
 import (
@@ -22,7 +21,6 @@ import (
 	"net/url"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -65,49 +63,13 @@ type Fetcher struct {
 // New returns a Fetcher wired to a client that validates every address it
 // dials and follows a bounded number of redirects.
 func New() *Fetcher {
-	dialer := &net.Dialer{
-		Timeout:   10 * time.Second,
-		KeepAlive: 30 * time.Second,
-		// Control runs after DNS resolution with the concrete address about
-		// to be dialled — the only place where the IP cannot change again
-		// before the connection is made.
-		Control: func(network, address string, _ syscall.RawConn) error {
-			host, _, err := net.SplitHostPort(address)
-			if err != nil {
-				return &ErrBlockedAddress{Reason: "unparseable address " + address}
-			}
-			ip := net.ParseIP(host)
-			if ip == nil {
-				return &ErrBlockedAddress{Reason: "unresolvable address " + host}
-			}
-			if reason := blockedIP(ip); reason != "" {
-				return &ErrBlockedAddress{Reason: reason}
-			}
-			return nil
-		},
-	}
-	transport := &http.Transport{
-		DialContext:           dialer.DialContext,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 15 * time.Second,
-		DisableCompression:    false,
-		MaxIdleConns:          64,
-		IdleConnTimeout:       30 * time.Second,
-	}
 	return &Fetcher{
 		MaxBytes:  DefaultMaxBytes,
 		UserAgent: defaultUserAgent,
 		client: &http.Client{
-			Transport: transport,
-			Timeout:   DefaultTimeout,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if len(via) >= maxRedirects {
-					return fmt.Errorf("stopped after %d redirects", maxRedirects)
-				}
-				// The dialer guards the IP; this guards the scheme, so a
-				// redirect cannot walk the fetcher off http(s) entirely.
-				return checkScheme(req.URL)
-			},
+			Transport:     guardedTransport(),
+			Timeout:       DefaultTimeout,
+			CheckRedirect: checkRedirect,
 		},
 	}
 }
