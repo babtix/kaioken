@@ -383,6 +383,30 @@ var commands = []command{
 		},
 	},
 	{
+		name: "fetcher", args: "[api|local] [on|off]",
+		summary: "choose what reads the pages research finds",
+		detail: "Finding a page and reading it are separate jobs. This sets the second. " +
+			"Two independent readers: the API reader sends each URL to Firecrawl, which " +
+			"renders it and strips the boilerplate for a credit; the local reader opens " +
+			"a browser already on this machine and re-reads anything that came back as " +
+			"an empty shell.\n\n" +
+			"Either, both or neither. Both is the default and the usual answer — the " +
+			"local reader picks up whatever the API misses. With neither, pages are " +
+			"plain fetches, which is free and fine for articles but returns almost " +
+			"nothing for a single-page app.",
+		guide: "Turn the API reader off to stop spending Firecrawl credits without " +
+			"giving up on JavaScript-heavy pages — the local browser handles those for " +
+			"free, just slower. Turn the local reader off on a machine with no browser " +
+			"installed, or when you would rather a run fail than take the extra " +
+			"seconds. The setting is global, saved to ~/.kaioken/config.yaml, and the " +
+			"same one the desktop app shows under Research engines.",
+		examples: []example{
+			{"/fetcher", "show what reads pages now, and what each reader needs"},
+			{"/fetcher api off", "stop sending URLs to Firecrawl"},
+			{"/fetcher local on", "re-read empty pages in a local browser"},
+		},
+	},
+	{
 		name:    "config",
 		summary: "show the active configuration",
 		examples: []example{

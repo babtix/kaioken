@@ -69,7 +69,7 @@ var chapters = []chapter{
 			"  documents into a module and ask questions scoped to it. Its answers\n" +
 			"  say whether a graded source actually backs them, so 'nothing here\n" +
 			"  answers that' is a result rather than a plausible-looking guess.",
-		commands: []string{"wiki", "update", "scan", "plan", "cards", "status", "impact", "research", "prism"},
+		commands: []string{"wiki", "update", "scan", "plan", "cards", "status", "impact", "research", "fetcher", "prism"},
 	},
 	{
 		name: "skills", title: "Skills: teaching an agent your project",

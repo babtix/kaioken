@@ -114,11 +114,16 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 // Firecrawl key is what turns the scraper on.
 func fetcherSettings(g *config.Global) map[string]any {
 	detail, ok := research.DescribeFetcher(g)
+	api, local := research.FetcherToggles(g.Research.FetcherMode)
 
 	browser, browserErr := webfetch.BrowserPath()
 	out := map[string]any{
-		"mode":             g.Research.FetcherMode, // "" means auto
-		"modes":            research.FetcherModes,
+		"mode":  g.Research.FetcherMode, // "" means auto
+		"modes": research.FetcherModes,
+		// The same setting as two independent switches, which is how the
+		// settings surfaces present it.
+		"api":              api,
+		"local":            local,
 		"detail":           detail,
 		"ok":               ok,
 		"browser":          browser,
@@ -252,6 +257,11 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		// Pointer for the same reason: "" resets the page-reading tier to
 		// auto, which is a choice and not an absence.
 		FetcherMode *string `json:"fetcher_mode"`
+		// The same setting expressed as the two switches a settings screen
+		// shows. Sending one flips it and leaves the other alone, so a UI
+		// does not have to know the mode names to toggle half of it.
+		FetcherAPI   *bool `json:"fetcher_api"`
+		FetcherLocal *bool `json:"fetcher_local"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, codeBadRequest, "invalid JSON", "")
@@ -286,6 +296,16 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		g.Research.FetcherMode = mode
+	}
+	if body.FetcherAPI != nil || body.FetcherLocal != nil {
+		api, local := research.FetcherToggles(g.Research.FetcherMode)
+		if body.FetcherAPI != nil {
+			api = *body.FetcherAPI
+		}
+		if body.FetcherLocal != nil {
+			local = *body.FetcherLocal
+		}
+		g.Research.FetcherMode = research.FetcherModeFor(api, local)
 	}
 	if err := g.Save(); err != nil {
 		writeError(w, http.StatusInternalServerError, codeEngineError, err.Error(), "")

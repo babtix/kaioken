@@ -320,7 +320,27 @@ daemon, MCP — gets the same answer and reports it through the run's progress d
 | `auto` (default) | Firecrawl reads the pages when a Firecrawl key is set, falling back per URL to the tier below. Otherwise HTTP first, re-reading anything that comes back client-rendered in a local headless browser, and HTTP-only when no browser is installed. |
 | `http` | Never starts a browser. |
 | `headless` | Same as `auto`, but a missing browser is an error rather than a downgrade. |
-| `firecrawl` | Read through the scrape API. A missing key is an error rather than a fallback. |
+| `firecrawl` | Read through the scrape API, falling back to a plain fetch. A missing key is an error rather than a fallback. |
+
+### Two switches, four modes
+
+The four modes are really two independent choices, and the settings surfaces
+present them that way — one switch each — while the config keeps storing a single
+name, so nothing on disk or on the command line had to change:
+
+| api | local | mode |
+|---|---|---|
+| on | on | `auto` — Firecrawl when keyed, the browser for what it misses |
+| on | off | `firecrawl` — API only, plain HTTP behind it |
+| off | on | `headless` — no API spend, browser for client-rendered pages |
+| off | off | `http` — plain fetches, nothing else |
+
+Note the middle row: with the local switch off, Firecrawl's fallback is a plain
+fetch rather than the browser. A fallback that started a browser would contradict
+the switch that turned the local reader off.
+
+`research.FetcherToggles` and `research.FetcherModeFor` are the mapping, shared by
+the daemon settings endpoint and the TUI's `/fetcher` so the two cannot disagree.
 
 **A Firecrawl key is enough on its own.** It used to also require Firecrawl to be in
 the active *search* set, so someone holding a key but pinning `tavily` for search got

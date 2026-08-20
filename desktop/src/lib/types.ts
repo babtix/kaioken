@@ -482,6 +482,9 @@ export type FetcherSettings = {
   /** "" means auto, matching how the config file reads when never touched. */
   mode: "" | "auto" | "firecrawl" | "headless" | "http"
   modes: string[]
+  /** The same setting as two switches: a paid API reader, and a local one. */
+  api: boolean
+  local: boolean
   detail: string
   /** False when the configured mode cannot run; `detail` then says why. */
   ok: boolean

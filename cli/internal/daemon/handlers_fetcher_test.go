@@ -80,6 +80,48 @@ func TestPutSettingsStoresAutoAsEmpty(t *testing.T) {
 	}
 }
 
+func TestPutSettingsFlipsOneSwitchWithoutTouchingTheOther(t *testing.T) {
+	isolatedHome(t)
+	ts, _ := prismFixture(t)
+
+	// Default is both on. Turning the API off must leave the local tier on,
+	// which is the "headless" mode.
+	_, body := ts.do(http.MethodPut, "/v1/settings", map[string]any{"fetcher_api": false})
+	fetcher, _ := body["fetcher"].(map[string]any)
+	if fetcher["api"] != false || fetcher["local"] != true {
+		t.Fatalf("api=%v local=%v, want api off and local untouched", fetcher["api"], fetcher["local"])
+	}
+	if fetcher["mode"] != "headless" {
+		t.Errorf("mode = %v, want headless", fetcher["mode"])
+	}
+
+	// Now turn the local tier off too: nothing left but plain fetches.
+	_, body = ts.do(http.MethodPut, "/v1/settings", map[string]any{"fetcher_local": false})
+	fetcher, _ = body["fetcher"].(map[string]any)
+	if fetcher["mode"] != "http" {
+		t.Errorf("mode = %v, want http once both switches are off", fetcher["mode"])
+	}
+
+	// And back on, which is the stored-as-empty default.
+	ts.do(http.MethodPut, "/v1/settings", map[string]any{"fetcher_api": true})
+	_, body = ts.do(http.MethodPut, "/v1/settings", map[string]any{"fetcher_local": true})
+	fetcher, _ = body["fetcher"].(map[string]any)
+	if fetcher["mode"] != "" {
+		t.Errorf("mode = %v, want both switches on to store as empty", fetcher["mode"])
+	}
+}
+
+func TestGetSettingsReportsBothSwitches(t *testing.T) {
+	isolatedHome(t)
+	ts, _ := prismFixture(t)
+
+	_, body := ts.do(http.MethodGet, "/v1/settings", nil)
+	fetcher, _ := body["fetcher"].(map[string]any)
+	if fetcher["api"] != true || fetcher["local"] != true {
+		t.Errorf("api=%v local=%v, want both on by default", fetcher["api"], fetcher["local"])
+	}
+}
+
 func TestPutSettingsRejectsAnUnknownFetcherMode(t *testing.T) {
 	isolatedHome(t)
 	ts, _ := prismFixture(t)

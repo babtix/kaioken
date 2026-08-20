@@ -70,9 +70,11 @@ func resolveFetcher(opts Options, global *config.Global) (Fetcher, string, error
 				"fetcher mode %q needs a Firecrawl API key — add it under keys in %s or set FIRECRAWL_API_KEY (https://firecrawl.dev)",
 				mode, config.GlobalPath())
 		}
-		base, rendering := headlessOrHTTP()
-		return webfetch.NewFirecrawl(firecrawlKey, base),
-			"pages read through Firecrawl, falling back to " + fallbackPhrase(rendering), nil
+		// The local tier is off in this mode, so the fallback is a plain
+		// fetch. Launching a browser here would contradict the switch the
+		// user set.
+		return webfetch.NewFirecrawl(firecrawlKey, webfetch.New()),
+			"pages read through Firecrawl, falling back to HTTP", nil
 
 	default:
 		return nil, "", fmt.Errorf("unknown fetcher mode %q (want auto, http, headless or firecrawl)", opts.FetcherMode)
@@ -111,6 +113,47 @@ func fallbackPhrase(rendering bool) string {
 		return "HTTP and a local browser"
 	}
 	return "HTTP (no local browser found)"
+}
+
+// The four modes are really two independent choices: whether a paid API reads
+// the pages, and whether a local browser does. Settings surfaces present them
+// that way — one switch each — while the config keeps storing a single name,
+// so nothing on disk or on the command line has to change.
+//
+//	api   local   mode
+//	 on    on     auto       Firecrawl when keyed, browser for what it misses
+//	 on    off    firecrawl  API only, plain HTTP behind it
+//	 off   on     headless   no API spend, browser for client-rendered pages
+//	 off   off    http       plain fetches, nothing else
+
+// FetcherToggles splits a stored mode into the two switches.
+func FetcherToggles(mode string) (api, local bool) {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "firecrawl":
+		return true, false
+	case "headless":
+		return false, true
+	case "http":
+		return false, false
+	default: // "" and "auto"
+		return true, true
+	}
+}
+
+// FetcherModeFor is the inverse: the mode a pair of switches means. Both on
+// gives "" rather than "auto", so choosing the default clears the setting
+// instead of writing the word.
+func FetcherModeFor(api, local bool) string {
+	switch {
+	case api && local:
+		return ""
+	case api:
+		return "firecrawl"
+	case local:
+		return "headless"
+	default:
+		return "http"
+	}
 }
 
 // FetcherModes lists the accepted values, for a settings surface that wants to

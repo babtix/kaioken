@@ -19,6 +19,55 @@ func noBrowser(t *testing.T) {
 	t.Setenv(webfetch.BrowserPathEnv, filepath.Join(t.TempDir(), "no-such-browser"))
 }
 
+func TestFetcherTogglesRoundTripEveryMode(t *testing.T) {
+	// Every mode has to survive the trip through the two switches a settings
+	// screen shows, or the UI and the config drift apart.
+	for _, mode := range []string{"", "auto", "firecrawl", "headless", "http"} {
+		api, local := FetcherToggles(mode)
+		got := FetcherModeFor(api, local)
+		want := mode
+		if want == "auto" {
+			want = "" // both switches on is stored as the empty default
+		}
+		if got != want {
+			t.Errorf("%q -> api=%v local=%v -> %q, want %q", mode, api, local, got, want)
+		}
+	}
+}
+
+func TestFetcherTogglesMapTheFourCombinations(t *testing.T) {
+	cases := []struct {
+		api, local bool
+		want       string
+	}{
+		{true, true, ""},
+		{true, false, "firecrawl"},
+		{false, true, "headless"},
+		{false, false, "http"},
+	}
+	for _, c := range cases {
+		if got := FetcherModeFor(c.api, c.local); got != c.want {
+			t.Errorf("api=%v local=%v = %q, want %q", c.api, c.local, got, c.want)
+		}
+	}
+}
+
+func TestFirecrawlOnlyModeDoesNotStartABrowser(t *testing.T) {
+	// api on, local off. The fallback must be a plain fetch: starting a
+	// browser would contradict the switch that turned the local tier off.
+	global := &config.Global{Keys: map[string]string{"firecrawl": "fc-test-key"}}
+	_, detail, err := resolveFetcher(Options{FetcherMode: "firecrawl"}, global)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(detail, "browser") {
+		t.Errorf("detail = %q, want no browser in the firecrawl-only fallback", detail)
+	}
+	if !strings.Contains(detail, "HTTP") {
+		t.Errorf("detail = %q, want it to name the HTTP fallback", detail)
+	}
+}
+
 func TestResolveFetcherRejectsUnknownMode(t *testing.T) {
 	opts := Options{FetcherMode: "browserless"}
 	_, _, err := resolveFetcher(opts, &config.Global{})

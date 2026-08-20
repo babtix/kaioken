@@ -33,14 +33,15 @@ import (
 	"kaioken/internal/config"
 	"kaioken/internal/ext"
 	"kaioken/internal/generate"
-	"kaioken/internal/gitx"
 	"kaioken/internal/gitdraft"
+	"kaioken/internal/gitx"
 	"kaioken/internal/handoff"
 	"kaioken/internal/impact"
 	"kaioken/internal/llm"
 	"kaioken/internal/memory"
 	"kaioken/internal/onboard"
 	"kaioken/internal/plan"
+	"kaioken/internal/research"
 	"kaioken/internal/scan"
 	"kaioken/internal/serve"
 	"kaioken/internal/session"
@@ -125,6 +126,7 @@ type serveStoppedMsg struct{}
 // impactMsg carries a finished impact prediction; receiving it opens the
 // interactive tree view.
 type impactMsg struct{ report *impact.Report }
+
 // compactedMsg carries a rebuilt conversation back from a compaction. The
 // history is assembled off the UI goroutine and swapped in whole, so the
 // automatic and the /compact paths converge on one piece of state handling.
@@ -239,7 +241,7 @@ type Model struct {
 	busyStart time.Time
 	mode      mode
 
-	pal             palette // slash-command completion menu
+	pal palette // slash-command completion menu
 	// impactTree is the interactive /impact report view, live while the
 	// model is in modeImpact.
 	impactTree      *impactTree
@@ -363,7 +365,7 @@ func New(repo string) Model {
 
 func (m *Model) resetConversation() {
 	m.conversation = []llm.Message{{
-		Role:    "system",
+		Role: "system",
 		Content: agent.SystemPrompt(agent.PromptInput{
 			Root:     m.repo,
 			Mode:     m.agentMode,
@@ -1245,18 +1247,18 @@ func (m Model) startChat(text string) (tea.Model, tea.Cmd) {
 	m.cancel = cancel
 	ui := uiAdapter{events: m.events, approvals: m.approvals, ctx: ctx}
 	ag := &agent.Agent{
-		Client:          m.client,
-		Root:            m.repo,
-		UI:              ui,
-		AutoApprove:     m.autoApprove,
-		AllowRun:        true,
-		MaxSteps:        25,
-		Mode:            m.agentMode,
-		MemoryDisabled:  m.cfg.Memory.Disable,
-		Budget:          m.budget,
-		Context:         m.ctxTracker,
-		Notes:           m.dirNotes,
-		Config:          m.cfg,
+		Client:         m.client,
+		Root:           m.repo,
+		UI:             ui,
+		AutoApprove:    m.autoApprove,
+		AllowRun:       true,
+		MaxSteps:       25,
+		Mode:           m.agentMode,
+		MemoryDisabled: m.cfg.Memory.Disable,
+		Budget:         m.budget,
+		Context:        m.ctxTracker,
+		Notes:          m.dirNotes,
+		Config:         m.cfg,
 	}
 	conv := m.conversation
 	ch := m.events
@@ -1346,7 +1348,7 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 		m.refreshViewport()
 	case "reset", "new":
 		m.closeSession(false) // learn+digest the previous session, then start fresh
-		m.saveSession()        // keep what was there before starting fresh
+		m.saveSession()       // keep what was there before starting fresh
 		m.resetConversation()
 		m.undoStack = nil
 		m.appendLine(dimStyle.Render("new session started — /resume to reopen the previous one"))
@@ -1414,6 +1416,8 @@ func (m Model) dispatch(raw string) (tea.Model, tea.Cmd) {
 			return m.startModels("")
 		}
 		m.setModel(rest)
+	case "fetcher":
+		m.doFetcher(args)
 	case "thinking":
 		m.doThinking(rest)
 	case "theme":
@@ -2979,6 +2983,14 @@ func (m Model) configLines() []string {
 		fmt.Sprintf("max_tokens:  %d per module", m.cfg.MaxModuleTokens),
 		fmt.Sprintf("notes:       %d steering note(s)", len(m.cfg.Notes)),
 		fmt.Sprintf("auto-approve: %v", m.autoApprove),
+	}
+	// Which readers research would use. Global rather than per-repo, so it
+	// reads from the global config rather than m.cfg.
+	{
+		g := config.LoadGlobal()
+		api, local := research.FetcherToggles(g.Research.FetcherMode)
+		lines = append(lines, fmt.Sprintf("page readers: api=%s local=%s  (/fetcher)",
+			onOff(api), onOff(local)))
 	}
 	// Operation-level model routing, when configured.
 	for _, role := range config.Roles {
