@@ -21,7 +21,7 @@ import (
 // The returned sentence is always set, including when the answer is a
 // fallback, because "which fetcher am I actually getting" is the first thing
 // anyone debugging a thin report wants to know.
-func resolveFetcher(opts Options, global *config.Global, provider websearch.Provider) (Fetcher, string, error) {
+func resolveFetcher(opts Options, global *config.Global) (Fetcher, string, error) {
 	// The test seam wins outright: a stub fetcher means a test is driving the
 	// loop without a network, and no config should override that.
 	if opts.Fetcher != nil {
@@ -33,12 +33,15 @@ func resolveFetcher(opts Options, global *config.Global, provider websearch.Prov
 		mode = strings.ToLower(strings.TrimSpace(global.Research.FetcherMode))
 	}
 
-	// Firecrawl's scrape API is only in play when its key is already backing
-	// the search side, which is the rule the four copied blocks encoded.
-	firecrawlKey := ""
-	if provider != nil && strings.Contains(provider.Name(), "firecrawl") {
-		firecrawlKey = websearch.KeyFor("firecrawl", global.Keys)
-	}
+	// A Firecrawl key is enough on its own. This used to require Firecrawl to
+	// also be in the active search set, so a user who held a key but pinned
+	// tavily for search got no scraping from it at all — surprising, given
+	// they had configured the thing. Holding the key is now the whole signal.
+	//
+	// It does mean a key configured only for search starts spending scrape
+	// credits. fetcher_mode: http turns it off, and the tier is named in the
+	// sentence this returns so the change is visible on the first run.
+	firecrawlKey := websearch.KeyFor("firecrawl", global.Keys)
 
 	switch mode {
 	case "", "auto":

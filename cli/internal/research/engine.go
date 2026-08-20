@@ -120,7 +120,7 @@ func newEngine(ctx context.Context, client *llm.Client, provider websearch.Provi
 	clients := NewClients(client, global.Research.Models)
 	meter := NewMeter(clients)
 
-	fetcher, fetcherDetail, err := resolveFetcher(opts, global, provider)
+	fetcher, fetcherDetail, err := resolveFetcher(opts, global)
 	if err != nil {
 		return nil, err
 	}

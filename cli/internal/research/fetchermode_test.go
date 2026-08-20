@@ -1,7 +1,6 @@
 package research
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,20 +8,9 @@ import (
 
 	"kaioken/internal/config"
 	"kaioken/internal/webfetch"
-	"kaioken/internal/websearch"
 )
 
 // ── Fetcher mode ──────────────────────────────────────────────────────────
-
-// stubProvider stands in for a search provider so the Firecrawl rule — its
-// scrape API is only in play when its key already backs the search side — can
-// be exercised without a network or a key.
-type stubProvider struct{ name string }
-
-func (s stubProvider) Name() string { return s.name }
-func (s stubProvider) Search(context.Context, string, int) ([]websearch.Result, error) {
-	return nil, nil
-}
 
 // noBrowser points discovery at a path that does not exist, so the headless
 // tier is unavailable no matter what is installed on the machine running this.
@@ -33,7 +21,7 @@ func noBrowser(t *testing.T) {
 
 func TestResolveFetcherRejectsUnknownMode(t *testing.T) {
 	opts := Options{FetcherMode: "browserless"}
-	_, _, err := resolveFetcher(opts, &config.Global{}, stubProvider{name: "tavily"})
+	_, _, err := resolveFetcher(opts, &config.Global{})
 	if err == nil {
 		t.Fatal("err = nil, want an unknown-mode error")
 	}
@@ -48,7 +36,7 @@ func TestResolveFetcherRejectsUnknownMode(t *testing.T) {
 
 func TestResolveFetcherHTTPModeNeverStartsABrowser(t *testing.T) {
 	opts := Options{FetcherMode: "http"}
-	got, detail, err := resolveFetcher(opts, &config.Global{}, stubProvider{name: "tavily"})
+	got, detail, err := resolveFetcher(opts, &config.Global{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +51,7 @@ func TestResolveFetcherHTTPModeNeverStartsABrowser(t *testing.T) {
 func TestResolveFetcherKeepsAnExplicitOptionsFetcher(t *testing.T) {
 	stub := &fakeFetcher{}
 	opts := Options{Fetcher: stub, FetcherMode: "headless"}
-	got, _, err := resolveFetcher(opts, &config.Global{}, stubProvider{name: "tavily"})
+	got, _, err := resolveFetcher(opts, &config.Global{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,36 +60,49 @@ func TestResolveFetcherKeepsAnExplicitOptionsFetcher(t *testing.T) {
 	}
 }
 
-func TestResolveFetcherPrefersFirecrawlWhenItsKeyBacksTheSearchProvider(t *testing.T) {
+func TestResolveFetcherUsesFirecrawlWheneverAKeyIsSet(t *testing.T) {
+	// The key is the whole signal now — it no longer matters which provider
+	// is doing the searching.
 	global := &config.Global{Keys: map[string]string{"firecrawl": "fc-test-key"}}
-	got, detail, err := resolveFetcher(Options{}, global, stubProvider{name: "firecrawl"})
+	got, detail, err := resolveFetcher(Options{}, global)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := got.(*webfetch.FirecrawlFetcher); !ok {
-		t.Errorf("got %T, want a *webfetch.FirecrawlFetcher", got)
+		t.Errorf("got %T, want Firecrawl to read pages whenever its key is set", got)
 	}
 	if !strings.Contains(detail, "Firecrawl") {
 		t.Errorf("detail = %q, want it to name Firecrawl", detail)
 	}
 }
 
-func TestResolveFetcherIgnoresFirecrawlWhenItIsNotTheSearchProvider(t *testing.T) {
-	// A key on its own is not enough: pinning tavily means no Firecrawl calls.
-	global := &config.Global{Keys: map[string]string{"firecrawl": "fc-test-key"}}
-	got, _, err := resolveFetcher(Options{}, global, stubProvider{name: "tavily"})
+func TestResolveFetcherReadsTheFirecrawlKeyFromTheEnvironment(t *testing.T) {
+	t.Setenv("FIRECRAWL_API_KEY", "fc-from-env")
+	got, _, err := resolveFetcher(Options{}, &config.Global{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := got.(*webfetch.FirecrawlFetcher); ok {
-		t.Error("got a Firecrawl fetcher, want none when firecrawl is not the search provider")
+	if _, ok := got.(*webfetch.FirecrawlFetcher); !ok {
+		t.Errorf("got %T, want the environment key to count too", got)
+	}
+}
+
+func TestResolveFetcherHTTPModeStillSkipsFirecrawl(t *testing.T) {
+	// The off switch has to keep working now that a key alone turns it on.
+	global := &config.Global{Keys: map[string]string{"firecrawl": "fc-test-key"}}
+	got, _, err := resolveFetcher(Options{FetcherMode: "http"}, global)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := got.(*webfetch.Fetcher); !ok {
+		t.Errorf("got %T, want http mode to skip Firecrawl entirely", got)
 	}
 }
 
 func TestResolveFetcherFirecrawlModeErrorsWithoutAKey(t *testing.T) {
 	t.Setenv("FIRECRAWL_API_KEY", "")
 	opts := Options{FetcherMode: "firecrawl"}
-	_, _, err := resolveFetcher(opts, &config.Global{}, stubProvider{name: "firecrawl"})
+	_, _, err := resolveFetcher(opts, &config.Global{})
 	if err == nil {
 		t.Fatal("err = nil, want a missing-key error")
 	}
@@ -112,7 +113,7 @@ func TestResolveFetcherFirecrawlModeErrorsWithoutAKey(t *testing.T) {
 
 func TestResolveFetcherFallsBackToHTTPWhenNoBrowserIsInstalled(t *testing.T) {
 	noBrowser(t)
-	got, detail, err := resolveFetcher(Options{}, &config.Global{}, stubProvider{name: "tavily"})
+	got, detail, err := resolveFetcher(Options{}, &config.Global{})
 	if err != nil {
 		t.Fatalf("auto must never fail, got %v", err)
 	}
@@ -127,7 +128,7 @@ func TestResolveFetcherFallsBackToHTTPWhenNoBrowserIsInstalled(t *testing.T) {
 func TestResolveFetcherHeadlessModeFailsLoudlyWithoutABrowser(t *testing.T) {
 	noBrowser(t)
 	opts := Options{FetcherMode: "headless"}
-	_, _, err := resolveFetcher(opts, &config.Global{}, stubProvider{name: "tavily"})
+	_, _, err := resolveFetcher(opts, &config.Global{})
 	if err == nil {
 		t.Fatal("err = nil, want an explicit headless request to fail when none is installed")
 	}
@@ -148,7 +149,7 @@ func TestResolveFetcherFallsBackToTheGlobalConfigMode(t *testing.T) {
 	}
 
 	// No mode on Options, so the config's value is what should apply.
-	got, _, err := resolveFetcher(Options{}, global, stubProvider{name: "tavily"})
+	got, _, err := resolveFetcher(Options{}, global)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +161,7 @@ func TestResolveFetcherFallsBackToTheGlobalConfigMode(t *testing.T) {
 func TestResolveFetcherOptionsModeBeatsTheConfig(t *testing.T) {
 	global := &config.Global{Research: config.Research{FetcherMode: "headless"}}
 	noBrowser(t) // so headless would fail if the config won
-	got, _, err := resolveFetcher(Options{FetcherMode: "http"}, global, stubProvider{name: "tavily"})
+	got, _, err := resolveFetcher(Options{FetcherMode: "http"}, global)
 	if err != nil {
 		t.Fatal(err)
 	}

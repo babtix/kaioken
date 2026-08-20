@@ -317,10 +317,16 @@ daemon, MCP — gets the same answer and reports it through the run's progress d
 
 | Mode | Behaviour |
 |---|---|
-| `auto` (default) | HTTP first; re-read anything that comes back client-rendered in a local headless browser. Falls back silently to HTTP-only when no browser is installed. |
+| `auto` (default) | Firecrawl reads the pages when a Firecrawl key is set, falling back per URL to the tier below. Otherwise HTTP first, re-reading anything that comes back client-rendered in a local headless browser, and HTTP-only when no browser is installed. |
 | `http` | Never starts a browser. |
 | `headless` | Same as `auto`, but a missing browser is an error rather than a downgrade. |
-| `firecrawl` | Read through the scrape API. Requires a Firecrawl key. |
+| `firecrawl` | Read through the scrape API. A missing key is an error rather than a fallback. |
+
+**A Firecrawl key is enough on its own.** It used to also require Firecrawl to be in
+the active *search* set, so someone holding a key but pinning `tavily` for search got
+no scraping from it at all. Holding the key is now the whole signal — which does mean a
+key configured only for search starts spending scrape credits. `fetcher_mode: http`
+turns it off, and the tier is named in the run header on the first run.
 
 ### Why HTTP first
 
