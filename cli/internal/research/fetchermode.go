@@ -45,12 +45,12 @@ func resolveFetcher(opts Options, global *config.Global) (Fetcher, string, error
 
 	switch mode {
 	case "", "auto":
+		base, rendering := headlessOrHTTP()
 		if firecrawlKey != "" {
-			base, detail := headlessOrHTTP()
-			return webfetch.NewFirecrawl(firecrawlKey, base), "pages read through Firecrawl, " + detail, nil
+			return webfetch.NewFirecrawl(firecrawlKey, base),
+				"pages read through Firecrawl, falling back to " + fallbackPhrase(rendering), nil
 		}
-		fetcher, detail := headlessOrHTTP()
-		return fetcher, detail, nil
+		return base, tierPhrase(rendering), nil
 
 	case "http":
 		return webfetch.New(), "pages read over HTTP only", nil
@@ -70,8 +70,9 @@ func resolveFetcher(opts Options, global *config.Global) (Fetcher, string, error
 				"fetcher mode %q needs a Firecrawl API key — add it under keys in %s or set FIRECRAWL_API_KEY (https://firecrawl.dev)",
 				mode, config.GlobalPath())
 		}
-		base, detail := headlessOrHTTP()
-		return webfetch.NewFirecrawl(firecrawlKey, base), "pages read through Firecrawl, " + detail, nil
+		base, rendering := headlessOrHTTP()
+		return webfetch.NewFirecrawl(firecrawlKey, base),
+			"pages read through Firecrawl, falling back to " + fallbackPhrase(rendering), nil
 
 	default:
 		return nil, "", fmt.Errorf("unknown fetcher mode %q (want auto, http, headless or firecrawl)", opts.FetcherMode)
@@ -79,17 +80,35 @@ func resolveFetcher(opts Options, global *config.Global) (Fetcher, string, error
 }
 
 // headlessOrHTTP returns the best tier available without ever failing: the
-// browser when there is one, the plain fetcher when there is not. The caller
-// did not insist on a browser, so not having one is a fact to report rather
-// than a reason to stop.
+// browser when there is one, the plain fetcher when there is not, and whether
+// rendering is actually on. The caller did not insist on a browser, so not
+// having one is a fact to report rather than a reason to stop.
 //
 // Note this also becomes Firecrawl's fallback, replacing the plain fetcher it
 // used to fall back to. A page Firecrawl could not read is very often exactly
 // the kind a browser can.
-func headlessOrHTTP() (Fetcher, string) {
+func headlessOrHTTP() (Fetcher, bool) {
 	h, err := webfetch.NewHeadless(nil)
 	if err != nil {
-		return webfetch.New(), "pages read over HTTP (no local browser found, so nothing is rendered)"
+		return webfetch.New(), false
 	}
-	return h, "pages read over HTTP, rendering the ones that come back empty"
+	return h, true
+}
+
+// tierPhrase describes the tier as a standalone sentence.
+func tierPhrase(rendering bool) string {
+	if rendering {
+		return "pages read over HTTP, rendering the ones that come back empty"
+	}
+	return "pages read over HTTP (no local browser found, so nothing is rendered)"
+}
+
+// fallbackPhrase describes the same tier as the tail of a longer sentence,
+// so the Firecrawl case reads as one sentence rather than two joined by a
+// comma.
+func fallbackPhrase(rendering bool) string {
+	if rendering {
+		return "HTTP and a local browser"
+	}
+	return "HTTP (no local browser found)"
 }
