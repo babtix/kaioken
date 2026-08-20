@@ -1,0 +1,92 @@
+package research
+
+import (
+	"fmt"
+	"strings"
+
+	"kaioken/internal/config"
+	"kaioken/internal/webfetch"
+	"kaioken/internal/websearch"
+)
+
+// Choosing how pages get read.
+//
+// This used to live, copied verbatim, at all four places that start a run —
+// the CLI, the daemon, the MCP server and the TUI. One copy here means the
+// rule is stated once and every surface gets the same answer, including the
+// TUI, which held a cached config and could otherwise act on a stale setting.
+
+// resolveFetcher picks the page-reading tier and describes the choice.
+//
+// The returned sentence is always set, including when the answer is a
+// fallback, because "which fetcher am I actually getting" is the first thing
+// anyone debugging a thin report wants to know.
+func resolveFetcher(opts Options, global *config.Global, provider websearch.Provider) (Fetcher, string, error) {
+	// The test seam wins outright: a stub fetcher means a test is driving the
+	// loop without a network, and no config should override that.
+	if opts.Fetcher != nil {
+		return opts.Fetcher, "pages read by a caller-supplied fetcher", nil
+	}
+
+	mode := strings.ToLower(strings.TrimSpace(opts.FetcherMode))
+	if mode == "" {
+		mode = strings.ToLower(strings.TrimSpace(global.Research.FetcherMode))
+	}
+
+	// Firecrawl's scrape API is only in play when its key is already backing
+	// the search side, which is the rule the four copied blocks encoded.
+	firecrawlKey := ""
+	if provider != nil && strings.Contains(provider.Name(), "firecrawl") {
+		firecrawlKey = websearch.KeyFor("firecrawl", global.Keys)
+	}
+
+	switch mode {
+	case "", "auto":
+		if firecrawlKey != "" {
+			base, detail := headlessOrHTTP()
+			return webfetch.NewFirecrawl(firecrawlKey, base), "pages read through Firecrawl, " + detail, nil
+		}
+		fetcher, detail := headlessOrHTTP()
+		return fetcher, detail, nil
+
+	case "http":
+		return webfetch.New(), "pages read over HTTP only", nil
+
+	case "headless":
+		// Asked for explicitly, so a missing browser is an error rather than
+		// a quiet downgrade.
+		h, err := webfetch.NewHeadless(nil)
+		if err != nil {
+			return nil, "", fmt.Errorf("fetcher mode %q: %w", mode, err)
+		}
+		return h, "pages read over HTTP, rendering the ones that come back empty", nil
+
+	case "firecrawl":
+		if firecrawlKey == "" {
+			return nil, "", fmt.Errorf(
+				"fetcher mode %q needs a Firecrawl API key — add it under keys in %s or set FIRECRAWL_API_KEY (https://firecrawl.dev)",
+				mode, config.GlobalPath())
+		}
+		base, detail := headlessOrHTTP()
+		return webfetch.NewFirecrawl(firecrawlKey, base), "pages read through Firecrawl, " + detail, nil
+
+	default:
+		return nil, "", fmt.Errorf("unknown fetcher mode %q (want auto, http, headless or firecrawl)", opts.FetcherMode)
+	}
+}
+
+// headlessOrHTTP returns the best tier available without ever failing: the
+// browser when there is one, the plain fetcher when there is not. The caller
+// did not insist on a browser, so not having one is a fact to report rather
+// than a reason to stop.
+//
+// Note this also becomes Firecrawl's fallback, replacing the plain fetcher it
+// used to fall back to. A page Firecrawl could not read is very often exactly
+// the kind a browser can.
+func headlessOrHTTP() (Fetcher, string) {
+	h, err := webfetch.NewHeadless(nil)
+	if err != nil {
+		return webfetch.New(), "pages read over HTTP (no local browser found, so nothing is rendered)"
+	}
+	return h, "pages read over HTTP, rendering the ones that come back empty"
+}

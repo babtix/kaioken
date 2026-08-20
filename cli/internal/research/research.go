@@ -51,9 +51,15 @@ type Options struct {
 	// was gathered.
 	MaxDuration time.Duration
 	// Fetcher overrides how pages are retrieved. Production leaves this nil
-	// to get the SSRF-guarded webfetch.Fetcher; tests substitute a stub so the
-	// loop can be exercised without reaching the network.
+	// and lets FetcherMode decide; tests substitute a stub so the loop can be
+	// exercised without reaching the network, and a stub always wins.
 	Fetcher Fetcher
+	// FetcherMode pins the page-reading tier: "auto" (the default) reads over
+	// HTTP and re-reads anything that comes back looking client-rendered in a
+	// local headless browser, "http" never starts a browser, "headless"
+	// insists on one, "firecrawl" reads through the scrape API. Empty means
+	// whatever the global config says, then auto.
+	FetcherMode string
 	// Now overrides the clock the prompts are told about. Tests set it so a
 	// prompt assertion does not depend on the day it runs.
 	Now time.Time

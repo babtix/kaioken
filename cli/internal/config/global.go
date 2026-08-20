@@ -70,6 +70,12 @@ type Research struct {
 	// per question, "fast" pins the single-loop path, "deep" pins the
 	// multi-agent path. Empty means auto.
 	Mode string `yaml:"mode,omitempty"`
+	// FetcherMode picks how pages are read. Empty means "auto": pages are
+	// fetched over plain HTTP, and only one that comes back looking like a
+	// client-rendered shell is read again in a local headless browser.
+	// "http" never starts a browser, "headless" insists on one and fails
+	// when none is installed, "firecrawl" reads through the scrape API.
+	FetcherMode string `yaml:"fetcher_mode,omitempty"`
 	// Verify turns on opt-in cross-path verification: high-stakes claims get
 	// an independently-run second check and the agreement is reported.
 	Verify bool `yaml:"verify,omitempty"`

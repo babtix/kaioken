@@ -9,7 +9,6 @@ import (
 
 	"kaioken/internal/config"
 	"kaioken/internal/llm"
-	"kaioken/internal/webfetch"
 	"kaioken/internal/websearch"
 )
 
@@ -121,10 +120,11 @@ func newEngine(ctx context.Context, client *llm.Client, provider websearch.Provi
 	clients := NewClients(client, global.Research.Models)
 	meter := NewMeter(clients)
 
-	fetcher := opts.Fetcher
-	if fetcher == nil {
-		fetcher = webfetch.New()
+	fetcher, fetcherDetail, err := resolveFetcher(opts, global, provider)
+	if err != nil {
+		return nil, err
 	}
+	pg.detail(fetcherDetail)
 
 	shape := planFor(mult, opts.Deep)
 	e := &engine{
@@ -385,15 +385,15 @@ func (e *engine) execute(ctx context.Context) (*Report, error) {
 		Elapsed:  time.Since(e.started),
 		// Recomputed from the findings that ended up in the report, not
 		// latched the first time a gap appeared.
-		Incomplete: anyLowConfidence(findings),
-		Warnings:   e.warningsList(),
-		Deep:       deep,
-		Path:       run.Path,
-		RunID:      run.ID,
-		Escalated:  escalated,
+		Incomplete:    anyLowConfidence(findings),
+		Warnings:      e.warningsList(),
+		Deep:          deep,
+		Path:          run.Path,
+		RunID:         run.ID,
+		Escalated:     escalated,
 		EscalatedFrom: run.EscalatedFrom,
-		Grounding:  grounding,
-		Cost:       e.meter.Snapshot(),
+		Grounding:     grounding,
+		Cost:          e.meter.Snapshot(),
 	}, nil
 }
 
