@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { openInBrowser } from "@/lib/openInBrowser"
-import { FileText, History, Info, PauseCircle, Play, Radar, Square, Trash2 } from "lucide-react"
+import { ChevronRight, FileText, History, Info, PauseCircle, Play, Radar, Square, Trash2 } from "lucide-react"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useResearchStore } from "@/store/research"
 import { useToastStore } from "@/store/toast"
@@ -8,6 +8,7 @@ import EmptyState from "@/components/EmptyState"
 import { JumpToBottom } from "@/components/common/JumpToBottom"
 import { Button } from "@/components/ui"
 import { LiveDot, SectionLabel } from "@/components/hud"
+import { cn } from "@/lib/utils"
 import { AnswerCard } from "@/components/answer/AnswerCard"
 import { AskComposer } from "@/components/answer/AskComposer"
 import { ResearchSteps } from "@/components/answer/ResearchSteps"
@@ -15,11 +16,16 @@ import {
   SearchProviderPicker,
   type SearchSettings,
 } from "@/components/SearchProviderPicker"
+import {
+  FetcherModePicker,
+  currentFetcherMode,
+  type FetcherMode,
+} from "@/components/FetcherModePicker"
 import { api } from "@/lib/api"
 import { formatDuration, formatRelativeTime, formatTokens } from "@/lib/format"
 import { humanize } from "@/lib/errors"
 import type { AnswerSource } from "@/components/answer/types"
-import type { ResearchCost, ResearchGrounding, ResearchReport, ResumableRun } from "@/lib/types"
+import type { FetcherSettings as FetcherSettingsType, ResearchCost, ResearchGrounding, ResearchReport, ResumableRun } from "@/lib/types"
 
 /**
  * Research is the Perplexity-style surface wired to the daemon's `research`
@@ -40,6 +46,7 @@ export default function Research() {
   const pushToast = useToastStore((s) => s.push)
   const [power, setPower] = useState(3)
   const [search, setSearch] = useState<SearchSettings | null>(null)
+  const [fetcher, setFetcher] = useState<FetcherSettingsType | null>(null)
   // Anchor for the jump-to-bottom button: the route scrolls inside the
   // shell's <main>, which it locates from this element.
   const rootRef = useRef<HTMLDivElement>(null)
@@ -49,8 +56,14 @@ export default function Research() {
   useEffect(() => {
     api
       .settings()
-      .then((s) => setSearch(s.search ?? null))
-      .catch(() => setSearch(null))
+      .then((s) => {
+        setSearch(s.search ?? null)
+        setFetcher(s.fetcher ?? null)
+      })
+      .catch(() => {
+        setSearch(null)
+        setFetcher(null)
+      })
   }, [])
 
   // Saved reports are workspace-scoped; reload whenever the repo changes.
@@ -69,6 +82,16 @@ export default function Research() {
     try {
       const res = await api.putSettings({ search_provider: v })
       setSearch((s) => (s ? { ...s, provider: res.search_provider ?? v } : s))
+    } catch (err) {
+      const h = humanize(err)
+      pushToast("error", h.title, h.body, h.action)
+    }
+  }
+
+  const setFetcherMode = async (v: FetcherMode) => {
+    try {
+      const res = await api.putSettings({ fetcher_mode: v })
+      if (res?.fetcher) setFetcher(res.fetcher as FetcherSettingsType)
     } catch (err) {
       const h = humanize(err)
       pushToast("error", h.title, h.body, h.action)
@@ -110,15 +133,34 @@ export default function Research() {
 
       <AskComposer onSubmit={submit} busy={busy} autoFocus />
 
-      {search && (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[10px] text-kai-dim">Engines</span>
-          <SearchProviderPicker
-            value={search.provider}
-            providers={search.providers}
-            onChange={setSearchProvider}
-            disabled={busy}
-          />
+      {(search || fetcher) && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+          {search && (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-kai-dim">Engines</span>
+              <SearchProviderPicker
+                value={search.provider}
+                providers={search.providers}
+                onChange={setSearchProvider}
+                disabled={busy}
+              />
+            </div>
+          )}
+          {fetcher && (
+            <div className="flex items-center gap-2">
+              <span
+                className="font-mono text-[10px] text-kai-dim"
+                title={fetcher.detail}
+              >
+                Reader
+              </span>
+              <FetcherModePicker
+                value={currentFetcherMode(fetcher)}
+                onChange={setFetcherMode}
+                disabled={busy}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -544,39 +586,65 @@ function phaseLabel(phase: string): string {
 }
 
 function ResearchIntro({ onPick }: { onPick: (q: string) => void }) {
+  const [open, setOpen] = useState(true)
+
   return (
     <div className="animate-charge mt-8">
-      <SectionLabel>How it works</SectionLabel>
-      <p className="mt-2 font-mono text-[11px] leading-relaxed text-kai-dim">
-        A router reads the question first. Narrow lookups take the{" "}
-        <strong className="text-kai-text">fast path</strong> — one lean
-        search-and-reason loop. Multi-part questions take the{" "}
-        <strong className="text-kai-orange">deep path</strong> — a supervisor
-        delegating parallel research workers — and a fast run that gathers too
-        little is promoted to deep mid-flight instead of restarting. Either
-        way the draft is checked against the raw sources before it ships, and
-        every claim cites a page that was actually fetched.{" "}
-        <strong className="text-kai-text">Normal</strong> scales the budget
-        from ×1 to ×9; <strong className="text-kai-orange">Advanced</strong>{" "}
-        switches to the dossier pipeline: up to 480 pages read over 8 rounds,
-        written a chapter at a time into a massive, exhaustively detailed
-        dossier with its own findings register and source log, exported as a
-        signed PDF.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {EXAMPLES.map((q) => (
-          <button
-            key={q}
-            onClick={() => onPick(q)}
-            className="rounded-[var(--radius)] border border-border bg-card px-2.5 py-1.5 text-left
-                       font-sans text-[12px] text-kai-text transition-colors outline-none
-                       hover:border-kai-orange/40 hover:bg-accent hover:text-kai-white
-                       focus-visible:ring-2 focus-visible:ring-kai-orange/50"
-          >
-            {q}
-          </button>
-        ))}
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="group flex w-full items-center gap-2 text-left outline-none transition-colors"
+      >
+        <ChevronRight
+          size={12}
+          className={cn(
+            "shrink-0 text-kai-dim transition-transform duration-200 group-hover:text-kai-orange",
+            open && "rotate-90 text-kai-orange"
+          )}
+        />
+        <SectionLabel className="flex-1 cursor-pointer group-hover:text-kai-text">
+          How it works
+        </SectionLabel>
+        <span className="font-mono text-[10px] text-kai-dim transition-colors group-hover:text-kai-text">
+          {open ? "Hide" : "Show"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-4">
+          <p className="font-mono text-[11px] leading-relaxed text-kai-dim">
+            A router reads the question first. Narrow lookups take the{" "}
+            <strong className="text-kai-text">fast path</strong> — one lean
+            search-and-reason loop. Multi-part questions take the{" "}
+            <strong className="text-kai-orange">deep path</strong> — a supervisor
+            delegating parallel research workers — and a fast run that gathers too
+            little is promoted to deep mid-flight instead of restarting. Either
+            way the draft is checked against the raw sources before it ships, and
+            every claim cites a page that was actually fetched.{" "}
+            <strong className="text-kai-text">Normal</strong> scales the budget
+            from ×1 to ×9; <strong className="text-kai-orange">Advanced</strong>{" "}
+            switches to the dossier pipeline: up to 480 pages read over 8 rounds,
+            written a chapter at a time into a massive, exhaustively detailed
+            dossier with its own findings register and source log, exported as a
+            signed PDF.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {EXAMPLES.map((q) => (
+              <button
+                key={q}
+                onClick={() => onPick(q)}
+                className="rounded-[var(--radius)] border border-border bg-card px-2.5 py-1.5 text-left
+                           font-sans text-[12px] text-kai-text transition-colors outline-none
+                           hover:border-kai-orange/40 hover:bg-accent hover:text-kai-white
+                           focus-visible:ring-2 focus-visible:ring-kai-orange/50"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { humanize } from "@/lib/errors"
 import { useToastStore } from "@/store/toast"
 import { cn } from "@/lib/utils"
 import type { FetcherSettings as FetcherSettingsType } from "@/lib/types"
+import { FetcherModePicker, currentFetcherMode, type FetcherMode } from "@/components/FetcherModePicker"
 
 // How research reads a page, as opposed to how it finds one.
 //
@@ -25,7 +26,7 @@ export default function FetcherSettings({
   fetcher: FetcherSettingsType
   onChange: (next: FetcherSettingsType) => void
 }) {
-  const [busy, setBusy] = useState<"api" | "local" | null>(null)
+  const [busy, setBusy] = useState<"api" | "local" | "mode" | null>(null)
   const push = useToastStore((s) => s.push)
 
   async function toggle(which: "api" | "local", next: boolean) {
@@ -46,14 +47,39 @@ export default function FetcherSettings({
     }
   }
 
+  async function setMode(mode: FetcherMode) {
+    if (busy) return
+    setBusy("mode")
+    try {
+      const res = await api.putSettings({ fetcher_mode: mode })
+      if (res?.fetcher) onChange(res.fetcher as FetcherSettingsType)
+    } catch (e) {
+      const h = humanize(e)
+      push("error", h.title, h.body, h.action)
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const bothOff = !fetcher.api && !fetcher.local
 
   return (
-    <div className="space-y-2 px-4 py-3">
-      <p className="font-mono text-[10px] leading-relaxed text-kai-dim">
-        How a research run <span className="text-kai-text">reads</span> the pages it finds.
-        Independent of which engine finds them — turn on either, both, or neither.
-      </p>
+    <div className="space-y-2.5 px-4 py-3">
+      <div className="space-y-1.5">
+        <p className="font-mono text-[10px] leading-relaxed text-kai-dim">
+          How a research run <span className="text-kai-text">reads</span> the pages it finds.
+          Independent of which engine finds them — choose a mode or toggle sources individually.
+        </p>
+
+        {/* Quick mode trigger selector */}
+        <div className="pt-0.5">
+          <FetcherModePicker
+            value={currentFetcherMode(fetcher)}
+            onChange={setMode}
+            disabled={busy !== null}
+          />
+        </div>
+      </div>
 
       <ReaderRow
         icon={Flame}
@@ -239,3 +265,4 @@ function shortenPath(p: string): string {
   if (parts.length <= 3) return p
   return "…/" + parts.slice(-3).join("/")
 }
+
