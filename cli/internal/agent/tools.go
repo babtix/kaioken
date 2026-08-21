@@ -911,12 +911,13 @@ func (a *Agent) editFile(path string, edits []Edit) string {
 	if err != nil {
 		return "error: " + err.Error()
 	}
-	// Match in a BOM-free, LF-only view; restore both on write so the file
-	// keeps its original encoding details.
+	// Match against the file's real bytes, BOM aside. applyEdits normalizes
+	// to an LF view only to find each match; the result is put back line by
+	// line, so a file with mixed line endings keeps every ending the edit
+	// does not touch.
 	original := string(data)
 	bom, text := stripBOM(original)
-	ending := detectLineEnding(text)
-	updated, usedFuzzy, usedNumbered, strategy, applyErr := applyEdits(normalizeToLF(text), edits, path)
+	updated, usedFuzzy, usedNumbered, strategy, applyErr := applyEdits(text, edits, path)
 	if applyErr != nil {
 		return "error: " + applyErr.Error()
 	}
@@ -944,7 +945,7 @@ func (a *Agent) editFile(path string, edits []Edit) string {
 	if err := verifyUnchanged(abs, original, true); err != nil {
 		return "error: " + err.Error()
 	}
-	if err := writePreservingMode(abs, bom+restoreLineEndings(updated, ending)); err != nil {
+	if err := writePreservingMode(abs, bom+updated); err != nil {
 		return "error: " + err.Error()
 	}
 	a.UI.RecordUndo(UndoEntry{Path: path, HadPrevious: true, PreviousContent: original})
