@@ -244,7 +244,11 @@ func (rs *RunState) Checkpoint() error {
 		_ = os.Remove(tmp)
 		return err
 	}
-	return os.Rename(tmp, filepath.Join(rs.dir, "run.json"))
+	if err := os.Rename(tmp, filepath.Join(rs.dir, "run.json")); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 // Event appends one line to the audit log. The log is append-only and
