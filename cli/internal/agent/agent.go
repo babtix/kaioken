@@ -126,9 +126,33 @@ func (a *Agent) Run(ctx context.Context, history []llm.Message) (_ []llm.Message
 	// enough back that the first one is never rate-limited.
 	lastCompact := -recompactCooldown
 
-	for i := 0; i < steps; i++ {
+	// Two counters govern the loop, and the space between them is the
+	// point. `i` advances on every turn because it labels bus events and
+	// feeds manageContext's compaction cooldown, both of which want a
+	// monotonic count of real model calls. `spent` counts only turns billed
+	// to MaxSteps. A turn that ends by appending queued steering — or by
+	// handing off to a follow-up round — made no progress on the original
+	// request; it exists so the model can read the correction, and billing
+	// it would charge the user for correcting the agent.
+	//
+	// The refund reopens the door the step budget closes: a buggy or hostile
+	// front-end could Steer forever and keep a run alive past any spend
+	// limit. maxTurns is the hard stop that keeps the refund honest. Four
+	// times the budget tolerates three corrections per budgeted step — 75
+	// steering messages across a default 25-step run, far beyond any
+	// legitimate session — while still guaranteeing a flood terminates.
+	maxTurns := 4 * steps
+	for i, spent := 0, 0; ; i++ {
 		if ctx.Err() != nil {
 			return history, ctx.Err()
+		}
+		if spent >= steps {
+			return history, fmt.Errorf("stopped after %d steps without a final answer", steps)
+		}
+		if i >= maxTurns {
+			return history, fmt.Errorf(
+				"stopped after %d turns (%d charged to the %d-step budget): steering or follow-up messages kept arriving, so the anti-flood ceiling ended the run rather than the step budget",
+				i, spent, steps)
 		}
 		bus.Emit(&events.Event{Type: events.TurnStart, Step: i, Depth: a.Depth})
 
@@ -189,18 +213,25 @@ func (a *Agent) Run(ctx context.Context, history []llm.Message) (_ []llm.Message
 		}
 
 		// Steering joins here — after the tool batch, never inside it — so the
-		// model reads the correction before deciding its next step.
+		// model reads the correction before deciding its next step. The turn
+		// is not billed: correcting the agent must not cost it a step.
 		if steered := a.drainSteering(); len(steered) > 0 {
 			history = appendUserMessages(history, steered)
 			history = ApplyReminders(history, a.Mode)
 			continue
 		}
+
 		if len(msg.ToolCalls) > 0 {
+			// A tool batch is forward progress on the request; it spends
+			// budget.
+			spent++
 			continue
 		}
 
 		// Final answer. Follow-ups queued for "after this run" start another
-		// round; otherwise the answer stands.
+		// round; otherwise the answer stands. Neither this turn nor the
+		// hand-off is billed: the model finished what was asked, and starting
+		// the next thing is not a step the original request was promised.
 		followUps := a.drainFollowUps()
 		if len(followUps) == 0 {
 			return history, nil
@@ -208,7 +239,6 @@ func (a *Agent) Run(ctx context.Context, history []llm.Message) (_ []llm.Message
 		history = appendUserMessages(history, followUps)
 		history = ApplyReminders(history, a.Mode)
 	}
-	return history, fmt.Errorf("stopped after %d steps without a final answer", steps)
 }
 
 func appendUserMessages(history []llm.Message, texts []string) []llm.Message {
