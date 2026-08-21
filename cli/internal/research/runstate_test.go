@@ -1,8 +1,11 @@
 package research
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"kaioken/internal/config"
@@ -77,6 +80,83 @@ func TestOpenRunRejectsFinishedAndMalformed(t *testing.T) {
 	for _, id := range []string{"../escape", "20260101-000000-zzzz", ""} {
 		if _, err := OpenRun(id); err == nil {
 			t.Errorf("OpenRun(%q) must be refused", id)
+		}
+	}
+}
+
+// Failing workers checkpoint at once from inside the errgroup wave. The
+// checkpoints used to share one temp path — a half-overwritten file could be
+// renamed over run.json — and on Windows two renames onto one destination do
+// not even queue, they fail. So checkpoints must serialise end to end:
+// under any interleaving, every call must succeed, run.json must land
+// complete and parseable (the file a resume depends on), and no temp litter
+// may survive.
+func TestCheckpointConcurrentCallsLeaveRunJSONIntact(t *testing.T) {
+	pinRunsHome(t)
+
+	rs, err := NewRun("many hands on one run", "deep")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const goroutines = 32
+	const perGoroutine = 8
+	var wg sync.WaitGroup
+	errs := make(chan error, goroutines)
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			for j := 0; j < perGoroutine; j++ {
+				rs.Mutate(func(r *RunMeta) {
+					r.Multiplier++
+					r.Fast.Queries = append(r.Fast.Queries, fmt.Sprintf("w%d-%d", i, j))
+				})
+				if err := rs.Checkpoint(); err != nil {
+					errs <- err
+					return
+				}
+			}
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Errorf("concurrent Checkpoint failed: %v", err)
+	}
+
+	raw, err := os.ReadFile(filepath.Join(rs.Dir(), "run.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !json.Valid(raw) {
+		t.Fatalf("run.json is not valid JSON after %d concurrent checkpoints:\n%s",
+			goroutines*perGoroutine, raw)
+	}
+	var meta RunMeta
+	if err := json.Unmarshal(raw, &meta); err != nil {
+		t.Fatal(err)
+	}
+	// Every mutation is interleaved with a checkpoint, so the last writer's
+	// snapshot carries all of them: anything less means a checkpoint renamed
+	// away a state that never made it to disk.
+	snap := rs.Snapshot()
+	if meta.ID != runIDOf(rs.Dir()) || meta.Query != "many hands on one run" ||
+		meta.Multiplier != snap.Multiplier || len(meta.Fast.Queries) != len(snap.Fast.Queries) {
+		t.Errorf("run.json drifted from memory: disk %+v vs live %+v", meta, snap)
+	}
+	if want := goroutines * perGoroutine; meta.Multiplier != want || len(meta.Fast.Queries) != want {
+		t.Errorf("checkpointed run lost mutations: multiplier %d and %d queries, want %d each",
+			meta.Multiplier, len(meta.Fast.Queries), want)
+	}
+
+	entries, err := os.ReadDir(rs.Dir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if filepath.Ext(e.Name()) == ".tmp" {
+			t.Errorf("a failed or interrupted checkpoint left %s behind", e.Name())
 		}
 	}
 }
