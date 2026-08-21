@@ -1,0 +1,18 @@
+# Git rewrites line endings on checkout unless told otherwise, and on Windows
+# that means every Go file arrives CRLF and gofmt reports the whole tree as
+# unformatted — burying real formatting drift in noise.
+* text=auto eol=lf
+
+# One EOL rewrite inside these corrupts them outright; never let git touch
+# their bytes.
+*.png binary
+*.jpeg binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.exe binary
+
+# Lockfiles are text, but their hashes churn if line endings wobble between
+# machines; pinning them keeps diffs reviewable and installs reproducible.
+package-lock.json text eol=lf
+Cargo.lock text eol=lf
