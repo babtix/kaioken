@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"kaioken/internal/embed"
 	"kaioken/internal/textrank"
 )
@@ -28,6 +30,11 @@ type Retriever struct {
 	// what makes it safe: a corpus that changed underneath produces a
 	// different fingerprint and the memo is rebuilt.
 	memo map[string]memoEntry
+	// build collapses concurrent first-queries on the same (module,
+	// fingerprint) onto a single LoadCorpus+newCandidates call. Keyed by
+	// fingerprint too, so a corpus change starts a fresh build rather than
+	// joining one already in flight for the stale version.
+	build singleflight.Group
 }
 
 type memoEntry struct {
@@ -231,21 +238,37 @@ func (r *Retriever) candidatesFor(module string) (*candidates, string, error) {
 
 	r.mu.Lock()
 	if e, ok := r.memo[module]; ok && e.fingerprint == fingerprint {
-		defer r.mu.Unlock()
+		r.mu.Unlock()
 		return e.cand, fingerprint, nil
 	}
 	r.mu.Unlock()
 
-	// Built outside the lock: tokenising a large module takes long enough that
-	// holding the mutex would serialise every other module's queries behind it.
-	corpus, err := r.store.LoadCorpus(module)
+	// N concurrent first-queries on this module collapse onto one build via
+	// singleflight, keyed by fingerprint so they don't join a build already
+	// in flight for a since-superseded corpus. The load itself still runs
+	// outside r.mu: tokenising a large module takes long enough that holding
+	// the mutex would serialise every other module's queries behind it.
+	v, err, _ := r.build.Do(module+"@"+fingerprint, func() (any, error) {
+		r.mu.Lock()
+		if e, ok := r.memo[module]; ok && e.fingerprint == fingerprint {
+			r.mu.Unlock()
+			return e.cand, nil
+		}
+		r.mu.Unlock()
+
+		corpus, err := r.store.LoadCorpus(module)
+		if err != nil {
+			return nil, err
+		}
+		cand := newCandidates(corpus)
+
+		r.mu.Lock()
+		r.memo[module] = memoEntry{fingerprint: fingerprint, cand: cand}
+		r.mu.Unlock()
+		return cand, nil
+	})
 	if err != nil {
 		return nil, "", err
 	}
-	cand := newCandidates(corpus)
-
-	r.mu.Lock()
-	r.memo[module] = memoEntry{fingerprint: fingerprint, cand: cand}
-	r.mu.Unlock()
-	return cand, fingerprint, nil
+	return v.(*candidates), fingerprint, nil
 }
