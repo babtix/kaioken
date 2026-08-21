@@ -146,8 +146,8 @@ export default function Browser() {
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Tab strip */}
-      <div className="flex shrink-0 items-center gap-1 border-b border-border bg-card px-2 py-1">
-        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+      <div className="flex shrink-0 items-end gap-1 overflow-x-auto border-b border-border/80 bg-muted/40 px-2 pt-1.5">
+        <div className="flex min-w-0 flex-1 items-end gap-1">
           {tabs.map((t) => (
             <Tab
               key={t.id}
@@ -163,7 +163,7 @@ export default function Browser() {
             title="New tab (Ctrl+T)"
             aria-label="New tab"
             onClick={() => newTab()}
-            className="flex size-6 shrink-0 items-center justify-center rounded text-kai-dim outline-none transition-colors hover:bg-panel hover:text-kai-text focus-visible:ring-2 focus-visible:ring-kai-orange/50"
+            className="mb-1 flex size-6 shrink-0 items-center justify-center rounded text-kai-dim outline-none transition-colors hover:bg-card hover:text-kai-text focus-visible:ring-2 focus-visible:ring-kai-orange/50"
           >
             <Plus size={13} />
           </button>
@@ -290,21 +290,63 @@ function Tab({
   onSelect: () => void
   onClose: () => void
 }) {
+  const handleAuxClick = (e: React.MouseEvent) => {
+    if (e.button === 1) {
+      e.preventDefault()
+      e.stopPropagation()
+      onClose()
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 1) {
+      e.preventDefault()
+    }
+  }
+
   return (
     <div
       className={cn(
-        "group flex h-6 min-w-0 max-w-[200px] shrink-0 cursor-default items-center gap-1.5",
-        "rounded-md px-2 transition-colors",
-        active ? "bg-panel text-kai-text" : "text-kai-dim hover:bg-panel/50 hover:text-kai-muted"
+        "group relative flex h-7 min-w-0 max-w-[210px] shrink-0 cursor-pointer items-center gap-1.5",
+        "rounded-t-[var(--radius)] px-2.5 transition-all outline-none select-none",
+        active
+          ? "border-x border-t border-border/80 border-b-transparent bg-background text-kai-text shadow-xs"
+          : "border border-transparent bg-card/40 text-kai-dim hover:border-border/60 hover:bg-card hover:text-kai-text"
       )}
       onClick={onSelect}
+      onAuxClick={handleAuxClick}
+      onMouseDown={handleMouseDown}
+      title={title}
     >
-      {loading ? (
-        <RotateCw size={10} className="shrink-0 animate-spin text-kai-orange" />
-      ) : (
-        <Globe size={10} className="shrink-0 text-kai-dim" />
+      {/* Top accent border for active tab */}
+      {active && (
+        <span
+          className="absolute -top-px left-0 right-0 h-[2px] rounded-t-sm bg-kai-orange"
+          aria-hidden="true"
+        />
       )}
-      <span className="min-w-0 flex-1 truncate font-mono text-[10.5px]">{title}</span>
+
+      {loading ? (
+        <RotateCw size={11} className="shrink-0 animate-spin text-kai-orange" />
+      ) : (
+        <Globe
+          size={12}
+          className={cn(
+            "shrink-0 transition-colors",
+            active ? "text-kai-orange" : "text-kai-dim group-hover:text-kai-text"
+          )}
+        />
+      )}
+
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate font-mono text-[11px]",
+          active ? "font-medium text-kai-text" : "text-kai-dim group-hover:text-kai-text"
+        )}
+      >
+        {title}
+      </span>
+
       <button
         type="button"
         aria-label={`Close ${title}`}
@@ -312,9 +354,9 @@ function Tab({
           e.stopPropagation()
           onClose()
         }}
-        className="shrink-0 rounded text-kai-dim opacity-0 outline-none transition-opacity hover:text-kai-rose focus-visible:opacity-100 group-hover:opacity-100"
+        className="flex size-4 shrink-0 items-center justify-center rounded text-kai-dim opacity-0 outline-none transition-all hover:bg-accent hover:text-kai-rose focus-visible:opacity-100 group-hover:opacity-100"
       >
-        <X size={10} />
+        <X size={11} />
       </button>
     </div>
   )

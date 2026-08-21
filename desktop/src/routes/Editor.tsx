@@ -1,5 +1,16 @@
 import { useEffect } from "react"
-import { ChevronUp, Code2, RotateCcw, Save, SquareTerminal, X } from "lucide-react"
+import {
+  ChevronUp,
+  Code2,
+  File,
+  FileCode,
+  FileJson,
+  FileText,
+  RotateCcw,
+  Save,
+  SquareTerminal,
+  X,
+} from "lucide-react"
 import { useEditorStore } from "@/store/editor"
 import { useWorkspaceStore } from "@/store/workspace"
 import { useTerminalStore } from "@/store/terminal"
@@ -63,10 +74,10 @@ export default function Editor() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-background">
       {/* Tab bar */}
       {files.length > 0 && (
-        <div className="flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border bg-card px-1.5 py-1">
+        <div className="flex shrink-0 items-end gap-1 overflow-x-auto border-b border-border/80 bg-muted/40 px-2 pt-1.5">
           {files.map((f) => (
             <FileTab
               key={f.path}
@@ -178,25 +189,74 @@ function FileTab({
   onClose: () => void
 }) {
   const name = path.split("/").pop() ?? path
+  const Icon = fileIconFor(path)
+
+  const handleAuxClick = (e: React.MouseEvent) => {
+    // Middle click (button 1) closes the tab like VS Code or Chrome.
+    if (e.button === 1) {
+      e.preventDefault()
+      e.stopPropagation()
+      onClose()
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Prevent default middle-click scroll anchor when clicking the tab.
+    if (e.button === 1) {
+      e.preventDefault()
+    }
+  }
+
   return (
     <div
       onClick={onSelect}
+      onAuxClick={handleAuxClick}
+      onMouseDown={handleMouseDown}
       title={path}
       className={cn(
-        "group flex h-6 min-w-0 max-w-[200px] shrink-0 cursor-default items-center gap-1.5",
-        "rounded-md px-2 transition-colors",
-        active ? "bg-panel text-kai-text" : "text-kai-dim hover:bg-panel/50 hover:text-kai-muted"
+        "group relative flex h-7 min-w-0 max-w-[210px] shrink-0 cursor-pointer items-center gap-1.5",
+        "rounded-t-[var(--radius)] px-2.5 transition-all outline-none select-none",
+        active
+          ? "border-x border-t border-border/80 border-b-transparent bg-background text-kai-text shadow-xs"
+          : "border border-transparent bg-card/40 text-kai-dim hover:border-border/60 hover:bg-card hover:text-kai-text"
       )}
     >
-      <span className="min-w-0 flex-1 truncate font-mono text-[10.5px]">{name}</span>
-      {/* The dirty dot occupies the close button's slot until hover, so the tab
-          width never jumps as you move across it. */}
-      {dirty && (
+      {/* Top accent border for active tab */}
+      {active && (
         <span
-          className="size-1.5 shrink-0 rounded-full bg-kai-orange group-hover:hidden"
-          aria-label="unsaved changes"
+          className="absolute -top-px left-0 right-0 h-[2px] rounded-t-sm bg-kai-orange"
+          aria-hidden="true"
         />
       )}
+
+      {/* File type icon */}
+      <Icon
+        size={12}
+        className={cn(
+          "shrink-0 transition-colors",
+          active ? "text-kai-orange" : "text-kai-dim group-hover:text-kai-text"
+        )}
+      />
+
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate font-mono text-[11px]",
+          active ? "font-medium text-kai-text" : "text-kai-dim group-hover:text-kai-text"
+        )}
+      >
+        {name}
+      </span>
+
+      {/* Dirty indicator */}
+      {dirty && (
+        <span
+          className="size-1.5 shrink-0 rounded-full bg-kai-orange ring-2 ring-kai-orange/20 group-hover:hidden"
+          aria-label="unsaved changes"
+          title="Unsaved changes"
+        />
+      )}
+
+      {/* Close button */}
       <button
         type="button"
         aria-label={`Close ${name}`}
@@ -205,12 +265,44 @@ function FileTab({
           onClose()
         }}
         className={cn(
-          "shrink-0 rounded text-kai-dim outline-none transition-opacity hover:text-kai-rose",
-          dirty ? "hidden group-hover:block" : "opacity-0 group-hover:opacity-100"
+          "flex size-4 shrink-0 items-center justify-center rounded text-kai-dim transition-all",
+          "hover:bg-accent hover:text-kai-rose outline-none",
+          dirty ? "hidden group-hover:flex" : "opacity-0 group-hover:opacity-100"
         )}
       >
-        <X size={10} />
+        <X size={11} />
       </button>
     </div>
   )
+}
+
+function fileIconFor(path: string) {
+  const ext = path.split(".").pop()?.toLowerCase() ?? ""
+  switch (ext) {
+    case "go":
+    case "rs":
+    case "ts":
+    case "tsx":
+    case "js":
+    case "jsx":
+    case "py":
+    case "html":
+    case "css":
+    case "scss":
+    case "sql":
+    case "sh":
+      return FileCode
+    case "md":
+    case "markdown":
+    case "txt":
+      return FileText
+    case "json":
+    case "jsonc":
+    case "yaml":
+    case "yml":
+    case "toml":
+      return FileJson
+    default:
+      return File
+  }
 }

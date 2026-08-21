@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowUp, Globe, Layers, Search, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PowerMeter } from "@/components/hud"
@@ -42,6 +42,15 @@ export function AskComposer({
   const [web, setWeb] = useState(true)
   const ref = useRef<HTMLTextAreaElement>(null)
 
+  // Auto-adjust height to fit content up to maximum limit, while allowing
+  // manual vertical resizing by the user.
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.height = "auto"
+      ref.current.style.height = `${Math.max(54, Math.min(ref.current.scrollHeight, 400))}px`
+    }
+  }, [value])
+
   // ×10 is a fixed regime, not a slider position — see the module comment.
   const power = mode === "advanced" ? 10 : normalPower
 
@@ -50,6 +59,9 @@ export function AskComposer({
     if (!q || busy) return
     onSubmit?.(q, power, web)
     setValue("")
+    if (ref.current) {
+      ref.current.style.height = "auto"
+    }
   }
 
   return (
@@ -74,8 +86,8 @@ export function AskComposer({
           }
         }}
         placeholder={placeholder}
-        className="w-full resize-none bg-transparent px-3 pt-2.5 pb-1 font-sans text-[13.5px]
-                   text-kai-text placeholder:text-kai-dim outline-none"
+        className="w-full resize-y min-h-[54px] max-h-[400px] bg-transparent px-3 pt-2.5 pb-1 font-sans text-[13.5px]
+                   leading-relaxed text-kai-text placeholder:text-kai-dim outline-none"
       />
 
       <div className="flex flex-wrap items-center gap-2 px-2.5 pb-2">
