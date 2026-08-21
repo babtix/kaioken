@@ -8,6 +8,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"kaioken/internal/embed"
+	"kaioken/internal/retrieval"
 	"kaioken/internal/textrank"
 )
 
@@ -143,26 +144,26 @@ func (r *Retriever) run(ctx context.Context, cand *candidates, query string, opt
 		}
 	}
 
-	// The gate runs on children, before expansion. See grader.go.
-	gate := gradeResult{keep: allTrue(len(fused)), graded: false}
+	// The gate runs on children, before expansion. See retrieval.Grade.
+	gate := retrieval.GradeResult{Keep: retrieval.AllTrue(len(fused)), Graded: false}
 	if !opt.NoGrade {
-		gate = grade(ctx, r.utility, cand, query, fused)
+		gate = retrieval.Grade(ctx, r.utility, func(id int) string { return cand.chunk(id).Text }, query, fused)
 	}
-	kept := filterRanked(fused, gate.keep)
+	kept := retrieval.FilterRanked(fused, gate.Keep)
 
 	if len(kept) == 0 {
 		// Every candidate was judged irrelevant. This is the gate working:
 		// the corpus was searched, the matches were examined, and none of them
 		// answer the question. Returning nothing with SourceFound false is a
 		// better answer than returning the least-bad chunk.
-		return Result{Graded: gate.graded, Degraded: degraded}
+		return Result{Graded: gate.Graded, Degraded: degraded}
 	}
 
 	chunks := expandToParents(cand, kept)
 	return Result{
 		Chunks:      chunks,
 		SourceFound: len(chunks) > 0,
-		Graded:      gate.graded,
+		Graded:      gate.Graded,
 		Degraded:    degraded,
 	}
 }
