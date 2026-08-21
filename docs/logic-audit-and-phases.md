@@ -9,8 +9,10 @@ below is therefore invisible to the current test suite — that is itself a find
 
 ## Status
 
-**Phases 1 and 2 are landed** on `fix/phase1-agent-logic` (8 commits, ~1 300 lines of new
-tests). Phases 3 and 4 are still open.
+**Phases 1 and 2 are landed on `master`** (merged from `fix/phase1-agent-logic`, 8 logic
+commits + 2 desktop commits, ~1 300 lines of new tests). Phases 3 and 4 are still open,
+each with its own branch — see [phase-branches.md](phase-branches.md) for the
+branch/status/scope table.
 
 | Fix | Commit |
 |---|---|
