@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -196,6 +197,16 @@ func Subjects(ctx context.Context, repo, base string, limit int) ([]string, erro
 		}
 	}
 	return subjects, nil
+}
+
+// CommitsBehind counts commits reachable from HEAD but not from base — the
+// same span Subjects lists, collapsed to a number.
+func CommitsBehind(ctx context.Context, repo, base string) (int, error) {
+	out, err := run(ctx, repo, "rev-list", "--count", base+"..HEAD")
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(strings.TrimSpace(out))
 }
 
 // RecentSubjects lists the repo's most recent commit subjects across all

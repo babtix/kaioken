@@ -10,6 +10,7 @@ import (
 	"kaioken/internal/config"
 	"kaioken/internal/ext"
 	"kaioken/internal/skills"
+	"kaioken/internal/wiki"
 )
 
 // Kaioken generates two kinds of documentation into .kaioken/: dense knowledge
@@ -196,6 +197,9 @@ func knowledgeSummary(root string) string {
 	b.WriteString("re-reading source when you need orientation — it is faster and already\n")
 	b.WriteString("summarised. When a listed SKILL matches the task you were asked to do,\n")
 	b.WriteString("open it FIRST: it states how that task is performed in this codebase.\n")
+	if note := wiki.StalenessNote(root); note != "" {
+		fmt.Fprintf(&b, "Note: the wiki was %s — verify against source before relying on it.\n", note)
+	}
 	b.WriteString("Use read_knowledge to open any of these:\n")
 	shown := entries
 	if len(shown) > catalogMaxEntries {
@@ -224,6 +228,9 @@ func (a *Agent) readKnowledge(doc string) string {
 			return "no generated documentation yet — the user can create it with /wiki or /generate"
 		}
 		var b strings.Builder
+		if note := wiki.StalenessNote(a.Root); note != "" {
+			fmt.Fprintf(&b, "Note: the wiki was %s — verify against source before relying on it.\n\n", note)
+		}
 		b.WriteString("Available documentation:\n")
 		for _, e := range entries {
 			fmt.Fprintf(&b, "- %s — %s\n", e.Path, e.Label)

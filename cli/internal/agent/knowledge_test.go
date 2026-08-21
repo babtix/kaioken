@@ -2,12 +2,14 @@ package agent
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"kaioken/internal/config"
 	"kaioken/internal/ext"
+	"kaioken/internal/wiki"
 )
 
 // seedDocs writes a fake generated-documentation tree into a repo.
@@ -126,6 +128,57 @@ func TestSystemPromptAdvertisesKnowledge(t *testing.T) {
 	}
 	if !strings.Contains(p, "the code wins") {
 		t.Error("system prompt should say source is the ground truth over stale docs")
+	}
+}
+
+// A stale wiki must warn the agent, not just hand it documentation with no
+// hint it may describe a repo from commits ago.
+func TestKnowledgeSummaryAndReadKnowledgeSurfaceStaleness(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not on PATH")
+	}
+	root := t.TempDir()
+	seedDocs(t, root)
+
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=k", "GIT_AUTHOR_EMAIL=k@example.com",
+			"GIT_COMMITTER_NAME=k", "GIT_COMMITTER_EMAIL=k@example.com")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
+	}
+	git("init", "-q")
+	git("config", "user.email", "k@example.com")
+	git("config", "user.name", "k")
+	git("add", ".")
+	git("commit", "-qm", "initial")
+	if err := wiki.SaveStamp(root, "test-model", 1, nil); err != nil {
+		t.Fatal(err)
+	}
+	git("commit", "--allow-empty", "-qm", "second")
+	git("commit", "--allow-empty", "-qm", "third")
+
+	summary := knowledgeSummary(root)
+	if !strings.Contains(summary, "2 commits ago") || !strings.Contains(summary, "may be stale") {
+		t.Errorf("knowledgeSummary should surface staleness, got:\n%s", summary)
+	}
+
+	a := &Agent{Root: root, UI: fakeUI{}}
+	got := a.readKnowledge("")
+	if !strings.Contains(got, "2 commits ago") || !strings.Contains(got, "may be stale") {
+		t.Errorf("read_knowledge catalog should surface staleness, got:\n%s", got)
+	}
+}
+
+// An up-to-date wiki (or one with no baseline at all) must not add noise.
+func TestKnowledgeSummaryNoStalenessNoteWhenCurrent(t *testing.T) {
+	root := t.TempDir()
+	seedDocs(t, root)
+	if strings.Contains(knowledgeSummary(root), "may be stale") {
+		t.Error("a repo with no git baseline should not claim staleness")
 	}
 }
 

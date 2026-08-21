@@ -78,6 +78,74 @@ func TestRememberRewriteReplaces(t *testing.T) {
 	}
 }
 
+func TestRememberDedupExactMatch(t *testing.T) {
+	repo := t.TempDir()
+	if _, err := Remember(repo, "tests live under cli/internal and run with make test", false, true); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Remember(repo, "tests live under cli/internal and run with make test", false, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Duplicate || res.Changed {
+		t.Errorf("exact repeat should be flagged duplicate and not written, got %+v", res)
+	}
+	content, _ := os.ReadFile(ProjectPath(repo))
+	if got, want := strings.Count(string(content), "- "), 1; got != want {
+		t.Errorf("duplicate must not add a second bullet, got %d:\n%s", got, content)
+	}
+}
+
+func TestRememberDedupNearMatch(t *testing.T) {
+	repo := t.TempDir()
+	if _, err := Remember(repo, "user prefers dark mode in the editor", false, true); err != nil {
+		t.Fatal(err)
+	}
+	// Not a normalized exact match (one extra word), but well past the
+	// similarity threshold — a light rewording of the same fact.
+	res, err := Remember(repo, "User prefers dark mode in the editor always.", false, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Duplicate {
+		t.Errorf("light rewording should be flagged duplicate, got %+v", res)
+	}
+}
+
+func TestRememberDedupDistinctFactsBothKept(t *testing.T) {
+	repo := t.TempDir()
+	if _, err := Remember(repo, "first fact", false, true); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Remember(repo, "a completely unrelated second fact about deploys", false, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Duplicate {
+		t.Error("distinct facts must not be treated as duplicates")
+	}
+	content, _ := os.ReadFile(ProjectPath(repo))
+	if got, want := strings.Count(string(content), "- "), 2; got != want {
+		t.Errorf("expected both facts recorded, got %d:\n%s", got, content)
+	}
+}
+
+func TestRememberDedupRewriteBypasses(t *testing.T) {
+	repo := t.TempDir()
+	if _, err := Remember(repo, "old fact", false, true); err != nil {
+		t.Fatal(err)
+	}
+	// A rewrite replaces the whole file; it must never be blocked as a
+	// "duplicate" of what it is about to replace.
+	res, err := Remember(repo, "old fact", true, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Duplicate || !res.Changed {
+		t.Errorf("rewrite must bypass dedup, got %+v", res)
+	}
+}
+
 func TestRememberEmptyFactIsError(t *testing.T) {
 	if _, err := Remember(t.TempDir(), "   ", false, true); err == nil {
 		t.Fatal("empty fact should error")
