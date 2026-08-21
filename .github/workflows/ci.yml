@@ -20,6 +20,11 @@ jobs:
       - name: Check (vet + test)
         working-directory: cli
         run: make check
+      # -race needs cgo and a C toolchain; ubuntu-latest has one. This is the
+      # only place it runs — a stock Windows dev box cannot build it.
+      - name: Test with -race
+        working-directory: cli
+        run: go test ./... -race -count=1
 
   frontend:
     runs-on: ubuntu-latest
