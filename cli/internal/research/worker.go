@@ -78,6 +78,14 @@ func (e *engine) runWorker(ctx context.Context, sub Subtopic) (Finding, error) {
 
 	var fetched []string // document ids this worker read, in order
 	for calls := 0; calls < e.budget.MaxToolCallsPerWorker; {
+		// Cancellation outranks every budget here. Cost and the clock bound
+		// what a live run may spend; ctx is the run saying it wants nothing
+		// more spent on this strand. Returning, not breaking: compress below
+		// is itself a billed provider call, and a cancelled run must stop
+		// paying, not merely stop eventually.
+		if ctx.Err() != nil {
+			return Finding{}, ctx.Err()
+		}
 		if e.costReached() || e.deadline() {
 			break
 		}
@@ -106,6 +114,11 @@ func (e *engine) runWorker(ctx context.Context, sub Subtopic) (Finding, error) {
 			}
 		}
 		messages = append(messages, replies...)
+		// Dispatched tools always ran to completion; this is the first
+		// moment cancellation can act before another provider call leaves.
+		if ctx.Err() != nil {
+			return Finding{}, ctx.Err()
+		}
 	}
 
 	f, err := e.compress(ctx, sub, fetched)

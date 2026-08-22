@@ -59,6 +59,14 @@ single flaky fetch into a total run failure. The bug is narrower: cancellation o
 you once 2.5a lands. Verify whether 2.5a alone closes this; if it does, record that and
 leave `dispatchWorkers` as it is.
 
+**Resolved (2026-08-21): 2.5a alone closes it.** `errgroup.WithContext(ctx)` derives
+`gctx` as a child of the parent, so cancelling the parent cancels `gctx` regardless of
+what any worker returns; `g.Go` hands that `gctx` to `runWorker`
+([supervisor.go:384](../../cli/internal/research/supervisor.go)), which now returns on it
+at both the loop top and after the tool batch. The `return nil` only governs whether a
+*sibling failure* cancels the wave, which is the semantics we want to keep.
+`dispatchWorkers` is unchanged.
+
 ---
 
 ## Paste-ready prompt
