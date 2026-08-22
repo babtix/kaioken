@@ -508,7 +508,7 @@ export function CostPane({ active }: PaneProps) {
   return (
     <Body>
       <div className="flex items-center gap-1">
-        {["7d", "30d", "90d"].map((w, i) => (
+        {["7d", "30d", "90d", "all"].map((w, i) => (
           <span key={w} className={cn("rounded-sm border px-1.5 py-0.5 text-[8px]", i === 1 ? "border-kai-orange/40 bg-accent text-kai-amber" : "border-border text-kai-dim")}>{w}</span>
         ))}
         <span className="ml-auto text-[8px] text-kai-dim">this workspace ☑</span>

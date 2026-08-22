@@ -102,7 +102,7 @@ Commands:
              sectioned document with a findings register, a search log and a
              coverage log, and rendered to a signed PDF beside the Markdown
   usage      Show what Kaioken has spent — by operation, model and workspace
-             (positional: a day count like "7d", or "refresh" / "prune")
+             (positional: a day count like "7d", "all", or "refresh" / "prune")
   serve      Browse the generated wiki in a browser (-port, default 7777)
   publish    Render the wiki as a static site anyone can browse — no server,
              no Kaioken needed (-out overrides .kaioken/site)

@@ -186,7 +186,7 @@ export const SURFACES: Surface[] = [
     label: "Cost",
     key: "",
     headline: "Where the money went",
-    body: "The TUI hides spend behind /cost. Here it is a dashboard: 7, 30 or 90 days, broken down by model and by run, scoped to one workspace or across all of them.",
+    body: "The TUI hides spend behind /cost. Here it is a dashboard: 7, 30, 90 days or all time, broken down by model and by run, scoped to one workspace or across all of them.",
     points: [
       "Breakdowns lead; the grand total is one line",
       "Precision that survives fractions of a cent",

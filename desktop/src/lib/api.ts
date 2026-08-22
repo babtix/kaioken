@@ -254,7 +254,7 @@ export const api = {
 
   // Cost dashboard. Named apart from usage() above, which reports one live
   // client's counters; this is the durable cross-workspace history.
-  usageLedger: (days = 30, wsId?: string) =>
+  usageLedger: (days: number | string = 30, wsId?: string) =>
     req<UsageResponse>("GET", `/usage?days=${days}${wsId ? `&workspace=${wsId}` : ""}`),
   refreshPricing: () => req<{ models: number }>("POST", "/usage/pricing/refresh"),
 

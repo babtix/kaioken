@@ -81,11 +81,14 @@ func cmdUsage(ctx context.Context, f flags) error {
 		return nil
 	}
 
+	allTime := false
 	days := 30
-	if f.positional != "" {
+	if f.positional == "all" || f.positional == "all-time" || f.positional == "alltime" {
+		allTime = true
+	} else if f.positional != "" {
 		fmt.Sscanf(strings.TrimSuffix(f.positional, "d"), "%d", &days)
 	}
-	if days <= 0 {
+	if !allTime && days <= 0 {
 		days = 30
 	}
 
@@ -99,19 +102,32 @@ func cmdUsage(ctx context.Context, f flags) error {
 		}
 	}
 
-	events, err := ledger.Load(time.Now().AddDate(0, 0, -days))
+	var since time.Time
+	if !allTime {
+		since = time.Now().AddDate(0, 0, -days)
+	}
+	events, err := ledger.Load(since)
 	if err != nil {
 		return err
 	}
 	if len(events) == 0 {
-		fmt.Printf("no recorded usage in the last %d days.\n", days)
+		if allTime {
+			fmt.Println("no recorded usage.")
+		} else {
+			fmt.Printf("no recorded usage in the last %d days.\n", days)
+		}
 		fmt.Println("the ledger fills as you run wiki, generate, chat, research or review.")
 		return nil
 	}
 	s := ledger.Summarize(events)
 
-	fmt.Printf("last %d days — %s across %d call(s), %s tokens\n",
-		days, ledger.FormatUSD(s.CostUSD), s.Calls, humanCount(s.PromptTokens+s.CompletionTokens))
+	if allTime {
+		fmt.Printf("all time — %s across %d call(s), %s tokens\n",
+			ledger.FormatUSD(s.CostUSD), s.Calls, humanCount(s.PromptTokens+s.CompletionTokens))
+	} else {
+		fmt.Printf("last %d days — %s across %d call(s), %s tokens\n",
+			days, ledger.FormatUSD(s.CostUSD), s.Calls, humanCount(s.PromptTokens+s.CompletionTokens))
+	}
 	if s.CostUSD > 0 {
 		known := s.KnownCostUSD / s.CostUSD * 100
 		fmt.Printf("  %.0f%% of that figure was reported by a provider; the rest is estimated from the price catalog\n", known)
@@ -141,7 +157,7 @@ func cmdUsage(ctx context.Context, f flags) error {
 
 	// The daily series is the one people scan for a spike, so it goes last and
 	// unabridged for short windows.
-	if days <= 31 {
+	if !allTime && days <= 31 {
 		section("by day", s.ByDay, 0)
 	}
 	return nil

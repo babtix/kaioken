@@ -15,21 +15,31 @@ import (
 // by internal/usage; nothing recomputes spend, so the API and the CLI can
 // never disagree about what a week cost.
 
-// GET /v1/usage?days=30&workspace=<id>
+// GET /v1/usage?days=30&workspace=<id> (days can be a number or "all")
 //
 // Distinct from GET /v1/workspaces/{id}/usage, which reports one live client's
 // counters. This is the durable history: it survives restarts and spans every
 // workspace, which is what a spending question actually asks about.
 func (s *Server) handleUsageLedger(w http.ResponseWriter, r *http.Request) {
-	days := 30
-	fmt.Sscanf(r.URL.Query().Get("days"), "%d", &days)
-	if days <= 0 {
-		days = 30
+	qDays := strings.TrimSpace(r.URL.Query().Get("days"))
+	var since time.Time
+	var daysRes any
+	if qDays == "all" || qDays == "all-time" || qDays == "alltime" || qDays == "0" {
+		daysRes = "all"
+	} else {
+		days := 30
+		if qDays != "" {
+			fmt.Sscanf(qDays, "%d", &days)
+		}
+		if days <= 0 {
+			days = 30
+		}
+		if days > 365 {
+			days = 365
+		}
+		since = time.Now().AddDate(0, 0, -days)
+		daysRes = days
 	}
-	if days > 365 {
-		days = 365
-	}
-	since := time.Now().AddDate(0, 0, -days)
 
 	events, err := usage.Load(since)
 	if err != nil {
@@ -53,7 +63,7 @@ func (s *Server) handleUsageLedger(w http.ResponseWriter, r *http.Request) {
 
 	summary := usage.Summarize(events)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"days":    days,
+		"days":    daysRes,
 		"summary": summary,
 		// pricing_stale tells the UI whether to offer a refresh: an old table
 		// means the estimated half of the numbers is drifting.
