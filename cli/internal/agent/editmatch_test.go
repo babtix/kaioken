@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -132,18 +134,51 @@ func TestApplyEditsOverlap(t *testing.T) {
 }
 
 func TestLineEndingRoundTrip(t *testing.T) {
+	// A CRLF file edited through the raw path keeps CRLF everywhere — the
+	// LF view is only ever a matching aid, never what gets written.
 	original := "a\r\nb\r\nc\r\n"
-	ending := detectLineEnding(original)
-	if ending != "\r\n" {
-		t.Fatalf("ending = %q", ending)
-	}
-	normalized := normalizeToLF(original)
-	got, _, _, _, err := applyEdits(normalized, []Edit{{Old: "b", New: "B"}}, "x.txt")
+	got, _, _, _, err := applyEdits(original, []Edit{{Old: "b", New: "B"}}, "x.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if restored := restoreLineEndings(got, ending); restored != "a\r\nB\r\nc\r\n" {
-		t.Errorf("restored = %q", restored)
+	if got != "a\r\nB\r\nc\r\n" {
+		t.Errorf("restored = %q", got)
+	}
+}
+
+// Editing one line of a mixed-ending file must rewrite only that line: every
+// other line keeps its exact bytes, bare-CR and CRLF terminators included.
+// The bug this pins lived in edit_file, which normalized the whole body to LF
+// and then restored one detected ending across all of it — so any edit in a
+// mixed file silently rewrote every line. The comparison is on exact bytes; a
+// normalized comparison would pass even with the bug present.
+func TestEditFilePreservesMixedLineEndings(t *testing.T) {
+	a := newAgent(t, true)
+	content := "alpha crlf\r\n" +
+		"beta lf\n" +
+		"gamma cr\r" +
+		"delta crlf\r\n" +
+		"epsilon, no newline"
+	if err := os.WriteFile(filepath.Join(a.Root, "mixed.txt"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := a.editFile("mixed.txt", []Edit{{Old: "beta lf", New: "beta lf, edited"}}); !strings.HasPrefix(got, "edited") {
+		t.Fatalf("editFile: %q", got)
+	}
+	data, err := os.ReadFile(filepath.Join(a.Root, "mixed.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The edited line is re-terminated with the file's first style (CRLF);
+	// everything else is byte-identical to what was on disk before.
+	want := "alpha crlf\r\n" +
+		"beta lf, edited\r\n" +
+		"gamma cr\r" +
+		"delta crlf\r\n" +
+		"epsilon, no newline"
+	if string(data) != want {
+		t.Errorf("untouched lines were disturbed:\n got %q\nwant %q", string(data), want)
 	}
 }
 

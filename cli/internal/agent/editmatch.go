@@ -11,6 +11,13 @@ package agent
 // trailing-whitespace trim, smart quotes/dashes/spaces to ASCII). When the
 // fuzzy path is taken, only the lines an edit actually touches are rewritten
 // from the normalized text; every untouched line keeps its original bytes.
+//
+// Line endings get the same treatment. Matching happens in an LF-only view of
+// the file so old text matches whether the file uses CRLF or LF, but the
+// result is put back line by line against the real bytes: untouched lines
+// keep whatever terminator they had, and only the span an edit wrote is
+// re-terminated. A file that mixes CRLF, LF, and bare CR keeps its mixture
+// except where the model actually changed something.
 
 import (
 	"fmt"
@@ -38,8 +45,15 @@ func stripBOM(content string) (bom, text string) {
 	return "", content
 }
 
-// detectLineEnding reports the file's dominant line ending based on which
-// style appears first.
+// detectLineEnding reports which ending style newly written lines get: the
+// first style that appears in the file, on the reasoning that a file's first
+// line says how the rest of it was authored. It no longer decides anything
+// about untouched lines — they keep their original bytes — so a mixed file
+// answers with whichever style came first rather than a majority vote.
+//
+// A file of bare CRs (classic Mac) has no \r\n and no \n to find, so it
+// reports "\n" and edited lines come back LF. Nothing writes bare-CR files
+// deliberately any more; preserving them where untouched is enough.
 func detectLineEnding(content string) string {
 	crlf := strings.Index(content, "\r\n")
 	lf := strings.Index(content, "\n")
@@ -52,13 +66,21 @@ func detectLineEnding(content string) string {
 	return "\n"
 }
 
-// normalizeToLF converts CRLF and bare CR line endings to LF.
+// normalizeToLF converts CRLF and bare CR line endings to LF. Every
+// terminator — \r\n, \n, or a lone \r — becomes exactly one \n, so the LF
+// view has the same number of lines as the text it came from and never moves
+// content across line boundaries. That one-to-one mapping is what lets the
+// edit result be put back against the original line by line.
 func normalizeToLF(text string) string {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	return strings.ReplaceAll(text, "\r", "\n")
 }
 
-// restoreLineEndings converts LF back to the detected original ending.
+// restoreLineEndings converts the LF endings of edited text back to ending,
+// as detectLineEnding reported it for the file. It runs only on the span an
+// edit wrote — replacement text arrives from the model as LF — so a line the
+// edit did not touch keeps whatever ending it already had, CRLF, LF, or a
+// bare CR alike.
 func restoreLineEndings(text, ending string) string {
 	if ending == "\r\n" {
 		return strings.ReplaceAll(text, "\n", "\r\n")
@@ -183,6 +205,37 @@ func lineSpans(content string) []lineSpan {
 	return spans
 }
 
+// splitLinesAnyEnding splits content into lines like splitLinesWithEndings
+// does, but treats CRLF, LF, and a bare CR alike as terminators. It exists
+// for original file text, whose terminators may be mixed.
+//
+// Because normalizeToLF maps each of those terminators to exactly one \n, a
+// text and its LF view split into the same number of lines here as there,
+// line k pairing with line k — which is what lets untouched lines be copied
+// byte-for-byte from the original while touched ones are rebuilt.
+func splitLinesAnyEnding(content string) []string {
+	var lines []string
+	start := 0
+	for i := 0; i < len(content); i++ {
+		switch content[i] {
+		case '\n':
+			lines = append(lines, content[start:i+1])
+			start = i + 1
+		case '\r':
+			// A CRLF pair is emitted whole when the loop reaches the \n.
+			if i+1 < len(content) && content[i+1] == '\n' {
+				continue
+			}
+			lines = append(lines, content[start:i+1])
+			start = i + 1
+		}
+	}
+	if start < len(content) {
+		lines = append(lines, content[start:])
+	}
+	return lines
+}
+
 // replacementLineRange widens a replacement to the whole lines it touches,
 // returning [startLine, endLine) indices into spans.
 func replacementLineRange(spans []lineSpan, r matchedEdit) (int, int, error) {
@@ -209,10 +262,12 @@ func replacementLineRange(spans []lineSpan, r matchedEdit) (int, int, error) {
 
 // applyPreservingUnchangedLines applies replacements that were matched
 // against baseContent (the normalized view) while copying every untouched
-// line byte-for-byte from originalContent. Both views must have the same line
-// count — normalization never adds or removes lines.
-func applyPreservingUnchangedLines(originalContent, baseContent string, reps []matchedEdit) (string, error) {
-	originalLines := splitLinesWithEndings(originalContent)
+// line byte-for-byte from originalContent — the file's real bytes, mixed
+// endings included. Both views must describe the same lines: normalization
+// never adds or removes them. Lines a replacement touched are re-terminated
+// to ending, the style detectLineEnding chose for written text.
+func applyPreservingUnchangedLines(originalContent, baseContent string, reps []matchedEdit, ending string) (string, error) {
+	originalLines := splitLinesAnyEnding(originalContent)
 	baseLines := lineSpans(baseContent)
 	if len(originalLines) != len(baseLines) {
 		return "", fmt.Errorf("cannot preserve unchanged lines: the normalized content has a different line count")
@@ -250,7 +305,7 @@ func applyPreservingUnchangedLines(originalContent, baseContent string, reps []m
 		}
 		groupStart := baseLines[g.startLine].start
 		groupEnd := baseLines[g.endLine-1].end
-		b.WriteString(applyReplacements(baseContent[groupStart:groupEnd], g.reps, groupStart))
+		b.WriteString(restoreLineEndings(applyReplacements(baseContent[groupStart:groupEnd], g.reps, groupStart), ending))
 		lineIdx = g.endLine
 	}
 	for _, l := range originalLines[lineIdx:] {
@@ -292,12 +347,15 @@ func stripLineNumbers(block string) (string, bool) {
 	return strings.Join(out, "\n"), true
 }
 
-// applyEdits matches every edit against content (already BOM-stripped and
-// LF-normalized) and returns the new content. All edits are located against
-// the same base; if any edit needs the fuzzy fallback, the whole batch is
-// applied in normalized space and overlaid line-wise onto the original so
-// unchanged lines keep their exact bytes. Errors are phrased for the model:
-// they say what to fix, not just what failed.
+// applyEdits matches every edit against content (already BOM-stripped, with
+// whatever line endings the file really has) and returns the new content with
+// those endings respected. Matching runs in an LF view of the text — the
+// model's old text is matched ending-insensitively — and the result is put
+// back against the original line by line, so untouched lines keep their exact
+// bytes and only the span an edit wrote is re-terminated. If any edit needs
+// the fuzzy fallback, the whole batch is matched in that normalized space;
+// the line-wise reassembly is the same either way. Errors are phrased for the
+// model: they say what to fix, not just what failed.
 //
 // A third fallback sits under the other two: old text that still carries
 // read_file's line numbers is stripped and retried. Numbering the read output
@@ -307,6 +365,7 @@ func applyEdits(content string, edits []Edit, path string) (newContent string, u
 	if len(edits) == 0 {
 		return "", false, false, "", fmt.Errorf("no edits given for %s", path)
 	}
+	lf := normalizeToLF(content)
 	normalized := make([]Edit, len(edits))
 	for i, e := range edits {
 		normalized[i] = Edit{Old: normalizeToLF(e.Old), New: normalizeToLF(e.New)}
@@ -318,11 +377,11 @@ func applyEdits(content string, edits []Edit, path string) (newContent string, u
 	// Line-number stripping is tried before fuzzy matching and only for edits
 	// that miss as given: an edit that already matches is never rewritten.
 	for i, e := range normalized {
-		if fuzzyFindText(content, e.Old).found {
+		if fuzzyFindText(lf, e.Old).found {
 			continue
 		}
 		stripped, was := stripLineNumbers(e.Old)
-		if !was || !fuzzyFindText(content, stripped).found {
+		if !was || !fuzzyFindText(lf, stripped).found {
 			continue
 		}
 		normalized[i].Old = stripped
@@ -336,18 +395,21 @@ func applyEdits(content string, edits []Edit, path string) (newContent string, u
 	// Placement happens in one of two spaces, and which one decides how the
 	// result is assembled.
 	//
-	// The original: a match is a byte range in the file itself, so applying it
-	// is a splice and every byte outside the range is untouched by
-	// construction. Exact matching and the line/indent/anchor strategies all
-	// land here.
+	// The LF view: a match is a byte range in that view, so applying it is a
+	// splice there and every line outside it is untouched by construction.
+	// Exact matching and the line/indent/anchor strategies all land here.
 	//
-	// The normalized copy: NFKC and smart-quote folding rewrite the text, so a
-	// match there is an offset into a file that does not exist on disk. Those
-	// results have to be overlaid back line by line. It is the more invasive
-	// path, so it is only taken when no edit in the batch could be placed in
-	// the original — mixing the two would mean two different coordinate spaces
-	// in one `matched` list.
-	matched, base, err := placeEdits(content, normalized, edits, path, &usedFuzzy, &usedStrategy)
+	// The normalized copy: NFKC and smart-quote folding rewrite the text, so
+	// a match there is an offset into a file that does not exist on disk.
+	// Those results have to be overlaid back line by line. It is the more
+	// invasive path, so it is only taken when no edit in the batch could be
+	// placed in the LF view — mixing the two would mean two different
+	// coordinate spaces in one `matched` list.
+	//
+	// Either way the placements are bound back to the original bytes by
+	// applyPreservingUnchangedLines, which is where untouched lines — and
+	// their original line endings — survive.
+	matched, base, err := placeEdits(lf, normalized, edits, path, &usedFuzzy, &usedStrategy)
 	if err != nil {
 		return "", false, false, "", err
 	}
@@ -362,13 +424,10 @@ func applyEdits(content string, edits []Edit, path string) (newContent string, u
 		}
 	}
 
-	if usedFuzzy {
-		newContent, err = applyPreservingUnchangedLines(content, base, matched)
-		if err != nil {
-			return "", false, false, "", err
-		}
-	} else {
-		newContent = applyReplacements(base, matched, 0)
+	ending := detectLineEnding(content)
+	newContent, err = applyPreservingUnchangedLines(content, base, matched, ending)
+	if err != nil {
+		return "", false, false, "", err
 	}
 	if newContent == content {
 		return "", false, false, "", fmt.Errorf("no changes made to %s: the replacement produced identical content", path)
