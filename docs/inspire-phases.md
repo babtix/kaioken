@@ -134,7 +134,10 @@ here is nearly a project.
   request context. **Strip chain-of-thought before replaying partial output** — this is not
   optional; serialising partial CoT trips provider reasoning-injection classifiers.
 - **Item 22 — programmatic tool calling.** Build on `internal/rpc`. Treat the child process
-  as untrusted: it gets the tool surface, not the filesystem.
+  as untrusted: it gets the tool surface, not the filesystem. **Do not copy hermes' transport**
+  — it uses Unix domain sockets and is disabled on Windows outright
+  (`tools/code_execution_tool.py:27`). Use named pipes or loopback TCP so this works on the
+  primary development platform.
 - **Item 24 — post-edit diagnostics.** Start with `go vet` / `tsc --noEmit` dry runs rather
   than a full LSP manager; most of the value, a fraction of the cost. Bound and sanitise the
   output before it reaches the model.
