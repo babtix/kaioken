@@ -217,20 +217,38 @@ func (rs *RunState) SetPhase(p Phase) error {
 	return rs.Checkpoint()
 }
 
-// Checkpoint writes run.json. The write goes to a temp file first so a crash
-// mid-write cannot corrupt the previous checkpoint.
+// Checkpoint writes run.json. The whole marshal+write+rename holds the
+// state lock: workers checkpoint concurrently, and on Windows two renames
+// onto the same destination do not queue — they fail outright — while the
+// old shared temp path also let a half-overwritten file be renamed into
+// place. The temp name is unique per call so an interrupted checkpoint
+// litters nothing.
 func (rs *RunState) Checkpoint() error {
 	rs.mu.Lock()
+	defer rs.mu.Unlock()
 	data, err := json.MarshalIndent(rs.run, "", "  ")
-	rs.mu.Unlock()
 	if err != nil {
 		return err
 	}
-	tmp := filepath.Join(rs.dir, "run.json.tmp")
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+	f, err := os.CreateTemp(rs.dir, "run.json.*.tmp")
+	if err != nil {
 		return err
 	}
-	return os.Rename(tmp, filepath.Join(rs.dir, "run.json"))
+	tmp := f.Name()
+	if _, err := f.Write(data); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := os.Rename(tmp, filepath.Join(rs.dir, "run.json")); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 // Event appends one line to the audit log. The log is append-only and
