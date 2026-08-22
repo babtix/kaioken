@@ -1,60 +1,60 @@
 {
   "modules": {
     "kaioken": {
-      "source_hash": "ae15dee457a538c9b8f65dec9a52f16fca7376fa7648f45f66b257901339b006",
+      "source_hash": "2375fc01eabeade6b2f794133a561c73fbeac3a2db79b6f41e2f73150dacdfd3",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-04T16:10:10.6616629Z",
+      "generated_at": "2026-08-21T16:51:09.8209138Z",
       "file_count": 3,
-      "commit": "8b6e0fcd83c8daf836ebe3d527b248c28548e96a"
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/chat_agent/agent_core": {
-      "source_hash": "de59935f7715db00568ff687a1562671c830ec71232916c8f3bb455e4a9238e4",
+      "source_hash": "f07b5afaa8e148700956410ee8023e1d54f082ae7220746283429d9dc3d2ed5b",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-08T19:27:53.5218833Z",
-      "file_count": 49,
-      "commit": "407e537eb1111a9cbb0ca88cd0ab32b17a172624"
+      "generated_at": "2026-08-21T16:50:52.2472515Z",
+      "file_count": 56,
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/chat_agent/agent_skills": {
-      "source_hash": "fff7a5a10a32472a1f1f2405b611d45150d98caddfc3dbe421ed1e7a57fa44ff",
+      "source_hash": "298fa191980a0b81c789d7943763d2c51d689c28e6ee6bdfdf7077c12101cb0d",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-28T10:15:27.4279666Z",
+      "generated_at": "2026-08-21T16:49:18.4945473Z",
       "file_count": 6,
-      "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/chat_agent/agent_state": {
-      "source_hash": "975923a923683058da36918318ef47667f03351d12e7409151b628aa0b69609e",
+      "source_hash": "18a27476cdb039e2ed6da40b1499f50eb956d68cd849247b7713a6bb11cef847",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-31T09:35:32.691457Z",
+      "generated_at": "2026-08-21T16:50:53.9313066Z",
       "file_count": 7,
-      "commit": "9d4214ab292c502e3a22e73a734ad722b8d21847"
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/chat_agent/llm_integration": {
-      "source_hash": "8a137f216a9ded1d6c3b092bbb71251e2640fe6d494a9ac406cbb4b6e4fb2cce",
+      "source_hash": "49ed02243d1697f48b47549cdd6c4976c94d93f62bac268f7bc21bfc634ee49a",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-04T16:10:37.1391206Z",
+      "generated_at": "2026-08-21T16:50:04.0406139Z",
       "file_count": 16,
-      "commit": "8b6e0fcd83c8daf836ebe3d527b248c28548e96a"
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/cmd": {
-      "source_hash": "a3f7f871cb6cb3a3ac5547ec08a91cdc5b7a78e0000fac16bba41007b00e3b6c",
+      "source_hash": "16d11c9ae90ba4baebf916916eba133122bbf525acdad4bff3c2d6cc8f265b5d",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-08T19:27:08.6149148Z",
-      "file_count": 19,
-      "commit": "407e537eb1111a9cbb0ca88cd0ab32b17a172624"
+      "generated_at": "2026-08-21T16:55:17.9074897Z",
+      "file_count": 20,
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/config": {
-      "source_hash": "5144caf8dbf23ff8beca5143932aebe50f506b82b55251c4d7f68aef0faf0009",
+      "source_hash": "f8e40a277a1d5ca94120686c6d4fd25075d7e643ed88209b45a754f7831ef6ba",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-04T16:22:45.9069774Z",
+      "generated_at": "2026-08-21T16:54:49.6238823Z",
       "file_count": 5,
-      "commit": "d795e5b7c5e3f071038a9861ba5eedd69463f1ab"
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/gitx": {
-      "source_hash": "92f16a8f6d0ae1f23f387705a621ae02f625783e9400f4b927c11033891b4370",
+      "source_hash": "2711c4a3718673f3712a1f65f02d51a61ccdcf561d74d3733e4f8f723791f244",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-04T16:52:59.8927503Z",
+      "generated_at": "2026-08-21T16:54:50.7755704Z",
       "file_count": 10,
-      "commit": "7a7237b6db4f1bbce668778fe64f9ef7dc26a09c"
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/knowledge_engine/codemap": {
       "source_hash": "24d93f26b655cd8362e1614a1e73ac57c374b1cb3b162c006479254c42af0cb4",
@@ -70,32 +70,32 @@
       "commit": "d795e5b7c5e3f071038a9861ba5eedd69463f1ab"
     },
     "kaioken/knowledge_engine/wiki_generator": {
-      "source_hash": "dd1839dcfd1f6f918e64f8bad764b140688be15e86a0d73dc644bf72f151edc6",
+      "source_hash": "d9d7bcce2ba67e27222dd3f8b839b06a70a345e31cc33189e4ce588b5bd324e4",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-07-28T10:18:14.6640184Z",
-      "file_count": 17,
-      "commit": "76b3fea30a87ecb1313db9d9d6f6fd6fc7e8e2df"
+      "generated_at": "2026-08-21T16:51:37.5395403Z",
+      "file_count": 19,
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/knowledge_engine/wiki_serve": {
-      "source_hash": "a2fe43008760ecb3fce77e65f7255d5df2acdab2c564681a072e4a22a598f07b",
+      "source_hash": "ea4f459d0e55e0452ab7b47b183a8bfb4b8a023abb0c0f56c9c44d283c1e86dd",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-04T16:30:48.1156952Z",
+      "generated_at": "2026-08-21T16:54:23.9666997Z",
       "file_count": 6,
-      "commit": "251b970a62386a67c6af3559e7e01fc9f9a85c70"
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/tui": {
-      "source_hash": "1caf53e04dee8a4e2ca210ffcdcca99a35805595487b4f8e2860e9c18824ceb9",
+      "source_hash": "aca861ab635c274bf9fd4d3fdd115d342ceae418986cd5c0e0ed70903b229416",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-08T19:29:11.3644897Z",
-      "file_count": 26,
-      "commit": "407e537eb1111a9cbb0ca88cd0ab32b17a172624"
+      "generated_at": "2026-08-21T16:52:43.3849176Z",
+      "file_count": 30,
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     },
     "kaioken/version": {
-      "source_hash": "e360f76462f799b493e509413df376c5870572ad70b25153052e605de7762434",
+      "source_hash": "029241c70b37cbff34b03aff9bdeb168987be625d5ed1bb4474676e1c8781754",
       "model": "nemotron-3-super:cloud",
-      "generated_at": "2026-08-08T19:28:02.3213292Z",
+      "generated_at": "2026-08-21T16:55:16.4989208Z",
       "file_count": 1,
-      "commit": "407e537eb1111a9cbb0ca88cd0ab32b17a172624"
+      "commit": "965b4cac6ad9901f6c6ca7e2a85a2c130cf957bf"
     }
   }
 }

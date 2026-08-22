@@ -16,7 +16,7 @@ Skills are stored as `SKILL.md` files in `.kaioken/skills/<name>/` within the re
 
 The `Skill` struct defines the on-disk format:
 
-`internal/skills/skills.go:29-43`
+`internal/skills/skills.go:29-60`
 ```go
 type Skill struct {
 	// Name is a kebab-case identifier, also the directory name.
@@ -30,6 +30,23 @@ type Skill struct {
 	GeneratedAt time.Time `yaml:"generated_at,omitempty"`
 	Model       string    `yaml:"model,omitempty"`
 
+	// Origin records how this skill came to exist. A generated skill is
+	// written from static analysis; a learned one is distilled from a session
+	// that actually did the task; a human one was dropped in by hand. The
+	// distinction is what lets a reviewer tell a hard-won lesson from a guess.
+	Origin string `yaml:"origin,omitempty"`
+	// UseCount is how many sessions opened this skill and followed it to a
+	// clean outcome. It is the reinforcement signal: a loaded skill that
+	// worked is more likely to be the right answer next time.
+	UseCount int `yaml:"use_count,omitempty"`
+	// LastUsed is the most recent session that consulted this skill, so a
+	// skill nobody has reached for in a long time can be flagged for pruning.
+	LastUsed time.Time `yaml:"last_used,omitempty"`
+	// Sessions records the ids of sessions that contributed to or reinforced
+	// this skill, so a learned skill carries its provenance and can be
+	// reverted to the generated baseline when a lesson turns out wrong.
+	Sessions []string `yaml:"sessions,omitempty"`
+
 	// Body is the markdown after the frontmatter.
 	Body string `yaml:"-"`
 }
@@ -37,16 +54,21 @@ type Skill struct {
 
 The `Sources` field is critical for invalidation: it lists the repo-relative files or directories the skill was generated from. When any of these files change, the skill becomes stale.
 
+The `Origin`, `UseCount`, `LastUsed`, and `Sessions` fields track skill provenance and usage for intelligent management:
+- `Origin` distinguishes generated (static analysis), learned (from actual task sessions), and human-created skills
+- `UseCount` and `LastUsed` measure skill reinforcement and staleness from disuse
+- `Sessions` preserves provenance for learned skills to allow reverting to generated baselines
+
 ### Skill Path Helpers
 
 Skills are stored in a standardized location:
 
-`internal/skills/skills.go:46`
+`internal/skills/skills.go:63`
 ```go
 func Dir(repo string) string { return filepath.Join(repo, config.Dir, "skills") }
 ```
 
-`internal/skills/skills.go:49-51`
+`internal/skills/skills.go:76-78`
 ```go
 func Path(repo, name string) string {
 	return filepath.Join(Dir(repo), name, "SKILL.md")
@@ -55,7 +77,7 @@ func Path(repo, name string) string {
 
 The `Slug` function normalizes skill names into safe directory names:
 
-`internal/skills/skills.go:54-78`
+`internal/skills/skills.go:81-105`
 ```go
 func Slug(s string) string {
 	s = strings.ToLower(strings.TrimSpace(s))
@@ -88,7 +110,7 @@ func Slug(s string) string {
 
 Skills are serialized to disk with YAML frontmatter:
 
-`internal/skills/skills.go:81-88`
+`internal/skills/skills.go:108-115`
 ```go
 func (s *Skill) Render() string {
 	meta := *s
@@ -100,7 +122,7 @@ func (s *Skill) Render() string {
 }
 ```
 
-`internal/skills/skills.go:91-109`
+`internal/skills/skills.go:118-127`
 ```go
 func (s *Skill) Save(repo string) error {
 	if s.Name == "" {
@@ -122,7 +144,7 @@ func Load(repo, name string) (*Skill, error) {
 }
 ```
 
-`internal/skills/skills.go:114-131`
+`internal/skills/skills.go:130-136`
 ```go
 func Parse(text string) (*Skill, error) {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
@@ -146,9 +168,9 @@ func Parse(text string) (*Skill, error) {
 
 ### Skill Indexing
 
-`List` enumerates all skills in a repository:
+`List` enumerates all skills in a repository and infers origin for skills lacking it:
 
-`internal/skills/skills.go:135-159`
+`internal/skills/skills.go:162-187`
 ```go
 func List(repo string) ([]*Skill, error) {
 	entries, err := os.ReadDir(Dir(repo))
@@ -170,6 +192,7 @@ func List(repo string) ([]*Skill, error) {
 		if s.Name == "" {
 			s.Name = e.Name() // hand-written skill: fall back to the directory
 		}
+		s.inferOrigin()
 		out = append(out, s)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
@@ -177,9 +200,28 @@ func List(repo string) ([]*Skill, error) {
 }
 ```
 
+`inferOrigin` fills the Origin field for skills written before the field existed:
+
+`internal/skills/skills.go:192-201`
+```go
+// inferOrigin fills Origin for skills written before the field existed, so the
+// catalog can still tell a generated baseline from a hand-written one. A skill
+// with generated_at was produced by skills.Run; one with only a body is human.
+func (s *Skill) inferOrigin() {
+	if s.Origin != "" {
+		return
+	}
+	if !s.GeneratedAt.IsZero() {
+		s.Origin = OriginGenerated
+		return
+	}
+	s.Origin = OriginHuman
+}
+```
+
 `WriteIndex` generates a README.md catalog for agent skill discovery:
 
-`internal/skills/skills.go:196-213`
+`internal/skills/skills.go:205-216`
 ```go
 func WriteIndex(repo string, all []*Skill) error {
 	if len(all) == 0 {
@@ -209,7 +251,7 @@ The system tracks which files each skill depends on via the `Sources` field. Whe
 
 `Stale` filters skills whose sources intersect with changed file paths:
 
-`internal/skills/skills.go:163-174`
+`internal/skills/skills.go:220-231`
 ```go
 // Stale reports the skills whose sources intersect the changed paths, so an
 // update refreshes only what the change actually invalidates.
@@ -229,7 +271,7 @@ func Stale(all []*Skill, changed []string) []*Skill {
 
 `intersects` implements the path matching logic, treating sources as file paths or directory prefixes:
 
-`internal/skills/skills.go:178-192`
+`internal/skills/skills.go:235-249`
 ```go
 // intersects reports whether any changed path falls under a source entry,
 // treating a source as a file or a directory prefix.
@@ -288,7 +330,7 @@ When files change (e.g., via `kaioken update`), the system regenerates only stal
 
 The `Refresh` function orchestrates incremental skill updates:
 
-`internal/skills/generate.go:196-248`
+`internal/skills/generate.go:203-255`
 ```go
 // Refresh regenerates only the skills whose sources the given paths changed.
 // It is what `kaioken update` calls, so skills track the code like the wiki does.
@@ -360,7 +402,7 @@ func Refresh(ctx context.Context, repo string, cfg *config.Config, client *llm.C
 
 The `write` function generates skill content from a proposal, used by both initial `Run` and `Refresh`:
 
-`internal/skills/generate.go:306-355`
+`internal/skills/generate.go:313-363`
 ```go
 func write(ctx context.Context, repo string, cfg *config.Config, client *llm.Client,
 	res *scan.Result, idx *codemap.Index, p proposal) (*Skill, error) {
@@ -409,6 +451,7 @@ func write(ctx context.Context, repo string, cfg *config.Config, client *llm.Cli
 		Sources:     paths,
 		GeneratedAt: time.Now().UTC(),
 		Model:       client.Model,
+		Origin:      OriginGenerated,
 		Body:        body,
 	}, nil
 }
@@ -423,7 +466,7 @@ func write(ctx context.Context, repo string, cfg *config.Config, client *llm.Cli
 
 `resolve` converts skill source patterns (files/directories) to concrete scanned files:
 
-`internal/skills/generate.go:358-376`
+`internal/skills/generate.go:366-384`
 ```go
 // resolve maps scope entries (files or directory prefixes) onto scanned files.
 func resolve(res *scan.Result, scope []string) []scan.File {
@@ -453,7 +496,7 @@ This ensures skills regenerate with the same file set as originally used, even i
 
 Both `Run` and `Refresh` use `errgroup` for controlled concurrency:
 
-`internal/skills/generate.go:127-192` (in `Run`)
+`internal/skills/generate.go:128-199` (in `Run`)
 ```go
 limit, _ := cfg.EffectiveConcurrency(client.Model)
 var mu sync.Mutex
@@ -464,7 +507,7 @@ g.SetLimit(limit)
 // ... goroutine per skill
 ```
 
-`internal/skills/generate.go:196-248` (in `Refresh`)
+`internal/skills/generate.go:203-255` (in `Refresh`)
 ```go
 limit, _ := cfg.EffectiveConcurrency(client.Model)
 var mu sync.Mutex

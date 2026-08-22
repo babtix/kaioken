@@ -28,10 +28,10 @@ The `test` target runs all unit tests across the project using Go's testing fram
 ```makefile
 ## test: run all unit tests
 test:
-	go test ./...
+	go test ./... -count=1
 ```
 
-This target executes `go test ./...` which discovers and runs all `_test.go` files in the current directory and subdirectories.
+This target executes `go test ./... -count=1` which discovers and runs all `_test.go` files in the current directory and subdirectories. The `-count=1` flag disables test caching to ensure tests are always executed.
 
 ## Vet Target
 

@@ -9,6 +9,8 @@ This chapter outlines the linting and code quality tools configured for the Kaio
   - [golangci-lint](#golangci-lint)
   - [go test](#go-test)
   - [check](#check)
+  - [build](#build)
+  - [clean](#clean)
 - [Tool Details](#tool-details)
   - [go vet Details](#go-vet-details)
   - [golangci-lint Details](#golangci-lint-details)
@@ -31,7 +33,7 @@ All code quality tools are executed through the project's Makefile. Run them fro
 
 `go vet` examines Go source code and reports suspicious patterns.
 
-`Makefile:12-14`
+`Makefile:6-7`
 
 ```makefile
 ## vet: run go vet static analysis
@@ -48,7 +50,7 @@ make vet
 
 `golangci-lint` runs a configurable set of linters (including staticcheck, errcheck, govet, etc.). The target includes an installation check.
 
-`Makefile:16-20`
+`Makefile:9-11`
 
 ```makefile
 ## lint: run golangci-lint (if installed)
@@ -68,12 +70,12 @@ make lint
 
 The unit test suite validates functional correctness.
 
-`Makefile:6-8`
+`Makefile:3-4`
 
 ```makefile
 ## test: run all unit tests
 test:
-	go test ./...
+	go test ./... -count=1
 ```
 
 Execute with:
@@ -85,7 +87,7 @@ make test
 
 The `check` target combines unit tests and `go vet` as a pre-commit verification gate.
 
-`Makefile:22-24`
+`Makefile:12`
 
 ```makefile
 ## check: run all verification gates (test + vet)
@@ -98,6 +100,41 @@ make check
 ```
 
 *Note: `check` does **not** run `golangci-lint` by default. Run `make lint` separately for comprehensive linting.*
+
+### build
+
+The `build` target compiles the binary for the current platform and creates a Windows executable.
+
+`Makefile:14-16`
+
+```makefile
+## build: compile the binary
+build:
+	go build ./...
+	go build -o kaioken.exe ./cmd/kaioken
+```
+
+Execute with:
+```sh
+make build
+```
+
+### clean
+
+The `clean` target removes build artifacts.
+
+`Makefile:18-19`
+
+```makefile
+## clean: remove build artifacts
+clean:
+	@rm -f kaioken.exe 2>/dev/null || del kaioken.exe 2>nul || true
+```
+
+Execute with:
+```sh
+make clean
+```
 
 ## Tool Details
 

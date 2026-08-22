@@ -1,10 +1,8 @@
-Section IDs must be snake_case (Section struct in wiki.go)
-Wiki outlines are saved to .kaioken/wiki_plan.yaml (saveOutline in wiki.go)
-Generated documents must include a provenance footer listing source files (stampProvenance in provenance.go)
-Error handling: failures are logged via Progress interface but do not abort the run (e.g., pg.failed in update.go)
-Post-processing: invalid mermaid blocks are demoted to text blocks with warning (sanitizeMermaid in polish.go)
-Cross-linking: first mention of sibling chapters is converted to relative markdown links (linkChapters in polish.go)
-Document generation must follow the docSystem prompt structure: title, table of contents, sections, mermaid diagrams, tables, and verbatim code excerpts with line anchors
-Incremental updates rely on git diffs and the stored baseline commit (Update function in update.go)
-Facts extraction caches results per scan root using a mutex-protected map (detectFacts in facts.go)
-Section documents must not claim files outside their scoped Files list without provenance evidence (docHits in update.go)
+- Section IDs must be snake_case (wiki.go: `outlineSystem` and `Section.ID`)
+- Section titles are converted to filesystem-safe names via `safeName` (replaces spaces/special chars with underscores, truncates to 80 chars)
+- The architecture brief is stored in `.kaioken/architecture.md` and user-edits are preserved across runs
+- Outlines are saved to `.kaioken/wiki_plan.yaml` and can be edited to adjust sections/goals/files
+- Generated documents include a provenance footer listing source files, updated on revisions
+- Error handling: Functions return `error`; update process logs but does not abort on individual document failures
+- Concurrency: Limited by `cfg.EffectiveConcurrency` to avoid rate limits on free-tier LLM models
+- Prompts must include the architecture brief verbatim and adhere to the `docSystem` constraints (no invention, verbatim excerpts, etc.)

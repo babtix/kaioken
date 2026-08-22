@@ -1,1 +1,1 @@
-The gitx module provides Git repository interaction and hook management for Kaioken. It shells out to the git binary to perform operations such as checking repository status, listing changes, generating patches, managing post-commit hooks for wiki updates, and handling isolated worktrees for sub-agent operations.
+The gitx package provides Git repository interaction by shelling out to the git binary. It offers functions to detect changes, manage hooks, report status, stage/unstage changes, commit, and work with worktrees for the Kaioken application.

@@ -14,7 +14,7 @@ This chapter provides a step-by-step workflow for modifying the kaioken codebase
 - [Referenced Files](#referenced-files)
 
 ## Prerequisites
-- Go 1.24.2 or later (as specified in `go.mod`)
+- Go 1.26 or later (as specified in `go.mod`)
 - Access to the repository
 - Optional: `golangci-lint` for linting (the `make lint` target checks for its presence)
 
@@ -24,10 +24,10 @@ This chapter provides a step-by-step workflow for modifying the kaioken codebase
    git clone <repository-url>
    cd kaioken
    ```
-2. Ensure Go 1.24.2 is installed (the version specified in `go.mod`):
+2. Ensure Go 1.26 is installed (the version specified in `go.mod`):
    ```sh
    go version
-   # Expected output: go version go1.24.2 linux/amd64
+   # Expected output: go version go1.26 linux/amd64
    ```
 3. Fetch dependencies:
    ```sh
@@ -50,14 +50,15 @@ Execute all unit tests with:
 ```sh
 make test
 ```
-This runs `go test ./...` across all packages.
+This runs `go test ./... -count=1` across all packages.
 
 ### Test Target Details
-`Makefile:3-4`
+`Makefile:3-5`
 ```makefile
 ## test: run all unit tests
 test:
-	go test ./...
+	go test ./... -count=1
+```
 ```
 
 ## Running Static Analysis
@@ -68,11 +69,12 @@ make vet
 ```
 This executes `go vet ./...` to detect suspicious constructs.
 
-`Makefile:6-7`
+`Makefile:7-9`
 ```makefile
 ## vet: run go vet static analysis
 vet:
 	go vet ./...
+```
 ```
 
 ### Linting
@@ -82,12 +84,13 @@ make lint
 ```
 The target checks for `golangci-lint` and skips gracefully if absent.
 
-`Makefile:9-12`
+`Makefile:11-14`
 ```makefile
 ## lint: run golangci-lint (if installed)
 lint:
 	@command -v golangci-lint >/dev/null 2>&1 || { echo "golangci-lint not installed; skipping"; exit 0; }
 	golangci-lint run ./...
+```
 ```
 
 ### All Verification Gates
@@ -97,10 +100,11 @@ make check
 ```
 This combines `test` and `vet` targets.
 
-`Makefile:14-15`
+`Makefile:16-17`
 ```makefile
 ## check: run all verification gates (test + vet)
 check: test vet
+```
 ```
 
 ## Building the Project
@@ -112,12 +116,13 @@ This produces:
 - `kaioken` (executable for current platform)
 - `kaioken.exe` (explicit Windows build)
 
-`Makefile:17-19`
+`Makefile:19-22`
 ```makefile
 ## build: compile the binary
 build:
 	go build ./...
 	go build -o kaioken.exe ./cmd/kaioken
+```
 ```
 
 ## Cleaning Build Artifacts
@@ -127,11 +132,12 @@ make clean
 ```
 This deletes `kaioken.exe` and handles cross-platform compatibility.
 
-`Makefile:21-22`
+`Makefile:24-26`
 ```makefile
 ## clean: remove build artifacts
 clean:
 	@rm -f kaioken.exe 2>/dev/null || del kaioken.exe 2>nul || true
+```
 ```
 
 ## Preparing a Contribution

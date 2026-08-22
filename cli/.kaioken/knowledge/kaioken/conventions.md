@@ -1,8 +1,13 @@
-- Place the main package in ./cmd/kaioken.
-- Keep the module declaration at the root as `module kaioken` in go.mod.
-- Run unit tests with `go test ./...` (or `make test`).
-- Perform static analysis via `go vet ./...` (or `make vet`).
-- Enforce code style with `golangci-lint run ./...` if the linter is installed (or `make lint`).
-- Build the binary using `go build ./...` and produce a Windows executable with `go build -o kaioken.exe ./cmd/kaioken` (or `make build`).
-- Clean build artifacts via `make clean` (which removes `kaioken.exe`).
-- Dependencies are managed with Go modules; avoid vendoring unless explicitly required.
+Place the main application in ./cmd/kaioken and produce a binary named kaioken (kaioken.exe on Windows) as shown in the Makefile build target.
+Use Go 1.26 as specified in go.mod; do not change the module path.
+Manage dependencies exclusively through go.mod; avoid manual edits to go.sum.
+Follow idiomatic Go error handling: check errors and return or propagate them appropriately.
+Run unit tests with `go test ./...` (or `make test`), static analysis with `go vet ./...` (or `make vet`), and linting with `golangci-lint run ./...` (or `make lint`).
+Execute the provided Makefile targets: `make test`, `make vet`, `make lint`, `make check`, `make build`, `make clean` for verification and building.
+Import UI components from github.com/charmbracelet/bubbletea and bubbles, and apply styling via lipgloss.
+Use the PTY libraries (conpty, creack/pty) for spawning and interacting with shell processes.
+Access the system clipboard through github.com/atotto/clipboard.
+Parse .gitignore files with github.com/sabhiram/go-gitignore.
+Render markdown with github.com/yuin/goldmark.
+Load configuration via gopkg.in/yaml.v3 (YAML/JSON settings files).
+Keep the module name as `kaioken` and avoid altering the module declaration.

@@ -10,15 +10,17 @@
 - [Referenced Files](#referenced-files)
 
 ## Setting up the Development Environment
-Kaioken requires Go 1.24.2 or later. Dependencies are managed via Go modules as specified in `go.mod`.
+Kaioken requires Go 1.26 or later. Dependencies are managed via Go modules as specified in `go.mod`.
 
-`go.mod:2-2`
+`go.mod:1-2`
 ```go
-go 1.24.2
+module kaioken
+
+go 1.26
 ```
 
 To initialize the development environment:
-1. Ensure Go 1.24.2+ is installed
+1. Ensure Go 1.26+ is installed
 2. Run `go mod download` to fetch dependencies
 3. The project uses standard Go tooling (test, vet, build) with optional `golangci-lint` for linting
 
@@ -38,18 +40,19 @@ build:
 - Run `make build` to execute these commands
 
 ## Running Tests
-Unit tests are located alongside source files. The test target runs all tests in the module.
+Unit tests are located alongside source files. The test target runs all tests in the module with caching disabled.
 
 `Makefile:3-5`
 ```makefile
 ## test: run all unit tests
 test:
-	go test ./...
+	go test ./... -count=1
 ```
 
-- Execute with `make test` or `go test ./...`
+- Execute with `make test` or `go test ./... -count=1`
 - Tests should pass before submitting changes
 - The `check` target combines testing and static analysis
+- The `vet` target runs `go vet ./...` for static analysis
 
 ## Linting the Codebase
 Linting enforces code style and catches potential issues using `golangci-lint` if installed.
@@ -135,13 +138,11 @@ Important considerations:
 ## Referenced Files
 - `go.mod` - Dependency declarations and Go version
 - `Makefile` - Build, test, lint, and clean commands
-- `.gitignore` - Specifies intentionally untracked files to ignore
 
 These files were referenced in this guide:
 ```
 go.mod
 Makefile
-.gitignore
 ```
 
 <!-- kaioken:files Makefile,go.mod -->

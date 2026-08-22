@@ -1,7 +1,1 @@
-- Error-returning functions (like resolve, renderDoc) must be checked and converted to 404 for path errors (not found or outside wiki) or 500 for internal errors.
-- All document paths must be resolved using the Server.resolve method to prevent directory traversal.
-- Markdown rendering uses a pre-configured goldmark instance with GFM extensions and unsafe HTML allowed.
-- The Server.static field controls link generation (to relative .html files) and omits server-only features (search, graph) when true.
-- The page rendering function (page) is shared between HTTP handlers and static export to ensure consistent output.
-- Embedded assets (like graphJS) are included via //go:embed directives and used in HTML templates.
-- Tests use temporary directories for wiki data and httptest to simulate HTTP requests.
+- In HTTP handlers, set Content-Type header appropriately (text/html for HTML pages, application/json for JSON endpoints).\n- Use the resolve function to validate document paths are within the wiki directory to prevent path traversal.\n- For client errors (file not found, path outside wiki), return HTTP 404; for server errors (render failure, etc.), return HTTP 500.\n- Reuse the Server's goldmark markdown processor for all markdown conversions.\n- When building the navigation (sections), skip non-directories and non-markdown files.\n- For static export, set the Server's static flag to true to generate relative links and omit server-only features.

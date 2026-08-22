@@ -1,10 +1,1 @@
-- Every slash command must be registered in the `commands` slice in `internal/tui/commands.go` with a unique name and optional aliases.
-- Each command must have a non-empty `guide` string, set via the `commandGuides` map in `internal/tui/explain.go`.
-- Commands must include at least one example invocation in the `examples` field, starting with a slash.
-- Command handlers (e.g., `startResearch`) must return `(tea.Model, tea.Cmd)` and check `m.guardBusy()` to prevent concurrent long-running operations.
-- Handlers requiring an API key must verify `m.client != nil` or return `m.needKey()`.
-- Invalid arguments must be reported by appending an error line to the transcript using `errStyle` and displaying a usage hint.
-- Long-running operations must report progress via the `m.events` channel using message types (e.g., `logMsg`, `busyMsg`, `doneMsg`) handled in the `Update` method.
-- Command names and aliases must be globally unique (enforced by `TestCommandNamesUnique`).
-- Every command must be assigned to a chapter in the `chapters` slice in `internal/tui/tutorial.go`.
-- Styling must use the predefined style variables (e.g., `promptStyle`, `errStyle`) defined in `internal/tui/tui.go` or set via `applyTheme` in `theme.go`.
+

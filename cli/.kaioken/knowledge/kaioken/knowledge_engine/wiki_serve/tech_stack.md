@@ -1,1 +1,1 @@
-The module uses the Go standard library (net/http, os, path/filepath), the github.com/yuin/goldmark package for markdown processing, and depends on the internal/wiki package for wiki-related utilities.
+The module uses Go's net/http for HTTP serving, goldmark with GFM extension for markdown conversion, and an embedded force-graph engine (from assets/graph.js) for the wiki graph view. It depends on the internal/wiki package for accessing wiki directory and building the graph.

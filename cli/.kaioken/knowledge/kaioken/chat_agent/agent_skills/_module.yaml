@@ -1,6 +1,6 @@
 description: Skill system for the agent to perform tasks.
 file_count: 6
-generated_at: "2026-07-28T10:17:32Z"
+generated_at: "2026-08-21T16:49:18Z"
 id: kaioken/chat_agent/agent_skills
 model: nemotron-3-super:cloud
 scope:

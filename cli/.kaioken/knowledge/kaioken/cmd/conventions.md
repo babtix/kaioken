@@ -1,1 +1,3 @@
-
+- Command functions must be named cmd<CommandName> and placed in a file named <command>.go (or a group file like ext.go for related subcommands).
+- The function signature must be: func cmd<CommandName>(ctx context.Context, f flags) error.
+- The flags struct (from parseFlags) provides access to common flags: f.repo, f.model, f.module, f.force, f.token

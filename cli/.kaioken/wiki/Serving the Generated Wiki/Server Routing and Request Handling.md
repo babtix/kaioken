@@ -1,12 +1,13 @@
 # Server Routing and Request Handling
 
-This chapter describes how the Kaioken wiki server serves generated documentation via HTTP endpoints. It covers the three routes (`/`, `/d/`, and `/search`), their request processing flows, and the supporting functions that render content, build navigation, and handle search.
+This chapter describes how the Kaioken wiki server serves generated documentation via HTTP endpoints. It covers the routes (`/`, `/d/`, `/search`, `/graph`, and `/graph.json`), their request processing flows, and the supporting functions that render content, build navigation, and handle search.
 
 ## Table of Contents
 - [Architecture Overview](#architecture-overview)
 - [Index Endpoint (`/`)](#index-endpoint-)
 - [Documentation Endpoint (`/d/`)](#documentation-endpoint-d)
 - [Search Endpoint (`/search`)](#search-endpoint-search)
+- [Graph Endpoints (`/graph` and `/graph.json`)](#graph-endpoints-graph-and-graphjson)
 - [Supporting Functions](#supporting-functions)
 - [Request Flow Diagrams](#request-flow-diagrams)
 - [Referenced Files](#referenced-files)
@@ -15,19 +16,23 @@ This chapter describes how the Kaioken wiki server serves generated documentatio
 
 The wiki server is implemented in `internal/serve/serve.go`. It uses the `goldmark` Markdown renderer to convert `.md` files to HTML and serves them within a consistent HTML template that includes a sidebar navigation, breadcrumbs, and search functionality.
 
-The `Server` struct holds the repository path and a pre-configured Markdown renderer:
+The `Server` struct holds the repository path, a pre-configured Markdown renderer, and a `static` flag for export mode:
 
 ```go
 // Server renders a repository's wiki over HTTP.
 type Server struct {
 	repo string
 	md   goldmark.Markdown
+	// static switches the link scheme from server routes (/d/<rel>) to flat
+	// relative .html slugs, and drops the server-only chrome (search, graph).
+	// Set only by the static export path.
+	static bool
 }
 ```
 
 The `New` function initializes the server with GitHub Flavored Markdown support:
 
-`internal/serve/serve.go:54-62`
+`internal/serve/serve.go:89-97`
 ```go
 // New builds a server for a repository.
 func New(repo string) *Server {
@@ -43,7 +48,7 @@ func New(repo string) *Server {
 
 The `Run` function starts the HTTP server, binding to the provided address and invoking the `ready` callback with the bound URL:
 
-`internal/serve/serve.go:67-92`
+`internal/serve/serve.go:102-127`
 ```go
 // Run serves the wiki until ctx is cancelled. It returns the address actually
 // bound, via the ready callback, so a caller can print a working URL even when
@@ -76,15 +81,17 @@ func Run(ctx context.Context, repo, addr string, ready func(url string)) error {
 }
 ```
 
-The `routes` method registers three handlers:
+The `routes` method registers five handlers:
 
-`internal/serve/serve.go:94-100`
+`internal/serve/serve.go:129-137`
 ```go
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleIndex)
 	mux.HandleFunc("/d/", s.handleDoc)
 	mux.HandleFunc("/search", s.handleSearch)
+	mux.HandleFunc("/graph", s.handleGraphPage)
+	mux.HandleFunc("/graph.json", s.handleGraphJSON)
 	return mux
 }
 ```
@@ -97,27 +104,17 @@ The root endpoint (`/`) serves the wiki overview page. It optionally displays a 
 
 `handleIndex` checks for an exact path match to `/`, then attempts to read `README.md`:
 
-`internal/serve/serve.go:172-191`
+`internal/serve/serve.go:209-218`
 ```go
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
 	}
-	body := "# Repository Wiki\n\nPick a chapter from the sidebar.\n"
-	if raw, err := os.ReadFile(filepath.Join(wiki.WikiDir(s.repo), "README.md")); err == nil {
-		body = string(raw)
-	}
-	var content bytes.Buffer
-	if err := s.md.Convert([]byte(body), &content); err != nil {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := s.renderIndex(w); err != nil {
 		http.Error(w, "render error: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
-	s.page(w, pageInfo{
-		title:    "Wiki",
-		bodyHTML: content.String() + s.indexCards(),
-		isIndex:  true,
-	})
 }
 ```
 
@@ -127,8 +124,9 @@ If `README.md` exists, its content is converted to HTML and combined with the ou
 
 `indexCards` builds the navigation grid by iterating over sections returned from `sections()`:
 
-`internal/serve/serve.go:194-218`
+`internal/serve/serve.go:241-265`
 ```go
+// indexCards renders the chapter overview grid shown below the README.
 func (s *Server) indexCards() string {
 	secs := s.sections()
 	if len(secs) == 0 {
@@ -137,8 +135,8 @@ func (s *Server) indexCards() string {
 	var b strings.Builder
 	b.WriteString(`<div class="cards">`)
 	for _, sec := range secs {
-		fmt.Fprintf(&b, `<a class="card" href="/d/%s"><div class="card-name">%s</div>`,
-			htmlEscape(sec.Docs[0].Rel), htmlEscape(sec.Name))
+		fmt.Fprintf(&b, `<a class="card" href="%s"><div class="card-name">%s</div>`,
+			htmlEscape(s.docHref(sec.Docs[0].Rel)), htmlEscape(sec.Name))
 		fmt.Fprintf(&b, `<div class="card-count">%d docs</div><ul>`, len(sec.Docs))
 		for i, d := range sec.Docs {
 			if i >= 3 {
@@ -166,45 +164,20 @@ The `/d/` endpoint serves individual documentation pages. It expects a wiki-rela
 
 `handleDoc` extracts the path prefix, resolves it to an absolute filesystem path, reads and truncates the file (to `maxDocBytes`), converts it to HTML, and builds a `pageInfo`:
 
-`internal/serve/serve.go:220-251`
+`internal/serve/serve.go:267-273`
 ```go
 func (s *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 	rel := strings.TrimPrefix(r.URL.Path, "/d/")
-	abs, err := s.resolve(rel)
-	if err != nil {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := s.renderDoc(w, rel); err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
-		return
 	}
-	raw, err := os.ReadFile(abs)
-	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-	if len(raw) > maxDocBytes {
-		raw = raw[:maxDocBytes]
-	}
-	var content bytes.Buffer
-	if err := s.md.Convert(raw, &content); err != nil {
-		http.Error(w, "render error: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	title := strings.TrimSuffix(filepath.Base(rel), ".md")
-	info := pageInfo{
-		title:    title,
-		current:  rel,
-		bodyHTML: content.String(),
-		words:    len(strings.Fields(string(raw))),
-	}
-	if fi, err := os.Stat(abs); err == nil {
-		info.modTime = fi.ModTime()
-	}
-	s.page(w, info)
 }
 ```
 
 The `resolve` function ensures the requested path stays within the wiki directory:
 
-`internal/serve/serve.go:147-160`
+`internal/serve/serve.go:184-197`
 ```go
 // resolve maps a wiki-relative path to an absolute one, refusing escapes.
 func (s *Server) resolve(rel string) (string, error) {
@@ -223,6 +196,68 @@ func (s *Server) resolve(rel string) (string, error) {
 }
 ```
 
+### Supporting Render Functions
+
+`renderIndex` and `renderDoc` are shared between the HTTP server and static export:
+
+`internal/serve/serve.go:223-238`
+```go
+// renderIndex writes the overview page — the wiki README (or a placeholder)
+// plus the chapter cards. Shared verbatim by the HTTP server and the static
+// export, so the two cannot drift apart.
+func (s *Server) renderIndex(w io.Writer) error {
+	body := "# Repository Wiki\n\nPick a chapter from the sidebar.\n"
+	if raw, err := os.ReadFile(filepath.Join(wiki.WikiDir(s.repo), "README.md")); err == nil {
+		body = string(raw)
+	}
+	var content bytes.Buffer
+	if err := s.md.Convert([]byte(body), &content); err != nil {
+		return err
+	}
+	s.page(w, pageInfo{
+		title:    "Wiki",
+		bodyHTML: content.String() + s.indexCards(),
+		isIndex:  true,
+	})
+	return nil
+}
+```
+
+`internal/serve/serve.go:277-305`
+```go
+// renderDoc writes one document page. Errors cover both a missing file and a
+// path outside the wiki; the HTTP layer answers both with 404.
+func (s *Server) renderDoc(w io.Writer, rel string) error {
+	abs, err := s.resolve(rel)
+	if err != nil {
+		return err
+	}
+	raw, err := os.ReadFile(abs)
+	if err != nil {
+		return err
+	}
+	if len(raw) > maxDocBytes {
+		raw = raw[:maxDocBytes]
+	}
+	var content bytes.Buffer
+	if err := s.md.Convert(raw, &content); err != nil {
+		return err
+	}
+	title := strings.TrimSuffix(filepath.Base(rel), ".md")
+	info := pageInfo{
+		title:    title,
+		current:  rel,
+		bodyHTML: content.String(),
+		words:    len(strings.Fields(string(raw))),
+	}
+	if fi, err := os.Stat(abs); err == nil {
+		info.modTime = fi.ModTime()
+	}
+	s.page(w, info)
+	return nil
+}
+```
+
 ## Search Endpoint (`/search`)
 
 The `/search` endpoint handles full-text search across all documentation files. It accepts a query parameter `q` and returns matching documents with highlighted snippets.
@@ -231,9 +266,10 @@ The `/search` endpoint handles full-text search across all documentation files. 
 
 `handleSearch` processes the query, searches each document line-by-line for case-insensitive matches, and builds a results page:
 
-`internal/serve/serve.go:253-303`
+`internal/serve/serve.go:307-358`
 ```go
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
 		s.page(w, pageInfo{
@@ -273,7 +309,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 			hits++
 			total += len(matches)
 			fmt.Fprintf(&b, `<div class="result"><a class="result-title" href="/d/%s">%s <span class="result-sec">/ %s</span></a><div class="result-matches">%s</div></div>`,
-				htmlEscape(doc.Rel), htmlEscape), htmlEscape(doc.Title), htmlEscape(doc.Title), htmlEscape(sec.Name),
+				htmlEscape(doc.Rel), htmlEscape(doc.Title), htmlEscape(sec.Name),
 				strings.Join(matches, ""))
 		}
 	}
@@ -288,7 +324,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 
 For each matching line, `highlightHTML` wraps the search term in `<mark>` tags after escaping HTML:
 
-`internal/serve/serve.go:307-328`
+`internal/serve/serve.go:400-421`
 ```go
 // highlightHTML escapes a line and wraps case-insensitive needle matches in
 // <mark> tags for the search results page.
@@ -316,6 +352,61 @@ func highlightHTML(line, needle string) string {
 }
 ```
 
+## Graph Endpoints (`/graph` and `/graph.json`)
+
+The `/graph.json` endpoint serves the wiki's dependency graph as JSON, used by the `/graph` endpoint to render an interactive visualization.
+
+### JSON Endpoint Handling
+
+`handleGraphJSON` serves the same payload as the daemon's `/v1/workspaces/{id}/wiki/graph` endpoint:
+
+`internal/serve/serve.go:363-371`
+```go
+// handleGraphJSON serves the same wiki.BuildGraph payload the daemon does at
+// /v1/workspaces/{id}/wiki/graph — the same encoder on the same struct, so
+// the two transports are byte-identical for the same repository.
+func (s *Server) handleGraphJSON(w http.ResponseWriter, r *http.Request) {
+	g, err := wiki.BuildGraph(s.repo)
+	if err != nil {
+		http.Error(w, "graph error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(g)
+}
+```
+
+### Graph Page Handling
+
+`handleGraphPage` renders an interactive graph view using an embedded engine:
+
+`internal/serve/serve.go:376-396`
+```go
+// handleGraphPage renders the full-bleed graph view: a canvas driven by the
+// embedded engine, plus a small control strip. Clicking a doc node navigates
+// to /d/<rel>; file nodes are inert — there is no editor to open into.
+func (s *Server) handleGraphPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(`<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Graph · Kaioken Wiki</title><link rel="icon" href="` + favicon + `"><style>` +
+		styles + graphStyles + `</style></head><body class="graph-page">
+<a class="graph-back" href="/">← wiki</a>
+<div class="graph-bar">
+<label><input type="checkbox" id="f-files" checked> files</label>
+<label><input type="checkbox" id="f-contains" checked> contains</label>
+<label><input type="checkbox" id="f-links" checked> links</label>
+<label><input type="checkbox" id="f-source" checked> source</label>
+<button type="button" id="g-fit">fit</button>
+<span id="g-stats"></span>
+</div>
+<div class="graph-main"><canvas id="graph-canvas"></canvas>
+<div id="g-empty">no wiki generated yet — run the wiki first</div></div>
+<script>` + graphJS + `</script>
+<script>` + graphBoot + `</script>
+</body></html>`))
+```
+
 ## Supporting Functions
 
 Several functions support the handlers by providing navigation, page rendering, and utility features.
@@ -324,7 +415,7 @@ Several functions support the handlers by providing navigation, page rendering, 
 
 `sections` walks the wiki directory to build a hierarchical navigation structure:
 
-`internal/serve/serve.go:103-144`
+`internal/serve/serve.go:140-181`
 ```go
 // sections walks the wiki directory into a nav tree.
 func (s *Server) sections() []Section {
@@ -377,11 +468,12 @@ Each section's documents are sorted so that the document matching the section na
 
 `page` assembles the full HTML response, including sidebar navigation, breadcrumbs, metadata, previous/next navigation, and table of contents:
 
-`internal/serve/serve.go:332-437`
+`internal/serve/serve.go:426-539`
 ```go
 // page renders fully-built article HTML inside the site chrome: sidebar tree,
 // breadcrumbs, meta line, prev/next pager, and the table-of-contents rail.
-func (s *Server) page(w http.ResponseWriter, info pageInfo) {
+// It writes plain HTML — callers own the transport headers.
+func (s *Server) page(w io.Writer, info pageInfo) {
 	// ... (omitted for brevity; see source for full implementation)
 }
 ```
@@ -393,12 +485,13 @@ Key steps include:
 4. Computing previous/next document links via `neighbors`.
 5. Rendering the sidebar tree with section groups and documents.
 6. Injecting CSS and JavaScript constants (`styles`, `scripts`, `mermaidBootstrap`, `favicon`).
+7. Conditioning the search form and graph link on the `static` flag.
 
 ### Navigation Helpers
 
 `neighbors` computes the previous and next documents in reading order:
 
-`internal/serve/serve.go:447-464`
+`internal/serve/serve.go:549-566`
 ```go
 // neighbors returns the docs before and after rel in reading order.
 func neighbors(secs []Section, rel string) (prev, next *Doc) {
@@ -423,7 +516,7 @@ func neighbors(secs []Section, rel string) (prev, next *Doc) {
 
 `humanDate` formats timestamps for the metadata line:
 
-`internal/serve/serve.go:466-478`
+`internal/serve/serve.go:568-580`
 ```go
 func humanDate(t time.Time) string {
 	d := time.Since(t)
@@ -444,7 +537,7 @@ func humanDate(t time.Time) string {
 
 `injectHeadingIDs` adds stable IDs to `<h2>` and `<h3>` elements for table of contents linking:
 
-`internal/serve/serve.go:493-523`
+`internal/serve/serve.go:595-625`
 ```go
 // injectHeadingIDs adds stable id attributes to h2/h3 elements and returns the
 // rewritten HTML plus a table of contents built from them.
@@ -483,7 +576,7 @@ func injectHeadingIDs(htmlBody string) (string, []tocEntry) {
 
 `slugify` converts heading text to URL-safe anchor IDs:
 
-`internal/serve/serve.go:526-543`
+`internal/serve/serve.go:628-645`
 ```go
 // slugify turns heading text into a URL-safe anchor id.
 func slugify(s string) string {
@@ -576,6 +669,32 @@ sequenceDiagram
         Server->>Server: Render full page (page())
         Server-->>Client: HTML response
     end
+```
+
+### Graph JSON Request Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant Wiki
+    Client->>Server: GET /graph.json
+    Server->>Wiki: BuildGraph(repo)
+    Wiki-->>Server: Graph data (nodes, edges, stats)
+    Server->>Server: Encode graph as JSON
+    Server-->>Client: JSON response
+```
+
+### Graph Page Request Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant Filesystem
+    Client->>Server: GET /graph
+    Server->>Server: Generate HTML with embedded graph engine
+    Server->>Server: Include styles, scripts, and graph bootstrapping
+    Server-->>Client: HTML response
+    Note over Client: Browser loads HTML, executes JS to fetch /graph.json and render graph
 ```
 
 ## Referenced Files

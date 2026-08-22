@@ -1,1 +1,1 @@
-The module is written in Go and uses the Go standard library (context, fmt, os, etc.). It relies on the project's internal packages (e.g., internal/config, internal/llm, internal/agent) for core functionality but does not directly import external frameworks or libraries beyond the standard library.
+

@@ -26,17 +26,38 @@ type Skill struct {
     GeneratedAt time.Time `yaml:"generated_at,omitempty"`
     Model       string    `yaml:"model,omitempty"`
 
+    // Origin records how this skill came to exist. A generated skill is
+    // written from static analysis; a learned one is distilled from a session
+    // that actually did the task; a human one was dropped in by hand. The
+    // distinction is what lets a reviewer tell a hard-won lesson from a guess.
+    Origin string `yaml:"origin,omitempty"`
+    // UseCount is how many sessions opened this skill and followed it to a
+    // clean outcome. It is the reinforcement signal: a loaded skill that
+    // worked is more likely to be the right answer next time.
+    UseCount int `yaml:"use_count,omitempty"`
+    // LastUsed is the most recent session that consulted this skill, so a
+    // skill nobody has reached for in a long time can be flagged for pruning.
+    LastUsed time.Time `yaml:"last_used,omitempty"`
+    // Sessions records the ids of sessions that contributed to or reinforced
+    // this skill, so a learned skill carries its provenance and can be
+    // reverted to the generated baseline when a lesson turns out wrong.
+    Sessions []string `yaml:"sessions,omitempty"`
+
     // Body is the markdown after the frontmatter.
     Body string `yaml:"-"`
 }
 ```
-`internal/skills/skills.go:29-43`
+`internal/skills/skills.go:29-60`
 
 - **Name**: Kebab-case identifier used as the directory name for the skill (e.g., `add-a-tui-command`).
 - **Description**: Human-readable explanation of what the skill covers and when it should be triggered.
 - **Sources**: List of repository-relative file paths the skill was derived from; used for staleness detection.
 - **GeneratedAt**: Timestamp when the skill was created.
 - **Model**: LLM model used to generate the skill.
+- **Origin**: How the skill originated (`generated`, `learned`, or `human`). Hand-written skills without frontmatter are treated as `human`.
+- **UseCount**: Number of times the skill was successfully used in a session.
+- **LastUsed**: Timestamp of the most recent session that used the skill.
+- **Sessions**: List of session IDs that contributed to or reinforced the skill.
 - **Body**: Markdown content stored separately from frontmatter (excluded from YAML marshaling via `yaml:"-"`).
 
 ## Storage Format
@@ -54,6 +75,8 @@ sources:
 - internal/tui/logo.go
 generated_at: 2024-01-01T12:00:00Z
 model: test/model
+origin: generated
+use_count: 0
 ---
 
 # Add a TUI command
@@ -75,7 +98,7 @@ func (s *Skill) Render() string {
     return "---\n" + string(raw) + "---\n\n" + strings.TrimLeft(s.Body, "\n")
 }
 ```
-`internal/skills/skills.go:81-88`
+`internal/skills/skills.go:108-115`
 
 If YAML marshaling fails, it falls back to a minimal frontmatter containing only the name. The body is trimmed of leading newlines to ensure proper formatting.
 
@@ -104,9 +127,9 @@ func Parse(text string) (*Skill, error) {
     return &s, nil
 }
 ```
-`internal/skills/skills.go:91-100`
+`internal/skills/skills.go:118-127`
 
-Files without frontmatter are treated as hand-written skills: the entire content becomes the `Body`, and the `Name` is left empty (to be populated from the directory name during loading).
+Files without frontmatter are treated as hand-written skills: the entire content becomes the `Body`, and the `Name` is left empty (to be populated from the directory name during loading). When loaded via `List`, such skills have their `Origin` automatically set to `OriginHuman` by `inferOrigin()`.
 
 ## Skill Lifecycle
 
@@ -127,7 +150,7 @@ func (s *Skill) Save(repo string) error {
     return os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(s.Render()), 0o644)
 }
 ```
-`internal/skills/skills.go:91-109`
+`internal/skills/skills.go:118-127`
 
 Steps:
 1. Validate that the skill has a non-empty name.
@@ -148,7 +171,7 @@ func Load(repo, name string) (*Skill, error) {
     return Parse(string(raw))
 }
 ```
-`internal/skills/skills.go:103-109`
+`internal/skills/skills.go:130-136`
 
 It uses `Path(repo, name)` to locate the file at `.kaioken/skills/<name>/SKILL.md`, then delegates to `Parse`.
 
@@ -179,13 +202,14 @@ func List(repo string) ([]*Skill, error) {
         if s.Name == "" {
             s.Name = e.Name() // hand-written skill: fall back to the directory
         }
+        s.inferOrigin()
         out = append(out, s)
     }
     sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
     return out, nil
 }
 ```
-`internal/skills/skills.go:114-131`
+`internal/skills/skills.go:141-158`
 
 Steps:
 1. Read the `.kaioken/skills/` directory (returning `nil, nil` if it doesn't exist).
@@ -194,7 +218,27 @@ Steps:
    - Attempt to load the skill from `SKILL.md`.
    - Skip malformed skills (to avoid hiding valid ones).
    - For hand-written skills (empty `Name`), use the directory name as the skill's name.
+   - Call `inferOrigin()` to set the `Origin` field for skills missing it (pre-existing skills).
 3. Sort skills alphabetically by name and return the list.
+
+The `inferOrigin` method sets the `Origin` field for skills written before the field existed:
+
+```go
+// inferOrigin fills Origin for skills written before the field existed, so the
+// catalog can still tell a generated baseline from a hand-written one. A skill
+// with generated_at was produced by skills.Run; one with only a body is human.
+func (s *Skill) inferOrigin() {
+    if s.Origin != "" {
+        return
+    }
+    if !s.GeneratedAt.IsZero() {
+        s.Origin = OriginGenerated
+        return
+    }
+    s.Origin = OriginHuman
+}
+```
+`internal/skills/skills.go:192-201`
 
 ## Staleness and Updates
 
@@ -216,7 +260,7 @@ func Stale(all []*Skill, changed []string) []*Skill {
     return out
 }
 ```
-`internal/skills/skills.go:135-159`
+`internal/skills/skills.go:205-216`
 
 The `intersects` helper determines if any changed path affects a skill's sources:
 
@@ -239,7 +283,7 @@ func intersects(sources, changed []string) bool {
     return false
 }
 ```
-`internal/skills/skills.go:163-174`
+`internal/skills/skills.go:220-234`
 
 Behavior:
 - Returns `nil` if no files changed.
@@ -277,7 +321,7 @@ func WriteIndex(repo string, all []*Skill) error {
     return os.WriteFile(filepath.Join(Dir(repo), "README.md"), []byte(b.String()), 0o644)
 }
 ```
-`internal/skills/skills.go:178-192`
+`internal/skills/skills.go:238-255`
 
 Output example:
 ```

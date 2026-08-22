@@ -22,18 +22,21 @@ The `serve` package converts generated markdown documentation into an interactiv
 - Syntax highlighting via client-side JavaScript
 - Responsive design with dark/light theme support
 - Mermaid diagram rendering
+- Interactive knowledge graph visualization (with filtering and navigation)
 
 ## Server Setup and Routing
-The HTTP server is initialized via `New` and started with `Run`. It defines three routes for wiki navigation:
+The HTTP server is initialized via `New` and started with `Run`. It defines five routes for wiki navigation:
 
 | Method | Path   | Handler         | Purpose                              |
 |--------|--------|-----------------|--------------------------------------|
 | GET    | /      | `handleIndex`   | Wiki overview with README and section cards |
 | GET    | /d/    | `handleDoc`     | Individual documentation page        |
 | GET    | /search| `handleSearch`  | Search results page                  |
+| GET    | /graph | `handleGraphPage`| Interactive knowledge graph view     |
+| GET    | /graph.json| `handleGraphJSON`| Graph data in JSON format          |
 
 ### Server Initialization
-`internal/serve/serve.go:54-62`
+`internal/serve/serve.go:89-97`
 ```go
 func New(repo string) *Server {
 	return &Server{
@@ -51,7 +54,7 @@ Creates a server instance with:
   - GFM extension (tables, strikethrough, autolinks)
   - Unsafe HTML rendering (allows raw HTML in markdown output)
 
-`internal/serve/serve.go:67-92`
+`internal/serve/serve.go:102-127`
 ```go
 func Run(ctx context.Context, repo, addr string, ready func(url string)) error {
 	if _, err := os.Stat(wiki.WikiDir(repo)); err != nil {
@@ -121,7 +124,7 @@ Markdown files are converted to HTML through a standardized pipeline:
 ## Navigation Structure
 The wiki's hierarchical organization is derived from filesystem layout:
 
-`internal/serve/serve.go:103-144`
+`internal/serve/serve.go:140-181`
 ```go
 func (s *Server) sections() []Section {
 	root := wiki.WikiDir(s.repo)
@@ -177,9 +180,9 @@ Creates navigation tree where:
 ## Document Page Composition
 The `page` function assembles complete HTML documents:
 
-`internal/serve/serve.go:332-437`
+`internal/serve/serve.go:426-539`
 ```go
-func (s *Server) page(w http.ResponseWriter, info pageInfo) {
+func (s *Server) page(w io.Writer, info pageInfo) {
 	secs := s.sections()
 
 	// Split out the first H1 so the breadcrumb + meta line can sit above it.
@@ -201,7 +204,7 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		if len(parts) == 2 && strings.TrimSuffix(parts[1], ".md") == parts[0] {
 			docTitle = "" // the chapter lead doc — the section crumb is enough
 		}
-		crumb = fmt.Sprintf(`<nav class="crumbs"><a href="/">Wiki</a><span class="sep">/</span><span>%s</span>`, htmlEscape(secName))
+		crumb = fmt.Sprintf(`<nav class="crumbs"><a href="%s">Wiki</a><span class="sep">/</span><span>%s</span>`, s.homeHref(), htmlEscape(secName))
 		if docTitle != "" {
 			crumb += fmt.Sprintf(`<span class="sep">/</span><span>%s</span>`, htmlEscape(docTitle))
 		}
@@ -229,14 +232,14 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		prev, next := neighbors(secs, info.current)
 		pager = `<nav class="pager">`
 		if prev != nil {
-			pager += fmt.Sprintf(`<a class="pager-prev" href="/d/%s"><span class="pager-label">← Previous</span><span class="pager-title">%s</span></a>`,
-				htmlEscape(prev.Rel), htmlEscape(prev.Title))
+			pager += fmt.Sprintf(`<a class="pager-prev" href="%s"><span class="pager-label">← Previous</span><span class="pager-title">%s</span></a>`,
+				htmlEscape(s.docHref(prev.Rel)), htmlEscape(prev.Title))
 		} else {
 			pager += `<span></span>`
 		}
 		if next != nil {
-			pager += fmt.Sprintf(`<a class="pager-next" href="/d/%s"><span class="pager-label">Next →</span><span class="pager-title">%s</span></a>`,
-				htmlEscape(next.Rel), htmlEscape(next.Title))
+			pager += fmt.Sprintf(`<a class="pager-next" href="%s"><span class="pager-label">Next →</span><span class="pager-title">%s</span></a>`,
+				htmlEscape(s.docHref(next.Rel)), htmlEscape(next.Title))
 		}
 		pager += `</nav>`
 	}
@@ -253,20 +256,28 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		tocHTML = tb.String()
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// Search and the graph view only exist on the HTTP server; a static
+	// export drops both rather than shipping dead links.
+	searchForm := `<form action="/search"><input id="nav-search" name="q" placeholder="search… ( / )" autocomplete="off"></form>`
+	if s.static {
+		searchForm = ""
+	}
 	fmt.Fprintf(w, `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>%s · Kaioken Wiki</title><link rel="icon" href="%s"><style>%s</style></head><body>
 <aside id="sidebar"><div class="brand"><span class="brand-mark">⚡</span>KAIOKEN<span class="brand-sub">wiki</span></div>
-<form action="/search"><input id="nav-search" name="q" placeholder="search… ( / )" autocomplete="off"></form>
+%s
 <div class="nav-tools"><button type="button" id="expand-all">expand</button><button type="button" id="collapse-all">collapse</button></div>
-<nav id="tree">`, htmlEscape(info.title), favicon, styles)
+<nav id="tree">`, htmlEscape(info.title), favicon, styles, searchForm)
 
 	homeClass := "home"
 	if info.isIndex {
 		homeClass += " active"
 	}
-	fmt.Fprintf(w, `<a class="%s" href="/">⌂ Overview</a>`, homeClass)
+	fmt.Fprintf(w, `<a class="%s" href="%s">⌂ Overview</a>`, homeClass, s.homeHref())
+	if !s.static {
+		fmt.Fprintf(w, `<a class="home" href="/graph">◈ Graph</a>`)
+	}
 	for _, sec := range secs {
 		open, active := "", ""
 		if strings.HasPrefix(info.current, sec.Name+"/") {
@@ -275,8 +286,8 @@ func (s *Server) page(w http.ResponseWriter, info pageInfo) {
 		fmt.Fprintf(w, `<details class="sec-group"%s><summary class="%s"><span class="chev"></span><span class="sec-name">%s</span><span class="count">%d</span></summary><div class="sec-docs">`,
 			open, strings.TrimSpace(active), htmlEscape(sec.Name), len(sec.Docs))
 		for _, doc := range sec.Docs {
-			fmt.Fprintf(w, `<a href="/d/%s"%s>%s</a>`,
-				htmlEscape(doc.Rel), activeClass(doc.Rel == info.current), htmlEscape(doc.Title))
+			fmt.Fprintf(w, `<a href="%s"%s>%s</a>`,
+				htmlEscape(s.docHref(doc.Rel)), activeClass(doc.Rel == info.current), htmlEscape(doc.Title))
 		}
 		fmt.Fprintf(w, `</div></details>`)
 	}
@@ -294,14 +305,15 @@ Key composition elements:
 5. **Prev/Pager**: Navigation links based on flattened reading order
 6. **TOC Rail**: Conditional sidebar shown when ≥2 headings exist
 7. **Sidebar Tree**: Collapsible section/document list with active highlighting
-8. **Search Box**: Global `/` keyboard shortcut activation
+8. **Search Box**: Global `/` keyboard shortcut activation (omitted in static exports)
 9. **Expand/Collapse Controls**: Sidebar section toggles
-10. **Back-to-Top Button**: Appears after 500px scroll
+10. **Graph Link**: Navigation to interactive knowledge view (omitted in static exports)
+11. **Back-to-Top Button**: Appears after 500px scroll
 
 ## Table of Contents Generation
 TOC creation involves heading processing and ID generation:
 
-`internal/serve/serve.go:493-523`
+`internal/serve/serve.go:595-625`
 ```go
 func injectHeadingIDs(htmlBody string) (string, []tocEntry) {
 	var toc []tocEntry
@@ -342,6 +354,85 @@ Process:
    - Generates base ID with `slugify`
    - Resolves duplicates by appending `-n` where `n` is occurrence count
    - Rebuilds heading with new ID attribute
-3. Returns rewritten HTML and T
+3. Returns rewritten HTML and TOC entries
+
+## Search Functionality
+The search endpoint indexes document content on-demand:
+
+`internal/serve/serve.go:307-358`
+```go
+func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if q == "" {
+		s.page(w, pageInfo{
+			title:    "Search",
+			bodyHTML: "<h1>Search</h1><p>Enter a term above.</p>",
+		})
+		return
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, `<h1>Search: %s</h1>`, htmlEscape(q))
+	needle := strings.ToLower(q)
+	hits, total := 0, 0
+	for _, sec := range s.sections() {
+		for _, doc := range sec.Docs {
+			abs, err := s.resolve(doc.Rel)
+			if err != nil {
+				continue
+			}
+			raw, err := os.ReadFile(abs)
+			if err != nil {
+				continue
+			}
+			var matches []string
+			for i, line := range strings.Split(string(raw), "\n") {
+				if strings.Contains(strings.ToLower(line), needle) {
+					matches = append(matches, fmt.Sprintf(
+						`<div class="hit"><span class="hit-line">line %d</span> %s</div>`,
+						i+1, highlightHTML(line, q)))
+					if len(matches) >= 5 {
+						break
+					}
+				}
+			}
+			if len(matches) == 0 {
+				continue
+			}
+			hits++
+			total += len(matches)
+			fmt.Fprintf(&b, `<div class="result"><a class="result-title" href="/d/%s">%s <span class="result-sec">/ %s</span></a><div class="result-matches">%s</div></div>`,
+				htmlEscape(doc.Rel), htmlEscape(doc.Title), htmlEscape(sec.Name),
+				strings.Join(matches, ""))
+		}
+	}
+	if hits == 0 {
+		b.WriteString(`<p class="no-hits">No matches.</p>`
+	} else {
+		fmt.Fprintf(&b, `<p class="hit-summary">%d match(es) across %d document(s)</p>`, total, hits)
+	}
+	s.page(w, pageInfo{title: "Search", bodyHTML: b.String()})
+}
+```
+Features:
+- Case-insensitive substring matching
+- Per-document hit limiting (5 matches/doc)
+- Result highlighting with `<mark>` tags
+- Hit summary statistics
+- Fallback message for no results
+
+## Client-Side Enhancements
+The served wiki includes self-contained JavaScript for:
+- Live sidebar filtering as you type
+- Keyboard shortcut (`/`) to focus search
+- Section expand/collapse controls
+- Scroll-activated table of contents highlighting
+- Code block copy-to-clipboard buttons
+- Smooth scroll back-to-top button
+- Mermaid diagram rendering (CDN-loaded with offline fallback)
+- Responsive layout (mobile sidebar → top bar)
+
+## Referenced Files
+- internal/serve/serve.go
 
 <!-- kaioken:files internal/serve/serve.go -->
