@@ -1,1 +1,1 @@
-The internal/version package provides the Kaioken build version and API contract version shared by the CLI and TUI components.
+The `kaioken/internal/version` package provides build‑time version information used by both the CLI and TUI components of Kaioken. It exports a mutable `Version` string (set via `-ldflags` for releases) and an immutable `ContractVersion` integer that tracks API compatibility.

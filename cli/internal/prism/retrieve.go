@@ -5,7 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"kaioken/internal/embed"
+	"kaioken/internal/retrieval"
 	"kaioken/internal/textrank"
 )
 
@@ -28,6 +31,11 @@ type Retriever struct {
 	// what makes it safe: a corpus that changed underneath produces a
 	// different fingerprint and the memo is rebuilt.
 	memo map[string]memoEntry
+	// build collapses concurrent first-queries on the same (module,
+	// fingerprint) onto a single LoadCorpus+newCandidates call. Keyed by
+	// fingerprint too, so a corpus change starts a fresh build rather than
+	// joining one already in flight for the stale version.
+	build singleflight.Group
 }
 
 type memoEntry struct {
@@ -136,26 +144,26 @@ func (r *Retriever) run(ctx context.Context, cand *candidates, query string, opt
 		}
 	}
 
-	// The gate runs on children, before expansion. See grader.go.
-	gate := gradeResult{keep: allTrue(len(fused)), graded: false}
+	// The gate runs on children, before expansion. See retrieval.Grade.
+	gate := retrieval.GradeResult{Keep: retrieval.AllTrue(len(fused)), Graded: false}
 	if !opt.NoGrade {
-		gate = grade(ctx, r.utility, cand, query, fused)
+		gate = retrieval.Grade(ctx, r.utility, func(id int) string { return cand.chunk(id).Text }, query, fused)
 	}
-	kept := filterRanked(fused, gate.keep)
+	kept := retrieval.FilterRanked(fused, gate.Keep)
 
 	if len(kept) == 0 {
 		// Every candidate was judged irrelevant. This is the gate working:
 		// the corpus was searched, the matches were examined, and none of them
 		// answer the question. Returning nothing with SourceFound false is a
 		// better answer than returning the least-bad chunk.
-		return Result{Graded: gate.graded, Degraded: degraded}
+		return Result{Graded: gate.Graded, Degraded: degraded}
 	}
 
 	chunks := expandToParents(cand, kept)
 	return Result{
 		Chunks:      chunks,
 		SourceFound: len(chunks) > 0,
-		Graded:      gate.graded,
+		Graded:      gate.Graded,
 		Degraded:    degraded,
 	}
 }
@@ -231,21 +239,37 @@ func (r *Retriever) candidatesFor(module string) (*candidates, string, error) {
 
 	r.mu.Lock()
 	if e, ok := r.memo[module]; ok && e.fingerprint == fingerprint {
-		defer r.mu.Unlock()
+		r.mu.Unlock()
 		return e.cand, fingerprint, nil
 	}
 	r.mu.Unlock()
 
-	// Built outside the lock: tokenising a large module takes long enough that
-	// holding the mutex would serialise every other module's queries behind it.
-	corpus, err := r.store.LoadCorpus(module)
+	// N concurrent first-queries on this module collapse onto one build via
+	// singleflight, keyed by fingerprint so they don't join a build already
+	// in flight for a since-superseded corpus. The load itself still runs
+	// outside r.mu: tokenising a large module takes long enough that holding
+	// the mutex would serialise every other module's queries behind it.
+	v, err, _ := r.build.Do(module+"@"+fingerprint, func() (any, error) {
+		r.mu.Lock()
+		if e, ok := r.memo[module]; ok && e.fingerprint == fingerprint {
+			r.mu.Unlock()
+			return e.cand, nil
+		}
+		r.mu.Unlock()
+
+		corpus, err := r.store.LoadCorpus(module)
+		if err != nil {
+			return nil, err
+		}
+		cand := newCandidates(corpus)
+
+		r.mu.Lock()
+		r.memo[module] = memoEntry{fingerprint: fingerprint, cand: cand}
+		r.mu.Unlock()
+		return cand, nil
+	})
 	if err != nil {
 		return nil, "", err
 	}
-	cand := newCandidates(corpus)
-
-	r.mu.Lock()
-	r.memo[module] = memoEntry{fingerprint: fingerprint, cand: cand}
-	r.mu.Unlock()
-	return cand, fingerprint, nil
+	return v.(*candidates), fingerprint, nil
 }

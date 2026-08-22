@@ -89,9 +89,10 @@ func RenderUser() string {
 
 // RememberResult describes what a Remember call did.
 type RememberResult struct {
-	Path    string // the file that changed
-	Changed bool   // whether disk was written
-	Bytes   int    // size of the resulting memory
+	Path      string // the file that changed
+	Changed   bool   // whether disk was written
+	Bytes     int    // size of the resulting memory
+	Duplicate bool   // the fact was already present; nothing was appended
 }
 
 // Remember records a fact in the project memory. With rewrite=false it appends
@@ -126,6 +127,11 @@ func rememberAt(path, existing, fact string, rewrite, allowWrite bool) (Remember
 	if rewrite {
 		content = fact
 	} else {
+		if isDuplicateFact(existing, fact) {
+			// Nothing new to record — say so instead of appending a
+			// near-duplicate bullet that only brings the cap closer.
+			return RememberResult{Path: path, Bytes: len(existing), Duplicate: true}, nil
+		}
 		content = appendFact(existing, fact)
 		if len(content) > MaxMemoryFileBytes {
 			// Refuse the append: tell the agent to consolidate. Return the
@@ -171,4 +177,94 @@ func appendFact(existing, fact string) string {
 	b.WriteString(fact)
 	b.WriteByte('\n')
 	return strings.TrimRight(b.String(), "\n")
+}
+
+// dupSimilarityThreshold is how much word overlap between a new fact and an
+// existing bullet counts as "the same fact, reworded" rather than two
+// distinct facts that happen to share vocabulary.
+const dupSimilarityThreshold = 0.8
+
+// isDuplicateFact reports whether fact is already recorded in existing,
+// judged by a normalized exact match or high word overlap with one of its
+// bullets. Deliberately cheap — no embedding call, this runs on every
+// remember() — so it catches exact repeats and light rewording, not every
+// paraphrase.
+func isDuplicateFact(existing, fact string) bool {
+	target := normalizeFact(fact)
+	if target == "" {
+		return false
+	}
+	targetWords := wordSet(target)
+	for _, line := range strings.Split(existing, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "-") {
+			continue
+		}
+		norm := normalizeFact(stripBulletDate(line))
+		if norm == "" {
+			continue
+		}
+		if norm == target {
+			return true
+		}
+		if jaccard(targetWords, wordSet(norm)) >= dupSimilarityThreshold {
+			return true
+		}
+	}
+	return false
+}
+
+// stripBulletDate removes the leading "- YYYY-MM-DD " that appendFact writes,
+// so a date change alone never masks a duplicate comparison.
+func stripBulletDate(bullet string) string {
+	rest := strings.TrimSpace(strings.TrimPrefix(bullet, "-"))
+	if len(rest) >= 10 {
+		if date := rest[:10]; len(date) == 10 && date[4] == '-' && date[7] == '-' {
+			return strings.TrimSpace(rest[10:])
+		}
+	}
+	return rest
+}
+
+// normalizeFact lowercases, strips punctuation and collapses whitespace so
+// trivial differences (case, a trailing period) don't defeat exact-match
+// dedup.
+func normalizeFact(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		default:
+			b.WriteByte(' ')
+		}
+	}
+	return strings.Join(strings.Fields(b.String()), " ")
+}
+
+// wordSet splits a normalized string into a set of words for overlap scoring.
+func wordSet(s string) map[string]bool {
+	set := map[string]bool{}
+	for _, w := range strings.Fields(s) {
+		set[w] = true
+	}
+	return set
+}
+
+// jaccard scores word-set overlap: 1.0 for identical sets, 0.0 for disjoint.
+func jaccard(a, b map[string]bool) float64 {
+	if len(a) == 0 || len(b) == 0 {
+		return 0
+	}
+	inter := 0
+	for w := range a {
+		if b[w] {
+			inter++
+		}
+	}
+	union := len(a) + len(b) - inter
+	if union == 0 {
+		return 0
+	}
+	return float64(inter) / float64(union)
 }

@@ -14,17 +14,19 @@ This chapter explains how the search functionality works when serving the genera
 
 The search feature is implemented as an HTTP endpoint at `/search` handled by the `handleSearch` method in the `Server` struct. When a user submits a search query, the server:
 
-1. Extracts the query parameter `q` from the URL
-2. Performs a case-insensitive substring search across all lines of every markdown document in the wiki
-3. Collects up to 5 matching lines per document
-4. Highlights matching terms by wrapping them in `<mark>` tags
-5. Renders results showing document links, section names, and highlighted snippets
+1. Sets the Content-Type header to "text/html; charset=utf-8"
+2. Extracts the query parameter `q` from the URL
+3. Performs a case-insensitive substring search across all lines of every markdown document in the wiki
+4. Collects up to 5 matching lines per document
+5. Highlights matching terms by wrapping them in `<mark>` tags
+6. Renders results showing document links, section names, and highlighted snippets
 
 The search operates on the raw markdown content as stored in the wiki directory (`<repo>/.kaioken/wiki/`), not the rendered HTML.
 
-`internal/serve/serve.go:253-303`
+`internal/serve/serve.go:307-358`
 ```go
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
 		s.page(w, pageInfo{
@@ -88,7 +90,7 @@ The search algorithm performs a linear scan through all wiki documents:
 
 The `highlightHTML` function implements case-insensitive highlighting:
 
-`internal/serve/serve.go:307-328`
+`internal/serve/serve.go:426-539`
 ```go
 func highlightHTML(line, needle string) string {
 	if needle == "" {
@@ -200,6 +202,6 @@ The current search implementation has several constraints:
 Despite these limitations, the search provides adequate functionality for navigating typical generated wikis, which tend to be moderately sized and structured with clear section organization.
 
 ## Referenced Files
-- internal/serve/serve.go (lines 253-303, 307-328)
+- internal/serve/serve.go (lines 307-358, 426-539)
 
 <!-- kaioken:files internal/serve/serve.go -->

@@ -17,18 +17,18 @@ The `Makefile` defines common development tasks and reveals how the project is b
 
 | Target | Description | Command |
 |--------|-------------|---------|
-| `test` | Runs all unit tests | `go test ./...` |
+| `test` | Runs all unit tests | `go test ./... -count=1` |
 | `vet` | Executes Go static analysis | `go vet ./...` |
-| `lint` | Runs `golangci-lint` if available | `golangci-lint run ./...` |
+| `lint` | Runs `golangci-lint` if installed (with a message if not) | `@command -v golangci-lint >/dev/null 2>&1 || { echo "golangci-lint not installed; skipping"; exit 0; }`<br>`golangci-lint run ./...` |
 | `check` | Combines `test` and `vet` | `test vet` |
 | `build` | Compiles the binary | `go build ./...`<br>`go build -o kaioken.exe ./cmd/kaioken` |
-| `clean` | Removes build artifacts | `rm -f kaioken.exe` (Unix)<br>`del kaioken.exe` (Windows) |
+| `clean` | Removes build artifacts | `rm -f kaioken.exe 2>/dev/null || del kaioken.exe 2>nul || true` |
 
 ### Key Inferences
 - The `build` target produces `kaioken.exe` in the repository root (from `./cmd/kaioken`).
 - The `clean` target removes `kaioken.exe` and attempts to handle Windows-style deletions.
-- The presence of `go test ./...` and `go vet ./...` indicates a standard Go project layout with packages in subdirectories.
-- The `lint` target checks for `golangci-lint` availability before running, suggesting optional linting.
+- The presence of `go test ./... -count=1` and `go vet ./...` indicates a standard Go project layout with packages in subdirectories, and the `-count=1` flag disables test caching to ensure fresh runs.
+- The `lint` target checks for `golangci-lint` availability, prints a message if missing, and then runs it, suggesting optional linting.
 
 `Makefile:19-22` shows the build process:
 ```

@@ -1,6 +1,6 @@
 description: Serves the generated wiki via a web interface.
 file_count: 6
-generated_at: "2026-08-04T16:30:48Z"
+generated_at: "2026-08-21T16:54:23Z"
 id: kaioken/knowledge_engine/wiki_serve
 model: nemotron-3-super:cloud
 scope:

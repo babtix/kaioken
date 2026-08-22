@@ -1,9 +1,10 @@
-- Agent methods for user actions are PascalCase (Steer, FollowUp) while internal helpers are lowerCamelCase (drainSteering, bus).
-- Constants are in ALL_CAPS (e.g., delegateSteps, maxDirNoteBytes).
-- Runtime tools are registered via agent.RegisterTool and unregistered via UnregisterTool (tool_registry.go).
-- Event handlers subscribe via events.Bus.Subscribe (for specific types) or SubscribeAll.
-- Tool results indicating errors are prefixed with "error: " (tool_executor.go: isErrResult).
-- The Agent.Run method returns the updated conversation history or an error (context cancellation or max steps exceeded).
-- The Agent.UI interface is used for all front-end interactions (streaming, approvals, etc.).
-- Tool execution batches consecutive read-only tools for parallelism (tool_executor.go: runToolCalls).
-- The Agent.bus() method returns the agent's own events.Bus or the process-wide default.
+- Use mutexes for concurrent access to shared state (e.g., Agent.qmu for steering/follow-up queues, BudgetGuard.mu, ContextTracker.mu, DirNotes.mu, Ruleset.mu, Bus.mu).
+- Group read-only tool executions (read_file, list_files, search, read_knowledge, recall) to run in parallel; execute other tools sequentially.
+- Apply reminders (via ApplyReminders in reminders.go) after injecting user messages from steering or follow-up queues and before the next model call.
+- For edit_file, attempt matching strategies in order: exact, line-trimmed, indentation-flexible, block-anchor (editspan.go).
+- Bound tool output to line and byte limits, spilling excess to .kaioken/tool-output/ with a pointer for the model to follow (tool_store.go).
+- When deriving a sub-agent (derive in derive.go), zero-initialize queue state (steering, followUps) and Context to avoid sharing state with the parent.
+- Emit lifecycle events via the event bus (events.Bus) for observability, using the defined Event types (events/types.go).
+- Use the specific format for reminders: wrap text in <system-reminder> and </system-reminder> (reminders.go).
+- Use the specific format for asides: prefix with AsidePrefix (aside.go).
+- Use the system prompt assembly order defined in contextSources (context.go): identity, tools, mode, model, knowledge, guidelines, project instructions, memory, user notes.

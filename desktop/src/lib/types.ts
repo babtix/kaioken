@@ -622,7 +622,7 @@ export type UsageSummary = {
 }
 
 export type UsageResponse = {
-  days: number
+  days: number | string
   summary: UsageSummary
   /** True when the price catalog is missing or old enough that estimates drift. */
   pricing_stale: boolean

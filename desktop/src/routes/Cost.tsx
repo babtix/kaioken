@@ -13,12 +13,13 @@ import type { UsageBucket, UsageResponse } from "@/lib/types"
 // one big number tells you that you spent something without telling you what
 // to do about it.
 
-type Window = "7" | "30" | "90"
+type Window = "7" | "30" | "90" | "all"
 
 const WINDOWS: { value: Window; label: string }[] = [
   { value: "7", label: "7d" },
   { value: "30", label: "30d" },
   { value: "90", label: "90d" },
+  { value: "all", label: "All time" },
 ]
 
 /** Money at a precision that stays meaningful for the very small numbers
@@ -43,7 +44,7 @@ export default function Cost() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.usageLedger(Number(days), scoped && workspace ? workspace.id : undefined)
+      const res = await api.usageLedger(days, scoped && workspace ? workspace.id : undefined)
       setData(res)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))

@@ -1,7 +1,8 @@
-- Session IDs must follow the format "YYYYMMDD-HHMMSS-NNNN" (with NNNN a random 4-digit number) as generated in session.New().
-- When saving a session, if it contains no user turns (session.Empty() returns true), the session.Save() function skips writing to disk.
-- The session tree structure must be updated by calling session.syncTree() after any modification to session.Messages (as done in session.Record()).
-- Forking a session via session.ForkAt() must not modify the source session.
-- Importing a transcript via session.Import() requires saving the new session before returning it.
-- The state.HashFiles() function must sort input files by path and hash each file's path and content with a null byte separator for deterministic results.
-- The state package writes its state.json file using json.MarshalIndent for human-readable indentation.
+- Session IDs follow format 'YYYYMMDD-HHMMSS-XXXX' with random suffix
+- Session saving skips empty sessions (zero user turns) via Empty() check
+- Tree synchronization (syncTree) occurs after every Record to maintain Entries/Leaf consistency
+- Import handles three formats: v2 session header, full JSON message array, and JSONL lines
+- SafeCut ensures fork boundaries avoid splitting tool exchanges by moving to nearest user message
+- State hash computation sorts files by path for deterministic SHA256 over path+null+content+null sequences
+- State file (.ainow/state.json) written with indentation for readability
+- Session loading migrates legacy JSON to v2 tree format on first load after v2 introduction

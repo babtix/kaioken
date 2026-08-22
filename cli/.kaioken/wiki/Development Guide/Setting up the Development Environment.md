@@ -28,7 +28,7 @@ This command reads the `go.mod` file and fetches the exact versions of all direc
 
 The `go.mod` file specifies:
 - Module path: `kaioken`
-- Go version: 1.24.2
+- Go version: 1.26
 - Direct dependencies (e.g., `github.com/atotto/clipboard`, `github.com/charmbracelet/bubbles`)
 - Indirect dependencies (automatically included, such as various `golang.org/x/*` and `github.com/charmbracelet/*` packages)
 

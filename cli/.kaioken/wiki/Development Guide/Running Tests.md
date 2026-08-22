@@ -1,11 +1,13 @@
 # Running Tests
 
-This chapter describes how to execute the test suite and interpret test results for the kaioken project. The project uses a Makefile to define common development tasks including testing, static analysis, linting, and building.
+This chapter describes how to execute the test suite and interpret test results for the kaioken project. The project uses a Makefile to define common development tasks including testing, static analysis, linting, building, and cleaning.
 
 ## Table of Contents
 - [Running Unit Tests](#running-unit-tests)
 - [Running Static Analysis (vet)](#running-static-analysis-vet)
 - [Running Linting (golangci-lint)](#running-linting-golangci-lint)
+- [Building the Project](#building-the-project)
+- [Cleaning Build Artifacts](#cleaning-build-artifacts)
 - [Running All Checks (test + vet)](#running-all-checks-test--vet)
 - [Interpreting Test Results](#interpreting-test-results)
 - [Common Issues and Troubleshooting](#common-issues-and-troubleshooting)
@@ -20,10 +22,10 @@ Execute all unit tests in the project using the `test` target:
 ```makefile
 ## test: run all unit tests
 test:
-	go test ./...
+	go test ./... -count=1
 ```
 
-This runs `go test ./...` which discovers and executes all test files in the current directory and subdirectories. Test output includes:
+This runs `go test ./... -count=1` which discovers and executes all test files in the current directory and subdirectories. The `-count=1` flag disables test caching to ensure tests run fresh each time. Test output includes:
 - Package names being tested
 - Individual test results (PASS/FAIL)
 - Coverage statistics if `-cover` is used (not enabled by default in this target)
@@ -67,6 +69,40 @@ If `golangci-lint` is not found in the PATH, the target prints a message and exi
 - Performance issues
 - Security concerns
 - Unused imports/variables
+
+## Building the Project
+
+Compile the binary using the `build` target:
+
+`Makefile:19-22`
+
+```makefile
+## build: compile the binary
+build:
+	go build ./...
+	go build -o kaioken.exe ./cmd/kaioken
+```
+
+This runs two commands:
+1. `go build ./...` builds all packages in the current directory and subdirectories
+2. `go build -o kaioken.exe ./cmd/kaioken` builds the main application and outputs it as `kaioken.exe` (Windows executable naming convention)
+
+## Cleaning Build Artifacts
+
+Remove build artifacts using the `clean` target:
+
+`Makefile:24-26`
+
+```makefile
+## clean: remove build artifacts
+clean:
+	@rm -f kaioken.exe 2>/dev/null || del kaioken.exe 2>nul || true
+```
+
+This attempts to remove the `kaioken.exe` file using platform-appropriate commands:
+- `rm -f` for Unix-like systems (silently ignores if file doesn't exist)
+- `del` for Windows (silently ignores if file doesn't exist)
+The `|| true` ensures the target always exits successfully.
 
 ## Running All Checks (test + vet)
 

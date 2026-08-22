@@ -67,7 +67,7 @@ const CLI: CliGroup[] = [
       },
       { cmd: "kaioken verify", args: "", summary: "Run the repo's build/test commands green — an agent fixes failures, then Go re-runs every command as the gate." },
       { cmd: "kaioken watch", args: "[-interval <s>]", summary: "Poll the working tree and print a line when new changed paths appear." },
-      { cmd: "kaioken usage", args: "[7d|refresh|prune]", summary: "What Kaioken has spent — by operation, model and workspace." },
+      { cmd: "kaioken usage", args: "[7d|all|refresh|prune]", summary: "What Kaioken has spent — by operation, model and workspace." },
       { cmd: "kaioken gitdraft", args: "[base]", summary: "LLM-drafted commit message + PR description grounded in the diff." },
       { cmd: "kaioken handoff", args: "[session-id] [-out]", summary: "Write a continuation briefing from a saved session." },
     ],

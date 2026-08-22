@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -202,6 +203,46 @@ func TestRetrieveUnknownModule(t *testing.T) {
 	r := NewRetriever(s, nil, nil, NewCache(0))
 	if _, err := r.Retrieve(context.Background(), "q", Options{Module: "ghost"}); !errors.Is(err, ErrNoModule) {
 		t.Errorf("returned %v, want ErrNoModule", err)
+	}
+}
+
+// Concurrent first-queries on one module must collapse onto a single
+// LoadCorpus+newCandidates build rather than each goroutine tokenising the
+// whole corpus independently. Before the module's fingerprint is memoised,
+// every caller that arrives while a build is already in flight for that
+// fingerprint must be handed that same build's result, not start its own.
+func TestCandidatesForCollapsesConcurrentBuilds(t *testing.T) {
+	s, slug := seeded(t, nil)
+	r := NewRetriever(s, nil, nil, NewCache(0))
+
+	const n = 50
+	start := make(chan struct{})
+	results := make([]*candidates, n)
+	errs := make([]error, n)
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			defer wg.Done()
+			<-start
+			cand, _, err := r.candidatesFor(slug)
+			results[i], errs[i] = cand, err
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+
+	first := results[0]
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("goroutine %d: %v", i, err)
+		}
+	}
+	for i, c := range results {
+		if c != first {
+			t.Errorf("goroutine %d got a distinct *candidates from goroutine 0 — "+
+				"concurrent builds were not collapsed into one", i)
+		}
 	}
 }
 

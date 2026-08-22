@@ -1,10 +1,1 @@
-- Provider names in NewForProvider must match keys in the global Providers map (openrouter.go)
-- For local providers (IsLocal returns true), API key requirement is skipped
-- Base URLs must be normalized using NormalizeBaseURL before use
-- Error messages should be wrapped with context using fmt.Errorf when propagating
-- When provider rejects streaming request (HTTP 400/422/501), fall back to non-streaming request
-- For Anthropic providers, set 'anthropic-version' header to anthropicVersion constant
-- To request usage-accounting data (for cost tracking), call withUsageAccounting on request body
-- Use withThinking method to add reasoning parameters to request body based on Client.Thinking
-- Effective max_tokens for request must be determined by tokenCeiling method
-- After processing response, call recordUsage to update token and cost counters
+

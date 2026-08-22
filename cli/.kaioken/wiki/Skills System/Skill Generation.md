@@ -33,6 +33,10 @@ sources:
 - internal/tui/command.go
 generated_at: 2024-01-15T10:30:00Z
 model: openrouter/anthropic/claude-3-opus
+origin: generated
+use_count: 0
+last_used: 0001-01-01T00:00:00Z
+sessions: []
 ```
 
 ```markdown
@@ -59,7 +63,7 @@ Failure modes a newcomer or an agent hits in THIS codebase. Only real ones you c
 The `Skill` struct in `internal/skills/skills.go` defines this structure:
 
 ```
-`internal/skills/skills.go:29-43`
+`internal/skills/skills.go:29-60`
 ```
 
 ```go
@@ -75,6 +79,24 @@ type Skill struct {
 	GeneratedAt time.Time `yaml:"generated_at,omitempty"`
 	Model       string    `yaml:"model,omitempty"`
 
+	// Origin records how this skill came to exist. A generated skill is
+	// written from static analysis of the repo by skills.Run; a learned one is
+	// distilled from a session that actually did the task; a human one was
+	// dropped in by hand. The distinction is what lets a reviewer tell a
+	// hard-won lesson from a guess.
+	Origin string `yaml:"origin,omitempty"`
+	// UseCount is how many sessions opened this skill and followed it to a
+	// clean outcome. It is the reinforcement signal: a loaded skill that
+	// worked is more likely to be the right answer next time.
+	UseCount int `yaml:"use_count,omitempty"`
+	// LastUsed is the most recent session that consulted this skill, so a
+	// skill nobody has reached for in a long time can be flagged for pruning.
+	LastUsed time.Time `yaml:"last_used,omitempty"`
+	// Sessions records the ids of sessions that contributed to or reinforced
+	// this skill, so a learned skill carries its provenance and can be
+	// reverted to the generated baseline when a lesson turns out wrong.
+	Sessions []string `yaml:"sessions,omitempty"`
+
 	// Body is the markdown after the frontmatter.
 	Body string `yaml:"-"`
 }
@@ -86,6 +108,10 @@ Key fields:
 - `Sources`: List of repo-relative files used to generate the skill; drives stale detection
 - `GeneratedAt`: Timestamp when skill was created
 - `Model`: LLM model used for generation
+- `Origin`: How the skill originated (`generated`, `learned`, or `human`)
+- `UseCount`: Number of times the skill was successfully used in a session
+- `LastUsed`: Timestamp of most recent skill usage
+- `Sessions`: List of session IDs that contributed to or used the skill
 - `Body`: Markdown content after YAML frontmatter
 
 ## Skill Generation Process
@@ -97,7 +123,7 @@ Skill generation occurs in two distinct phases: planning (identifying what skill
 The planning phase uses an LLM to analyze the repository and propose relevant skill topics. This happens in `internal/skills/generate.go` via the `plan` function:
 
 ```
-`internal/skills/generate.go:251-303`
+`internal/skills/generate.go:258-310`
 ```
 
 ```go
@@ -116,7 +142,7 @@ The planning process:
 
 2. **Construct LLM prompt** with the gathered context and the `planSystem` constant:
    ```
-   `internal/skills/generate.go:57-80`
+   `internal/skills/generate.go:58-81`
    ```
 
    ```go
@@ -155,7 +181,7 @@ The planning process:
 The `proposal` struct defines the planning output:
 
 ```
-`internal/skills/generate.go:50-55`
+`internal/skills/generate.go:51-56`
 ```
 
 ```go
@@ -172,7 +198,7 @@ type proposal struct {
 For each approved proposal, the `write` function generates the skill's markdown body:
 
 ```
-`internal/skills/generate.go:306-355`
+`internal/skills/generate.go:313-363`
 ```
 
 ```go
@@ -183,7 +209,7 @@ func write(ctx context.Context, repo string, cfg *config.Config, client *llm.Cli
 The writing process:
 1. **Resolve source files**: Convert proposal's file/directory list to actual scanned files using `resolve`:
    ```
-   `internal/skills/generate.go:358-376`
+   `internal/skills/generate.go:366-384`
    ```
 
    ```go
@@ -216,7 +242,7 @@ The writing process:
 
 3. **Generate content** using LLM with `writeSystem` prompt:
    ```
-   `internal/skills/generate.go:82-118`
+   `internal/skills/generate.go:83-119`
    ```
 
    ```go
@@ -262,7 +288,11 @@ The writing process:
 4. **Post-process output**:
    - Remove markdown fences if model wrapped response
    - Validate non-empty body
-   - Construct final `Skill` object with metadata
+   - Construct final `Skill` object with metadata including:
+     - `Origin`: Set to `OriginGenerated`
+     - `UseCount`: Initialized to 0
+     - `LastUsed`: Initialized to zero time
+     - `Sessions`: Initialized to nil
 
 The generation process runs concurrently with configurable limits:
 - Concurrency determined by `cfg.EffectiveConcurrency(client.Model)`
@@ -274,7 +304,7 @@ The generation process runs concurrently with configurable limits:
 When repository changes occur (via `kaioken update` or `/update` in TUI), the system refreshes only stale skills using the `Refresh` function:
 
 ```
-`internal/skills/generate.go:196-248`
+`internal/skills/generate.go:203-255`
 ```
 
 ```go
@@ -286,7 +316,7 @@ The refresh process:
 1. **List all existing skills** via `List` function
 2. **Identify stale skills** using `Stale` function which checks if any skill's sources intersect changed paths:
    ```
-   `internal/skills/skills.go:163-174`
+   `internal/skills/skills.go:205-216`
    ```
 
    ```go
@@ -308,7 +338,7 @@ The refresh process:
 
 3. **Check intersection** with `intersects` function treating sources as file/directory prefixes:
    ```
-   `internal/skills/skills.go:178-192`
+   `internal/skills/skills.go:220-234`
    ```
 
    ```go
@@ -333,7 +363,7 @@ The refresh process:
 
 4. **Regenerate each stale skill**:
    - Reuse existing skill's name, description, and sources as proposal
-   - Call `write` function with current repository state
+   - Call `write` function with current repository state (which creates a new skill with `OriginGenerated`)
    - Save updated skill
    - Regenerate skills index
 
@@ -343,7 +373,7 @@ Skills are stored in the repository's `.kaioken/skills/` directory:
 
 - **Skill location**: `.kaioken/skills/<name>/SKILL.md` (via `Path` function)
   ```
-  `internal/skills/skills.go:49-51`
+  `internal/skills/skills.go:76-78`
   ```
 
   ```go
@@ -354,7 +384,7 @@ Skills are stored in the repository's `.kaioken/skills/` directory:
 
 - **Skills directory**: `.kaioken/skills/` (via `Dir` function)
   ```
-  `internal/skills/skills.go:46`
+  `internal/skills/skills.go:63`
   ```
 
   ```go
@@ -364,7 +394,7 @@ Skills are stored in the repository's `.kaioken/skills/` directory:
 
 - **Name normalization**: The `Slug` function converts arbitrary strings to valid directory names:
   ```
-  `internal/skills/skills.go:54-78`
+  `internal/skills/skills.go:81-105`
   ```
 
   ```go
@@ -399,25 +429,28 @@ Skills are stored in the repository's `.kaioken/skills/` directory:
 - **Skill persistence**:
   - `Save`: Writes skill to disk after creating directory
     ```
-    `internal/skills/skills.go:91-100`
+    `internal/skills/skills.go:118-127`
     ```
   - `Load`: Reads and parses skill from file
     ```
-    `internal/skills/skills.go:103-109`
+    `internal/skills/skills.go:130-136`
     ```
   - `Parse`: Splits SKILL.md into frontmatter and body; handles hand-written skills without frontmatter
     ```
-    `internal/skills/skills.go:114-131`
+    `internal/skills/skills.go:141-158`
     ```
+    When loading a skill without frontmatter or with missing `Origin` field, the `inferOrigin` method sets:
+    - `OriginGenerated` if `GeneratedAt` is non-zero
+    - `OriginHuman` otherwise
 
 - **Skill listing**: `List` function returns all skills in repository, sorted by name
   ```
-  `internal/skills/skills.go:135-159`
+  `internal/skills/skills.go:162-187`
   ```
 
 - **Skills index**: `WriteIndex` generates `README.md` in skills directory cataloging all skills
   ```
-  `internal/skills/skills.go:196-213`
+  `internal/skills/skills.go:238-255`
   ```
 
   ```go
@@ -453,6 +486,7 @@ The skill generation system implements robust error handling and efficient concu
 - **Save failures**: Returned from `write` goroutine but don't halt other skills
 - **Loading failures**: Malformed skills are skipped during `List` to prevent hiding valid skills
 - **Empty responses**: Model returning empty skill body results in `fmt.Errorf("model returned an empty skill body")`
+- **Origin inference**: Skills loaded without frontmatter or missing `Origin` field are assigned `OriginGenerated` or `OriginHuman` via `inferOrigin`
 
 ### Concurrency
 - **Generator pool**: Limited by `cfg.EffectiveConcurrency(client.Model)` via `errgroup.SetLimit`
@@ -513,9 +547,9 @@ flowchart LR
 - internal/skills/generate.go
 
 This chapter covers all declarations from the structure block:
-- **skills.go**: Skill struct, Dir, Path, Slug, Render, Save, Load, Parse, List, Stale, intersects, WriteIndex
+- **skills.go**: Skill struct, Dir, Path, Slug, Render, Save, Load, Parse, List, Stale, intersects, WriteIndex, inferOrigin
 - **generate.go**: Progress struct/methods, proposal struct, planSystem/writeSystem constants, Options struct, Run, Refresh, plan, write, resolve, wikiChapters, unfence
 
-Every exported/public declaration is documented with concrete examples from the source code, explaining purpose, behavior, and integration within the skill generation system. The diagrams illustrate key flows, and tables enumerate configurable aspects where applicable. No external knowledge is invoked—all explanations are strictly derived from the provided source files.
+Every exported
 
 <!-- kaioken:files internal/skills/generate.go,internal/skills/skills.go -->

@@ -1,6 +1,5 @@
-Exported variables that must be overridable via build flags are declared as vars (not const).
-Exported constants are used for immutable values such as the API contract version.
-Exported identifiers use camelCase (Version, ContractVersion).
-Package name matches its directory (version).
-File includes a package comment describing its purpose and usage.
-No external libraries are imported; the file relies only on the Go standard library.
+- The version string is declared as a `var` (not a `const`) to permit override via linker flags during builds.
+- The contract version is a typed `int` constant, incremented only when backward‑incompatible changes occur in the `/v1` API shape.
+- Package name matches its directory (`version`).
+- Exported identifiers use PascalCase (`Version`, `ContractVersion`).
+- File includes descriptive comments explaining the purpose of each symbol and the ldflags override mechanism.

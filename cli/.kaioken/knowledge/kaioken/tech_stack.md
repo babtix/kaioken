@@ -1,1 +1,1 @@
-Go 1.25.8; bubbletea, bubbles, lipgloss, glamour for TUI; conpty and pty for pseudo‑terminal handling; atotto/clipboard for clipboard access; goldmark and goldmark-emoji for markdown; go-pdf/fpdf for PDF generation; sabhiram/go-gitignore for .gitignore parsing; tetratelabs/wazero for WebAssembly runtime; plus indirect dependencies such as testify for testing.
+Go 1.26, bubbletea, bubbles, lipgloss, conpty, creack/pty, atotto/clipboard, go-pdf/fpdf, sabhiram/go-gitignore, tetratelabs/wazero, yuin/goldmark, gopkg.in/yaml.v3.

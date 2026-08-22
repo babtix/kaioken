@@ -1,7 +1,8 @@
-- Use YAML struct tags for field serialization (e.g., `yaml:"version"`).
-- Represent optional fields that can be unset using pointers (e.g., `*bool` for `Enabled` in Compaction) to distinguish between false and unset.
-- Provide a Default() function to return a configuration with sensible default values.
-- In Load functions, validate and adjust loaded values (e.g., enforce minimum values for Concurrency and MaxModuleTokens).
-- When saving configuration, create the necessary directory if it does not exist (with appropriate permissions: 0o755 for repo config, 0o700 for global config due to containing API keys).
-- Include a header comment in saved configuration files explaining the file's purpose and usage.
-- In tests, isolate the environment by setting the KAIOKEN_HOME environment variable to a temporary directory to avoid modifying the user's actual configuration.
+- Configuration structs use YAML tags with `omitempty` for optional fields.
+- Default values are provided by a `Default()` function for `Config` and zero values for `Global` (with `LoadGlobal` returning an empty `Global` if the file is missing).
+- Tri-state boolean flags (unset, true, false) use pointer types (e.g., `*bool`) and helper methods (like `IsEnabled`) treat nil as enabled.
+- The `ResolveModel` method falls back to the session default model for unset or empty role-specific models.
+- The `EffectiveConcurrency` method clamps concurrency for free-tier models to prevent rate limits.
+- Global config is saved with file permissions 0o600 to protect API keys.
+- Tests use `TestMain` to sandbox the global config directory via the `KAIOKEN_HOME` environment variable.
+- The `HomeEnv` constant allows overriding the global config directory for testing and sandboxing.

@@ -1,11 +1,6 @@
-- Functions executing Git commands return wrapped errors (see runRaw).
-- Git operation functions take context.Context as first parameter.
-- Paths normalized to forward slashes via filepath.ToSlash.
-- Hook blocks delimited by hookStart/hookEnd.
-- Hook paths shell-quoted via shellQuote.
-- Installed hooks set executable (0o755).
-- WorktreeRemove for cleanup.
-- Stage/Unstage/Discard return ErrNoPaths on empty paths.
-- Diff/patch output truncated at maxBytes with [diff truncated].
-- Untracked file diffs synthesized against /dev/null.
-- Untracked file line count capped at maxUntrackedStat.
+- Functions that execute git commands take context.Context as the first parameter (when needed for cancellation) and the repository path as the second.
+- Paths are converted to slash-separated form using filepath.ToSlash for internal representation and returned to callers; when used in os operations, they are converted back with filepath.FromSlash.
+- Error messages from failed git commands are formatted as "git <args>: <error message>".
+- Functions returning lists of changes or status return an empty slice (not nil) when there are no changes.
+- Hook installation preserves existing hook content by wrapping the Kaioken block between delimiters (# >>> kaioken >>> and # <<< kaioken <<<) and only replacing that block on reinstall.
+- Tests use a newRepo helper to create a temporary git repository with an initial commit and skip if git is not available.

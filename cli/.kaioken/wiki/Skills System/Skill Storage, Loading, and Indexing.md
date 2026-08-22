@@ -15,13 +15,13 @@ This chapter explains how Kaioken manages project-specific skills: where they ar
 Skills are stored in a repository-specific directory under `.kaioken/skills/`. Each skill occupies its own subdirectory named using a kebab-case identifier derived from the skill's name, containing a single `SKILL.md` file.
 
 The `Dir` function returns the skills root path for a given repository:
-`internal/skills/skills.go:46-46`
+`internal/skills/skills.go:63-63`
 ```go
 func Dir(repo string) string { return filepath.Join(repo, config.Dir, "skills") }
 ```
 
 The `Path` function constructs the full path to a skill's `SKILL.md` file:
-`internal/skills/skills.go:49-51`
+`internal/skills/skills.go:76-78`
 ```go
 func Path(repo, name string) string {
 	return filepath.Join(Dir(repo), name, "SKILL.md")
@@ -29,8 +29,9 @@ func Path(repo, name string) string {
 ```
 
 Skill names are normalized to safe directory names via the `Slug` function, which converts arbitrary strings to kebab-case:
-`internal/skills/skills.go:54-78`
+`internal/skills/skills.go:81-105`
 ```go
+// Slug normalises a proposed name into a safe kebab-case directory name.
 func Slug(s string) string {
 	s = strings.ToLower(strings.TrimSpace(s))
 	var b strings.Builder
@@ -59,7 +60,7 @@ func Slug(s string) string {
 ```
 
 When saving a skill, the `Save` method creates the skill's directory (if needed) and writes the rendered `SKILL.md`:
-`internal/skills/skills.go:91-109`
+`internal/skills/skills.go:118-127`
 ```go
 // Save writes the skill to disk.
 func (s *Skill) Save(repo string) error {
@@ -75,7 +76,7 @@ func (s *Skill) Save(repo string) error {
 ```
 
 The rendered skill includes YAML frontmatter followed by the skill body:
-`internal/skills/skills.go:81-88`
+`internal/skills/skills.go:108-115`
 ```go
 // Render produces the full SKILL.md text: frontmatter then body.
 func (s *Skill) Render() string {
@@ -102,7 +103,7 @@ graph TD
 ## Skill Loading
 
 Individual skills are loaded by name using the `Load` function, which reads the skill's `SKILL.md` file and parses it into a `Skill` struct:
-`internal/skills/skills.go:103-109`
+`internal/skills/skills.go:130-136`
 ```go
 // Load reads one skill by name.
 func Load(repo, name string) (*Skill, error) {
@@ -115,7 +116,7 @@ func Load(repo, name string) (*Skill, error) {
 ```
 
 The `Parse` function handles both formatted skills (with YAML frontmatter) and hand-written skills (without frontmatter):
-`internal/skills/skills.go:114-131`
+`internal/skills/skills.go:141-158`
 ```go
 // Parse splits a SKILL.md into frontmatter and body. A file without
 // frontmatter is not an error: it is treated as a hand-written skill whose
@@ -141,11 +142,12 @@ func Parse(text string) (*Skill, error) {
 ```
 
 For hand-written skills (no frontmatter), the `Name` field remains empty and is later populated from the directory name during listing:
-`internal/skills/skills.go:124-126`
+`internal/skills/skills.go:150-152`
 ```go
 	if s.Name == "" {
 		s.Name = e.Name() // hand-written skill: fall back to the directory
 	}
+	s.inferOrigin()
 ```
 
 ### Skill Loading Flow
@@ -174,7 +176,7 @@ sequenceDiagram
 ## Skill Listing
 
 The `List` function returns all skills in a repository, sorted by name. It scans the skills directory for subdirectories, attempts to load each as a skill, and handles malformed skills gracefully:
-`internal/skills/skills.go:135-159`
+`internal/skills/skills.go:162-187`
 ```go
 // List returns every skill in a repository, by name. A missing directory means
 // none have been generated yet, which is not an error.
@@ -198,6 +200,7 @@ func List(repo string) ([]*Skill, error) {
 		if s.Name == "" {
 			s.Name = e.Name() // hand-written skill: fall back to the directory
 		}
+		s.inferOrigin()
 		out = append(out, s)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
@@ -209,7 +212,8 @@ Key behaviors:
 - Missing skills directory returns empty list (not error)
 - Non-directories in skills folder are skipped
 - Failed skill loads are skipped (don't hide other skills)
-- Hand-written skills (no frontmatter) get their name from directory
+- Hand-written skills (no frontmatter) get their name from directory and their origin is inferred as human (if not already set)
+- Skills with a GeneratedAt time have their origin inferred as generated
 - Results sorted alphabetically by skill name
 
 ### Skill Listing Flow
@@ -253,7 +257,7 @@ sequenceDiagram
 The skills index is maintained as a `README.md` file in the skills directory (not `skills.yaml` as mentioned in the goal—this appears to be a documentation discrepancy; the code implements `README.md`). This file serves as a catalog for the agent to discover available skills.
 
 The `WriteIndex` function generates this index from a slice of skills:
-`internal/skills/skills.go:196-213`
+`internal/skills/skills.go:238-255`
 ```go
 // WriteIndex renders the skills README: the catalog an agent reads to decide
 // which skill to open.
@@ -302,7 +306,7 @@ Running the test suite.
 ## Skill Staleness
 
 Skills can become stale when their source files change. The `Stale` function identifies which skills need regeneration based on changed file paths, using the `intersects` helper to check if any changed path falls under a skill's sources (treated as file or directory prefix):
-`internal/skills/skills.go:163-174`
+`internal/skills/skills.go:205-216`
 ```go
 // Stale reports the skills whose sources intersect the changed paths, so an
 // update refreshes only what the change actually invalidates.
@@ -321,7 +325,7 @@ func Stale(all []*Skill, changed []string) []*Skill {
 ```
 
 `intersects` treats each source as either an exact file match or a directory prefix (trailing slash implied):
-`internal/skills/skills.go:178-192`
+`internal/skills/skills.go:220-234`
 ```go
 // intersects reports whether any changed path falls under a source entry,
 // treating a source as a file or a directory prefix.

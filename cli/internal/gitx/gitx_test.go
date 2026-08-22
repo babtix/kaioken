@@ -147,6 +147,26 @@ func TestHasCommitAndResolve(t *testing.T) {
 	}
 }
 
+func TestCommitsBehind(t *testing.T) {
+	repo, head := newRepo(t)
+	ctx := context.Background()
+	if n, err := CommitsBehind(ctx, repo, head); err != nil || n != 0 {
+		t.Errorf("CommitsBehind(HEAD) = %d, %v; want 0, nil", n, err)
+	}
+
+	git := exec.Command("git", "-C", repo, "commit", "--allow-empty", "-qm", "second")
+	git.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=k", "GIT_AUTHOR_EMAIL=k@example.com",
+		"GIT_COMMITTER_NAME=k", "GIT_COMMITTER_EMAIL=k@example.com")
+	if out, err := git.CombinedOutput(); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+
+	if n, err := CommitsBehind(ctx, repo, head); err != nil || n != 1 {
+		t.Errorf("CommitsBehind(base) = %d, %v; want 1, nil", n, err)
+	}
+}
+
 func TestShort(t *testing.T) {
 	if got := Short("0123456789abcdef"); got != "01234567" {
 		t.Errorf("Short = %q", got)

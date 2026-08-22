@@ -1130,6 +1130,9 @@ func (a *Agent) remember(content string, rewrite bool, scope string) string {
 		}
 		return "error: " + err.Error()
 	}
+	if dry.Duplicate {
+		return "already remembered — no changes made"
+	}
 
 	preview := "+ " + strings.TrimSpace(content)
 	if rewrite {

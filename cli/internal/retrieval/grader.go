@@ -1,4 +1,4 @@
-package prism
+package retrieval
 
 import (
 	"context"
@@ -56,29 +56,31 @@ const graderSystem = "You are a strict relevance grader. " +
 	"Reply with exactly one word: 'relevant' or 'irrelevant'. " +
 	"Do not add any explanation, punctuation, or other text."
 
-// gradeResult is the outcome of grading a batch of candidates.
-type gradeResult struct {
-	// keep is one flag per input, in input order. A candidate whose call
+// GradeResult is the outcome of grading a batch of candidates.
+type GradeResult struct {
+	// Keep is one flag per input, in input order. A candidate whose call
 	// errored is kept.
-	keep []bool
-	// graded reports that every candidate got a real verdict. False means at
-	// least one call failed open, so keep is not a trustworthy relevance
+	Keep []bool
+	// Graded reports that every candidate got a real verdict. False means at
+	// least one call failed open, so Keep is not a trustworthy relevance
 	// signal and the context above it is unverified.
-	graded bool
+	Graded bool
 }
 
-// grade scores each ranked child against the query.
+// Grade scores each ranked item against the query, resolving each item's
+// chunk text through textFor(id) — the caller's own candidate store, kept out
+// of this package so it stays independent of any one corpus representation.
 //
 // It returns flags rather than a filtered list so the caller filters whatever
 // it is holding and keeps rank order in its own hands.
-func grade(ctx context.Context, u Utility, cand *candidates, query string, ranked []textrank.Ranked) gradeResult {
+func Grade(ctx context.Context, u Utility, textFor func(id int) string, query string, ranked []textrank.Ranked) GradeResult {
 	if len(ranked) == 0 {
-		return gradeResult{graded: true}
+		return GradeResult{Graded: true}
 	}
 	if u == nil {
 		// No utility model configured. Everything passes, and the caller is
 		// told the gate never ran.
-		return gradeResult{keep: allTrue(len(ranked)), graded: false}
+		return GradeResult{Keep: AllTrue(len(ranked)), Graded: false}
 	}
 
 	verdicts := make([]*bool, len(ranked))
@@ -87,28 +89,28 @@ func grade(ctx context.Context, u Utility, cand *candidates, query string, ranke
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(graderConcurrency)
 	for i, r := range ranked {
-		i, text := i, cand.chunk(r.ID).Text
+		i, text := i, textFor(r.ID)
 		g.Go(func() error {
 			v := gradeOne(gctx, u, query, text)
 			mu.Lock()
 			verdicts[i] = v
 			mu.Unlock()
 			// A grader error is never fatal to the run; it is recorded as a
-			// missing verdict and reported through graded.
+			// missing verdict and reported through Graded.
 			return nil
 		})
 	}
 	_ = g.Wait()
 
-	out := gradeResult{keep: make([]bool, len(ranked)), graded: true}
+	out := GradeResult{Keep: make([]bool, len(ranked)), Graded: true}
 	for i, v := range verdicts {
 		switch {
 		case v == nil:
 			// No verdict: keep the chunk, but the gate did not run on it.
-			out.keep[i] = true
-			out.graded = false
+			out.Keep[i] = true
+			out.Graded = false
 		default:
-			out.keep[i] = *v
+			out.Keep[i] = *v
 		}
 	}
 	return out
@@ -139,13 +141,13 @@ func gradeOne(ctx context.Context, u Utility, query, chunk string) *bool {
 	default:
 		// The model was asked for one of two words and said something else.
 		// Treating that as a verdict would be reading tea leaves; it is a
-		// failed call, and it counts against graded.
+		// failed call, and it counts against Graded.
 		return nil
 	}
 }
 
-// filterRanked keeps the candidates the gate approved, preserving rank order.
-func filterRanked(ranked []textrank.Ranked, keep []bool) []textrank.Ranked {
+// FilterRanked keeps the candidates the gate approved, preserving rank order.
+func FilterRanked(ranked []textrank.Ranked, keep []bool) []textrank.Ranked {
 	if len(keep) != len(ranked) {
 		return ranked
 	}
@@ -158,7 +160,7 @@ func filterRanked(ranked []textrank.Ranked, keep []bool) []textrank.Ranked {
 	return out
 }
 
-func allTrue(n int) []bool {
+func AllTrue(n int) []bool {
 	out := make([]bool, n)
 	for i := range out {
 		out[i] = true
