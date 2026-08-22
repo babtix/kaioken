@@ -17,13 +17,23 @@ The phases are not in backlog-rank order, because two constraints override raw v
    silent instruction-loss bug. There is no reason to sequence that behind anything.
 
 Phases 1–3 are independent of each other and could run in parallel across branches. Phase 5
-depends on phase 4. Phase 6 depends on nothing but is the largest.
+depends on phase 4. Phase 6 depends on nothing but is the largest. Session search (item 16)
+and the deferred ESTOP item sit outside the numbered phases entirely.
+
+> **This plan was revised on 2026-08-22 after an adversarial verification pass.** Four items
+> were re-scoped and one was dropped; see the notes in each phase. The corrections are
+> summarised at the end of [`inspire-backlog.md`](inspire-backlog.md).
 
 ---
 
 ## Phase 1 — correctness and safety quick wins
 
-**Branch:** `fix/inspire-phase1-correctness` · **Estimate:** ~1.5 days · **Items:** 1, 3, 5, 8, 13
+**Branch:** `fix/inspire-phase1-correctness` · **Estimate:** ~1.5 days · **Items:** 1, 5, 8, 13
+
+> **Revised 2026-08-22 after adversarial review.** Item 3 (ESTOP) was **dropped** from this
+> phase: hermes' own contract is "in-flight work is NEVER killed", and Kaioken has no
+> autonomous dispatchers to pause — a filesystem stat in the inner loop would just duplicate
+> `ctx.Done()`. Item 8 was **re-characterised as a live bug**, not an optimisation.
 
 The whole phase is small, self-contained fixes with no architectural risk.
 
@@ -33,12 +43,12 @@ The whole phase is small, self-contained fixes with no architectural risk.
 - **Item 5 — never summarise user messages** (`agent/compact.go:323`). Change
   `splitForCompaction` so user turns in `head` are pulled out and re-injected verbatim
   beside the summary. *This is the highest-value item in the entire backlog per hour spent.*
-- **Item 8 — empty-response circuit breaker** (`internal/llm`). Track consecutive
-  zero-output completions keyed on (model, provider, finish_reason); treat two as
-  deterministic and fail over instead of retrying.
+- **Item 8 — empty-response silent success** (`internal/agent`, `internal/llm`). **Fix the bug
+  first:** an empty 200 currently reaches `return history, nil` (`agent.go:238`) and the run
+  ends as a success with no output and no error. Surface it as an error. *Then* add the
+  streak detection keyed on (model, provider, finish_reason).
 - **Item 13 — hook deadlines** (`agent/events`). Wrap handler invocation in
   `context.WithTimeout` plus `recover()`. Observer hooks fail open; guard hooks fail closed.
-- **Item 3 — ESTOP sentinel**. A file check in the agent loop and background workers.
 
 **Gate:** `go test ./...` clean, plus a new test that a named pipe returns an error rather
 than blocking, and one that a compaction cycle preserves user-message text verbatim.
@@ -47,7 +57,7 @@ than blocking, and one that a compaction cycle preserves user-message text verba
 
 ## Phase 2 — TUI ergonomics
 
-**Branch:** `feat/inspire-phase2-tui` · **Estimate:** ~3 days · **Items:** 2, 4, 6, 7, 9, 17
+**Branch:** `feat/inspire-phase2-tui` · **Estimate:** ~3.5 days · **Items:** 2, 4, 6, 7, 9, 17
 
 Pure `internal/tui` work, no agent-core coupling. Highest daily-friction return.
 
@@ -66,14 +76,19 @@ key handling well enough to trust alone.
 
 ## Phase 3 — provider robustness
 
-**Branch:** `fix/inspire-phase3-providers` · **Estimate:** ~3 days · **Items:** 11, 14, 19
+**Branch:** `fix/inspire-phase3-providers` · **Estimate:** ~2.5 days · **Items:** 11, 14, 19
 
 - **Item 11 — provider transform layer** (`llm/transform.go`, new). Build it as a list of
   independently testable rules over `map[string]any`, not a monolith: nullable-union
   collapse, tool-ID sanitisation, empty-text coercion, Gemini schema subsetting,
   output-only field stripping on replay. Each rule gets a table test.
-- **Item 14 — retry hardening**. Port the five opencode fixes into `llm/retry.go`.
-- **Item 19 — thinking levels and model cycling**. pi's implementation is the reference.
+- **Item 14 — retry hardening**. Port the five opencode fixes into `llm/retry.go`. **Land this
+  together with item 8** rather than across two branches: Kaioken has *two* retry layers,
+  `internal/llm/retry.go` (transport) and `internal/agent/retry.go` (per-turn), and splitting
+  the work across phase 1 and phase 3 invites merge conflicts in the same files.
+- **Item 19 — model selector UI only**. Thinking levels are **already built**
+  (`internal/llm/thinking.go:18`, `/thinking` at `tui.go:1802`); only pi's searchable model
+  selector is missing. ~0.5d, not 1–2d.
 
 **Gate:** `go test ./...` under `-race`. The transform rules must have table tests with real
 malformed payloads, not synthetic ones.
@@ -103,13 +118,18 @@ a test that a ledger rollback restores exact prior content.
 
 ## Phase 5 — the learning loop
 
-**Branch:** `feat/inspire-phase5-learning` · **Estimate:** ~1 week · **Items:** 16, 23, 27, 28
+**Branch:** `feat/inspire-phase5-learning` · **Estimate:** ~5 days · **Items:** 23, 27, 28
 **Depends on:** phase 4
 
 The differentiating capability, and the reason phase 4 exists.
 
-- **Item 16 — FTS5 session search** first; it is independently valuable and the rest builds
-  on better recall.
+> **Revised 2026-08-22.** Item 16 (session search) was **moved out of this phase** onto its own
+> branch `feat/session-search`. It indexes session transcripts and has no dependency on skill
+> guards, linters, or ledgers — keeping it here needlessly blocked an independently valuable
+> feature behind all of phase 4. It also must **not** use SQLite/FTS5: build it on the
+> existing pure-Go BM25 in `internal/textrank` to preserve `CGO_ENABLED=0` single-binary
+> cross-compilation. Only the autonomous items (23, 27, 28) genuinely depend on phase 4.
+
 - **Item 23 — background reflection fork**. Gate on the existing `memory.Signals()`
   heuristics so it fires on real corrections rather than on a turn counter. Preserve the
   prompt-cache snapshot; cancel within a couple of seconds when a new user message arrives.
@@ -134,10 +154,11 @@ here is nearly a project.
   request context. **Strip chain-of-thought before replaying partial output** — this is not
   optional; serialising partial CoT trips provider reasoning-injection classifiers.
 - **Item 22 — programmatic tool calling.** Build on `internal/rpc`. Treat the child process
-  as untrusted: it gets the tool surface, not the filesystem. **Do not copy hermes' transport**
-  — it uses Unix domain sockets and is disabled on Windows outright
-  (`tools/code_execution_tool.py:27`). Use named pipes or loopback TCP so this works on the
-  primary development platform.
+  as untrusted: it gets the tool surface, not the filesystem. **Copy hermes' dual transport:**
+  AF_UNIX on POSIX, loopback TCP on an ephemeral port on Windows
+  (`code_execution_tool.py:1357`, `_use_tcp_rpc = _IS_WINDOWS`); both are `net.Listen` in Go.
+  *An earlier revision of this doc claimed hermes disabled this on Windows — that came from a
+  stale module docstring at line 27 and was wrong.*
 - **Item 24 — post-edit diagnostics.** Start with `go vet` / `tsc --noEmit` dry runs rather
   than a full LSP manager; most of the value, a fraction of the cost. Bound and sanitise the
   output before it reaches the model.
@@ -154,12 +175,14 @@ preserves completed tool-call results and produces valid role alternation.
 
 | Phase | Branch | Items | Estimate | Depends on |
 |---|---|---|---|---|
-| 1 | `fix/inspire-phase1-correctness` | 1, 3, 5, 8, 13 | ~1.5d | — |
-| 2 | `feat/inspire-phase2-tui` | 2, 4, 6, 7, 9, 17 | ~3d | — |
-| 3 | `fix/inspire-phase3-providers` | 11, 14, 19 | ~3d | — |
+| 1 | `fix/inspire-phase1-correctness` | 1, 5, 8, 13 | ~1.5d | — |
+| 2 | `feat/inspire-phase2-tui` | 2, 4, 6, 7, 9, 17 | ~3.5d | — |
+| 3 | `fix/inspire-phase3-providers` | 11, 14, 19 | ~2.5d | — |
 | 4 | `feat/inspire-phase4-skill-safety` | 10, 12, 15, 18 | ~4d | — |
-| 5 | `feat/inspire-phase5-learning` | 16, 23, 27, 28 | ~1w | phase 4 |
+| — | `feat/session-search` | 16 | ~1–2d | — |
+| 5 | `feat/inspire-phase5-learning` | 23, 27, 28 | ~5d | phase 4 |
 | 6 | `feat/inspire-phase6-capability` | 21, 22, 24, 25, 26 | ~2w | — |
+| — | *deferred* | 3 (ESTOP) | — | — |
 
 Roughly five to six weeks of sequential work; phases 1–4 are about two weeks and carry most
 of the value-per-day.
