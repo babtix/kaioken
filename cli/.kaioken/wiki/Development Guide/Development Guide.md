@@ -23,6 +23,7 @@ To initialize the development environment:
 1. Ensure Go 1.26+ is installed
 2. Run `go mod download` to fetch dependencies
 3. The project uses standard Go tooling (test, vet, build) with optional `golangci-lint` for linting
+4. The repository pins LF line endings via `.gitattributes`; make sure your editor and Git settings do not rewrite them (on Windows, prefer `core.autocrlf=input` or disable CRLF conversion) so checkouts stay byte-stable
 
 ## Building the Project
 The Makefile provides build targets. The primary build command compiles all packages and creates the executable.
@@ -51,6 +52,7 @@ test:
 
 - Execute with `make test` or `go test ./... -count=1`
 - Tests should pass before submitting changes
+- CI runs the full Go suite with the race detector enabled; mirror that locally with `go test ./... -race -count=1`, especially when touching concurrent code paths (checkpointed research runs, singleflight-guarded caches, background workers)
 - The `check` target combines testing and static analysis
 - The `vet` target runs `go vet ./...` for static analysis
 
@@ -86,6 +88,7 @@ internal/skills/skills.go  → Task guides (skills system)
 internal/scan/scan.go      → Repository file inventory
 internal/plan/plan.go      → Module planning (modules.yaml)
 internal/codemap/codemap.go→ Source code parsing/symbol indexing
+internal/retrieval/…       → Retrieval primitives (chunker, variants, grader, lexical ranking)
 internal/session/session.go→ Chat session persistence
 internal/state/state.go    → Wiki build state tracking
 internal/serve/serve.go    → Wiki HTTP server
@@ -97,7 +100,7 @@ Key dependency flow:
 - `cmd` and `tui` depend on all internal packages
 - `agent` depends on `llm`, `config`, `codemap`, `scan`, `session`, `skills`, `wiki`, `state`
 - `wiki` depends on `scan`, `plan`, `llm`, `config`, `codemap`, `state`, `gitx`, `skills`
-- Utilities (`scan`, `plan`, `codemap`, `state`, `skills`, `serve`, `gitx`) have minimal internal dependencies
+- Utilities (`scan`, `plan`, `codemap`, `state`, `skills`, `serve`, `gitx`, `retrieval`) have minimal internal dependencies
 - `config` is a cross-cutting dependency used throughout
 
 Conventions to note:
@@ -105,6 +108,7 @@ Conventions to note:
 - [Configuration](../Configuration/Configuration.md): Global (`$HOME/.config/kaioken/config.yaml`) and per-repo (`.kaioken/config.yaml`)
 - Naming: Packages lowercase; interfaces `-er` suffix; structs MixedCaps
 - Layering: Dependencies flow inward (high-level → low-level), never upward
+- Line endings: `.gitattributes` enforces LF across the repository; do not introduce CRLF — tooling and the agent's edit pipeline rely on stable, byte-predictable line endings
 
 ## Making Changes
 Follow these workflows when contributing:
@@ -112,19 +116,20 @@ Follow these workflows when contributing:
 1. **Create a feature branch** from `main`
 2. **Make changes** adhering to:
    - [Codebase structure](#understanding-the-codebase-structure)
-   - [Conventions](#understanding-the-codebase-structure) (error handling, naming, layering)
+   - [Conventions](#understanding-the-codebase-structure) (error handling, naming, layering, line endings)
    - [Configuration](../Configuration/Configuration.md) patterns in `internal/config/config.go`
 3. **Verify changes** locally:
    ```bash
-   make check   # Runs test + vet
-   make lint    # If golangci-lint is installed
+   make check                        # Runs test + vet
+   make lint                         # If golangci-lint is installed
+   go test ./... -race -count=1      # Matches CI's race-detector run
    ```
 4. **Update documentation** if needed (knowledge engine flows in `internal/wiki/`)
 5. **Submit pull request** with clear description of changes
 
 Important considerations:
 - The TUI (`internal/tui/tui.go`) handles user input and orchestrates interactions
-- Agent tool execution (`internal/agent/agent.go`) requires user approval for state changes and has been enhanced with improved permissions, context tracking, and directory notes
+- Agent tool execution (`internal/agent/agent.go`) requires user approval for state changes and has been enhanced with improved permissions, context tracking, and directory notes; file edits preserve line endings outside the edited span byte-for-byte, so keep sources normalized to LF
 - Wiki generation (`internal/wiki/wiki.go`) follows scan → plan → generate → update flow
 - Git operations (`internal/gitx/gitx.go`) respect `.gitignore` patterns, which have been updated to ignore local dev and session artifacts
 - Configuration changes should work with both global and per-repo configs
@@ -138,11 +143,13 @@ Important considerations:
 ## Referenced Files
 - `go.mod` - Dependency declarations and Go version
 - `Makefile` - Build, test, lint, and clean commands
+- `.gitattributes` - Repository-wide LF line-ending policy
 
 These files were referenced in this guide:
 ```
 go.mod
 Makefile
+.gitattributes
 ```
 
 <!-- kaioken:files Makefile,go.mod -->

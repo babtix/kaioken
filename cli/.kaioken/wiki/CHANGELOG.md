@@ -2,6 +2,181 @@
 
 What Kaioken revised, and why.
 
+## 2026-08-23 18:48 — 3da3d167 → 36dfcafe
+
+156 files changed · 1 documents updated
+
+- Extracted the retrieval pipeline out of `prism` into a new `internal/retrieval` package (chunker, variants, grader, lexical ranking) and collapsed concurrent `candidatesFor` builds using singleflight to avoid duplicate work.
+- Fixed two agent behaviours: edits now leave line endings outside the edited span byte-identical, and steering no longer consumes the agent's step budget.
+- Made research run checkpoints concurrency-safe by serialising writes to `run.json` and cleaning up the temp file when the rename fails.
+- Added an all-time window to the usage ledger (new daemon handler plus desktop Cost view), surfaced wiki staleness, and deduplicated memory writes.
+- Hardened CI to run the Go suite under `-race` and pinned LF line endings via `.gitattributes`; also refreshed the generated knowledge base/wiki and added extensive docs (hermes-to-Kaioken mapping, ranked inspire backlog, ADRs, verification reports).
+
+**Documents updated**
+
+- .kaioken/wiki/Development Guide/Development Guide.md
+
+<details><summary>Changed files</summary>
+
+- `A` .gitattributes
+- `M` .github/workflows/ci.yml
+- `M` .gitignore
+- `M` cli/.kaioken/KNOWLEDGE.md
+- `M` cli/.kaioken/config.yaml
+- `M` cli/.kaioken/knowledge/kaioken/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/setup_commands.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_core/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_skills/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/agent_state/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/chat_agent/llm_integration/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/cmd/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/cmd/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/config/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/config/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/config/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/config/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/config/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/gitx/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/gitx/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/gitx/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/gitx/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/gitx/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_generator/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/overview.md
+- `A` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/setup_commands.md
+- `M` cli/.kaioken/knowledge/kaioken/knowledge_engine/wiki_serve/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/tui/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/tui/tech_stack.md
+- `M` cli/.kaioken/knowledge/kaioken/version/_module.yaml
+- `M` cli/.kaioken/knowledge/kaioken/version/architecture.md
+- `M` cli/.kaioken/knowledge/kaioken/version/conventions.md
+- `M` cli/.kaioken/knowledge/kaioken/version/overview.md
+- `M` cli/.kaioken/knowledge/kaioken/version/tech_stack.md
+- `M` cli/.kaioken/state.json
+- `M` cli/.kaioken/wiki/CHANGELOG.md
+- `M` Project.md
+- `M` Guide.md
+- `M` Quality.md
+- `M` Contributing.md
+- `M` Tests.md
+- `M` Environment.md
+- `M` Structure.md
+- `M` History.md
+- `M` Documentation.md
+- `M` Wiki.md
+- `M` Handling.md
+- `M` Server.md
+- `M` Generation.md
+- `M` Invalidation.md
+- `M` Indexing.md
+- `M` Format.md
+- `M` System.md
+- `M` cli/.kaioken/wiki_state.yaml
+- `M` cli/cmd/kaioken/main.go
+- `M` cli/cmd/kaioken/usage.go
+- `M` cli/internal/agent/agent.go
+- `M` cli/internal/agent/agent_run_test.go
+- `M` cli/internal/agent/editmatch.go
+- `M` cli/internal/agent/editmatch_test.go
+- `M` cli/internal/agent/knowledge.go
+- `M` cli/internal/agent/knowledge_test.go
+- `M` cli/internal/agent/tools.go
+- `M` cli/internal/daemon/handlers_usage.go
+- `A` cli/internal/daemon/handlers_usage_test.go
+- `M` cli/internal/gitx/gitx.go
+- `M` cli/internal/gitx/gitx_test.go
+- `M` cli/internal/memory/memory.go
+- `M` cli/internal/memory/memory_test.go
+- `M` cli/internal/prism/chunk.go
+- `D` cli/internal/prism/grader.go
+- `M` cli/internal/prism/lexical.go
+- `M` cli/internal/prism/retrieve.go
+- `M` cli/internal/prism/retrieve_test.go
+- `M` cli/internal/prism/variants.go
+- `M` cli/internal/research/runstate.go
+- `M` cli/internal/research/runstate_test.go
+- `A` cli/internal/retrieval/chunk.go
+- `A` cli/internal/retrieval/chunk_test.go
+- `A` cli/internal/retrieval/grader.go
+- `A` cli/internal/retrieval/grader_test.go
+- `A` cli/internal/retrieval/lexical.go
+- `A` cli/internal/retrieval/lexical_test.go
+- `A` cli/internal/retrieval/utility.go
+- `A` cli/internal/retrieval/variants.go
+- `A` cli/internal/retrieval/variants_test.go
+- `A` cli/internal/wiki/staleness.go
+- `A` cli/internal/wiki/staleness_test.go
+- `M` desktop/src/lib/api.ts
+- `M` desktop/src/lib/types.ts
+- `M` desktop/src/routes/Cost.tsx
+- `A` desktop/src/routes/__tests__/Cost.test.tsx
+- `A` docs/doc_agy/ai-coding-agent-and-tools-deep-dive.md
+- `A` docs/doc_agy/hermes-in-depth-architecture-and-kaioken-comparison.md
+- `A` docs/doc_agy/hermes-self-improvement-deep-dive.md
+- `A` docs/doc_agy/opencode-in-depth-architecture-and-kaioken-comparison.md
+- `A` docs/doc_agy/pi-in-depth-architecture-and-kaioken-comparison.md
+- `A` docs/doc_agy/source-verification-report.md
+- `A` docs/doc_final_opencode/01-architecture.md
+- `A` docs/doc_final_opencode/02-roadmap.md
+- `A` docs/doc_final_opencode/03-decisions-log.md
+- `A` docs/doc_final_opencode/README.md
+- `A` docs/doc_her/hermes-deep-dive-and-kaioken-comparison.md
+- `A` docs/doc_open/HERMES_VS_KAIOKEN_ANALYSIS.md
+- `A` docs/hermes-map.md
+- `A` docs/hermes_res/RECONCILIATION.md
+- `A` docs/hermes_res/adr/ADR-001-evolve-in-place.md
+- `A` docs/hermes_res/adr/ADR-002-daemon-as-hub.md
+- `A` docs/hermes_res/adr/ADR-003-context-doctrine.md
+- `A` docs/hermes_res/adr/ADR-004-gated-learning-loop.md
+- `A` docs/hermes_res/adr/ADR-005-unified-knowledge-layer.md
+- `A` docs/hermes_res/adr/ADR-006-ptc-sandbox.md
+- `A` docs/hermes_res/adr/ADR-007-execution-environments.md
+- `A` docs/hermes_res/adr/ADR-008-cron-gateway-boundary.md
+- `A` docs/hermes_res/adr/ADR-009-pure-go-storage.md
+- `A` docs/hermes_res/adr/ADR-010-skill-safety-first.md
+- `A` docs/hermes_res/kaioken-v2-architecture.md
+- `A` docs/hermes_res/roadmap.md
+- `A` docs/inspire-backlog.md
+- `A` docs/inspire-phases.md
+- `M` website/src/components/desktop/panes.tsx
+- `M` website/src/data/desktop.ts
+- `M` website/src/pages/docs/CommandsDoc.tsx
+
+</details>
+
 ## 2026-08-21 16:49 — 82b8683f → 3da3d167
 
 1397 files changed · 75 documents updated
