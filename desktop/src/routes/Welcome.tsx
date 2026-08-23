@@ -289,7 +289,7 @@ function RepoPicker() {
         />
         <div className="mt-2.5 font-mono text-[9px] sm:text-[13px] opacity-70 tracking-wider">
           <span className="text-kai-rose/50">══════════════════════════ </span>
-          <span className="font-bold text-kai-orange glow-orange">v1.3.3</span>
+          <span className="font-bold text-kai-orange glow-orange">v1.3.4</span>
           <span className="text-kai-rose/50"> ══════════════════════════</span>
         </div>
       </div>

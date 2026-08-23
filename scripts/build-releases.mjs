@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, readd
 import { join } from "node:path"
 import { createHash } from "node:crypto"
 
-const version = "1.3.3"
+const version = "1.3.4"
 const repoRoot = "d:/project/ai_now_know"
 const cliDir = join(repoRoot, "cli")
 const releaseDir = join(repoRoot, "release", `v${version}`)
@@ -77,7 +77,7 @@ for (const t of targets) {
 }
 
 // Compute checksums for all files in release directory
-const files = readdirSync(releaseDir).filter((f) => f !== "checksums.txt" && f !== "CHANGELOG_v1.3.3.md")
+const files = readdirSync(releaseDir).filter((f) => f !== "checksums.txt" && f !== `CHANGELOG_v${version}.md`)
 const checksumLines = []
 
 for (const file of files.sort()) {
