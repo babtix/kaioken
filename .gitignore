@@ -118,3 +118,7 @@ pnpm-debug.log*
 .vscode/
 .idea/
 
+
+# Vendored read-only reference checkouts (pi, opencode, hermes-agent).
+# ~1.6GB of third-party source kept locally for analysis; never committed.
+inspire/
