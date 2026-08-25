@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
 
 const here = dirname(fileURLToPath(import.meta.url))
-const indexPath = join(here, "..", "..", "ecosystem", "registry", "community-extensions.json")
+const indexPath = join(here, "..", "..", "kaioken v1", "ecosystem", "registry", "community-extensions.json")
 
 /** Load the committed index and add plausible enrichment for the UI. */
 function loadIndex() {

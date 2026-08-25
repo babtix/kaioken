@@ -1,24 +1,24 @@
 # Build artifacts
-cli/kaioken.exe
-cli/kaioken.exe.old
-cli/kaioken.exe~
-cli/kaioken_new.exe
-cli/kaioken-new.exe
+kaioken v1/cli/kaioken.exe
+kaioken v1/cli/kaioken.exe.old
+kaioken v1/cli/kaioken.exe~
+kaioken v1/cli/kaioken_new.exe
+kaioken v1/cli/kaioken-new.exe
 *.exe
-cli/kaioken-test
+kaioken v1/cli/kaioken-test
 
 # GoReleaser output (snapshot and release builds)
-/dist/
-/release/
-/realise/
+/kaioken v1/dist/
+/kaioken v1/release/
+/kaioken v1/realise/
 
 # Session and state (local-only)
 **/.kaioken/sessions/
 **/.kaioken/site/
 **/.kaioken/prism/
 *.tar.gz
-.kaioken/config.yaml
-.kaioken/research/
+kaioken v1/.kaioken/config.yaml
+kaioken v1/.kaioken/research/
 .hermes/
 .vite/
 
@@ -43,12 +43,12 @@ website/node_modules/
 website/dist/
 
 # Desktop app
-desktop/node_modules/
-desktop/dist/
-desktop/src-tauri/target/
-desktop/src-tauri/binaries/
-desktop/src-tauri/gen/
-desktop/src-tauri/target/release/bundle/
+kaioken v1/desktop/node_modules/
+kaioken v1/desktop/dist/
+kaioken v1/desktop/src-tauri/target/
+kaioken v1/desktop/src-tauri/binaries/
+kaioken v1/desktop/src-tauri/gen/
+kaioken v1/desktop/src-tauri/target/release/bundle/
 
 # OS files
 Thumbs.db
@@ -56,13 +56,13 @@ Thumbs.db
 
 # Nested reference repo with its own .git — not part of this repository, same
 # treatment as opencode/. Committing it would create a stray gitlink.
-cli/PRISM_RAG/
+kaioken v1/cli/PRISM_RAG/
 
 # The GitHub Wiki, cloned locally for editing (github.com/babtix/kaioken.wiki.git).
 # It has its own .git, is pushed to its own remote, and neither site's build reads
 # it — tracking it here only produced a gitlink with no .gitmodules to resolve it,
 # which is what caused "Failed to fetch one or more git submodules" on every clone.
-/wiki/
+/kaioken v1/wiki/
 
 # web-news
 web-news/node_modules/
@@ -78,7 +78,7 @@ web-news/.vercel/
 **/.kaioken/mcp_token
 
 # CLI Release packages
-cli/release/
+kaioken v1/cli/release/
 
 # website_pre prototype app
 website_pre/node_modules/
@@ -110,7 +110,7 @@ pnpm-debug.log*
 *.rar
 
 # Allow required app icons and favicons
-!desktop/src-tauri/icons/**
+!kaioken v1/desktop/src-tauri/icons/**
 !**/public/favicon.*
 !**/public/icons/**
 

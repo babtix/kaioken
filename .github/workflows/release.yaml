@@ -26,8 +26,8 @@ jobs:
         with:
           # Read the version from go.mod rather than pinning it here, where it
           # silently drifts behind the toolchain the module actually requires.
-          go-version-file: cli/go.mod
-          cache-dependency-path: cli/go.sum
+          go-version-file: kaioken v1/cli/go.mod
+          cache-dependency-path: kaioken v1/cli/go.sum
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3.5.0
@@ -37,6 +37,7 @@ jobs:
         with:
           distribution: goreleaser
           version: '~> v2'
+          workdir: kaioken v1
           args: >-
             ${{ startsWith(github.ref, 'refs/tags/v')
                 && 'release --clean'
@@ -57,9 +58,9 @@ jobs:
         with:
           name: snapshot-dist
           path: |
-            dist/*.tar.gz
-            dist/*.zip
-            dist/checksums.txt
+            kaioken v1/dist/*.tar.gz
+            kaioken v1/dist/*.zip
+            kaioken v1/dist/checksums.txt
           retention-days: 7
 
   # Independent re-verification of what was actually published: the release
