@@ -46,6 +46,8 @@ class ScriptedModel implements ModelClient {
 	}
 }
 
+const NEWLINE = String.fromCharCode(10);
+
 const WALK = [
 	"/** Walks the working tree once. */",
 	"export function walkTree(root: string): string[] {",
@@ -555,5 +557,76 @@ describe("refinement", () => {
 			multiplier: 6,
 		});
 		expect(doc?.body).toBe(BAD.trim());
+	});
+});
+
+/**
+ * Two ways the verifier used to accuse correct documentation.
+ *
+ * Both are lookup failures wearing the costume of a content defect, which is
+ * the worst shape a defect report can take: the repair loop believes it, and
+ * rewrites prose that was right.
+ */
+describe("what the verifier must not call a defect", () => {
+	const ROOT_FILES = {
+		"src/walk.ts": WALK,
+		"package.json": '{ "name": "demo", "scripts": { "build": "tsc" } }\n',
+		"deploy.sh": "#!/bin/sh\nset -euo pipefail\nnpm run build\n",
+	};
+
+	it("does not call a root-level file an invented symbol", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		// No slash, so claim extraction classifies these as symbols. Only the
+		// verifier knows the repository's file list, so only it can tell.
+		const report = await verifyDocument({
+			body: "The build is declared in `package.json` and run by `deploy.sh`.",
+			oracle: new SymbolOracle(index),
+			scope: ["src/walk.ts"],
+			readSource: sourceReader(root),
+			knownFiles: new Set(scanned.files.map((f) => f.path)),
+		});
+
+		expect(report.defects.filter((d) => d.kind === "unknown_symbol")).toEqual([]);
+	});
+
+	it("checks a quote from a file with no grammar, instead of denying it", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const report = await verifyDocument({
+			body: [
+				"The deploy script builds first:",
+				"",
+				"```sh deploy.sh",
+				"npm run build",
+				"```",
+				"",
+			].join(NEWLINE),
+			oracle: new SymbolOracle(index),
+			scope: ["src/walk.ts"],
+			readSource: sourceReader(root),
+			knownFiles: new Set(scanned.files.map((f) => f.path)),
+		});
+
+		// The quote is verbatim. Refusing because the file has no declaration
+		// index reported "the attributed file does not contain that text" about
+		// text it plainly contains.
+		expect(report.defects.filter((d) => d.kind === "excerpt_not_found")).toEqual([]);
+	});
+
+	it("still catches a quote the file does not contain", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const report = await verifyDocument({
+			body: ["```sh deploy.sh", "rm -rf /", "```", ""].join(NEWLINE),
+			oracle: new SymbolOracle(index),
+			scope: ["src/walk.ts"],
+			readSource: sourceReader(root),
+			knownFiles: new Set(scanned.files.map((f) => f.path)),
+		});
+
+		// The fallback must not become a pass-through: an unindexed file is
+		// still checked, just against its text rather than its declarations.
+		expect(report.defects.some((d) => d.kind === "excerpt_not_found")).toBe(true);
 	});
 });

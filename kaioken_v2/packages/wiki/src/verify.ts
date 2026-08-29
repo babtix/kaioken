@@ -101,6 +101,16 @@ async function checkClaim(
 		}
 
 		case "symbol": {
+			// `package.json`, `Makefile`, `index.ts` — a file in the repository
+			// root has no slash, so claim extraction cannot tell it from a
+			// dotted symbol and classifies it here. Extraction sees only the
+			// document; this is the first place that knows what files exist, so
+			// it is the place to notice. Without this, a chapter that correctly
+			// names the repository's own entry point was told the name "appears
+			// nowhere in the source", and the repair loop deleted a true
+			// sentence.
+			if (namesAKnownFile(claim.text, input.knownFiles)) return null;
+
 			// A document writes `Owner.method`; the index stores the bare name
 			// with a parent. Checking only the literal string would flag a
 			// perfectly correct reference.
@@ -164,6 +174,24 @@ async function checkClaim(
 			}
 			const resolved = resolveExcerpt(input.oracle.file(file), source, claim.text);
 			if (resolved.resolved) return null;
+
+			// A file with no grammar bound has no declaration index, so the
+			// anchor resolver refuses before it ever compares the text. That is
+			// a lookup failing, not a quotation being wrong — and collapsing it
+			// into "the attributed file does not contain that text" told the
+			// repair loop to rewrite verbatim, correct quotes from
+			// `package.json`, a Makefile or a shell script. The excerpt is still
+			// checked; it is checked against the source directly.
+			if (resolved.reason === "file_not_indexed") {
+				if (containsExcerpt(source, claim.text)) return null;
+				return {
+					kind: "excerpt_not_found",
+					claim: firstLine(claim.text),
+					line: claim.line,
+					detail: "the attributed file does not contain that text",
+				};
+			}
+
 			return {
 				kind: resolved.reason === "excerpt_ambiguous" ? "excerpt_ambiguous" : "excerpt_not_found",
 				claim: firstLine(claim.text),
@@ -217,6 +245,42 @@ async function readScope(input: VerifyInput): Promise<string> {
  * Whole-word, so `walk` is not evidence for `walkTree`. A dotted reference is
  * satisfied by its last segment, which is how a method appears in source.
  */
+/**
+ * Whitespace-insensitive containment, for a file the index could not parse.
+ *
+ * Line-normalising rather than raw matching, for the same reason the anchor
+ * resolver does it: a document reproduces indentation as the fence renders it,
+ * not byte for byte, and a quote that is right in every way that matters should
+ * not fail on leading tabs.
+ */
+/**
+ * Does this token name a file the repository actually contains?
+ *
+ * Exact match, or basename match against any known path — the same shorthand
+ * rule the `file` claim already accepts, since `index.ts` is as legitimate a
+ * reference to `src/index.ts` as it is to a root file of that name.
+ */
+function namesAKnownFile(text: string, knownFiles: ReadonlySet<string>): boolean {
+	if (knownFiles.has(text)) return true;
+	if (text.includes("/")) return false;
+	for (const known of knownFiles) {
+		if (known === text || known.endsWith(`/${text}`)) return true;
+	}
+	return false;
+}
+
+function containsExcerpt(source: string, excerpt: string): boolean {
+	const fold = (text: string) =>
+		text
+			.split(/\r?\n/)
+			.map((line) => line.trim())
+			.filter((line) => line !== "")
+			.join("\n");
+
+	const needle = fold(excerpt);
+	return needle !== "" && fold(source).includes(needle);
+}
+
 function appearsInSource(source: string, name: string): boolean {
 	for (const candidate of nameCandidates(name)) {
 		if (mentions(source, candidate)) return true;

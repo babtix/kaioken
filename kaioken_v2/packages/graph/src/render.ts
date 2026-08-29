@@ -24,7 +24,14 @@ export function graphStats(
 	);
 
 	const scanPaths = options.scanPaths ?? [];
+	const scanned = new Set(scanPaths);
 	const uncovered = scanPaths.filter((p) => !covered.has(p));
+
+	// Only files the repository still contains can count towards describing it.
+	// `covered` is every path any document was written from, which includes
+	// sources since deleted — counting those put the ratio above 100% after a
+	// refactor, and let a deleted file silently cancel out an undocumented one.
+	const describedNow = [...covered].filter((path) => scanned.has(path)).length;
 
 	// Only edges between documents count: `written_from` ties every document
 	// to its sources, and by that reading no document is ever isolated. The
@@ -45,7 +52,7 @@ export function graphStats(
 		isolated: isolated.sort(),
 		// No scan means no honest denominator; reporting 100% would be a claim
 		// nobody made.
-		coverage: scanPaths.length === 0 ? null : covered.size / new Set(scanPaths).size,
+		coverage: scanned.size === 0 ? null : describedNow / scanned.size,
 	};
 }
 

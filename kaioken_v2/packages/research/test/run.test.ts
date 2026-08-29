@@ -131,3 +131,48 @@ describe("pathFor", () => {
 		expect(pathFor("What is X? (2026)")).toMatch(/^what-is-x-2026\.md$/);
 	});
 });
+
+/**
+ * A failed fetch still occupies a citation number, and the numbering has to
+ * survive that. Getting it wrong is invisible in a run where every page loads,
+ * which is exactly why it needs a test rather than a live trial.
+ */
+describe("citation numbering when a fetch fails", () => {
+	const searchWithDeadFirst: WebSearchPort = {
+		async search() {
+			return [
+				{ url: "https://dead.example/gone", title: "Dead" },
+				{ url: "https://b.example/", title: "Page B" },
+			];
+		},
+	};
+
+	const fetchWithDeadFirst: WebFetchPort = {
+		async fetch(url) {
+			if (url === "https://b.example/") return { status: 200, body: PAGE_B, title: "Page B" };
+			return { error: "404 not found" };
+		},
+	};
+
+	it("gives the surviving page the number its own source record carries", async () => {
+		const gathered = await gatherSources({
+			question: "how fast is it?",
+			search: searchWithDeadFirst,
+			fetch: fetchWithDeadFirst,
+			depth: depthFor(1),
+		});
+
+		const dead = gathered.sources.find((s) => !s.fetched);
+		const live = gathered.sources.find((s) => s.fetched);
+
+		expect(dead?.number).toBe(1);
+		expect(live?.number).toBe(2);
+		expect(gathered.excerpts).toHaveLength(1);
+
+		// The excerpt the model is shown as [2] must be source 2. Numbering it
+		// by its own index made it [1] — the dead link — so every citation the
+		// model wrote was rejected as citing a page that could not be fetched,
+		// and the bibliography credited the quote to a page nobody read.
+		expect(gathered.excerpts[0]?.sourceNumber).toBe(live?.number);
+	});
+});

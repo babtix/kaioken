@@ -185,7 +185,13 @@ function parseFenceInfo(info: string): { file: string; startLine?: number; endLi
 				endLine: anchor[3] ? Number.parseInt(anchor[3], 10) : start,
 			};
 		}
-		if (PATH_LIKE.test(token) && token.includes("/")) return { file: token };
+		// No slash required here, unlike an inline code span. A fence info
+		// string is an explicit attribution slot, so `deploy.sh` or
+		// `package.json` in it is a file and nothing else — and requiring a
+		// slash meant every quotation from a root-level file was silently
+		// skipped rather than verified. A bare language tag (`ts`, `sh`) has no
+		// dot and so cannot match.
+		if (PATH_LIKE.test(token)) return { file: token };
 	}
 	return null;
 }

@@ -151,8 +151,15 @@ export async function gatherSources(input: GatherInput): Promise<GatherResult> {
 	}
 
 	return {
+		// Excerpts keep the source number they were given as they were built.
+		// Renumbering them by their own index desynchronised them from the
+		// sources the moment any fetch failed: a failed page still occupies a
+		// number, so the second page's excerpt is source 2 while it is only the
+		// first excerpt. Numbering it 1 pointed the model's `[1]` at the dead
+		// link, the verifier then rejected every citation as `cites_failed_fetch`,
+		// and the bibliography attributed the quote to a page that was never read.
 		sources: numberSources(sources),
-		excerpts: excerpts.map((e, i) => ({ ...e, sourceNumber: i + 1 })),
+		excerpts,
 		injectionHits,
 		skipped,
 	};

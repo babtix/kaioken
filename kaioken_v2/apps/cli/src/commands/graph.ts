@@ -8,10 +8,11 @@ import {
 	writeGraph,
 	type GraphBuildInput,
 } from "@kaioken/graph";
+import { loadSkills } from "@kaioken/agent";
 import { readCards } from "@kaioken/plan";
 import { readScanArtifact, scan, writeScanArtifact } from "@kaioken/scan";
 import { readProvenance, wikiDir } from "@kaioken/wiki";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Flags } from "../main.js";
 import { gatherProvenance } from "./status.js";
@@ -88,16 +89,13 @@ async function gatherInput(root: string): Promise<GraphBuildInput> {
 		claims[id] = card.entryPoints.map((entry) => entry.file);
 	}
 
-	const skills: { name: string; path: string }[] = [];
-	const skillsRoot = join(root, ".kaioken", "skills");
-	try {
-		for (const entry of await readdir(skillsRoot, { withFileTypes: true })) {
-			if (entry.isFile() && entry.name.endsWith(".md")) {
-				skills.push({ name: entry.name, path: join(".kaioken", "skills", entry.name) });
-			}
-		}
-	} catch {
-		// No skills directory: the graph covers the other tenants.
+	// The canonical loader, for the same reason `export` uses it: a hand-rolled
+	// readdir here saw only the flat `topic.md` layout, so a `topic/SKILL.md`
+	// never became a node — and a flat skill entered the graph as
+	// `skill:deploy.md` while every other package calls it `skill:deploy`.
+	const { skills, problems: skillProblems } = await loadSkills(root);
+	for (const problem of skillProblems) {
+		process.stderr.write(`kaioken graph: skipped skill ${problem.path} — ${problem.reason}\n`);
 	}
 
 	const scanResult = (await readScanArtifact(root)) ?? (await (async () => {

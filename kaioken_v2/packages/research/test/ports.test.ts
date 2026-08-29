@@ -20,6 +20,36 @@ describe("isFetchableUrl", () => {
 		expect(isFetchableUrl("https://example.com/page")).toBe(true);
 	});
 
+	/**
+	 * IPv6 was the hole. `new URL()` keeps the brackets on the hostname, so
+	 * `[::1]` matched nothing the filter tested — not the suffix list, not the
+	 * IPv4 octet patterns — and every loopback service on the machine was one
+	 * search result away.
+	 */
+	it("blocks loopback and private ranges however the IPv6 is spelled", () => {
+		expect(isFetchableUrl("http://[::1]:8080/metrics")).toBe(false);
+		expect(isFetchableUrl("http://[0:0:0:0:0:0:0:1]/")).toBe(false);
+		expect(isFetchableUrl("http://[::]/")).toBe(false);
+		expect(isFetchableUrl("http://[fe80::1]/")).toBe(false);
+		expect(isFetchableUrl("http://[fc00::1]/")).toBe(false);
+		expect(isFetchableUrl("http://[fd12:3456::1]/")).toBe(false);
+	});
+
+	it("sees through an IPv4-mapped address, which the URL parser rewrites", () => {
+		// `[::ffff:127.0.0.1]` reaches this function as `[::ffff:7f00:1]`, so a
+		// check looking for four dotted octets never fires.
+		expect(isFetchableUrl("http://[::ffff:127.0.0.1]/")).toBe(false);
+		expect(isFetchableUrl("http://[::ffff:169.254.169.254]/")).toBe(false);
+		expect(isFetchableUrl("http://[::ffff:10.0.0.1]/")).toBe(false);
+	});
+
+	it("does not over-block a public IPv6 address that merely ends in ::1", () => {
+		// The reason `::1` cannot be a suffix rule: this is a documentation
+		// range address, not the local machine.
+		expect(isFetchableUrl("http://[2001:db8::1]/")).toBe(true);
+		expect(isFetchableUrl("http://[2606:4700::1111]/")).toBe(true);
+	});
+
 	it("blocks non-http schemes, loopback, private ranges and internal hosts", () => {
 		expect(isFetchableUrl("file:///etc/passwd")).toBe(false);
 		expect(isFetchableUrl("ftp://example.com")).toBe(false);
