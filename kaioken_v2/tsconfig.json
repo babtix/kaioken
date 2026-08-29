@@ -1,0 +1,41 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/scan"
+    },
+    {
+      "path": "./packages/index"
+    },
+    {
+      "path": "./packages/model"
+    },
+    {
+      "path": "./packages/provenance"
+    },
+    {
+      "path": "./packages/search"
+    },
+    {
+      "path": "./packages/serve"
+    },
+    {
+      "path": "./packages/plan"
+    },
+    {
+      "path": "./packages/wiki"
+    },
+    {
+      "path": "./packages/research"
+    },
+    {
+      "path": "./packages/graph"
+    },
+    {
+      "path": "./packages/agent"
+    },
+    {
+      "path": "./apps/cli"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@kaioken/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "kaioken": "./dist/bin.js"
+  },
+  "main": "./dist/main.js",
+  "types": "./dist/main.d.ts",
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "^0.84.3",
+    "@earendil-works/pi-ai": "^0.84.3",
+    "@kaioken/agent": "*",
+    "@kaioken/graph": "*",
+    "@kaioken/index": "*",
+    "@kaioken/model": "*",
+    "@kaioken/plan": "*",
+    "@kaioken/provenance": "*",
+    "@kaioken/research": "*",
+    "@kaioken/scan": "*",
+    "@kaioken/search": "*",
+    "@kaioken/serve": "*",
+    "@kaioken/wiki": "*"
+  }
+}
