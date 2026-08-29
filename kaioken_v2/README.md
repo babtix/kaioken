@@ -317,7 +317,7 @@ revision is only accepted if it actually improves grounding.
 npm test
 ```
 
-321 tests, all offline. `apps/cli/test/cli.test.ts` runs the whole command surface
+406 tests, all offline. `apps/cli/test/cli.test.ts` runs the whole command surface
 with `fetch` replaced by a throwing stub and provider API keys removed from the
 environment, because "works in a fresh clone with no credentials" is a property
 worth asserting rather than assuming.
@@ -330,6 +330,39 @@ provider is a loop nobody tests.
 The risk suite carries two halves of equal weight: planted secrets are detected,
 and ordinary source is left alone. A flag on real source teaches the reader to
 ignore flags, so precision is tested as hard as recall.
+
+## What an independent review found
+
+The whole tree was read by a separate agent under an evidence contract — every
+finding required a verbatim quote, and every quote was checked mechanically
+against the source before anything was acted on. Of 19 findings, 17 quoted
+accurately, one was fabricated, and one misread the code. Thirteen were real and
+are fixed; two were rejected after checking, which is the part of the process
+that earns the rest its credibility.
+
+The four worth naming, all silent — no error, no exit code, no sign anything
+had gone wrong:
+
+- **`wiki --module` destroyed the provenance of every chapter it did not
+  regenerate.** The documents stayed on disk with nothing able to say anything
+  about them.
+- **The SSRF filter was a no-op for IPv6.** `new URL()` keeps the brackets on
+  the hostname, so `[::1]` matched none of the blocked suffixes and none of the
+  IPv4 patterns.
+- **Research citations desynchronised the moment any fetch failed**, pointing
+  every `[N]` one place to the left and causing the verifier to reject the
+  document it should have passed.
+- **The verifier accused correct documentation.** A quote from any file without
+  a tree-sitter grammar came back as text the file does not contain, and a
+  root-level filename was reported as an invented symbol — both lookup failures
+  dressed as content defects, which the repair loop then obediently "fixed".
+
+Two findings were rejected on inspection. One proposed that
+`gatherModuleEvidence` stop reporting missing files when given no file list;
+without that list the two cases are indistinguishable, and the proposal silently
+accepts a path the plan invented. The other proposed wiring research into
+provenance, which would report every research document as orphaned. Being able
+to say why a plausible fix is wrong is worth as much as the fixes.
 
 ## Known gaps
 
@@ -344,6 +377,13 @@ ignore flags, so precision is tested as hard as recall.
   and a warning printed — token and cost figures may then be wrong.
 - Reasoning is requested at "minimal" for any model marked as reasoning-capable,
   because some endpoints refuse to serve one with reasoning disabled.
+- **Research is not aged.** A research document records the page hashes it was
+  written from, but it is deliberately kept out of the shared provenance index:
+  its sources are URLs, and staleness resolves a source by looking its path up
+  in the scan, so wiring it in would report every research document as
+  `orphaned` and fail `status --check` on a repository that is perfectly
+  current. Ageing one means re-fetching its pages, which this layer does not do
+  yet. `status`, `update`, `graph` and `export` therefore do not see research.
 - `impact` reports *documentation* impact — which chapters and cards a change
   invalidates — and says so. It is not a call graph; there is no reference index
   to build one from, and pretending otherwise would be the sort of confident

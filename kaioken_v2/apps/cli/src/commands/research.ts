@@ -1,6 +1,5 @@
 import { relative, resolve } from "node:path";
 import {
-	asProvenance,
 	gatherSources,
 	generateResearch,
 	parseMultiplier,
@@ -101,7 +100,21 @@ export async function runResearch(flags: Flags): Promise<number> {
 	}
 
 	const path = await writeResearchDocument(root, document);
-	void asProvenance(document);
+
+	// Research is deliberately *not* written into the shared provenance index,
+	// and this is the note explaining why rather than an omission.
+	//
+	// `asProvenance` shapes a research document like any other, but its sources
+	// are URLs, and `computeStaleness` resolves a source by looking its path up
+	// in the scan. A URL is never in that map, so every source reads as deleted
+	// and every research document reads as `orphaned` — "every source it was
+	// written from is gone" — which is false, and would fail `status --check`
+	// on a repository whose documentation is perfectly current.
+	//
+	// Ageing a research document means re-fetching its pages and comparing the
+	// content hashes it already records. That is a mechanism this layer does not
+	// have yet, and inventing a wrong answer in the meantime is worse than
+	// admitting the tenant is not yet tracked.
 
 	if (flags.json) {
 		process.stdout.write(`${JSON.stringify({ document, path }, null, 2)}\n`);
@@ -111,7 +124,9 @@ export async function runResearch(flags: Flags): Promise<number> {
 			`wrote ${relative(root, path)}\n` +
 				`  ${document.sources.filter((s) => s.fetched).length} sources, ` +
 				`${v.grounded} citations verified, ${v.defects.length} defects ` +
-				`(${Math.round(v.groundedRatio * 100)}% resolved)\n`,
+				// A document that cited nothing is not 100% resolved; it is a
+				// document with nothing this pipeline can check.
+				`(${v.groundedRatio === null ? "no citations to resolve" : `${Math.round(v.groundedRatio * 100)}% resolved`})\n`,
 		);
 		for (const defect of v.defects.slice(0, 5)) {
 			process.stdout.write(`  ! ${defect.kind}: ${defect.detail}\n`);

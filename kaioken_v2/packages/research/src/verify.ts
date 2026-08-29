@@ -61,8 +61,9 @@ export function verifyCitations(
 
 	return {
 		grounded,
+		cited,
 		defects,
-		groundedRatio: cited === 0 ? 1 : grounded / cited,
+		groundedRatio: cited === 0 ? null : grounded / cited,
 	};
 }
 

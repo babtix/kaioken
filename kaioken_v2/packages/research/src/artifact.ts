@@ -51,7 +51,7 @@ export function renderMarkdown(doc: ResearchDocument): string {
 		`---`,
 		``,
 		`${v.grounded} citations verified, ${v.defects.length} defects, ` +
-			`${Math.round(v.groundedRatio * 100)}% of citations resolved.`,
+			`${describeRatio(v.groundedRatio)}.`,
 	);
 	for (const defect of v.defects.slice(0, 10)) {
 		lines.push(`- ${defect.kind}${defect.line ? ` (line ${defect.line})` : ""}: ${defect.detail}`);
@@ -141,9 +141,21 @@ export function parseArtifact(markdown: string, fileName: string): ResearchDocum
 		body: markdown.slice(markdown.indexOf("\n\n") + 2, sourcesIdx === -1 ? undefined : sourcesIdx).trim(),
 		sources,
 		generatedAt: generatedMatch?.[1]?.trim() ?? "",
-		verification: { grounded: 0, defects: [], groundedRatio: 1 },
+		verification: { grounded: 0, cited: 0, defects: [], groundedRatio: null },
 		sourcesAsProvenance: sources
 			.filter((s) => s.fetched)
 			.map((s) => ({ path: s.url, hash: s.hash })),
 	};
+}
+
+/**
+ * A document that cited nothing gets said so, not scored.
+ *
+ * "100% resolved" over zero citations reads as a document fully backed by
+ * fetched pages, which is the opposite of what it means.
+ */
+function describeRatio(ratio: number | null): string {
+	return ratio === null
+		? "no citations to resolve"
+		: `${Math.round(ratio * 100)}% of citations resolved`;
 }

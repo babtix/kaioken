@@ -66,3 +66,26 @@ describe("uncitedSentences", () => {
 		expect(uncited[0]).toMatchObject({ line: 3 });
 	});
 });
+
+describe("a document that cites nothing", () => {
+	it("reports no ratio rather than a perfect one", () => {
+		const v = verifyCitations("A confident paragraph resting on nothing at all.", [], []);
+
+		// 1 here would print as "100% of citations resolved" over a document
+		// backed by no fetched page — the opposite of what it means. The graph
+		// makes the same choice for coverage with no scan to measure against.
+		expect(v.groundedRatio).toBeNull();
+		expect(v.cited).toBe(0);
+		expect(v.grounded).toBe(0);
+	});
+
+	it("still scores a document that does cite", () => {
+		const sources = [{ number: 1, url: "https://a.example/", title: "A", hash: "h", fetched: true }];
+		const excerpts = [{ sourceNumber: 1, text: "the library launched in March 2019", startLine: 1 }];
+
+		const v = verifyCitations("It launched in 2019 [1], and also [9].", sources, excerpts);
+
+		expect(v.cited).toBe(2);
+		expect(v.groundedRatio).toBeCloseTo(1 / 2);
+	});
+});

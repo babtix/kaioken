@@ -76,9 +76,20 @@ export interface CitationDefect {
 export interface ResearchVerification {
 	/** Citations checked and confirmed. */
 	grounded: number;
+	/** Citations found in the document, grounded or not. */
+	cited: number;
 	defects: CitationDefect[];
-	/** Fraction of non-uncited claims that resolved to a fetched page. */
-	groundedRatio: number;
+	/**
+	 * Fraction of citations that resolved to a fetched page, or null when the
+	 * document made none.
+	 *
+	 * Null rather than 1, for the same reason the graph reports null coverage
+	 * with no scan to measure against: a document citing nothing has not been
+	 * shown to be 100% grounded, it has been shown to rest on nothing this
+	 * pipeline can check. Reporting a perfect score there is a claim nobody
+	 * made.
+	 */
+	groundedRatio: number | null;
 }
 
 /** A generated research document, with everything needed to re-derive it. */
