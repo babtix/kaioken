@@ -1,5 +1,5 @@
-import { mkdir, readFile, readdir } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
+import { loadSkills } from "@kaioken/agent";
 import {
 	buildGraph,
 	graphStats,
@@ -37,19 +37,15 @@ export async function runExport(flags: Flags): Promise<number> {
 	const cards = await readCards(root);
 	const wikiFiles = await readWikiTree(join(root, ".kaioken", "wiki"));
 
-	const skillsRoot = join(root, ".kaioken", "skills");
-	const skillFiles: { name: string; path: string; content: string }[] = [];
-	try {
-		for (const entry of await readdir(skillsRoot, { withFileTypes: true })) {
-			if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
-			skillFiles.push({
-				name: entry.name,
-				path: join(".kaioken", "skills", entry.name),
-				content: await readFile(join(skillsRoot, entry.name), "utf8"),
-			});
-		}
-	} catch {
-		// No skills directory: the bundle covers the other tenants.
+	// The canonical loader, not a second implementation of it. Reading the skills
+	// directory here by hand is how the bundle came to carry only the flat
+	// `topic.md` layout while the agent and the search index both understood
+	// `topic/SKILL.md` too — an export that silently drops knowledge, and then
+	// states a count, is exactly the confident wrong answer this engine exists to
+	// avoid.
+	const { skills: skillFiles, problems: skillProblems } = await loadSkills(root);
+	for (const problem of skillProblems) {
+		process.stderr.write(`kaioken export: skipped skill ${problem.path} — ${problem.reason}\n`);
 	}
 
 	if (cards.length === 0 && wikiFiles.length === 0 && skillFiles.length === 0) {
@@ -94,7 +90,14 @@ export async function runExport(flags: Flags): Promise<number> {
 			path: `cards/${card.moduleId.replace(/[^\w.-]+/g, "_")}.json`,
 			content: `${JSON.stringify(card, null, 2)}\n`,
 		})),
-		...skillFiles.map((skill) => ({ path: `skills/${skill.name}`, content: skill.content })),
+		// Named by the skill, not by the file it happened to live in: a
+		// `migrate/SKILL.md` and a `migrate.md` are the same skill to everything
+		// that reads one, and they must not land in the bundle under names that
+		// disagree about that.
+		...skillFiles.map((skill) => ({
+			path: `skills/${skill.name.replace(/[^\w.-]+/g, "_")}.md`,
+			content: skill.content,
+		})),
 		{ path: "graph.json", content: `${JSON.stringify(graph, null, 2)}\n` },
 		{
 			path: "knowledge.md",

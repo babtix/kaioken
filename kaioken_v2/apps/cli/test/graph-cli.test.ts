@@ -193,6 +193,34 @@ describe("kaioken export", () => {
 		await readFile(join(root, "handoff", "manifest.json"), "utf8");
 	});
 
+	it("bundles both skill layouts, and counts what it bundled", async () => {
+		const root = await knowledgeRepo();
+		const skills = join(root, ".kaioken", "skills");
+		await mkdir(join(skills, "migrate"), { recursive: true });
+		await writeFile(
+			join(skills, "release.md"),
+			"---\nname: release\ndescription: Cut a release.\n---\n\nTag it.\n",
+			"utf8",
+		);
+		await writeFile(
+			join(skills, "migrate", "SKILL.md"),
+			"---\nname: migrate\ndescription: Migrate a schema.\n---\n\nBack it up first.\n",
+			"utf8",
+		);
+
+		expect(await main(["export", "--root", root])).toBe(0);
+
+		const bundle = join(root, ".kaioken", "export");
+		const manifest = JSON.parse(await readFile(join(bundle, "manifest.json"), "utf8"));
+
+		// The directory layout is the one a hand-rolled readdir drops. Bundling
+		// one skill while reporting a count of one is worse than failing: the
+		// receiving end has no way to know a procedure went missing.
+		expect(manifest.counts.skills).toBe(2);
+		await readFile(join(bundle, "skills", "release.md"), "utf8");
+		await readFile(join(bundle, "skills", "migrate.md"), "utf8");
+	});
+
 	it("fails with guidance when there is nothing to export", async () => {
 		const root = await mkdtemp(join(tmpdir(), "kaioken-empty-"));
 		roots.push(root);
