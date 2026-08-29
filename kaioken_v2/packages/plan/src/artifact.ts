@@ -130,6 +130,12 @@ export async function readCards(root: string): Promise<Card[]> {
 }
 
 /** Module ids come from a model and from users; neither may pick a path. */
-function safeFileName(id: string): string {
+/**
+ * The one rule for turning a module id into a filename.
+ *
+ * Exported because `export` must produce the same name the card store already
+ * uses: two spellings of the same card is a bundle whose own references miss.
+ */
+export function safeFileName(id: string): string {
 	return id.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^[-.]+|[-.]+$/g, "") || "module";
 }

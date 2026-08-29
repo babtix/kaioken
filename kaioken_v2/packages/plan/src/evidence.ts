@@ -188,6 +188,12 @@ export function gatherModuleEvidence(
 			// A file the scan knows but the index does not is a real file with
 			// nothing to extract — config, docs, a query file. It stays in scope
 			// so the card may cite it; it simply contributes no declarations.
+			// Without `knownFiles` these two cases are indistinguishable: a real
+			// file with nothing to extract, and a file the plan invented. Both
+			// readings are wrong some of the time, so this takes the safer one —
+			// over-reporting a README beats silently accepting a path that does
+			// not exist, which is the whole reason `missing` is computed. Callers
+			// that want the precise answer pass `knownFiles`; the CLI always does.
 			if (options.knownFiles?.has(path)) {
 				out.push({ path, language: "", lineCount: 0, declarations: [] });
 			} else {

@@ -144,21 +144,27 @@ export class SearchIndex {
 	async search(query: SearchQuery, provider?: EmbeddingProvider): Promise<SearchHit[]> {
 		const limit = query.limit ?? 10;
 		const terms = analyze(query.text);
-		if (terms.length === 0) return [];
-
 		const candidates = this.filter(query);
 
-		const lexical = topN(
-			candidates.map((id) => ({
-				id,
-				score:
-					this.lexicon.score(terms, this.tokens[id] as string[]) +
-					phraseBonus(query.text, (this.data.chunks[id] as Chunk).text),
-			})),
-			// Fuse over a deeper slice than we return, so a result ranked
-			// modestly by both signals can still surface.
-			limit * 5,
-		).filter((r) => r.score > 0);
+		// A query of nothing but stopwords analyses to no terms, so lexical
+		// ranking has nothing to score. That is a reason to skip *lexical*
+		// ranking, not to abandon the search: the semantic layer embeds the raw
+		// query and never sees the analyzer, so returning early here silently
+		// disabled the half of hybrid search that could still answer.
+		const lexical =
+			terms.length === 0
+				? []
+				: topN(
+						candidates.map((id) => ({
+							id,
+							score:
+								this.lexicon.score(terms, this.tokens[id] as string[]) +
+								phraseBonus(query.text, (this.data.chunks[id] as Chunk).text),
+						})),
+						// Fuse over a deeper slice than we return, so a result ranked
+						// modestly by both signals can still surface.
+						limit * 5,
+					).filter((r) => r.score > 0);
 
 		const semantic = await this.semanticRank(query.text, candidates, limit * 5, provider);
 

@@ -123,3 +123,24 @@ describe("buildGraph", () => {
 		expect(graph.nodes[0]).toMatchObject({ title: "Retrieval", path: "core/retrieval.md" });
 	});
 });
+
+describe("reference edges", () => {
+	it("emits one edge per referenced document, however many paths ground it", () => {
+		const graph = buildGraph({
+			provenance: [
+				record("a.md", ["src/one.ts"]),
+				record("b.md", ["src/two.ts", "src/three.ts"]),
+			],
+			// A names two files, and both belong to B.
+			claims: { "a.md": ["src/two.ts", "src/three.ts"] },
+		});
+
+		const refs = graph.edges.filter((e) => e.kind === "references");
+
+		// One edge per path double-counted in the stats and rendered the same
+		// bullet twice; the paths belong together on a single edge.
+		expect(refs).toHaveLength(1);
+		expect(refs[0]?.to).toBe("b.md");
+		expect(refs[0]?.via).toEqual(["src/three.ts", "src/two.ts"]);
+	});
+});

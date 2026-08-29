@@ -75,7 +75,10 @@ export async function writeExportTree(
 /** Join inside the bundle, refusing anything that tries to escape it. */
 function safeJoin(bundleRoot: string, relative: string): string {
 	const target = resolve(bundleRoot, relative);
-	const base = resolve(bundleRoot);
+	// A filesystem root resolves with its separator already attached (`/`,
+	// `D:\`), so appending another produced `//` and rejected every path in a
+	// bundle exported there.
+	const base = resolve(bundleRoot).replace(/[\\/]+$/, "");
 	if (target !== base && !target.startsWith(base + dirSep())) {
 		throw new Error(`export path escapes the bundle: ${relative}`);
 	}

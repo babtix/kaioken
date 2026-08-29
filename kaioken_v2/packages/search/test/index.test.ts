@@ -298,3 +298,32 @@ describe("degrades to zero dependencies", () => {
 		expect(hits[0]?.via).toEqual(["lexical"]);
 	});
 });
+
+describe("hybrid search with no lexical terms", () => {
+	/** Returns the same vector for everything, so every chunk ranks equally. */
+	const flatProvider: EmbeddingProvider = {
+		async embed(texts) {
+			return texts.map(() => [1, 0, 0]);
+		},
+	};
+
+	it("still runs semantic ranking when the query is all stopwords", async () => {
+		const root = await repo(SOURCE);
+		const index = await SearchIndex.build(root, flatProvider);
+
+		// The analyzer strips stopwords, so lexical ranking has nothing to
+		// score. Returning early there disabled the half of hybrid search that
+		// never sees the analyzer in the first place.
+		const hits = await index.search({ text: "how it is", limit: 3 }, flatProvider);
+
+		expect(hits.length).toBeGreaterThan(0);
+		expect(hits[0]?.via).toEqual(["semantic"]);
+	});
+
+	it("still returns nothing for a stopword query with no embedding provider", async () => {
+		const root = await repo(SOURCE);
+		const index = await SearchIndex.open(root);
+
+		expect(await index.search({ text: "how it is" })).toEqual([]);
+	});
+});

@@ -98,9 +98,14 @@ export function renderGraphMarkdown(
 				.map((e) => (e.from === node.id ? e.to : e.from))
 				.sort();
 
-			const parts = [`${kind === "skill" ? node.path ?? node.title : node.id}`];
-			if (node.path && kind !== "skill") parts.push(` (${node.path})`);
-			lines.push(`- **${node.title}** — ${parts[0]}${parts[1] ?? ""}`);
+			// A wiki node's path *is* its id, so printing both rendered
+			// `architecture/index.md (architecture/index.md)`. The parenthetical
+			// is only worth the space when it says something the id did not.
+			const primary = kind === "skill" ? (node.path ?? node.title) : node.id;
+			const secondary = node.path && kind !== "skill" && node.path !== node.id
+				? ` (${node.path})`
+				: "";
+			lines.push(`- **${node.title}** — ${primary}${secondary}`);
 			if (sources.length > 0) {
 				lines.push(`  - written from: ${sources.map((s) => `\`${s}\``).join(", ")}`);
 			}

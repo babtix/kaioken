@@ -3,13 +3,12 @@ import { loadSkills } from "@kaioken/agent";
 import {
 	buildGraph,
 	graphStats,
-	readGraph,
 	readWikiTree,
 	renderGraphMarkdown,
 	writeExportTree,
 	type ExportManifest,
 } from "@kaioken/graph";
-import { readCards } from "@kaioken/plan";
+import { readCards, safeFileName } from "@kaioken/plan";
 import type { Flags } from "../main.js";
 
 /**
@@ -21,10 +20,10 @@ import type { Flags } from "../main.js";
  * (as JSON, and rendered as prose) tying the whole together. No kaioken, no
  * node_modules, no credentials on the receiving side.
  *
- * The graph is read from `.kaioken/graph.json` when it exists and derived on
- * the spot when it does not: an export that refused to run until someone
- * remembered to run `kaioken graph` first would be a checkpoint in the way,
- * not a safeguard.
+ * The graph is derived here rather than read from `.kaioken/graph.json`: an
+ * export that refused to run until someone remembered `kaioken graph` would be
+ * a checkpoint in the way, and one that trusted a stale cache would ship a
+ * bundle that contradicts itself.
  */
 export async function runExport(flags: Flags): Promise<number> {
 	const root = resolve(flags.root);
@@ -55,8 +54,13 @@ export async function runExport(flags: Flags): Promise<number> {
 		return 1;
 	}
 
-	// The graph: cached when fresh enough, derived otherwise. Deriving is
-	// cheap and offline, so "cached" is an optimisation, never a requirement.
+	// The graph is always derived here, never read from `.kaioken/graph.json`.
+	// It used to prefer the cached file, and nothing checked whether that file
+	// still described the repository — so a bundle could ship twelve chapters
+	// beside a graph and a `knowledge.md` that described eight, with the
+	// manifest asserting the larger number. Every input is already in hand by
+	// this point, so deriving costs a pass over data that has just been read;
+	// a cache that can only be wrong is not worth that.
 	const records = await (await import("./status.js")).gatherProvenance(root);
 	const claims: Record<string, string[]> = {};
 	const titles: Record<string, string> = {};
@@ -72,8 +76,7 @@ export async function runExport(flags: Flags): Promise<number> {
 		titles[`card:${card.moduleId}`] = card.name;
 	}
 
-	const cached = flags.force ? null : await readGraph(root);
-	const graph = cached ?? buildGraph({
+	const graph = buildGraph({
 		provenance: records,
 		claims,
 		titles,
@@ -87,7 +90,7 @@ export async function runExport(flags: Flags): Promise<number> {
 		// under wiki/ so the layout mirrors the repository's own.
 		...wikiFiles.map((file) => ({ path: `wiki/${file.path}`, content: file.content })),
 		...cards.map((card) => ({
-			path: `cards/${card.moduleId.replace(/[^\w.-]+/g, "_")}.json`,
+			path: `cards/${safeFileName(card.moduleId)}.json`,
 			content: `${JSON.stringify(card, null, 2)}\n`,
 		})),
 		// Named by the skill, not by the file it happened to live in: a

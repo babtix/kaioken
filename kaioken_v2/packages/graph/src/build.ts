@@ -95,13 +95,23 @@ export function buildGraph(input: GraphBuildInput): KnowledgeGraph {
 			}
 		}
 
-		for (const [path, via] of [...byPath].sort()) {
-			// One edge per target document the path grounds — several documents
-			// may be written from the same file, and each is referenced.
+		// One edge per document referenced, carrying every path that grounds the
+		// reference. Emitting one edge per *path* meant a document naming two
+		// files that belong to the same chapter produced two identical
+		// `references` edges, which double-counted in the stats and rendered as
+		// a repeated bullet.
+		const byTarget = new Map<string, string[]>();
+		for (const [path, via] of [...byPath].sort(([a], [b]) => a.localeCompare(b))) {
 			for (const [target, sources] of sourcesByDocument) {
 				if (target === record.document || !sources.has(path)) continue;
-				edges.push({ from: record.document, to: target, kind: "references", via });
+				const merged = byTarget.get(target) ?? [];
+				for (const claim of via) if (!merged.includes(claim)) merged.push(claim);
+				byTarget.set(target, merged);
 			}
+		}
+
+		for (const [target, via] of [...byTarget].sort(([a], [b]) => a.localeCompare(b))) {
+			edges.push({ from: record.document, to: target, kind: "references", via });
 		}
 	}
 

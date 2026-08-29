@@ -80,3 +80,40 @@ describe("renderGraphMarkdown", () => {
 		expect(rendered).toContain("- a.md");
 	});
 });
+
+describe("coverage arithmetic", () => {
+	it("never exceeds 100%, and counts only files the repository still has", () => {
+		const built = buildGraph({
+			provenance: [record("a.md", ["src/live.ts", "src/deleted.ts", "src/gone.ts"])],
+		});
+
+		const stats = graphStats(built, { scanPaths: ["src/live.ts", "src/undocumented.ts"] });
+
+		// Sources since deleted must not inflate the numerator, and must not
+		// cancel out a file nothing describes: 1 of 2, not 3 of 2.
+		expect(stats.coverage).toBe(0.5);
+		expect(stats.uncoveredFiles).toBe(1);
+	});
+
+	it("reports no coverage at all rather than 100% when there is no scan", () => {
+		const built = buildGraph({ provenance: [record("a.md", ["src/live.ts"])] });
+
+		expect(graphStats(built).coverage).toBeNull();
+	});
+});
+
+describe("node rendering", () => {
+	it("does not print a wiki node's path twice", () => {
+		const built = buildGraph({
+			provenance: [record("architecture/index.md", ["src/live.ts"])],
+			titles: { "architecture/index.md": "Architecture" },
+			// For a wiki document the path *is* the id.
+			paths: { "architecture/index.md": "architecture/index.md" },
+		});
+
+		const markdown = renderGraphMarkdown(built, graphStats(built));
+
+		expect(markdown).toContain("**Architecture**");
+		expect(markdown).not.toContain("architecture/index.md (architecture/index.md)");
+	});
+});

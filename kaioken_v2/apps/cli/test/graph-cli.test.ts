@@ -228,3 +228,32 @@ describe("kaioken export", () => {
 		expect(stderr).toContain("nothing to export");
 	});
 });
+
+describe("export bundle naming", () => {
+	it("names a card the way the card store already names it", async () => {
+		const root = await knowledgeRepo();
+
+		// `writeCard` slugs non-alphanumerics to `-`; export used `_`. The same
+		// card then had two names, and anything in the bundle pointing at one
+		// missed the other.
+		const cardsDir = join(root, ".kaioken", "cards");
+		await writeFile(
+			join(cardsDir, "auth-session.json"),
+			JSON.stringify({
+				moduleId: "auth/session",
+				name: "Auth session",
+				generatedAt: "2026-08-28T00:00:00Z",
+				summary: "Sessions.",
+				keyPoints: [],
+				entryPoints: [],
+				sources: [{ path: "lib.ts", hash: "h-lib" }],
+				verification: { grounded: 0, ungrounded: [], unknownFiles: [], uncovered: [] },
+			}),
+			"utf8",
+		);
+
+		expect(await main(["export", "--root", root])).toBe(0);
+
+		await readFile(join(root, ".kaioken", "export", "cards", "auth-session.json"), "utf8");
+	});
+});

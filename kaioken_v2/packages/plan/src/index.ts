@@ -12,6 +12,7 @@ export {
 export { buildCardPrompt, generateCard, generateCards, verifyCard } from "./cards.js";
 export type { CardResult } from "./cards.js";
 export { gatherEvidence, gatherModuleEvidence } from "./evidence.js";
+export { safeFileName } from "./artifact.js";
 export type {
 	DirectoryEvidence,
 	ModuleEvidence,
