@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/scan" },
+    { "path": "../../packages/index" },
+    { "path": "../../packages/search" },
+    { "path": "../../packages/plan" },
+    { "path": "../../packages/wiki" },
+    { "path": "../../packages/provenance" },
+    { "path": "../../packages/agent" },
+    { "path": "../../packages/research" },
+    { "path": "../cli" }
+  ]
+}

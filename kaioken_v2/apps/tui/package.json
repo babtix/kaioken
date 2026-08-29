@@ -1,0 +1,21 @@
+{
+  "name": "@kaioken/tui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/main.js",
+  "types": "./dist/main.d.ts",
+  "bin": {
+    "kaioken-tui": "./dist/bin.js"
+  },
+  "dependencies": {
+    "@kaioken/agent": "*",
+    "@kaioken/index": "*",
+    "@kaioken/plan": "*",
+    "@kaioken/provenance": "*",
+    "@kaioken/research": "*",
+    "@kaioken/scan": "*",
+    "@kaioken/search": "*",
+    "@kaioken/wiki": "*"
+  }
+}
