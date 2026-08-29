@@ -374,8 +374,9 @@ function readFileTool(): KnowledgeTool {
 
 			const lines = raw.replace(/\r\n/g, "\n").split("\n");
 			const start = clamp(num(args["start"]) ?? 1, 1, Math.max(lines.length, 1));
-			const requestedEnd = num(args["end"]) ?? start + MAX_READ_LINES - 1;
-			const end = clamp(requestedEnd, start, Math.min(lines.length, start + MAX_READ_LINES - 1));
+			const explicitEnd = num(args["end"]);
+			const windowEnd = start + MAX_READ_LINES - 1;
+			const end = clamp(explicitEnd ?? windowEnd, start, Math.min(lines.length, windowEnd));
 
 			const width = String(end).length;
 			let body = lines
@@ -383,7 +384,11 @@ function readFileTool(): KnowledgeTool {
 				.map((line, i) => `${String(start + i).padStart(width)}  ${line}`)
 				.join("\n");
 
-			let truncated = end < lines.length;
+			// Truncation means the tool gave back less than was asked for, not
+			// merely that the file continues. A model that asked for lines 2-3
+			// and was told its answer was truncated will spend a turn re-reading
+			// a range it already has, and learn to distrust the boundary it set.
+			let truncated = end < lines.length && (explicitEnd === null || end < explicitEnd);
 			if (body.length > MAX_READ_CHARS) {
 				body = body.slice(0, MAX_READ_CHARS);
 				truncated = true;

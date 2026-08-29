@@ -2,7 +2,9 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { writeProvenance } from "@kaioken/wiki";
 import { main } from "../dist/main.js";
+import { persistProvenance } from "../dist/commands/wiki.js";
 
 const NL = String.fromCharCode(10);
 
@@ -280,6 +282,77 @@ describe("kaioken cards", () => {
  * it, because "how stale is my documentation?" has to be answerable in a clone
  * with no credentials.
  */
+/**
+ * What a run is allowed to forget.
+ *
+ * The rule is asymmetric on purpose, and getting it backwards is silent: a
+ * scoped run that replaces the index destroys records for chapters it never
+ * touched, and nothing errors, because the documents are still sitting on disk.
+ */
+describe("wiki provenance", () => {
+	const record = (document: string, path: string) => ({
+		document,
+		generatedAt: "2026-08-28T00:00:00Z",
+		sources: [{ path, hash: `hash-of-${path}` }],
+	});
+
+	const doc = (document: string, path: string) =>
+		({
+			path: document,
+			title: document,
+			body: "# generated\n",
+			verification: { defects: [], coverage: 1 },
+			provenance: record(document, path),
+		}) as never;
+
+	async function provenanceOn(root: string): Promise<string[]> {
+		const raw = await readFile(join(root, ".kaioken", "provenance.json"), "utf8");
+		return (JSON.parse(raw).documents as { document: string }[])
+			.map((entry) => entry.document)
+			.sort();
+	}
+
+	it("keeps every other chapter's record when only one was regenerated", async () => {
+		const root = await repo(SAMPLE);
+		await mkdir(join(root, ".kaioken"), { recursive: true });
+		await writeProvenance(root, [record("alpha/index.md", "lib.ts"), record("beta/index.md", "util.py")]);
+
+		await persistProvenance(root, [doc("alpha/index.md", "lib.ts")], true);
+
+		// beta was not in this run and must survive it. Losing it would leave a
+		// document on disk that `status` reports as unknown and `update` can no
+		// longer regenerate.
+		expect(await provenanceOn(root)).toEqual(["alpha/index.md", "beta/index.md"]);
+	});
+
+	it("replaces the record of a chapter it did regenerate", async () => {
+		const root = await repo(SAMPLE);
+		await mkdir(join(root, ".kaioken"), { recursive: true });
+		await writeProvenance(root, [record("alpha/index.md", "stale.ts")]);
+
+		await persistProvenance(root, [doc("alpha/index.md", "lib.ts")], true);
+
+		const raw = JSON.parse(
+			await readFile(join(root, ".kaioken", "provenance.json"), "utf8"),
+		) as { documents: { document: string; sources: { path: string }[] }[] };
+		expect(raw.documents).toHaveLength(1);
+		expect(raw.documents[0]?.sources[0]?.path).toBe("lib.ts");
+	});
+
+	it("drops superseded records on a whole-wiki run", async () => {
+		const root = await repo(SAMPLE);
+		await mkdir(join(root, ".kaioken"), { recursive: true });
+		await writeProvenance(root, [record("gone/index.md", "lib.ts")]);
+
+		await persistProvenance(root, [doc("alpha/index.md", "lib.ts")], false);
+
+		// A --force re-outline legitimately supersedes chapters. Dropping their
+		// records is how they come to be reported as undocumented rather than as
+		// knowledge the engine still stands behind.
+		expect(await provenanceOn(root)).toEqual(["alpha/index.md"]);
+	});
+});
+
 describe("kaioken wiki", () => {
 	it("refuses a chapter id the outline does not contain", async () => {
 		const root = await repo(SAMPLE);

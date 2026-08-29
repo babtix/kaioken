@@ -310,6 +310,21 @@ describe("read_file", () => {
 		expect(result.text).not.toContain("privateHelper");
 	});
 
+	it("does not call a deliberate range truncated", async () => {
+		const ctx = await context();
+
+		const bounded = await tool("read_file").run({ path: "src/walk.ts", start: 2, end: 3 }, ctx);
+		const open = await tool("read_file").run({ path: "src/walk.ts" }, ctx);
+
+		// The model asked for two lines and got two lines. Telling it the answer
+		// was cut short spends a turn re-reading a range it already has, and
+		// teaches it to distrust the boundary it set.
+		expect(bounded.text).not.toContain("truncated");
+		expect(bounded.details).toMatchObject({ truncated: false });
+		// A whole small file is not truncated either.
+		expect(open.details).toMatchObject({ truncated: false });
+	});
+
 	it("refuses to read outside the repository", async () => {
 		const ctx = await context();
 

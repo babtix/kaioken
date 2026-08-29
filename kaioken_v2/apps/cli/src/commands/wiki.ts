@@ -4,6 +4,7 @@ import { readScanArtifact, scan, writeScanArtifact } from "@kaioken/scan";
 import {
 	groundingDefects,
 	planWiki,
+	readProvenance,
 	readWikiPlan,
 	runWiki,
 	summariseDefects,
@@ -114,7 +115,7 @@ export async function runWikiCommand(flags: Flags): Promise<number> {
 	}
 
 	for (const doc of documents) await writeWikiDocument(root, doc);
-	await writeProvenance(root, documents.map((d) => d.provenance));
+	await persistProvenance(root, documents, flags.module !== undefined);
 
 	// Persist the sections the run actually used. Without this a later `update`
 	// has to re-plan them, invents different ids, and orphans what is on disk.
@@ -127,6 +128,43 @@ async function freshScan(root: string) {
 	const result = await scan(root);
 	await writeScanArtifact(root, result);
 	return result;
+}
+
+/**
+ * Record what this run produced, without forgetting what it did not touch.
+ *
+ * A whole-wiki run legitimately replaces the index: a `--force` re-outline
+ * supersedes documents that no longer belong to any chapter, and dropping their
+ * records is how they come to be reported as undocumented rather than as
+ * knowledge the engine still stands behind.
+ *
+ * A `--module` run is the opposite case, and overwriting there was a silent
+ * data loss: one chapter regenerates, and every *other* chapter's record
+ * disappears with it. Nothing errors — the documents are still on disk — but
+ * `status` can no longer say anything about them (they become `unknown`
+ * freshness, having no recorded sources), `update` can no longer regenerate
+ * them, and they vanish from the graph and any export. `update` has always
+ * merged for exactly this reason.
+ */
+export async function persistProvenance(
+	root: string,
+	documents: WikiDocument[],
+	scoped: boolean,
+): Promise<void> {
+	const fresh = documents.map((doc) => doc.provenance);
+
+	if (!scoped) {
+		await writeProvenance(root, fresh);
+		return;
+	}
+
+	const written = new Set(fresh.map((record) => record.document));
+	const previous = (await readProvenance(root))?.documents ?? [];
+
+	await writeProvenance(root, [
+		...previous.filter((record) => !written.has(record.document)),
+		...fresh,
+	]);
 }
 
 function reportPlan(root: string, plan: ReturnType<typeof Object>, known: string[], flags: Flags): number {
