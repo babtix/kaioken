@@ -23,6 +23,21 @@ export async function ensureIndex(root: string, force = false): Promise<IndexRes
 	}
 
 	const { index } = await buildIndex(scanResult, { previous, force });
+	// The build carries unchanged files across by hash, so a warm repository
+	// comes back byte-identical apart from `builtAt`. Serialising and writing
+	// the artifact again anyway turned every read-side command — and, worse,
+	// every chat turn — into a rewrite of a quarter-megabyte file for no
+	// change at all. When the content is the same, the file stays as it is.
+	if (!force && previous && sameIndex(previous, index)) return index;
 	await writeIndexArtifact(root, index);
 	return index;
+}
+
+/** Same inventory, `builtAt` aside — a timestamp is not a change. */
+function sameIndex(a: IndexResult, b: IndexResult): boolean {
+	return (
+		a.fileCount === b.fileCount &&
+		a.symbolCount === b.symbolCount &&
+		JSON.stringify(a.files) === JSON.stringify(b.files)
+	);
 }

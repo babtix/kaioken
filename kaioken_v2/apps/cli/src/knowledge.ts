@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { type KnowledgeContext, loadSkills, type SkillProblem } from "@kaioken/agent";
 import { SymbolOracle } from "@kaioken/index";
 import { readScanArtifact, scan, type ScanResult, writeScanArtifact } from "@kaioken/scan";
+import { contributedSkills } from "@kaioken/ext";
 import { SearchIndex } from "@kaioken/search";
 import { ensureIndex } from "./artifacts.js";
 import { gatherProvenance } from "./commands/status.js";
@@ -32,6 +33,18 @@ export async function loadKnowledge(
 	const provenance = await gatherProvenance(absolute);
 	const { skills, problems } = await loadSkills(absolute);
 
+	// Installed extensions contribute skills into the same catalog. This is
+	// what makes `ext install` mean anything: a documentation pack that the
+	// agent never loads is a directory of files nobody reads. The repository's
+	// own skills come first — a pack must not shadow what this project says
+	// about itself — and an extension's are namespaced by its id.
+	const contributed = await contributedSkills();
+	const catalog = [...skills, ...contributed.skills.filter((skill) => !skills.some((own) => own.name === skill.name))];
+	const skillIssues = [
+		...problems,
+		...contributed.problems.map((problem) => ({ path: problem.path, reason: `${problem.extension}: ${problem.reason}` })),
+	];
+
 	// Search is a convenience here, not a precondition: a repository whose index
 	// cannot be built still answers structural questions, and losing the whole
 	// session over it would be the wrong trade.
@@ -49,10 +62,10 @@ export async function loadKnowledge(
 			oracle: new SymbolOracle(index),
 			scan: scanResult,
 			provenance,
-			skills,
+			skills: catalog,
 			search,
 		},
-		skillProblems: problems,
+		skillProblems: skillIssues,
 	};
 }
 

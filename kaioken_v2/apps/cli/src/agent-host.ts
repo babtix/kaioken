@@ -133,6 +133,10 @@ export interface AgentSession {
 	/** The assistant's reply to the last prompt, with tool calls stripped. */
 	lastReply(): string;
 	abort(): void;
+	/** Retrieve all messages currently held in the agent context. */
+	getMessages(): unknown[];
+	/** Replace messages in the agent context (e.g. for /fork or /compact). */
+	setMessages(messages: unknown[]): void;
 }
 
 export interface SessionOptions {
@@ -140,8 +144,12 @@ export interface SessionOptions {
 	tools: import("@earendil-works/pi-agent-core").AgentTool[];
 	model: import("@earendil-works/pi-ai").Model<import("@earendil-works/pi-ai").Api>;
 	streamFn: import("@earendil-works/pi-agent-core").StreamFn;
+	/** Optional prior conversation messages to seed into the agent context. */
+	initialMessages?: unknown[];
 	/** Called with assistant prose as it streams. */
 	onText(delta: string): void;
+	/** Called with thinking/reasoning tokens as they stream. */
+	onThinking?: (delta: string) => void;
 	/** Called when a tool starts, so a long call is visible rather than silent. */
 	onTool(name: string, args: unknown): void;
 	onToolResult(name: string, isError: boolean): void;
@@ -166,6 +174,9 @@ export function createSession(agentRuntime: PiAgent, options: SessionOptions): A
 			systemPrompt: options.systemPrompt,
 			model: options.model,
 			tools: options.tools,
+			...(options.initialMessages && options.initialMessages.length > 0
+				? { messages: options.initialMessages as import("@earendil-works/pi-agent-core").AgentState["messages"] }
+				: {}),
 		},
 		streamFn: options.streamFn,
 		...(options.approve
@@ -206,6 +217,8 @@ export function createSession(agentRuntime: PiAgent, options: SessionOptions): A
 				if (inner.type === "text_delta") {
 					reply += inner.delta;
 					options.onText(inner.delta);
+				} else if (inner.type === "thinking_delta") {
+					options.onThinking?.(inner.delta);
 				}
 				break;
 			}
@@ -230,6 +243,10 @@ export function createSession(agentRuntime: PiAgent, options: SessionOptions): A
 		lastReply: () => reply,
 		abort: () => {
 			agent.abort();
+		},
+		getMessages: () => agent.state.messages,
+		setMessages: (messages: unknown[]) => {
+			(agent.state as unknown as { messages: unknown[] }).messages = messages;
 		},
 	};
 }

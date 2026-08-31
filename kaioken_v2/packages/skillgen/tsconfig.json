@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "rootDir": "./src", "outDir": "./dist" },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../scan" },
+    { "path": "../index" },
+    { "path": "../model" },
+    { "path": "../plan" },
+    { "path": "../wiki" },
+    { "path": "../agent" }
+  ]
+}

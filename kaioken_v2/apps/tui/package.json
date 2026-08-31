@@ -9,13 +9,19 @@
     "kaioken-tui": "./dist/bin.js"
   },
   "dependencies": {
+    "@earendil-works/pi-ai": "^0.84.3",
+    "@earendil-works/pi-tui": "^0.84.4",
     "@kaioken/agent": "*",
+    "@kaioken/cli": "*",
     "@kaioken/index": "*",
     "@kaioken/plan": "*",
     "@kaioken/provenance": "*",
     "@kaioken/research": "*",
     "@kaioken/scan": "*",
     "@kaioken/search": "*",
+    "@kaioken/serve": "*",
+    "@kaioken/session": "*",
+    "@kaioken/templates": "*",
     "@kaioken/wiki": "*"
   }
 }

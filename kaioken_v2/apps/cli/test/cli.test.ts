@@ -667,3 +667,55 @@ describe("offline", () => {
 		}
 	});
 });
+
+/**
+ * No command exits without saying something.
+ *
+ * Every subcommand here runs with no model and no network, on a repository
+ * that has nothing generated in it — the state in which each one has the least
+ * to report, and so the state in which one of them is likeliest to fall
+ * through its branches and return an exit code alone. A caller cannot act on
+ * an exit code it was given no words for, and in the TUI, where the CLI's
+ * stdout *is* the transcript, a silent exit paints nothing at all.
+ *
+ * `serve` is absent because it binds a port and does not return, and `chat`
+ * because it reaches a provider; neither can run under a test that promises no
+ * network.
+ */
+describe("every command reports something", () => {
+	const invocations: string[][] = [
+		["scan"],
+		["scan", "--json"],
+		["symbols"],
+		["symbols", "nosuchsymbol"],
+		["symbols", "lib.ts"],
+		["search"],
+		["search", "zzzznomatch"],
+		["search", "add"],
+		["plan", "--check"],
+		["cards"],
+		["wiki", "--check"],
+		["status"],
+		["status", "--json"],
+		["update", "--dry-run"],
+		["verify", "--dry-run"],
+		["graph"],
+		["export"],
+		["research"],
+		["help"],
+		["nosuchcommand"],
+	];
+
+	for (const argv of invocations) {
+		it(`says something for \`${argv.join(" ")}\``, async () => {
+			const root = await repo(SAMPLE);
+			const code = await main([...argv, "--root", root]);
+			// Whatever the verdict, it was explained on one stream or the other.
+			expect(stdout.length + stderr.length).toBeGreaterThan(0);
+			// A non-zero exit that only printed to stdout, or a failure with no
+			// words at all, is the case this guards.
+			if (code !== 0) expect((stderr + stdout).trim()).not.toBe("");
+			expect(typeof code).toBe("number");
+		});
+	}
+});

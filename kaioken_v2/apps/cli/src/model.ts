@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { ModelClient, ModelRequest } from "@kaioken/plan";
 import type { Flags } from "./main.js";
 
@@ -34,8 +36,6 @@ export type ResolvedModel =
 			warning?: string;
 	  }
 	| { ok: false; reason: string };
-
-const DEFAULT_MODEL = "anthropic/claude-sonnet-4.5";
 
 export async function resolveModelClient(flags: Flags): Promise<ResolvedClient> {
 	const resolved = await resolveModel(flags);
@@ -98,20 +98,55 @@ export async function resolveModel(flags: Flags): Promise<ResolvedModel> {
 	}
 
 	const models = providers.builtinModels();
-	const spec = flags.model ?? process.env["KAIOKEN_MODEL"] ?? DEFAULT_MODEL;
+	// No model is assumed. A coding agent bills the model it runs on, so the
+	// choice is the user's: the flag, the environment, or the repo's saved
+	// choice — and without one of those the command stops here with directions
+	// rather than quietly spending on a default.
+	const spec = flags.model ?? process.env["KAIOKEN_MODEL"] ?? (await readRepoModel(flags.root));
+	if (!spec) {
+		return {
+			ok: false,
+			reason:
+				"no model selected — Kaioken assumes nothing.\n" +
+				"  pass --model <provider>/<id>, or set KAIOKEN_MODEL,\n" +
+				'  or write {"model": "<provider>/<id>"} to .kaioken/model.json\n' +
+				"  (in the TUI: /model <provider>/<id> · /provider list shows who is configured)",
+		};
+	}
 	const slash = spec.indexOf("/");
 	if (slash === -1) {
 		return { ok: false, reason: `model must be "<provider>/<model-id>", got "${spec}"` };
 	}
 
-	const providerId = spec.slice(0, slash);
-	const modelId = spec.slice(slash + 1);
+	let providerId = spec.slice(0, slash);
+	let modelId = spec.slice(slash + 1);
 
 	// Only providers whose credentials actually resolve are offered, so an
 	// unconfigured provider fails here with a usable message rather than at the
 	// first request.
 	let available = await models.getAvailable();
 	let model = available.find((m) => m.provider === providerId && m.id === modelId);
+
+	// A spec's first segment can name a model namespace rather than a
+	// provider — an OpenRouter id typed without its `openrouter/` prefix
+	// (`z-ai/glm-4.5`). When some configured provider lists the whole spec as
+	// a model id, or catalogs a family under that namespace, the spec is that
+	// provider's id wearing no prefix, and the true name is adopted so the
+	// request, the cost figures and any failure message name the provider
+	// that will actually be called. A registered first segment is never
+	// second-guessed — `openrouter/auto` is the openrouter provider's own
+	// model, not an id missing its prefix.
+	let describe = spec;
+	if (!model && !models.getProviders().some((p) => p.id === providerId)) {
+		const serving =
+			available.find((m) => m.id === spec) ?? available.find((m) => m.id.startsWith(`${providerId}/`));
+		if (serving) {
+			providerId = serving.provider;
+			modelId = spec;
+			describe = `${serving.provider}/${spec}`;
+			model = available.find((m) => m.provider === providerId && m.id === modelId);
+		}
+	}
 
 	// Dynamic providers can fetch a current list; static ones cannot, and their
 	// bundled catalog is a snapshot that goes stale within weeks.
@@ -151,11 +186,11 @@ export async function resolveModel(flags: Flags): Promise<ResolvedModel> {
 		models,
 		model,
 		ai,
-		describe: spec,
+		describe,
 		...(synthesized
 			? {
 					warning:
-						`"${spec}" is not in the bundled model catalog; using it anyway with limits ` +
+						`"${describe}" is not in the bundled model catalog; using it anyway with limits ` +
 						"borrowed from the nearest known model of that provider. Token and cost " +
 						"figures may be wrong.",
 				}
@@ -205,6 +240,25 @@ function commonPrefixLength(a: string, b: string): number {
 }
 
 /**
+ * The model this repository has saved, if the user chose one.
+ *
+ * `.kaioken/model.json` — the same `.kaioken/` convention the verify gate
+ * uses for its config. Every field is optional and every failure is silent:
+ * an absent or malformed file just means "no saved choice", which the caller
+ * reports as part of the selection chain rather than an error of its own.
+ */
+async function readRepoModel(root: string | undefined): Promise<string | undefined> {
+	const text = await readFile(join(root ?? ".", ".kaioken", "model.json"), "utf8").catch(() => null);
+	if (!text) return undefined;
+	try {
+		const parsed = JSON.parse(text) as { model?: unknown };
+		return typeof parsed.model === "string" && parsed.model.trim() ? parsed.model.trim() : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
  * Providers report failures as raw response bodies. Surfacing one of those on
  * its own leaves the user staring at a JSON blob with no idea which stage
  * failed, against which model, or what to do about it.
@@ -242,4 +296,24 @@ function extractProviderMessage(raw: string): string {
 		}
 	}
 	return raw.trim();
+}
+
+/** Get the list of supported thinking levels for a model (e.g. 3 levels vs 7 levels). */
+export function getModelThinkingLevels(
+	model: import("@earendil-works/pi-ai").Model<import("@earendil-works/pi-ai").Api>,
+	ai: typeof import("@earendil-works/pi-ai"),
+): import("@earendil-works/pi-ai").ModelThinkingLevel[] {
+	return ai.getSupportedThinkingLevels(model);
+}
+
+/** Clamp a requested thinking level to the nearest supported level for a model. */
+export function clampModelThinking(
+	model: import("@earendil-works/pi-ai").Model<import("@earendil-works/pi-ai").Api>,
+	ai: typeof import("@earendil-works/pi-ai"),
+	level: string,
+): import("@earendil-works/pi-ai").ModelThinkingLevel {
+	return ai.clampThinkingLevel(
+		model,
+		level as import("@earendil-works/pi-ai").ModelThinkingLevel,
+	);
 }

@@ -8,7 +8,8 @@ import {
 } from "@kaioken/research";
 import type { Flags } from "../main.js";
 import { resolveModelClient } from "../model.js";
-import { httpFetchPort, resolveSearchPort } from "../web.js";
+import { readFetcherMode, resolveFetchPort } from "../fetcher.js";
+import { resolveSearchPort } from "../web.js";
 
 /**
  * Research the web, grounded the same way the repository is grounded.
@@ -55,10 +56,21 @@ export async function runResearch(flags: Flags): Promise<number> {
 	const depth = depthFor(multiplier);
 
 	const { search, describe: searchDescribe } = resolveSearchPort();
-	const fetch = httpFetchPort();
+	// How pages are read is the repository's setting, not a constant: `kaioken
+	// fetcher` records it, and a run that ignored it would make that command a
+	// lie. A mode that cannot run stops here rather than quietly reading pages
+	// a different way than the user configured — that is how a thin report
+	// becomes impossible to explain afterwards.
+	const fetcher = resolveFetchPort(await readFetcherMode(root));
+	if (!fetcher.ok) {
+		process.stderr.write(`kaioken research: ${fetcher.describe}\n`);
+		return 1;
+	}
+	const fetch = fetcher.fetch;
 
 	if (!flags.json) {
 		process.stderr.write(`kaioken research: searching via ${searchDescribe}\n`);
+		process.stderr.write(`kaioken research: ${fetcher.describe}\n`);
 	}
 
 	const gathered = await gatherSources({

@@ -1,5 +1,7 @@
 import { runCards } from "./commands/cards.js";
 import { runChat } from "./commands/chat.js";
+export { runChat } from "./commands/chat.js";
+export type { ChatHooks, ChatSessionCache } from "./commands/chat.js";
 import { runVerify } from "./commands/verify.js";
 import { runPlan } from "./commands/plan.js";
 import { runScan } from "./commands/scan.js";
@@ -12,12 +14,27 @@ import { runWikiCommand } from "./commands/wiki.js";
 import { runGraph } from "./commands/graph.js";
 import { runExport } from "./commands/export.js";
 import { runResearch } from "./commands/research.js";
+import { runHook } from "./commands/hook.js";
+import { runInit } from "./commands/init.js";
+import { runOnboard } from "./commands/onboard.js";
+import { runDraft } from "./commands/draft.js";
+import { runHandoff } from "./commands/handoff.js";
+import { runLearn } from "./commands/learn.js";
+import { runSkills } from "./commands/skills.js";
+import { runImpact } from "./commands/impact.js";
+import { runFetcher } from "./commands/fetcher.js";
+import { runPrism } from "./commands/prism.js";
+import { runExt } from "./commands/ext.js";
 
 const USAGE = `kaioken — a repository knowledge engine
 
 Usage: kaioken <command> [options]
 
 Commands:
+  init [force]       First-run setup: record the model, scan, index, and write
+                     the AGENTS.md an agent reads before editing. Stops before
+                     the expensive stages. --force rewrites an existing
+                     AGENTS.md instead of refreshing its generated section.
   scan               Walk the repository, flag risky files, and build the
                      declaration inventory. Writes .kaioken/scan.json and
                      .kaioken/index.json. No network, no credentials.
@@ -59,6 +76,45 @@ Commands:
                      sanitised and numbered before the model writes; every [N]
                      citation is then verified against the page it names.
                      Needs a search provider (TAVILY_API_KEY, else DuckDuckGo).
+  onboard            Assemble ONBOARDING.md at the repository root from the
+                     wiki, cards, skills and scan. No model — it can only
+                     restate what has already been generated.
+  draft [base]       Draft the commit message and PR description for the
+                     current change, in the repository's own commit style.
+                     Advisory: nothing is staged or committed.
+  skills [xN|list]   Propose this repository's recurring tasks and write one
+                     guide per task under .kaioken/skills/. An existing skill is
+                     never overwritten without --force; "list" shows what is
+                     there. Paths a guide cites are checked against the scan.
+  impact <change>    Predict what a described change would touch: the
+                     declarations it resolves to, the files that mention them,
+                     and the cards, wiki documents and skills that would go
+                     stale. Every name is checked against the index first.
+  prism <sub|question>
+                     Retrieval over documents you import, scoped to a module:
+                     new, use, drop, import, docs, or a question to ask the
+                     active module. Every answer says whether a graded source
+                     backs it and whether the relevance gate ran.
+  ext <subcommand>   Community extensions: list, install, remove, update,
+                     enable, disable, trust, search, tools, skills, run.
+                     Declarative extensions contribute documents and run
+                     nothing; mcp and wasm extensions install INERT and stay
+                     that way until the exact installed version is trusted.
+  fetcher [mode]     Choose what reads the pages research finds: auto (an API
+                     reader when FIRECRAWL_API_KEY is set, else plain HTTP),
+                     api, or http. Bare, it reports what the current setting
+                     resolves to and whether it can run.
+  handoff [session]  Distill a saved conversation into a continuation briefing —
+                     goal, decisions, state, open threads — with the collapsed
+                     transcript appended. Written to .kaioken/handoffs/.
+  learn [session]    Turn what a session found out into a skill under
+                     .kaioken/skills/. A local gate decides whether the session
+                     taught anything before any model is called; --force skips
+                     the gate.
+  hook [install|remove|status]
+                     Install a git post-commit hook that refreshes stale
+                     documents in the background after every commit. The block
+                     is delimited, so an existing hook script is preserved.
 
 Options:
   --root <dir>   Repository root. Defaults to the working directory.
@@ -80,8 +136,14 @@ Options:
   --verify       chat only: run the gate even when nothing was changed.
   --no-verify    chat only: skip the gate after a session that changed files.
   --module <id>  cards only: regenerate one module's card.
+  --thinking <lvl> chat only: set reasoning depth (off, low, medium, high).
+  --note <text>  Steering note for a generating command. Repeatable.
+  --session <id> handoff/learn only: which saved session to read. Defaults to
+                 the most recently updated one.
   --model <p/id> Provider and model, e.g. anthropic/claude-sonnet-4.5.
-                 Defaults to $KAIOKEN_MODEL.
+                 Default: .kaioken/model.json, then $KAIOKEN_MODEL. No model
+                 is assumed — a generating command without one stops and says
+                 so.
   -h, --help     Show this message.
 
 The multiplier (x1..x10) is one dial for depth. Below x5 it buys breadth; above
@@ -106,7 +168,23 @@ export interface Flags {
 	noVerify: boolean;
 	module?: string;
 	model?: string;
+	thinking?: string;
 	multiplier?: string;
+	/**
+	 * Steering notes, repeatable.
+	 *
+	 * The TUI's `/notes` are session state, and every generating command that
+	 * can honour them takes them this way rather than reading a file — the
+	 * shell is the thing that knows what the user has said this session.
+	 */
+	note?: string[];
+	/**
+	 * A saved session id, for the commands that read one.
+	 *
+	 * The shell passes the conversation it just saved; on the command line it
+	 * defaults to the most recently updated session in the repository.
+	 */
+	session?: string;
 	positional: string[];
 }
 
@@ -165,6 +243,24 @@ export function parseArgs(argv: string[]): Flags | null {
 				const next = argv[++i];
 				if (!next) return null;
 				flags.model = next;
+				break;
+			}
+			case "--thinking": {
+				const next = argv[++i];
+				if (!next) return null;
+				flags.thinking = next;
+				break;
+			}
+			case "--note": {
+				const next = argv[++i];
+				if (!next) return null;
+				(flags.note ??= []).push(next);
+				break;
+			}
+			case "--session": {
+				const next = argv[++i];
+				if (!next) return null;
+				flags.session = next;
 				break;
 			}
 			case "--check":
@@ -256,6 +352,28 @@ export async function main(argv: string[]): Promise<number> {
 			return runExport(flags);
 		case "research":
 			return runResearch(flags);
+		case "init":
+			return runInit(flags);
+		case "hook":
+			return runHook(flags);
+		case "onboard":
+			return runOnboard(flags);
+		case "draft":
+			return runDraft(flags);
+		case "handoff":
+			return runHandoff(flags);
+		case "learn":
+			return runLearn(flags);
+		case "skills":
+			return runSkills(flags);
+		case "impact":
+			return runImpact(flags);
+		case "fetcher":
+			return runFetcher(flags);
+		case "prism":
+			return runPrism(flags);
+		case "ext":
+			return runExt(flags);
 		default:
 			process.stderr.write(`kaioken: unknown command "${command}"\n\n`);
 			process.stdout.write(USAGE);

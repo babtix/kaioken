@@ -40,6 +40,30 @@
     },
     {
       "path": "../../packages/agent"
+    },
+    {
+      "path": "../../packages/agentsmd"
+    },
+    {
+      "path": "../../packages/gitops"
+    },
+    {
+      "path": "../../packages/templates"
+    },
+    {
+      "path": "../../packages/session"
+    },
+    {
+      "path": "../../packages/skillgen"
+    },
+    {
+      "path": "../../packages/impact"
+    },
+    {
+      "path": "../../packages/prism"
+    },
+    {
+      "path": "../../packages/ext"
     }
   ]
 }

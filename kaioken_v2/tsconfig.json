@@ -5,6 +5,9 @@
       "path": "./packages/scan"
     },
     {
+      "path": "./packages/gitops"
+    },
+    {
       "path": "./packages/index"
     },
     {
@@ -33,6 +36,27 @@
     },
     {
       "path": "./packages/agent"
+    },
+    {
+      "path": "./packages/agentsmd"
+    },
+    {
+      "path": "./packages/templates"
+    },
+    {
+      "path": "./packages/session"
+    },
+    {
+      "path": "./packages/skillgen"
+    },
+    {
+      "path": "./packages/impact"
+    },
+    {
+      "path": "./packages/prism"
+    },
+    {
+      "path": "./packages/ext"
     },
     {
       "path": "./apps/cli"
