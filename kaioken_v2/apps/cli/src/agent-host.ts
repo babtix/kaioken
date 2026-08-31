@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import { activeExtensions, callMcpTool, isTrusted, listMcpTools } from "@kaioken/ext";
+import { activeExtensions, callMcpTool, isTrusted, listMcpTools, type Installed } from "@kaioken/ext";
 import type { CommandRunner, KnowledgeContext, KnowledgeTool, RunOutcome } from "@kaioken/agent";
 
 /**
@@ -109,7 +109,10 @@ export async function mcpAgentTools(): Promise<import("@earendil-works/pi-agent-
 
 		let tools;
 		try {
-			tools = await listMcpTools(entry);
+			// A cold spawn can fail transiently when the machine is loaded, and
+			// one hiccup must not hide the tools for a whole conversation. Three
+			// attempts, then an honest report — never an endless retry.
+			tools = await discover(entry);
 		} catch (error) {
 			process.stderr.write(
 				`kaioken: mcp extension ${entry.id} could not be reached (${error instanceof Error ? error.message : String(error)}); its tools are not offered\n`,
@@ -139,6 +142,25 @@ export async function mcpAgentTools(): Promise<import("@earendil-works/pi-agent-
 	}
 
 	return out;
+}
+
+/**
+ * One extension's tool listing, retried across a brief backoff.
+ *
+ * A cold spawn can fail transiently when the machine is loaded; three
+ * attempts, then give up and let the caller report it — never an endless
+ * retry against a server that is genuinely not coming up.
+ */
+async function discover(entry: Installed): Promise<ReturnType<typeof listMcpTools>> {
+	for (const attempt of [0, 1, 2]) {
+		try {
+			return await listMcpTools(entry);
+		} catch (error) {
+			if (attempt === 2) throw error;
+			await new Promise((pause) => setTimeout(pause, 250 * (attempt + 1)));
+		}
+	}
+	throw new Error("the server could not be reached");
 }
 
 /**

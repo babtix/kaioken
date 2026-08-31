@@ -170,6 +170,20 @@ async function withServer<T>(entry: Installed, run: (session: Session) => Promis
 	} finally {
 		child.stdin.end();
 		child.kill();
+		// The kill is asynchronous, and on Windows the dying process keeps a
+		// handle on its working directory — the install directory — until it is
+		// actually reaped. Anything that touches that directory next (removing
+		// the extension, a test's cleanup) would race the teardown and get
+		// EBUSY. Waiting for the exit keeps the resource timeline honest; the
+		// cap keeps a server that refuses to die from hanging this command.
+		await new Promise<void>((done) => {
+			if (child.exitCode !== null || child.signalCode !== null) return done();
+			const cap = setTimeout(done, 1_000);
+			child.once("exit", () => {
+				clearTimeout(cap);
+				done();
+			});
+		});
 	}
 }
 
