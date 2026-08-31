@@ -23,6 +23,14 @@ export interface ConversationEvent {
 	calls?: Array<{ name: string; path?: string }>;
 	/** For a tool result: the tool it came from. */
 	tool?: string;
+	/**
+	 * For a tool result: whether the runtime marked it failed.
+	 *
+	 * pi-agent-core sets this on every toolResult, and it is the only
+	 * trustworthy source — the text of a failure ("Command exited with code
+	 * 3") matches none of the sniffed patterns below for most exit codes.
+	 */
+	isError?: boolean;
 }
 
 export function sessionSignals(events: readonly ConversationEvent[]): Signal[] {
@@ -49,7 +57,7 @@ export function sessionSignals(events: readonly ConversationEvent[]): Signal[] {
 		}
 
 		if (event.role === "tool") {
-			const failed = looksLikeToolError(event.text);
+			const failed = event.isError ?? looksLikeToolError(event.text);
 			// The signal is recovery, not failure: a run that failed and then
 			// passed is a session that found out how to make it pass.
 			if (!failed && lastRunFailed) add("error_recovery");
@@ -76,9 +84,10 @@ const WRITE_TOOLS = new Set(["write", "write_file", "edit", "edit_file", "apply_
 /**
  * A tool result that reports failure.
  *
- * The agent surfaces errors as ordinary text so the model can recover from
- * them, which means there is no status field to read — only the shape of what
- * the harness writes.
+ * The fallback when an event carries no `isError` flag — sessions saved by
+ * other harnesses, or older files. The agent surfaces errors as ordinary text
+ * so the model can recover from them, so all that remains to read is the
+ * shape of what the harness writes.
  */
 export function looksLikeToolError(result: string): boolean {
 	const text = result.trimStart().toLowerCase();

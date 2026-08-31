@@ -1551,12 +1551,15 @@ describe("commands that used to say nothing", () => {
 		expect(text).toContain("started fresh session");
 	});
 
-	it("shows cost estimate on /cost", async () => {
+	it("shows usage on /cost", async () => {
 		const { app, type } = await silentShell();
 		type("/cost");
 		await settle();
 		const text = stripAnsi(app.scrollback().join("\n"));
-		expect(text).toContain("USAGE & COST ESTIMATE");
+		expect(text).toContain("USAGE & COST");
+		// No reply has been metered, so no cost is claimed — not even an
+		// invented per-token one.
+		expect(text).toContain("no metered replies yet");
 	});
 
 	it("runs git diff on /diff", async () => {
@@ -1804,6 +1807,144 @@ describe("the conversation commands", () => {
 		await run("/undo");
 		expect(await readFile(join(root, "src/app.ts"), "utf8")).toBe("original\n");
 		expect(text()).toContain("restored");
+	});
+
+	it("journals the file an approved bash command names", async () => {
+		const root = await tempRepo({ "src/app.ts": "original\n" });
+		const { run, app, text } = await shell(root);
+		(app as unknown as { session: { autoApprove: boolean } }).session.autoApprove = true;
+
+		// Approval journals the named file's prior bytes; the mutation itself
+		// is the agent runtime's to perform, which the write below stands in for.
+		await (app as unknown as {
+			approveToolCall(name: string, args: unknown): Promise<boolean>;
+		}).approveToolCall("bash", { command: "sed -i 's/original/rewritten/' src/app.ts" });
+		await writeFile(join(root, "src/app.ts"), "rewritten\n", "utf8");
+
+		await run("/undo");
+		expect(await readFile(join(root, "src/app.ts"), "utf8")).toBe("original\n");
+		expect(text()).toContain("restored");
+	});
+
+	it("journals a file an approved bash command created", async () => {
+		const root = await tempRepo();
+		const { run, app } = await shell(root);
+		(app as unknown as { session: { autoApprove: boolean } }).session.autoApprove = true;
+
+		await (app as unknown as {
+			approveToolCall(name: string, args: unknown): Promise<boolean>;
+		}).approveToolCall("bash", { command: "echo written by the agent > scratch.txt" });
+		await writeFile(join(root, "scratch.txt"), "written by the agent\n", "utf8");
+
+		await run("/undo");
+		await expect(readFile(join(root, "scratch.txt"), "utf8")).rejects.toThrow();
+	});
+
+	it("journals nothing for a bash command whose writes it cannot see", async () => {
+		const root = await tempRepo();
+		const { run, app, text } = await shell(root);
+		(app as unknown as { session: { autoApprove: boolean } }).session.autoApprove = true;
+
+		await (app as unknown as {
+			approveToolCall(name: string, args: unknown): Promise<boolean>;
+		}).approveToolCall("bash", { command: "node scripts/does-the-thing.js" });
+
+		await run("/undo");
+		// The honest answer for an unreadable command is "nothing recorded",
+		// not a restore invented from a guessed-at token.
+		expect(text()).toContain("nothing to undo");
+		void root;
+	});
+
+	it("compacts with a briefing the model actually wrote", async () => {
+		const root = await tempRepo();
+		const compactTerminal = new ScriptedTerminal(100, 40);
+		const compactApp = createTui({
+			root,
+			terminal: compactTerminal,
+			// The engine double stands in for `kaioken handoff`: it writes the
+			// briefing document the command would, next to the session it names.
+			engine: async (run) => {
+				const id = run.args[run.args.indexOf("--session") + 1] ?? "";
+				await mkdir(join(root, ".kaioken", "handoffs"), { recursive: true });
+				await writeFile(
+					join(root, ".kaioken", "handoffs", `${id}.md`),
+					"## Goal\nship the thing\n\n## Decisions\n- chose plan A\n\n---\n\n## Transcript\n...",
+					"utf8",
+				);
+				return 0;
+			},
+			chat: async (request) => ({
+				reply: "ok",
+				verified: null,
+				gateRan: false,
+				messages: [
+					...(request.initialMessages ?? []),
+					{ role: "user", content: [{ type: "text", text: request.question }] },
+					{ role: "assistant", content: [{ type: "text", text: "ok" }] },
+				],
+			}),
+			model: "anthropic/claude-opus-4",
+			motion: false,
+		});
+		await compactApp.run();
+		const run = (raw: string) =>
+			(compactApp as unknown as { runCommand(raw: string): Promise<void> }).runCommand(raw);
+		const ask = (text: string) =>
+			(compactApp as unknown as { submit(text: string): Promise<void> }).submit(text);
+
+		await ask("first question");
+		await ask("second question");
+		await run("/compact");
+
+		const messages = (compactApp as unknown as { sessionMessages: unknown[] }).sessionMessages;
+		const summary = JSON.stringify(messages[0]);
+		expect(summary).toContain("ship the thing");
+		// The fabricated title-as-summary is gone even when a briefing exists.
+		expect(summary).not.toContain("Compacted summary of");
+		// The retained tail survives the compaction.
+		expect(messages).toHaveLength(3);
+	});
+
+	it("compacts honestly when no model is available to summarise", async () => {
+		const { run, ask, app } = await shell(await tempRepo());
+		await ask("first question");
+		await ask("second question");
+		await run("/compact");
+
+		const messages = (app as unknown as { sessionMessages: unknown[] }).sessionMessages;
+		const summary = JSON.stringify(messages[0]);
+		expect(summary).toContain("elided");
+		expect(summary).toContain("preserved in session");
+		expect(summary).not.toContain("Compacted summary of");
+	});
+
+	it("costs a session from the usage the provider reported", async () => {
+		const { run, app, text } = await shell(await tempRepo());
+		(app as unknown as { sessionMessages: unknown[] }).sessionMessages = [
+			{
+				role: "assistant",
+				content: [],
+				usage: { input: 1500, output: 40, cacheRead: 1000, cacheWrite: 0, cost: { total: 0.00123 } },
+			},
+			{ role: "assistant", content: [], usage: { input: 100, output: 10, cost: { total: 0.00077 } } },
+		];
+		await run("/cost");
+
+		expect(text()).toContain("1,600 in");
+		expect(text()).toContain("50 out");
+		expect(text()).toContain("1,000 cached");
+		// 0.00123 + 0.00077 — the sum of what each reply said it cost, not a
+		// per-token rate this process invented.
+		expect(text()).toContain("$0.0020");
+		expect(text()).toContain("reported by the provider");
+	});
+
+	it("says nothing about cost when no reply carried usage", async () => {
+		const { run, text } = await shell(await tempRepo());
+		await run("/cost");
+		expect(text()).toContain("no metered replies yet");
+		expect(text()).not.toContain("USD");
 	});
 
 	it("has no branches until the conversation is rewound", async () => {

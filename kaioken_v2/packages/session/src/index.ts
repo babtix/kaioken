@@ -12,6 +12,7 @@ export type { SavedSession, SessionMeta, SessionParent } from "./storage.js";
 export { buildBranchTree, flattenBranches } from "./tree.js";
 export type { BranchNode } from "./tree.js";
 export {
+	bashFileTargets,
 	clearUndoJournal,
 	readUndoJournal,
 	recordUndo,
@@ -19,6 +20,6 @@ export {
 	undoPath,
 	UNDO_DIR,
 } from "./undo.js";
-export type { UndoEntry, UndoOutcome } from "./undo.js";
+export type { BashTargets, UndoEntry, UndoOutcome } from "./undo.js";
 export { looksLikeCorrection, looksLikeToolError, sessionSignals } from "./signals.js";
 export type { ConversationEvent, Signal } from "./signals.js";

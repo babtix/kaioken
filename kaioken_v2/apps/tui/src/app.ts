@@ -63,6 +63,7 @@ import { truncate } from "./screen.js";
 import { kaiokenAutocomplete } from "./autocomplete.js";
 import { readRepoState, type RepoState } from "./repoState.js";
 import {
+	bashFileTargets,
 	buildBranchTree,
 	deleteSession,
 	deriveTitle,
@@ -2040,11 +2041,19 @@ export class KaiokenTui {
 				// full conversation stays on disk under the old id, and /tree
 				// can walk back to it if the summary turns out to have dropped
 				// the one thing that mattered.
-				await this.branchFrom("compact");
+				const from = await this.branchFrom("compact");
 				// Retain last turn (user + assistant) and summarize earlier turns
 				const tail = this.sessionMessages.slice(-2);
 				const earlier = this.sessionMessages.slice(0, -2);
-				const summaryText = `[Compacted summary of ${earlier.length} earlier messages: prior context focused on "${deriveTitle(earlier)}"]`;
+				// The summary is the engine's own handoff of the branch just left —
+				// a real briefing, written by the model from the saved transcript.
+				// Without a model the marker says what actually happened — messages
+				// were elided, and where they went — rather than dressing the
+				// conversation's title up as a summary of it.
+				const briefing = await this.briefingForSession(from);
+				const summaryText = briefing
+					? `[Earlier conversation compacted from ${earlier.length} messages. Briefing of the full conversation, preserved as session ${from}:\n\n${briefing}]`
+					: `[${earlier.length} earlier messages elided — no model available to summarise them. The full conversation is preserved in session ${from}.]`;
 				this.sessionMessages = [
 					{ role: "system", content: [{ type: "text", text: summaryText }] },
 					...tail,
@@ -2052,7 +2061,11 @@ export class KaiokenTui {
 				this.chatCache = {};
 				this.append(
 					okLine(`compacted conversation: reduced from ${beforeCount} to ${this.sessionMessages.length} items`),
-					dim("older context preserved in summary"),
+					dim(
+						briefing
+							? "earlier context carried as a briefing written from the saved transcript"
+							: `earlier messages elided unsummarised; full copy in session ${from}`,
+					),
 				);
 				void this.persistCurrentSession();
 				return this.repaintAsync();
@@ -2160,22 +2173,58 @@ export class KaiokenTui {
 			}
 
 			case "cost": {
-				let totalChars = 0;
-				for (const m of this.sessionMessages) {
-					totalChars += JSON.stringify(m).length;
+				// The runtime bills per assistant reply and records what it spent
+				// on the message: usage tokens and the cost it computed from the
+				// model's own pricing. Summing those is real accounting; a flat
+				// per-token rate invented here would be real-looking nonsense.
+				let replies = 0;
+				let inputTokens = 0;
+				let outputTokens = 0;
+				let cachedTokens = 0;
+				let cost: number | null = null;
+				for (const raw of this.sessionMessages) {
+					const message = raw as {
+						role?: string;
+						usage?: {
+							input?: number;
+							output?: number;
+							cacheRead?: number;
+							cacheWrite?: number;
+							cost?: { total?: number };
+						};
+					};
+					if (message.role !== "assistant" || !message.usage) continue;
+					replies++;
+					inputTokens += message.usage.input ?? 0;
+					outputTokens += message.usage.output ?? 0;
+					cachedTokens += (message.usage.cacheRead ?? 0) + (message.usage.cacheWrite ?? 0);
+					if (typeof message.usage.cost?.total === "number") {
+						cost = (cost ?? 0) + message.usage.cost.total;
+					}
 				}
-				// ~4 characters per token heuristic
-				const estimatedTokens = Math.round(totalChars / 4);
-				const costEstimate = ((estimatedTokens / 1000000) * 0.5).toFixed(4); // approx $0.50 / 1M tokens
-				this.append(
-					bold(fg("accent", "USAGE & COST ESTIMATE")),
+
+				const lines: Line[] = [
+					bold(fg("accent", "USAGE & COST")),
 					dim("─".repeat(Math.min(76, this.width - 4))),
 					`${dim("Conversation turns:")}  ${this.sessionTurns}`,
 					`${dim("Context messages:")}    ${this.sessionMessages.length}`,
-					`${dim("Estimated tokens:")}    ~${estimatedTokens.toLocaleString()}`,
-					`${dim("Approx cost:")}         ~$${costEstimate} USD`,
-					dim("costs depend on provider billing rates"),
-				);
+				];
+				if (replies > 0) {
+					lines.push(
+						`${dim("Metered replies:")}      ${replies}`,
+						`${dim("Tokens:")}  ${inputTokens.toLocaleString()} in · ${outputTokens.toLocaleString()} out${cachedTokens > 0 ? ` · ${cachedTokens.toLocaleString()} cached` : ""}`,
+					);
+					lines.push(
+						cost !== null
+							? `${dim("Cost:")}                ~$${cost.toFixed(4)} USD (reported by the provider per reply)`
+							: dim("cost unpriced — the provider's replies carried no cost figure"),
+					);
+				} else {
+					lines.push(
+						dim("no metered replies yet — usage is recorded per assistant reply"),
+					);
+				}
+				this.append(...lines);
 				return this.repaintAsync();
 			}
 		}
@@ -2283,7 +2332,18 @@ export class KaiokenTui {
 	 */
 	private async brancheBriefing(): Promise<string> {
 		if (this.sessionTurns === 0 && this.sessionMessages.length === 0) return "";
-		const id = this.activeSessionId;
+		return this.briefingForSession(this.activeSessionId);
+	}
+
+	/**
+	 * The handoff briefing of a saved session, or "" when none was written.
+	 *
+	 * The engine reads the session off disk, so it must already be saved —
+	 * callers branch (which persists) before asking. Only the four briefing
+	 * sections travel; the appended transcript is the whole conversation,
+	 * which is exactly what the branch itself preserves.
+	 */
+	private async briefingForSession(id: string): Promise<string> {
 		await this.runEngine({
 			command: "handoff",
 			args: ["--session", id],
@@ -2291,8 +2351,6 @@ export class KaiokenTui {
 		});
 		const path = join(this.session.root, ".kaioken", "handoffs", `${id}.md`);
 		const document = await readFile(path, "utf8").catch(() => "");
-		// Only the four briefing sections travel; the appended transcript is
-		// the whole conversation, which is exactly what the fork left behind.
 		const cut = document.indexOf("\n---\n");
 		const head = cut === -1 ? document : document.slice(0, cut);
 		return head.trim();
@@ -2512,7 +2570,13 @@ export class KaiokenTui {
 		}
 		if (name === "bash") {
 			const command = String(record.command ?? "");
-			return this.requestApproval({ action: "run", target: command, preview: command });
+			const approved = await this.requestApproval({ action: "run", target: command, preview: command });
+			// A bash call names no file, so its journal is recovered from the
+			// command line itself — redirections and the file-mutating commands.
+			// What the heuristic cannot see (a glob, a computed path) it does
+			// not claim, and /undo says nothing about it rather than lying.
+			if (approved) await this.journalBash(command);
+			return approved;
 		}
 		return this.requestApproval({ action: name, target: name, preview: JSON.stringify(args ?? {}) });
 	}
@@ -2531,6 +2595,28 @@ export class KaiokenTui {
 		} catch {
 			// Nothing to say here. An error about the undo journal, printed in
 			// the middle of a turn, reads as an error about the write itself.
+		}
+	}
+
+	/**
+	 * Journal the files an approved bash command is about to touch.
+	 *
+	 * `bashFileTargets` reads the command line for the paths it names. A
+	 * mutation target that does not exist is dropped here rather than
+	 * journaled — the undo stack never carries a "deletion" of something that
+	 * was never there. Redirection targets are journaled either way: a file
+	 * the command creates is undone by deleting it.
+	 */
+	private async journalBash(command: string): Promise<void> {
+		const { files, creates } = bashFileTargets(command);
+		for (const target of creates) {
+			await this.journalUndo("bash", target);
+		}
+		for (const target of files) {
+			const isFile = await stat(resolve(this.session.root, target))
+				.then((s) => s.isFile())
+				.catch(() => false);
+			if (isFile) await this.journalUndo("bash", target);
 		}
 	}
 

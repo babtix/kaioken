@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+	bashFileTargets,
 	buildBranchTree,
 	flattenBranches,
 	readUndoJournal,
@@ -190,5 +191,48 @@ describe("the learn gate", () => {
 				),
 			),
 		).not.toContain("correction");
+	});
+});
+
+/**
+ * `bashFileTargets` — the heuristic that gives `/undo` something to record
+ * for a shell command. It knows redirections and the everyday file-mutating
+ * commands; anything more exotic passes unrecorded by design, because a
+ * journal full of guessed-at tokens would restore files nobody changed.
+ */
+describe("bash file targets", () => {
+	it("journals a sed -i target", () => {
+		expect(bashFileTargets("sed -i 's/a/b/' src/app.ts").files).toEqual(["src/app.ts"]);
+	});
+
+	it("journals both sides of an mv, the destination as a create", () => {
+		const { files, creates } = bashFileTargets("mv old.ts new.ts");
+		expect(files).toEqual(["old.ts"]);
+		expect(creates).toEqual(["new.ts"]);
+	});
+
+	it("journals a redirection target that does not exist yet", () => {
+		expect(bashFileTargets("echo hello > notes.txt").creates).toEqual(["notes.txt"]);
+	});
+
+	it("reads attached and descriptor redirections, but not 2>&1", () => {
+		const { creates } = bashFileTargets("node build.js 2>errors.log 2>&1 >out.txt");
+		expect(creates).toEqual(["errors.log", "out.txt"]);
+	});
+
+	it("finds targets in every segment of a compound command", () => {
+		const { files } = bashFileTargets("rm a.tmp && sed -i s/x/y/ b.ts ; touch c.ts");
+		expect(files).toEqual(["a.tmp", "b.ts", "c.ts"]);
+	});
+
+	it("records nothing for a command whose writes it cannot see", () => {
+		const { files, creates } = bashFileTargets("node scripts/migrate.js --force");
+		expect(files).toEqual([]);
+		expect(creates).toEqual([]);
+	});
+
+	it("strips quotes and skips flags and env assignments", () => {
+		const { files } = bashFileTargets('FOO=1 rm -rf "dir with spaces/file.txt"');
+		expect(files).toEqual(["dir with spaces/file.txt"]);
 	});
 });

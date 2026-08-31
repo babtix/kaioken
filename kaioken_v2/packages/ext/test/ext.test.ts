@@ -1,4 +1,4 @@
-import { gzipSync } from "node:zlib";
+﻿import { gzipSync } from "node:zlib";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -18,6 +18,7 @@ import {
 	parseSemver,
 	readTar,
 	removeExtension,
+	runWasmCommand,
 	setEnabled,
 	trustExtension,
 	validateManifest,
@@ -370,3 +371,95 @@ function readTarFixture(): Buffer {
 	blocks.push(Buffer.alloc(1024));
 	return Buffer.concat(blocks);
 }
+
+/**
+ * `runWasmCommand` — the one place somebody else's code executes. The modules
+ * below are hand-assembled binaries (a hand assembly of a handful of bytes is
+ * the whole toolchain a test can afford): the first writes "ok" at offset 0
+ * and returns that pointer; the second's `run` is a loop that never exits,
+ * which is what makes the timeout testable — the budget has to actually
+ * terminate it, not file a report after the fact.
+ */
+describe("running wasm", () => {
+	const RETURNER = new Uint8Array([
+		// magic + version
+		0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+		// type: two functypes — run: (i32, i32) -> i32; alloc: (i32) -> i32
+		0x01, 0x0c, 0x02, 0x60, 0x02, 0x7f, 0x7f, 0x01, 0x7f, 0x60, 0x01, 0x7f, 0x01, 0x7f,
+		// func: run is type 0, alloc is type 1
+		0x03, 0x03, 0x02, 0x00, 0x01,
+		// memory: one page, min 1
+		0x05, 0x03, 0x01, 0x00, 0x01,
+		// export: memory, run (func 0), alloc (func 1)
+		0x07, 0x18, 0x03, 0x06, 0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, 0x02, 0x00, 0x03, 0x72, 0x75, 0x6e,
+		0x00, 0x00, 0x05, 0x61, 0x6c, 0x6c, 0x6f, 0x63, 0x00, 0x01,
+		// code: run returns 0; alloc returns 512, well clear of the data at 0
+		0x0a, 0x0c, 0x02, 0x04, 0x00, 0x41, 0x00, 0x0b, 0x05, 0x00, 0x41, 0x80, 0x04, 0x0b,
+		// data: "ok\0" at offset 0
+		0x0b, 0x09, 0x01, 0x00, 0x41, 0x00, 0x0b, 0x03, 0x6f, 0x6b, 0x00,
+	]);
+
+	const HANGER = new Uint8Array([
+		0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+		0x01, 0x07, 0x01, 0x60, 0x02, 0x7f, 0x7f, 0x01, 0x7f,
+		0x03, 0x02, 0x01, 0x00,
+		0x05, 0x03, 0x01, 0x00, 0x01,
+		0x07, 0x10, 0x02, 0x06, 0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, 0x02, 0x00, 0x03, 0x72, 0x75, 0x6e,
+		0x00, 0x00,
+		// code: (loop (br 0)) unreachable — it never returns
+		0x0a, 0x0a, 0x01, 0x08, 0x00, 0x03, 0x40, 0x0c, 0x00, 0x0b, 0x00, 0x0b,
+	]);
+
+	async function extensionWith(name: string, bytes: Uint8Array) {
+		const dir = await mkdtemp(join(tmpdir(), "kaioken-wasm-"));
+		dirs.push(dir);
+		await writeFile(join(dir, name), bytes);
+		return {
+			id: "acme.tool",
+			version: "1.0.0",
+			source: "test",
+			installedAt: new Date().toISOString(),
+			dir,
+			enabled: true,
+			manifest: validateManifest({ id: "acme.tool", name: "x", version: "1.0.0", type: "wasm", wasm: { entry: name } }),
+		};
+	}
+
+	it("returns what the module wrote", async () => {
+		const entry = await extensionWith("returner.wasm", RETURNER);
+		const result = await runWasmCommand(entry, { command: "greet" });
+		expect(result.output).toBe("ok");
+		expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
+	});
+
+	it("terminates a module that will not return", async () => {
+		const entry = await extensionWith("hanger.wasm", HANGER);
+		const started = Date.now();
+		await expect(runWasmCommand(entry, { command: "greet", timeoutMs: 200 })).rejects.toThrow(
+			/past its 200ms budget/,
+		);
+		// The budget is a kill, not a report: the caller is unblocked at the
+		// budget, not whenever the module would eventually have finished —
+		// which, for this module, is never.
+		expect(Date.now() - started).toBeLessThan(10_000);
+	});
+
+	it("refuses to run an entry that is not a wasm extension", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kaioken-wasm-"));
+		dirs.push(dir);
+		await expect(
+			runWasmCommand(
+				{
+					id: "acme.docs",
+					version: "1.0.0",
+					source: "test",
+					installedAt: new Date().toISOString(),
+					dir,
+					enabled: true,
+					manifest: validateManifest({ id: "acme.docs", name: "x", version: "1.0.0" }),
+				},
+				{ command: "greet" },
+			),
+		).rejects.toThrow(/not a wasm extension/);
+	});
+});

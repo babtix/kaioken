@@ -24,6 +24,7 @@ export function renderTranscript(messages: readonly unknown[]): string {
 			role?: string;
 			content?: unknown;
 			name?: string;
+			toolName?: string;
 			toolCalls?: Array<{ name?: string; function?: { name?: string } }>;
 		};
 		// The system prompt is boilerplate this project wrote. It says nothing
@@ -33,8 +34,12 @@ export function renderTranscript(messages: readonly unknown[]): string {
 		const text = flatten(message.content);
 		const calls = toolNames(message);
 
-		if (message.role === "tool") {
-			out.push(`- *${message.name ?? "tool"} result* (${text.length} chars)`);
+		// pi-agent-core reports a result as role "toolResult" with `toolName`;
+		// the OpenAI-ish shape uses role "tool" with `name`. Both are the same
+		// event: what came back from a call, which nobody needs in full.
+		if (message.role === "tool" || message.role === "toolResult") {
+			const tool = message.toolName ?? message.name ?? "tool";
+			out.push(`- *${tool} result* (${text.length} chars)`);
 			continue;
 		}
 		if (calls.length > 0) {
@@ -116,10 +121,17 @@ export function toEvents(messages: readonly unknown[]): ConversationEvent[] {
 			role?: string;
 			content?: unknown;
 			name?: string;
+			toolName?: string;
+			isError?: boolean;
 			toolCalls?: Array<{ name?: string; function?: { name?: string; arguments?: unknown }; arguments?: unknown }>;
 		};
 		const role = message.role;
-		if (role !== "user" && role !== "assistant" && role !== "tool" && role !== "system") continue;
+		// "toolResult" is what pi-agent-core calls a tool's reply; the gate
+		// speaks "tool". Dropping them here — the bug this rename fixes —
+		// silently disabled every signal that reads results, error_recovery
+		// among them.
+		if (role === "system") continue;
+		if (role !== "user" && role !== "assistant" && role !== "tool" && role !== "toolResult") continue;
 
 		const calls: Array<{ name: string; path?: string }> = [];
 		for (const call of message.toolCalls ?? []) {
@@ -140,10 +152,11 @@ export function toEvents(messages: readonly unknown[]): ConversationEvent[] {
 		}
 
 		out.push({
-			role,
+			role: role === "toolResult" ? "tool" : role,
 			text: flatten(message.content),
 			...(calls.length > 0 ? { calls } : {}),
-			...(message.name ? { tool: message.name } : {}),
+			...(message.toolName ?? message.name ? { tool: message.toolName ?? message.name } : {}),
+			...(typeof message.isError === "boolean" ? { isError: message.isError } : {}),
 		});
 	}
 	return out;

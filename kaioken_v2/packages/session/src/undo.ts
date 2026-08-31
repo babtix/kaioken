@@ -138,6 +138,131 @@ export async function clearUndoJournal(root: string): Promise<void> {
 }
 
 /**
+ * The files a shell command is likely to change.
+ *
+ * A `write` or `edit` names its file; a bash command does not, so the journal
+ * can only be recovered by reading the command. That read is a heuristic and
+ * says so: it knows redirections (which create or truncate whatever they name,
+ * exist or not) and the everyday file-mutating commands, whose arguments are
+ * files by definition. Everything else — a glob, a variable, a command that
+ * writes through a path it computes — passes unrecorded, and `/undo` says
+ * nothing about it rather than claiming a restore it never took.
+ *
+ * `files` are targets that should exist (the caller stats before journaling);
+ * `creates` are redirection targets, journaled either way — a target that did
+ * not exist is undone by deleting it.
+ */
+export interface BashTargets {
+	files: string[];
+	creates: string[];
+}
+
+/** Commands whose non-flag arguments are files they mutate. */
+const FILE_ARG_COMMANDS = new Set([
+	"rm",
+	"mv",
+	"cp",
+	"sed",
+	"tee",
+	"touch",
+	"chmod",
+	"chown",
+	"ln",
+	"rename",
+	"shred",
+	"install",
+	"truncate",
+]);
+
+/** Never journal more than this from one command. */
+const MAX_BASH_TARGETS = 25;
+
+export function bashFileTargets(command: string): BashTargets {
+	const files: string[] = [];
+	const creates: string[] = [];
+	const seen = new Set<string>();
+	const add = (list: string[], token: string): void => {
+		if (!token || seen.has(token) || files.length + creates.length >= MAX_BASH_TARGETS) return;
+		seen.add(token);
+		list.push(token);
+	};
+
+	// Pipelines and lists are separate commands; each segment's first word is
+	// its own command name.
+	for (const segment of command.split(/\|\||&&|[|;]/)) {
+		const tokens = tokenize(segment);
+		let commandName = "";
+		const positional: string[] = [];
+		for (let i = 0; i < tokens.length; i++) {
+			const token = tokens[i] as string;
+			// Redirection: `> f`, `>> f`, `2> f`, and the attached `>f` forms.
+			const redirect = /^(?:\d*)?(>>?)$/.exec(token) ?? /^(?:\d*)?(>>?)(.+)$/.exec(token);
+			if (redirect) {
+				const target = redirect[2] ?? tokens[++i];
+				// `2>&1` duplicates a descriptor; it creates no file.
+				if (target && !target.startsWith("&")) add(creates, target);
+				continue;
+			}
+			if (!commandName) {
+				// Skip leading VAR=value assignments to find the command name.
+				if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(token)) continue;
+				commandName = token;
+				continue;
+			}
+			if (token.startsWith("-")) continue;
+			positional.push(token);
+		}
+
+		if (!FILE_ARG_COMMANDS.has(commandName)) continue;
+		// sed's first positional is the script (`sed -i 's/a/b/' file`); mv and
+		// cp's last is the destination, which may not exist yet.
+		let args = positional;
+		if (commandName === "sed") args = args.slice(1);
+		if ((commandName === "mv" || commandName === "cp" || commandName === "ln" || commandName === "install") && args.length > 1) {
+			const dest = args[args.length - 1] as string;
+			add(creates, dest);
+			args = args.slice(0, -1);
+		}
+		for (const arg of args) add(files, arg);
+	}
+
+	return { files, creates };
+}
+
+/**
+ * Split a shell segment into words, honouring quotes.
+ *
+ * A quoted path with spaces (`"dir with spaces/file.txt"`) is one word; the
+ * quotes themselves are not part of it. This is a reader, not a shell —
+ * escapes, command substitution and globs are beyond what a journal heuristic
+ * needs, and the words it cannot parse correctly it simply never journals.
+ */
+function tokenize(segment: string): string[] {
+	const tokens: string[] = [];
+	let current = "";
+	let quote: string | null = null;
+	for (const ch of segment.trim()) {
+		if (quote) {
+			if (ch === quote) quote = null;
+			else current += ch;
+			continue;
+		}
+		if (ch === '"' || ch === "'") {
+			quote = ch;
+			continue;
+		}
+		if (/\s/.test(ch)) {
+			if (current) tokens.push(current);
+			current = "";
+			continue;
+		}
+		current += ch;
+	}
+	if (current) tokens.push(current);
+	return tokens;
+}
+
+/**
  * Rewrite the journal with the popped entry gone.
  *
  * Written to a temporary file and renamed, so an interrupted undo leaves the
