@@ -15,6 +15,7 @@ import {
 	writeWikiDocument,
 } from "@kaioken/wiki";
 import { ensureIndex } from "../artifacts.js";
+import { refreshKnowledgeBlock } from "@kaioken/agentsmd";
 import type { Flags } from "../main.js";
 import { resolveModelClient } from "../model.js";
 import { gatherProvenance } from "./status.js";
@@ -161,6 +162,13 @@ export async function runUpdate(flags: Flags): Promise<number> {
 	process.stdout.write(
 		`${out.join("\n")}\n\nregenerated ${regenerated} of ${affected.length} stale document${plural}\n`,
 	);
+	// Regenerated cards and chapters change what an agent reads before
+	// editing. The refresh is free, and a no-op in a repository with no
+	// AGENTS.md.
+	if (regenerated > 0) {
+		const refreshed = await refreshKnowledgeBlock(root);
+		if (refreshed) process.stdout.write("\nrefreshed the generated section of AGENTS.md\n");
+	}
 	return 0;
 }
 

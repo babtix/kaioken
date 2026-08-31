@@ -1,11 +1,43 @@
 import { resolve } from "node:path";
-import { type KnowledgeContext, loadSkills, type SkillProblem } from "@kaioken/agent";
+import { type KnowledgeContext, loadSkills, type Skill, type SkillProblem } from "@kaioken/agent";
 import { SymbolOracle } from "@kaioken/index";
 import { readScanArtifact, scan, type ScanResult, writeScanArtifact } from "@kaioken/scan";
 import { contributedSkills } from "@kaioken/ext";
 import { SearchIndex } from "@kaioken/search";
 import { ensureIndex } from "./artifacts.js";
 import { gatherProvenance } from "./commands/status.js";
+
+/**
+ * One catalog, everywhere skills are read.
+ *
+ * The agent's context, the exporter, the graph and the onboarding document all
+ * answer "what can this repository do" — and two of them reading different
+ * loaders is how those answers start to disagree. Extensions contribute into
+ * the same catalog here, namespaced by their id; the repository's own skills
+ * come first, because a pack must not shadow what this project says of itself.
+ */
+export interface SkillCatalog {
+	skills: Skill[];
+	problems: SkillProblem[];
+}
+
+export async function loadSkillCatalog(root: string): Promise<SkillCatalog> {
+	const { skills, problems } = await loadSkills(root);
+	const contributed = await contributedSkills();
+	return {
+		skills: [
+			...skills,
+			...contributed.skills.filter((skill) => !skills.some((own) => own.name === skill.name)),
+		],
+		problems: [
+			...problems,
+			...contributed.problems.map((problem) => ({
+				path: problem.path,
+				reason: `${problem.extension}: ${problem.reason}`,
+			})),
+		],
+	};
+}
 
 /**
  * Load everything the agent's tools read, once.
@@ -31,19 +63,8 @@ export async function loadKnowledge(
 	const index = await ensureIndex(absolute, options.force);
 	const scanResult = await currentScan(absolute, options.force === true);
 	const provenance = await gatherProvenance(absolute);
-	const { skills, problems } = await loadSkills(absolute);
-
-	// Installed extensions contribute skills into the same catalog. This is
-	// what makes `ext install` mean anything: a documentation pack that the
-	// agent never loads is a directory of files nobody reads. The repository's
-	// own skills come first — a pack must not shadow what this project says
-	// about itself — and an extension's are namespaced by its id.
-	const contributed = await contributedSkills();
-	const catalog = [...skills, ...contributed.skills.filter((skill) => !skills.some((own) => own.name === skill.name))];
-	const skillIssues = [
-		...problems,
-		...contributed.problems.map((problem) => ({ path: problem.path, reason: `${problem.extension}: ${problem.reason}` })),
-	];
+	const { skills, problems } = await loadSkillCatalog(absolute);
+	const catalog = skills;
 
 	// Search is a convenience here, not a precondition: a repository whose index
 	// cannot be built still answers structural questions, and losing the whole
@@ -65,7 +86,7 @@ export async function loadKnowledge(
 			skills: catalog,
 			search,
 		},
-		skillProblems: skillIssues,
+		skillProblems: problems,
 	};
 }
 

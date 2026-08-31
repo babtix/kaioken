@@ -1,5 +1,4 @@
 import { basename, join, relative, resolve } from "node:path";
-import { loadSkills } from "@kaioken/agent";
 import {
 	buildGraph,
 	graphStats,
@@ -9,6 +8,7 @@ import {
 	type ExportManifest,
 } from "@kaioken/graph";
 import { readCards, safeFileName } from "@kaioken/plan";
+import { loadSkillCatalog } from "../knowledge.js";
 import type { Flags } from "../main.js";
 
 /**
@@ -36,13 +36,14 @@ export async function runExport(flags: Flags): Promise<number> {
 	const cards = await readCards(root);
 	const wikiFiles = await readWikiTree(join(root, ".kaioken", "wiki"));
 
-	// The canonical loader, not a second implementation of it. Reading the skills
-	// directory here by hand is how the bundle came to carry only the flat
-	// `topic.md` layout while the agent and the search index both understood
-	// `topic/SKILL.md` too — an export that silently drops knowledge, and then
-	// states a count, is exactly the confident wrong answer this engine exists to
-	// avoid.
-	const { skills: skillFiles, problems: skillProblems } = await loadSkills(root);
+	// The canonical catalog, not a second implementation of it. Reading the
+	// skills directory here by hand is how the bundle came to carry only the
+	// flat `topic.md` layout while the agent and the search index both
+	// understood `topic/SKILL.md` too — and how a contributed skill never
+	// reached the bundle at all. An export that silently drops knowledge, and
+	// then states a count, is exactly the confident wrong answer this engine
+	// exists to avoid.
+	const { skills: skillFiles, problems: skillProblems } = await loadSkillCatalog(root);
 	for (const problem of skillProblems) {
 		process.stderr.write(`kaioken export: skipped skill ${problem.path} — ${problem.reason}\n`);
 	}

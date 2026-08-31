@@ -12,6 +12,7 @@ import {
 import {
 	createSession,
 	executionTools,
+	mcpAgentTools,
 	MUTATING_TOOLS,
 	nodeCommandRunner,
 	toRuntimeTools,
@@ -209,10 +210,13 @@ export async function runChat(flags: Flags, hooks: ChatHooks = {}): Promise<numb
 
 	// Tools bind to the knowledge context they read, so they follow it: a
 	// cached context keeps its tools, a fresh context builds its own — with
-	// the execution tools added when, and only when, the turn may write.
+	// the execution tools added when, and only when, the turn may write, and
+	// trusted MCP extensions' tools joined on every fresh setup so the agent
+	// can call what a person could only reach through `ext run` before.
 	const tools = reusable && cache?.tools ? cache.tools : toRuntimeTools(resolved.ai, KNOWLEDGE_TOOLS, context);
-	if (!reusable && flags.write) {
-		tools.push(...executionTools(runtime, nodeRuntime, root));
+	if (!reusable) {
+		if (flags.write) tools.push(...executionTools(runtime, nodeRuntime, root));
+		tools.push(...(await mcpAgentTools()));
 	}
 
 	const { models, model } = resolved;

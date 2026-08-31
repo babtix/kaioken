@@ -6,6 +6,7 @@ import { VERSION, createTui, engineArgv, type ChatRunner, type EngineRunner, typ
 import { CURTAIN } from "../src/curtain.js";
 import { ScriptedTerminal } from "../src/scriptedTerminal.js";
 import { listSessions } from "@kaioken/session";
+import { createModule, ingest, writeActiveModule } from "@kaioken/prism";
 import { setTheme, stripAnsi } from "../src/theme.js";
 
 /**
@@ -1945,6 +1946,54 @@ describe("the conversation commands", () => {
 		await run("/cost");
 		expect(text()).toContain("no metered replies yet");
 		expect(text()).not.toContain("USD");
+	});
+
+	it("prism mode retrieves from the imported corpus before the turn", async () => {
+		const root = await tempRepo();
+		// The corpus is real: a module with one imported document, stored
+		// lexically exactly as a user without an embeddings key would have it.
+		const data = await createModule(root, "Test Corpus");
+		await writeActiveModule(root, data.module.slug);
+		await writeFile(join(root, "spec.md"), "# Spec\n\nThe frobnicator runs at dawn.\n", "utf8");
+		await ingest({ root, data, path: join(root, "spec.md") });
+
+		let seenInitial: unknown;
+		const prismTerminal = new ScriptedTerminal(100, 40);
+		const prismApp = createTui({
+			root,
+			terminal: prismTerminal,
+			engine: async () => 0,
+			chat: async (request) => {
+				seenInitial = request.initialMessages;
+				return {
+					reply: "ok",
+					verified: null,
+					gateRan: false,
+					messages: [
+						...(request.initialMessages ?? []),
+						{ role: "user", content: [{ type: "text", text: request.question }] },
+						{ role: "assistant", content: [{ type: "text", text: "ok" }] },
+					],
+				};
+			},
+			model: "anthropic/claude-opus-4",
+			motion: false,
+		});
+		await prismApp.run();
+		const run = (raw: string) =>
+			(prismApp as unknown as { runCommand(raw: string): Promise<void> }).runCommand(raw);
+		const ask = (text: string) =>
+			(prismApp as unknown as { submit(text: string): Promise<void> }).submit(text);
+
+		await run("/mode prism");
+		await ask("when does the frobnicator run?");
+
+		// The mode's whole point: the model is answering over the corpus, so
+		// the retrieved passages reach the agent as part of the conversation.
+		const transcript = JSON.stringify(seenInitial);
+		expect(transcript).toContain("frobnicator");
+		expect(transcript).toContain("Test Corpus");
+		void root;
 	});
 
 	it("has no branches until the conversation is rewound", async () => {

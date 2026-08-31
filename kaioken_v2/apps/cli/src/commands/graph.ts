@@ -8,12 +8,12 @@ import {
 	writeGraph,
 	type GraphBuildInput,
 } from "@kaioken/graph";
-import { loadSkills } from "@kaioken/agent";
 import { readCards } from "@kaioken/plan";
 import { readScanArtifact, scan, writeScanArtifact } from "@kaioken/scan";
 import { readProvenance, wikiDir } from "@kaioken/wiki";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { loadSkillCatalog } from "../knowledge.js";
 import type { Flags } from "../main.js";
 import { gatherProvenance } from "./status.js";
 
@@ -89,11 +89,13 @@ async function gatherInput(root: string): Promise<GraphBuildInput> {
 		claims[id] = card.entryPoints.map((entry) => entry.file);
 	}
 
-	// The canonical loader, for the same reason `export` uses it: a hand-rolled
+	// The canonical catalog, for the same reason `export` uses it: a hand-rolled
 	// readdir here saw only the flat `topic.md` layout, so a `topic/SKILL.md`
 	// never became a node — and a flat skill entered the graph as
 	// `skill:deploy.md` while every other package calls it `skill:deploy`.
-	const { skills, problems: skillProblems } = await loadSkills(root);
+	// The shared catalog also brings contributed skills in, so the graph and
+	// the agent describe the same abilities.
+	const { skills, problems: skillProblems } = await loadSkillCatalog(root);
 	for (const problem of skillProblems) {
 		process.stderr.write(`kaioken graph: skipped skill ${problem.path} — ${problem.reason}\n`);
 	}

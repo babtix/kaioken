@@ -42,6 +42,9 @@
       "path": "../../packages/templates"
     },
     {
+      "path": "../../packages/prism"
+    },
+    {
       "path": "../../packages/session"
     }
   ]

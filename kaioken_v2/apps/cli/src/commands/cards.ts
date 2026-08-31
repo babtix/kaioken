@@ -9,6 +9,7 @@ import {
 	writeCard,
 } from "@kaioken/plan";
 import { readScanArtifact, scan, writeScanArtifact } from "@kaioken/scan";
+import { refreshKnowledgeBlock } from "@kaioken/agentsmd";
 import { ensureIndex } from "../artifacts.js";
 import type { Flags } from "../main.js";
 import { resolveModelClient } from "../model.js";
@@ -92,12 +93,15 @@ async function writeAndReturn(root: string) {
 	return result;
 }
 
-function report(root: string, cards: Card[], written: string[], flags: Flags): number {
+async function report(root: string, cards: Card[], written: string[], flags: Flags): Promise<number> {
 	const ungrounded = cards.reduce((n, c) => n + c.verification.ungrounded.length, 0);
 	const unknownFiles = cards.reduce((n, c) => n + c.verification.unknownFiles.length, 0);
+	// New cards change what an agent reads before editing. The refresh is free,
+	// and a no-op in a repository with no AGENTS.md.
+	const refreshed = written.length > 0 ? await refreshKnowledgeBlock(root) : false;
 
 	if (flags.json) {
-		process.stdout.write(`${JSON.stringify({ cards }, null, 2)}\n`);
+		process.stdout.write(`${JSON.stringify({ cards, refreshedAgents: refreshed }, null, 2)}\n`);
 		return ungrounded + unknownFiles > 0 ? 1 : 0;
 	}
 
@@ -121,6 +125,7 @@ function report(root: string, cards: Card[], written: string[], flags: Flags): n
 			? "every claim checks out against the structural index"
 			: `${ungrounded + unknownFiles} claims could not be grounded — raise the multiplier to buy correction passes`,
 	);
+	if (refreshed) out.push("", "refreshed the generated section of AGENTS.md");
 
 	process.stdout.write(`${out.join("\n")}\n`);
 	return ungrounded + unknownFiles > 0 ? 1 : 0;

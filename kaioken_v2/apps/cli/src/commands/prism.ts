@@ -14,6 +14,7 @@ import {
 	type ModuleData,
 } from "@kaioken/prism";
 import type { Flags } from "../main.js";
+import { resolveEmbeddings } from "../embeddings.js";
 import { resolveModelClient } from "../model.js";
 
 /**
@@ -156,10 +157,15 @@ async function importDocuments(root: string, path: string, flags: Flags): Promis
 	const active = await activeModule(root);
 	if (!active) return 1;
 
+	// The semantic leg is optional by configuration, not by import: without a
+	// key the corpus stores lexical, which every downstream path treats as a
+	// first-class outcome.
+	const embeddings = resolveEmbeddings();
 	const result = await ingest({
 		root,
 		data: active,
 		path: resolve(root, path),
+		...(embeddings ? { embeddings: embeddings.provider } : {}),
 		onProgress: (filename, done, total) => {
 			if (!flags.json && filename) process.stderr.write(`  [${done + 1}/${total}] ${filename}\n`);
 		},
@@ -184,6 +190,9 @@ async function importDocuments(root: string, path: string, flags: Flags): Promis
 	}
 
 	process.stdout.write(`imported ${stored} document${stored === 1 ? "" : "s"}\n`);
+	if (!result.lexicalOnly && embeddings) {
+		process.stdout.write(`  stored with vectors — ${embeddings.describe}\n`);
+	}
 	for (const document of failed) {
 		process.stderr.write(`  failed: ${document.filename} — ${document.error}\n`);
 	}
@@ -229,10 +238,13 @@ async function askModule(root: string, question: string, flags: Flags): Promise<
 	if (!active) return 1;
 
 	const resolved = await resolveModelClient(flags);
+	// The corpus may carry vectors; embedding the query is what joins them.
+	// Without a provider the retrieval degrades to lexical and says so.
+	const embeddings = resolveEmbeddings()?.provider;
 	if (!resolved.ok) {
 		// Retrieval alone is still worth having: the passages are the evidence,
 		// and a person can read them without a model writing prose over them.
-		const result = await retrieve({ data: active, query: question });
+		const result = await retrieve({ data: active, query: question, ...(embeddings ? { embeddings } : {}) });
 		process.stderr.write(`kaioken prism: ${resolved.reason}\n\n`);
 		process.stdout.write(`${result.describe}\n\n`);
 		for (let i = 0; i < result.passages.length; i++) {
@@ -246,6 +258,7 @@ async function askModule(root: string, question: string, flags: Flags): Promise<
 		data: active,
 		question,
 		client: resolved.client,
+		...(embeddings ? { embeddings } : {}),
 		// The relevance gate is the same model here. A cheaper one is the right
 		// choice when there is one to point at, but a gate that runs beats a
 		// gate that is configured perfectly and never used.

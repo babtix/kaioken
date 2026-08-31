@@ -1,9 +1,9 @@
 import { writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
-import { loadSkills } from "@kaioken/agent";
 import { readCards } from "@kaioken/plan";
 import { readScanArtifact, scan } from "@kaioken/scan";
 import { documentPath, readWikiPlan, WIKI_DIR } from "@kaioken/wiki";
+import { loadSkillCatalog } from "../knowledge.js";
 import type { Flags } from "../main.js";
 
 /**
@@ -139,7 +139,9 @@ async function stackSection(root: string): Promise<string[]> {
 
 /** The skills a newcomer — or an agent — can follow. */
 async function taskGuideSection(root: string): Promise<string[]> {
-	const { skills } = await loadSkills(root);
+	// The shared catalog: an extension's contributed guides reach a newcomer
+	// too, under the same names everything else uses.
+	const { skills } = await loadSkillCatalog(root);
 	if (skills.length === 0) return [];
 
 	return [

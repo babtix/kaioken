@@ -135,7 +135,8 @@ Options:
                  --write outside a terminal.
   --verify       chat only: run the gate even when nothing was changed.
   --no-verify    chat only: skip the gate after a session that changed files.
-  --module <id>  cards only: regenerate one module's card.
+  --module <id>  cards and skills only: regenerate one module's card, or
+                   rewrite only the skill(s) whose name matches (comma-separated)
   --thinking <lvl> chat only: set reasoning depth (off, low, medium, high).
   --note <text>  Steering note for a generating command. Repeatable.
   --session <id> handoff/learn only: which saved session to read. Defaults to

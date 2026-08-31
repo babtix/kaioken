@@ -1,4 +1,5 @@
 import { exec } from "node:child_process";
+import { activeExtensions, callMcpTool, isTrusted, listMcpTools } from "@kaioken/ext";
 import type { CommandRunner, KnowledgeContext, KnowledgeTool, RunOutcome } from "@kaioken/agent";
 
 /**
@@ -82,6 +83,63 @@ export function toRuntimeTools(
 
 /** Tools that change the repository. Named here so the caller can gate them. */
 export const MUTATING_TOOLS = new Set(["edit", "write", "bash"]);
+
+/**
+ * The tools installed MCP extensions contribute to the loop.
+ *
+ * `ext run` made a server's tools reachable by a person, one command at a
+ * time; this makes them reachable by the agent, which is what most servers are
+ * actually for. The gate is the trust model itself: an mcp extension installs
+ * inert and contributes nothing here until the exact installed version has
+ * been trusted, and a disabled one contributes nothing at any trust level.
+ *
+ * Each call stands the server up and stops it, exactly as `ext run` does — no
+ * long-lived pool, for the reason mcp.ts records. Discovery spawns too, which
+ * is why this runs once per conversation setup, not per turn.
+ */
+export async function mcpAgentTools(): Promise<import("@earendil-works/pi-agent-core").AgentTool[]> {
+	const out: Array<import("@earendil-works/pi-agent-core").AgentTool> = [];
+	const seen = new Set<string>();
+
+	for (const entry of await activeExtensions()) {
+		if (entry.manifest.type !== "mcp" || !entry.manifest.mcp) continue;
+		// Inert until trusted is the whole contract of the tier; skipping
+		// silently is not hiding a failure, it is the documented state.
+		if (!isTrusted(entry)) continue;
+
+		let tools;
+		try {
+			tools = await listMcpTools(entry);
+		} catch (error) {
+			process.stderr.write(
+				`kaioken: mcp extension ${entry.id} could not be reached (${error instanceof Error ? error.message : String(error)}); its tools are not offered\n`,
+			);
+			continue;
+		}
+
+		const prefix = `mcp_${entry.id.replace(/[^A-Za-z0-9-]/g, "_")}`;
+		for (const tool of tools) {
+			let name = `${prefix}_${tool.name}`.replace(/[^A-Za-z0-9_-]/g, "_");
+			while (seen.has(name)) name = `${name}_`;
+			seen.add(name);
+			out.push({
+				name,
+				label: `${entry.id}: ${tool.name}`,
+				description: tool.description ?? `Tool ${tool.name} from the ${entry.id} extension.`,
+				// An MCP input schema is JSON Schema, which is what TypeBox
+				// emits; the pass-through is the point of the tier.
+				parameters: (tool.inputSchema ?? { type: "object", properties: {} }) as import("@earendil-works/pi-ai").TSchema,
+				async execute(_id: string, params: unknown) {
+					const result = await callMcpTool(entry, tool.name, (params ?? {}) as Record<string, unknown>);
+					if (result.isError) throw new Error(result.text);
+					return { content: [{ type: "text" as const, text: result.text }] };
+				},
+			} as import("@earendil-works/pi-agent-core").AgentTool);
+		}
+	}
+
+	return out;
+}
 
 /**
  * The runtime's own execution tools, bound to this repository.

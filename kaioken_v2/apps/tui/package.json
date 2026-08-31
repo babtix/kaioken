@@ -15,6 +15,7 @@
     "@kaioken/cli": "*",
     "@kaioken/index": "*",
     "@kaioken/plan": "*",
+    "@kaioken/prism": "*",
     "@kaioken/provenance": "*",
     "@kaioken/research": "*",
     "@kaioken/scan": "*",

@@ -442,19 +442,15 @@ export const COMMANDS: readonly Command[] = [
 			"means retrieval ran on a reduced pipeline. They are separate because one flag cannot tell 'the " +
 			"corpus has no answer' from 'retrieval is broken'.",
 		guide:
-			"Start with /prism new, /prism import, then just ask. /prism set shows every knob and writes it to " +
-			"this workspace's config — an embedding model turns on the semantic half, a utility model turns on " +
-			"the relevance gate.",
+			"Start with /prism new, /prism import, then just ask. The relevance gate runs on the chat model " +
+			"the session already uses; the semantic half of retrieval turns on with an embeddings key " +
+			"(OPENAI_API_KEY, or anything OpenAI-compatible via OPENAI_BASE_URL).",
 		examples: [
-			{ cmd: "/prism", what: "status: which models are wired in, and the module list" },
+			{ cmd: "/prism", what: "status: the module list, and whether vectors are stored" },
 			{ cmd: "/prism use contract-law", what: "switch the active module" },
 			{ cmd: "/prism import ./docs", what: "ingest a file or a whole directory" },
 			{ cmd: "/prism docs", what: "per-document ingestion status" },
 			{ cmd: "/prism what does clause 4 say", what: "ask the active module" },
-			{ cmd: "/prism set", what: "show every setting and its default" },
-			{ cmd: "/prism set utility_model openai/gpt-4o-mini", what: "turn on the relevance gate" },
-			{ cmd: "/prism set mode agent", what: "route multi-step questions through decomposition" },
-			{ cmd: "/prism set variants 3", what: "enable RAG-Fusion at three phrasings" },
 		],
 	},
 	{
@@ -636,8 +632,7 @@ export const COMMANDS: readonly Command[] = [
 		guide:
 			"Extension commands are how a plugin talks to you instead of the model: a status report, a generated " +
 			"checklist, a lint summary. They run in the same wasm sandbox as extension tools — no network, read- " +
-			"only workspace at most — and only for extensions you explicitly trusted. A command may also offer a " +
-			"steering message; if an agent run is active it joins the queue, otherwise it is dropped with a note.",
+			"only workspace at most — and only for extensions you explicitly trusted.",
 		examples: [
 			{ cmd: "/x", what: "list available extension commands" },
 			{ cmd: "/x alice.git-flow status", what: "run git-flow's status command" },

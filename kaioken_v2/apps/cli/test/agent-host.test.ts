@@ -2,11 +2,12 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { KNOWLEDGE_TOOLS, type KnowledgeContext, loadSkills } from "@kaioken/agent";
+import { installExtension, trustExtension } from "@kaioken/ext";
 import { buildIndex, SymbolOracle } from "@kaioken/index";
 import { scan } from "@kaioken/scan";
 import type { AssistantMessage, AssistantMessageEvent } from "@earendil-works/pi-ai";
 import { afterEach, describe, expect, it } from "vitest";
-import { createSession, toRuntimeTools } from "../dist/agent-host.js";
+import { createSession, mcpAgentTools, toRuntimeTools } from "../dist/agent-host.js";
 
 /**
  * The agent loop, driven offline.
@@ -245,5 +246,93 @@ describe("createSession", () => {
 		// The refusal reaches the model as a failed call, which is what lets it
 		// ask what to do instead rather than silently assuming it succeeded.
 		expect(results).toEqual([{ name: "edit", isError: true }]);
+	});
+});
+
+/**
+ * The MCP tier, against a real server.
+ *
+ * `server.js` below is a genuine JSON-RPC server over stdio — the same
+ * newline framing, initialize handshake and tools/list shape a production
+ * server speaks — so the test exercises the spawn, the handshake and the
+ * call, not a mock of the protocol.
+ */
+describe("mcpAgentTools", () => {
+	const savedHome = process.env.KAIOKEN_HOME;
+	const homes: string[] = [];
+
+	afterEach(async () => {
+		if (savedHome === undefined) delete process.env.KAIOKEN_HOME;
+		else process.env.KAIOKEN_HOME = savedHome;
+		await Promise.all(homes.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+	});
+
+	const SERVER = [
+		"let buf = \"\";",
+		"function reply(id, result) {",
+		"\tprocess.stdout.write(JSON.stringify({ jsonrpc: \"2.0\", id, result }) + \"\\n\");",
+		"}",
+		'process.stdin.setEncoding("utf8");',
+		'process.stdin.on("data", (chunk) => {',
+		'	buf += chunk;',
+		'	let cut = buf.indexOf("\\n");',
+		'	while (cut !== -1) {',
+		'		const line = buf.slice(0, cut).trim();',
+		'		buf = buf.slice(cut + 1);',
+		'		cut = buf.indexOf("\\n");',
+		'		if (!line) continue;',
+		'		let msg;',
+		'		try { msg = JSON.parse(line); } catch { continue; }',
+		'		if (msg.method === "initialize") reply(msg.id, {});',
+		'		else if (msg.method === "tools/list") reply(msg.id, { tools: [{ name: "echo", description: "Echo the given text back.", inputSchema: { type: "object", properties: { text: { type: "string", description: \"The text to echo\" } }, required: [\"text\"] } }] });',
+		'		else if (msg.method === "tools/call") reply(msg.id, { content: [{ type: "text", text: `echo: ${(msg.params?.arguments ?? {}).text ?? ""}` }] });',
+		'	}',
+		'});',
+		"",
+	].join("\n");
+
+	async function installedServer(): Promise<void> {
+		const home = await mkdtemp(join(tmpdir(), "kaioken-mcp-home-"));
+		homes.push(home);
+		process.env.KAIOKEN_HOME = home;
+		const source = await mkdtemp(join(tmpdir(), "kaioken-mcp-src-"));
+		homes.push(source);
+		await writeFile(
+			join(source, "extension.yaml"),
+			[
+				"id: acme.server",
+				"name: Acme Server",
+				"version: 1.0.0",
+				"type: mcp",
+				"mcp:",
+				"  command: node",
+				"  args: [server.js]",
+				"",
+			].join("\n"),
+		);
+		await writeFile(join(source, "server.js"), SERVER);
+		await installExtension({ source });
+	}
+
+	it("offers nothing while the extension is untrusted", async () => {
+		await installedServer();
+		// Inert until trusted is the contract of the tier — the agent sees no
+		// tool for a server nobody has approved.
+		expect(await mcpAgentTools()).toEqual([]);
+	});
+
+	it("offers a trusted server's tools and can call them", async () => {
+		await installedServer();
+		await trustExtension("acme.server", true);
+
+		const tools = await mcpAgentTools();
+		expect(tools.map((tool) => tool.name)).toEqual(["mcp_acme_server_echo"]);
+		expect((tools[0] as { description?: string }).description).toContain("Echo the given text");
+
+		const result = await (tools[0] as { execute(id: string, params: unknown): Promise<{ content: unknown }> }).execute(
+			"1",
+			{ text: "hello" },
+		);
+		expect(JSON.stringify(result.content)).toContain("echo: hello");
 	});
 });

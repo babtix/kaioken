@@ -18,10 +18,12 @@ import {
 } from "@earendil-works/pi-tui";
 
 import { expandTemplate, listTemplates, loadTemplate } from "@kaioken/templates";
+import { readActiveModule, readModule, retrieve } from "@kaioken/prism";
 
 import { COMMANDS } from "./commands.js";
 import type { ChatReply, ChatRequest } from "./chatBridge.js";
 import type { ChatSessionCache } from "../../cli/dist/main.js";
+import { resolveEmbeddings } from "../../cli/dist/embeddings.js";
 import { CLOSING, goodbye, goodbyeLine, opening, playCurtain } from "./curtain.js";
 import { dispatch, type EngineRun, type ProviderAction, type Session } from "./dispatch.js";
 import { stickyHeader, statusPanel, type HeaderInfo } from "./logo.js";
@@ -1464,6 +1466,20 @@ export class KaiokenTui {
 			cancelled = true;
 			controller.abort();
 		};
+		// Prism mode is a different answer to a different question: the corpus
+		// somebody imported is asked first, and its passages travel with the
+		// question as context. Retrieval is local and instant — the model is
+		// then answering over evidence instead of memory.
+		if (this.session.mode === "prism") {
+			const context = await this.prismContext(question);
+			if (context !== null) {
+				this.sessionMessages.push({
+					role: "system",
+					content: [{ type: "text", text: context }],
+				});
+				this.append(dim("prism · passages retrieved from the active corpus"));
+			}
+		}
 		const stream: StreamState = { blocks: [], replyShown: false };
 		this.stream = stream;
 		try {
@@ -1551,6 +1567,45 @@ export class KaiokenTui {
 			return ai.getSupportedThinkingLevels(model);
 		}
 		return ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+	}
+
+	/**
+	 * What the imported corpus answers about this question.
+	 *
+	 * Returned as the text of a system message the caller prepends to the
+	 * conversation, or null when there is no corpus, nothing relevant, or a
+	 * retrieval that could not run — in which case the turn proceeds with the
+	 * model's own knowledge, exactly as any other mode would.
+	 */
+	private async prismContext(question: string): Promise<string | null> {
+		try {
+			const slug = await readActiveModule(this.session.root);
+			if (!slug) return null;
+			const data = await readModule(this.session.root, slug);
+			if (!data) return null;
+			const embeddings = resolveEmbeddings()?.provider;
+			const result = await retrieve({
+				data,
+				query: question,
+				...(embeddings ? { embeddings } : {}),
+			});
+			if (result.passages.length === 0) return null;
+			const passages = result.passages
+				.map((passage, i) => {
+					const where = `${passage.document}${passage.section ? ` — ${passage.section}` : ""}`;
+					const text = passage.text.length > 1200 ? `${passage.text.slice(0, 1200)}…` : passage.text;
+					return `[${i + 1}] ${where}\n${text}`;
+				})
+				.join("\n\n");
+			return (
+				`Passages retrieved from the imported corpus "${data.module.name}" (${result.describe}). ` +
+				`Use them when they bear on the question; say when they do not:\n\n${passages}`
+			);
+		} catch {
+			// A corpus that cannot be read is a limitation of this mode, not of
+			// the conversation; the question still goes out.
+			return null;
+		}
 	}
 
 	/** Finalize a thinking block: compute duration and rewrite header row with OpenCode summary. */

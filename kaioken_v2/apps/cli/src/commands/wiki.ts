@@ -16,6 +16,7 @@ import {
 	writeWikiPlan,
 } from "@kaioken/wiki";
 import { ensureIndex } from "../artifacts.js";
+import { refreshKnowledgeBlock } from "@kaioken/agentsmd";
 import type { Flags } from "../main.js";
 import { resolveModelClient } from "../model.js";
 
@@ -198,11 +199,14 @@ function reportPlan(root: string, plan: ReturnType<typeof Object>, known: string
 	return bad === 0 ? 0 : 1;
 }
 
-function report(root: string, documents: WikiDocument[], flags: Flags): number {
+async function report(root: string, documents: WikiDocument[], flags: Flags): Promise<number> {
 	const totalGrounding = documents.reduce(
 		(n, d) => n + groundingDefects(d.verification.defects).length,
 		0,
 	);
+	// New chapters change what an agent reads before editing. The refresh is
+	// free, and a no-op in a repository with no AGENTS.md.
+	const refreshed = documents.length > 0 ? await refreshKnowledgeBlock(root) : false;
 
 	if (flags.json) {
 		process.stdout.write(
@@ -214,6 +218,7 @@ function report(root: string, documents: WikiDocument[], flags: Flags): number {
 						verification: d.verification,
 						provenance: d.provenance,
 					})),
+					refreshedAgents: refreshed,
 				},
 				null,
 				2,
@@ -244,6 +249,7 @@ function report(root: string, documents: WikiDocument[], flags: Flags): number {
 			? "every claim checks out against the structural index"
 			: `${totalGrounding} claims could not be grounded — raise the multiplier to buy correction passes`,
 	);
+	if (refreshed) out.push("", "refreshed the generated section of AGENTS.md");
 
 	process.stdout.write(`${out.join("\n")}\n`);
 	return totalGrounding > 0 ? 1 : 0;
