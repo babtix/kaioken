@@ -1,8 +1,0 @@
-- Configuration structs use YAML tags with `omitempty` for optional fields.
-- Default values are provided by a `Default()` function for `Config` and zero values for `Global` (with `LoadGlobal` returning an empty `Global` if the file is missing).
-- Tri-state boolean flags (unset, true, false) use pointer types (e.g., `*bool`) and helper methods (like `IsEnabled`) treat nil as enabled.
-- The `ResolveModel` method falls back to the session default model for unset or empty role-specific models.
-- The `EffectiveConcurrency` method clamps concurrency for free-tier models to prevent rate limits.
-- Global config is saved with file permissions 0o600 to protect API keys.
-- Tests use `TestMain` to sandbox the global config directory via the `KAIOKEN_HOME` environment variable.
-- The `HomeEnv` constant allows overriding the global config directory for testing and sandboxing.

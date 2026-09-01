@@ -1,5 +1,0 @@
-- The version string is declared as a `var` (not a `const`) to permit override via linker flags during builds.
-- The contract version is a typed `int` constant, incremented only when backward‑incompatible changes occur in the `/v1` API shape.
-- Package name matches its directory (`version`).
-- Exported identifiers use PascalCase (`Version`, `ContractVersion`).
-- File includes descriptive comments explaining the purpose of each symbol and the ldflags override mechanism.

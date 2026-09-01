@@ -1,1 +1,0 @@
-The wiki generator module creates comprehensive, grounded documentation for a codebase through a multi-pass pipeline. It produces a structured wiki with sections, subsections, and cross-linked documents, using an LLM to generate content based on scanned source code and enforcing correctness via provenance tracking and verification passes.

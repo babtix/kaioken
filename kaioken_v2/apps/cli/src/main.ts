@@ -2,6 +2,7 @@ import { runCards } from "./commands/cards.js";
 import { runChat } from "./commands/chat.js";
 export { runChat } from "./commands/chat.js";
 export type { ChatHooks, ChatSessionCache } from "./commands/chat.js";
+import { runAgentServe } from "./commands/agent-serve.js";
 import { runVerify } from "./commands/verify.js";
 import { runPlan } from "./commands/plan.js";
 import { runScan } from "./commands/scan.js";
@@ -63,6 +64,10 @@ Commands:
                      wiki, impact and skills — instead of guessing. With no
                      question, opens a conversation. --write lets it change
                      files, one confirmation at a time.
+  agent-serve        Run \`chat\` as a long-lived process speaking newline-
+                     delimited JSON over stdio, for an embedder with no JS
+                     boundary into this process (e.g. an editor extension).
+                     Not meant to be typed by hand.
   verify             Run this repository's own build and test commands and
                      report the verdict. No model, no credentials. --dry-run
                      shows which commands were discovered without running them.
@@ -345,6 +350,8 @@ export async function main(argv: string[]): Promise<number> {
 			return runUpdate(flags);
 		case "chat":
 			return runChat(flags);
+		case "agent-serve":
+			return runAgentServe(flags);
 		case "verify":
 			return runVerify(flags);
 		case "graph":

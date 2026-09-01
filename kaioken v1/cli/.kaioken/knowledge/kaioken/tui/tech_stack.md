@@ -1,1 +1,0 @@
-The TUI module uses the Bubble Tea framework (github.com/charmbracelet/bubbletea) for terminal UI, Lipgloss (github.com/charmbracelet/lipgloss) for styling, Glamour (github.com/charmbracelet/glamour) for markdown rendering, and the Bubble Tea component library (key, list, spinner, textarea, textinput, viewport). It also uses the atotto/clipboard package for clipboard access.

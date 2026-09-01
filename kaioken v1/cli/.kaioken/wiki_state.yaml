@@ -1,7 +1,0 @@
-# kaioken wiki baseline — the commit the generated wiki reflects.
-# `kaioken update` diffs the repo against this commit and revises only
-# the documents the change actually touches. Delete to re-baseline.
-commit: 36dfcafe18217401ae32244aa8deb51e22cf794c
-generated_at: 2026-08-23T18:48:32.0585737Z
-model: stealth/ox-alpha
-multiplier: 3

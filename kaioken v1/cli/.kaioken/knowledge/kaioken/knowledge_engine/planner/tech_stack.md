@@ -1,1 +1,0 @@
-The module uses Go standard library (os, path/filepath, strings, context, fmt) and gopkg.in/yaml.v3 for YAML marshaling/unmarshaling. It depends on internal packages: config for directory constants, llm for the LLM client abstraction, and scan for repository scanning results.

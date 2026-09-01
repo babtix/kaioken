@@ -27,7 +27,7 @@ describe("a streaming chat turn", () => {
 	});
 
 	afterAll(async () => {
-		await rm(root, { recursive: true, force: true });
+		await rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 	});
 
 	function shellWith(chat: ChatRunner, engine?: EngineRunner): { app: KaiokenTui; terminal: ScriptedTerminal } {

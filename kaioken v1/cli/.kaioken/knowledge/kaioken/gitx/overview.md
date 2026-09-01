@@ -1,1 +1,0 @@
-The gitx package provides Git repository interaction by shelling out to the git binary. It offers functions to detect changes, manage hooks, report status, stage/unstage changes, commit, and work with worktrees for the Kaioken application.

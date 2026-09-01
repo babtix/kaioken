@@ -1,1 +1,0 @@
-Uses Go standard library (encoding/json, os, path/filepath, crypto/sha256) and internal packages (kaioken/internal/llm for Message types, kaioken/internal/config for directory constants, kaioken/internal/scan for file scanning). No external frameworks or dependencies beyond Go toolchain.

@@ -1,9 +1,0 @@
-# kaioken extension manifest — see https://github.com/babtix/kaioken
-# id must be owner.name (lowercase kebab-case) and match your registry entry.
-id: babtix.hello-world
-name: Hello World
-version: 0.1.0
-description: The template extension - one example skill showing the packaging format.
-author: babtix
-repo: babtix/kaioken-extension-template
-type: declarative

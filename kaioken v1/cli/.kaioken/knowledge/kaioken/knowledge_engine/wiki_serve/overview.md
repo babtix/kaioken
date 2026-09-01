@@ -1,1 +1,0 @@
-The wiki_serve module provides an HTTP server to browse the generated wiki and a static site export feature. It serves wiki pages with a sidebar, search, graph view, and renders markdown to HTML using goldmark.

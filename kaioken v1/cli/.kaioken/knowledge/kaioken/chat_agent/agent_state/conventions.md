@@ -1,8 +1,0 @@
-- Session IDs follow format 'YYYYMMDD-HHMMSS-XXXX' with random suffix
-- Session saving skips empty sessions (zero user turns) via Empty() check
-- Tree synchronization (syncTree) occurs after every Record to maintain Entries/Leaf consistency
-- Import handles three formats: v2 session header, full JSON message array, and JSONL lines
-- SafeCut ensures fork boundaries avoid splitting tool exchanges by moving to nearest user message
-- State hash computation sorts files by path for deterministic SHA256 over path+null+content+null sequences
-- State file (.ainow/state.json) written with indentation for readability
-- Session loading migrates legacy JSON to v2 tree format on first load after v2 introduction

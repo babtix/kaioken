@@ -166,8 +166,9 @@ Paths relative to the forked `theia-ide` repo:
 
 - Application name — `applications/electron/package.json`, key
   `theia.frontend.config.applicationName`
-- Icons — `applications/electron/resources/` (`icons.icns` macOS, `icon.ico` Windows,
-  `icons/` Linux)
+- Icons — `applications/electron/resources/` (`icon.icns` macOS, `icon.ico` Windows,
+  `icons/` Linux), plus `TheiaIDESplash.svg` and `installerSidebar.bmp`
+  (verified against the clone; see `studio-dev-setup.md` §5 for the full table)
 - Welcome page — the getting-started widget in `theia-extensions/product/src/browser/`
 - About dialog — the about-dialog class in the same directory
 - User config directory — the variables-server file in the product extension

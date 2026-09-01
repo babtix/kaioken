@@ -1,9 +1,0 @@
-description: Session and state management for the agent.
-file_count: 7
-generated_at: "2026-08-21T16:50:53Z"
-id: kaioken/chat_agent/agent_state
-model: nemotron-3-super:cloud
-scope:
-    - internal/session
-    - internal/state
-title: Agent State

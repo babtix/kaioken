@@ -1,1 +1,0 @@
-The Agent Core module implements the main agent loop for a tool-using coding assistant. It handles conversation turns, tool execution with approvals, context management (pruning and compaction), budget guarding, event emission, and sub-agent delegation. The module includes file operations, command execution, and dynamic context updates.

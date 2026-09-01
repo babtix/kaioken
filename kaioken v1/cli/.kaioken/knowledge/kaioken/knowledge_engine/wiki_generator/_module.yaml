@@ -1,8 +1,0 @@
-description: Generates knowledge cards and wiki documentation.
-file_count: 19
-generated_at: "2026-08-21T16:51:37Z"
-id: kaioken/knowledge_engine/wiki_generator
-model: nemotron-3-super:cloud
-scope:
-    - internal/wiki
-title: Wiki Generator

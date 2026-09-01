@@ -122,3 +122,26 @@ pnpm-debug.log*
 # Vendored read-only reference checkouts (pi, opencode, hermes-agent).
 # ~1.6GB of third-party source kept locally for analysis; never committed.
 inspire/
+
+# Two Kaioken Studio experiments, each an upstream clone with its own .git and an
+# "upstream" remote. Same treatment as opencode/ and pi/ - committing either would
+# create a stray gitlink.
+#   kaioken_studio_theia/ - eclipse-theia/theia-ide (Theia Blueprint). Built and
+#                           running; see kaioken_v2/docs/studio-v0.1-build-notes.md.
+#   kaioken_studio/       - microsoft/vscode (Code-OSS fork, the Cursor path).
+kaioken_studio/
+kaioken_studio_theia/
+
+# Archived, superseded top-level projects, kept locally for reference but not
+# tracked going forward - same treatment as kaioken_studio/ above.
+#   .kaioken_v1/    - the original Go implementation (kaioken v1/, renamed).
+#   .kaio_site_old/ - the previous iteration of the marketing site.
+.kaioken_v1/
+.kaio_site_old/
+
+# Kaioken's own generated local state when run against this repo (index,
+# scan cache, search index) - not source.
+/.kaioken/
+
+# Scratch output from manually exercising the bundle/export command.
+kaioken_bundle_test/

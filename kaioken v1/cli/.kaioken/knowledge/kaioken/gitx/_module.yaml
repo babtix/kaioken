@@ -1,8 +1,0 @@
-description: Git repository interaction and hook management.
-file_count: 10
-generated_at: "2026-08-21T16:54:50Z"
-id: kaioken/gitx
-model: nemotron-3-super:cloud
-scope:
-    - internal/gitx
-title: Git Operations

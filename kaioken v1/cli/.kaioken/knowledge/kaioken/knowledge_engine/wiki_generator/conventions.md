@@ -1,8 +1,0 @@
-- Section IDs must be snake_case (wiki.go: `outlineSystem` and `Section.ID`)
-- Section titles are converted to filesystem-safe names via `safeName` (replaces spaces/special chars with underscores, truncates to 80 chars)
-- The architecture brief is stored in `.kaioken/architecture.md` and user-edits are preserved across runs
-- Outlines are saved to `.kaioken/wiki_plan.yaml` and can be edited to adjust sections/goals/files
-- Generated documents include a provenance footer listing source files, updated on revisions
-- Error handling: Functions return `error`; update process logs but does not abort on individual document failures
-- Concurrency: Limited by `cfg.EffectiveConcurrency` to avoid rate limits on free-tier LLM models
-- Prompts must include the architecture brief verbatim and adhere to the `docSystem` constraints (no invention, verbatim excerpts, etc.)

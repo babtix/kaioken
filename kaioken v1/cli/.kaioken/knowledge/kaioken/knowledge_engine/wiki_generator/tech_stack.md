@@ -1,1 +1,0 @@
-The module uses the Go standard library and depends on: `gopkg.in/yaml.v3` for YAML serialization (outline, stamp); `golang.org/x/sync/errgroup` for bounded parallel execution; and internal packages: `config`, `scan`, `codemap`, `llm`, `gitx`. It does not use external web frameworks or databases; it is a CLI-driven documentation generator.

@@ -1,8 +1,0 @@
-description: Main function and command line setup.
-file_count: 20
-generated_at: "2026-08-21T16:55:17Z"
-id: kaioken/cmd
-model: nemotron-3-super:cloud
-scope:
-    - cmd/kaioken
-title: Command Entry Point

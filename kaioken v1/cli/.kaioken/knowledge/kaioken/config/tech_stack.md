@@ -1,1 +1,0 @@
-The module uses the Go programming language and the gopkg.in/yaml.v3 package for YAML serialization. It relies on the Go standard library for file I/O (os, path/filepath), string manipulation, and error handling.

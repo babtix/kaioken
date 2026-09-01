@@ -1,8 +1,0 @@
-description: Bubble Tea based terminal interface for the application.
-file_count: 30
-generated_at: "2026-08-21T16:52:43Z"
-id: kaioken/tui
-model: nemotron-3-super:cloud
-scope:
-    - internal/tui
-title: Terminal User Interface

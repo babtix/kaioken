@@ -1,1 +1,0 @@
-The internal/plan package implements the core planning logic for the knowledge generation workflow. It processes a repository scan result to propose a hierarchical module tree via an LLM, which is saved as an editable modules.yaml file for human review before code generation. The package depends on internal/scan for repository structure and internal/llm for LLM interactions.
