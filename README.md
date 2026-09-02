@@ -57,38 +57,62 @@ Large codebases suffer from two compounding problems when combined with AI:
 
 ### The Kaioken Solution
 
+<p align="center">
+  <img src="kaioken-pipeline.svg" alt="Kaioken Knowledge Engine Architecture" width="100%" />
+</p>
+
+<details>
+<summary><b>View Interactive Mermaid Flowchart</b></summary>
+
+```mermaid
+flowchart TD
+    subgraph INGEST ["1. STRUCTURAL CODE INGESTION (OFFLINE)"]
+        direction LR
+        REPO["Target Repository<br/><code>Source Files (TS, Go, Py, Rust)</code>"] --> SCAN["Tree-Sitter AST Parser<br/><code>Declaration Extraction &amp; Skeletons</code>"]
+        SCAN --> INDEX["Symbol &amp; BM25 Index<br/><code>AST Declarations + Lexical Store</code>"]
+    end
+
+    INDEX --> ORACLE["Grounding Oracle &amp; Anchor Resolver<br/><code>Definitive Existence &amp; Line Resolution</code>"]
+    INDEX --> PROV["Content-Hash Provenance Engine<br/><code>SHA-256 Dependency Mapping</code>"]
+
+    subgraph PIPELINE ["2A. GROUNDED GENERATION"]
+        direction TB
+        ORACLE --> GEN["Generative Pipeline (LLM Port)<br/><code>Plan ➔ Cards ➔ Deep Wiki (×1..×10)</code>"]
+        GEN --> VERIF{"Mechanical Verifier<br/><i>Checks citations, symbols &amp; anchors</i>"}
+        VERIF -- "Defects detected" --> REPAIR["Adversarial Repair<br/><code>Iterative Correction Loop</code>"]
+        REPAIR --> VERIF
+    end
+
+    subgraph LIFECYCLE ["2B. DETERMINISTIC FRESHNESS"]
+        direction TB
+        PROV --> STATUS["Freshness Drift Gate<br/><code>kaioken status --check (0 tokens)</code>"]
+        STATUS -- "Changes detected" --> UPDATE["Selective Incremental Refresh<br/><code>update invalidated docs only</code>"]
+    end
+
+    VERIF -- "Verified Grounding" --> ARTIFACTS[(".kaioken/ Verified Store<br/><code>Wiki, Cards, Skills, Graph</code>")]
+    UPDATE --> ARTIFACTS
+
+    ARTIFACTS --> SURFACES["Consumption Surfaces<br/><code>Terminal TUI · CLI Engine · Local Web Server · Agent Tools</code>"]
+
+    %% Styling
+    style INGEST fill:#0d1117,stroke:#388bfd,stroke-width:1.5px,color:#fff
+    style PIPELINE fill:#0d1117,stroke:#f0883e,stroke-width:1.5px,color:#fff
+    style LIFECYCLE fill:#0d1117,stroke:#a371f7,stroke-width:1.5px,color:#fff
+    style ARTIFACTS fill:#162a1e,stroke:#3fb950,stroke-width:2px,color:#7ee787
+    style SURFACES fill:#0f1523,stroke:#58a6ff,stroke-width:1.5px,color:#58a6ff
+    style REPO fill:#161f33,stroke:#388bfd,color:#fff
+    style SCAN fill:#161f33,stroke:#388bfd,color:#fff
+    style INDEX fill:#161f33,stroke:#58a6ff,color:#fff
+    style ORACLE fill:#2a1810,stroke:#f0883e,color:#fff
+    style PROV fill:#241432,stroke:#a371f7,color:#fff
+    style GEN fill:#2a1810,stroke:#ff8700,color:#fff
+    style VERIF fill:#1c1214,stroke:#f85149,color:#ff7b72
+    style REPAIR fill:#1c1214,stroke:#f85149,color:#ff7b72
+    style STATUS fill:#241432,stroke:#a371f7,color:#fff
+    style UPDATE fill:#241432,stroke:#a371f7,color:#fff
 ```
-                                  KAIOKEN PIPELINE
-   ┌─────────────────────────────────────────────────────────────────────────────┐
-   │                                                                             │
-   │  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐                 │
-   │  │ Target Repo  │────►│  Tree-Sitter │────►│   BM25 /     │                 │
-   │  │ Source Files │     │ AST Parsing  │     │ Symbol Index │                 │
-   │  └──────────────┘     └──────────────┘     └──────┬───────┘                 │
-   │                                                   │                         │
-   │                              ┌────────────────────┴───────────────────┐     │
-   │                              │                                        │     │
-   │                              ▼                                        ▼     │
-   │                     ┌─────────────────┐                      ┌──────────────┴┐
-   │                     │ Grounding Oracle│                      │  Deterministic│
-   │                     │ Symbol Lookup & │                      │  Content-Hash │
-   │                     │ Anchor Resolver │                      │   Provenance  │
-   │                     └────────┬────────┘                      └──────────────┬┘
-   │                              │                                        │     │
-   │                              ▼                                        ▼     │
-   │                   ┌───────────────────────┐                  ┌──────────────┴┐
-   │                   │ Generative Stages     │                  │ Incremental   │
-   │                   │ (Plan, Cards, Wiki)   │                  │ Updates Only  │
-   │                   └──────────┬────────────┘                  └───────────────┘
-   │                              │                                              │
-   │                              ▼                                              │
-   │                   ┌───────────────────────┐                                 │
-   │                   │ Mechanical Verifier   │◄── Checks citations, symbols,   │
-   │                   │ & Adversarial Repair  │    and quoted line anchors      │
-   │                   └───────────────────────┘                                 │
-   │                                                                             │
-   └─────────────────────────────────────────────────────────────────────────────┘
-```
+
+</details>
 
 - **Claims are checked, not trusted**: Every symbol, quoted code snippet, line anchor, and file path asserted by an LLM is checked against the structural AST index.
 - **Definitive negative guarantees**: The `SymbolOracle` can definitively answer *"this repository declares no symbol by that name"*, neutralizing the primary cause of model hallucinations.
