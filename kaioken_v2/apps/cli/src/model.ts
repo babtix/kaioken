@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ModelClient, ModelRequest } from "@kaioken/plan";
+import { type ModelClient, type ModelRequest, withRetry } from "@kaioken/model";
 import type { Flags } from "./main.js";
 
 /**
@@ -43,7 +43,7 @@ export async function resolveModelClient(flags: Flags): Promise<ResolvedClient> 
 
 	const { models, model, ai, describe } = resolved;
 
-	const client: ModelClient = {
+	const rawClient: ModelClient = {
 		async complete(request: ModelRequest): Promise<string> {
 			let message: Awaited<ReturnType<typeof models.completeSimple>>;
 			try {
@@ -73,6 +73,13 @@ export async function resolveModelClient(flags: Flags): Promise<ResolvedClient> 
 			return ai.contentText(message.content);
 		},
 	};
+
+	const client = withRetry(rawClient, {
+		onRetry: (attempt, delayMs, _error, purpose) => {
+			const sec = (delayMs / 1000).toFixed(delayMs % 1000 === 0 ? 0 : 1);
+			process.stderr.write(`kaioken: ${purpose} retry ${attempt} in ${sec}s\n`);
+		},
+	});
 
 	return {
 		ok: true,
@@ -253,6 +260,26 @@ async function readRepoModel(root: string | undefined): Promise<string | undefin
 	try {
 		const parsed = JSON.parse(text) as { model?: unknown };
 		return typeof parsed.model === "string" && parsed.model.trim() ? parsed.model.trim() : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * The concurrency setting this repository has saved, if any.
+ *
+ * `.kaioken/config.json` — {"concurrency": 4}.
+ * Silent and all-optional, matching readRepoModel.
+ */
+export async function readRepoConcurrency(root: string | undefined): Promise<number | undefined> {
+	const text = await readFile(join(root ?? ".", ".kaioken", "config.json"), "utf8").catch(() => null);
+	if (!text) return undefined;
+	try {
+		const parsed = JSON.parse(text) as { concurrency?: unknown };
+		if (typeof parsed.concurrency === "number" && Number.isFinite(parsed.concurrency) && parsed.concurrency >= 1) {
+			return Math.floor(parsed.concurrency);
+		}
+		return undefined;
 	} catch {
 		return undefined;
 	}

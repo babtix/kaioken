@@ -125,6 +125,8 @@ Options:
   --root <dir>   Repository root. Defaults to the working directory.
   --json         Emit machine-readable output instead of a summary.
   --force        Rebuild from scratch instead of reusing unchanged inputs.
+  --retry        wiki only: regenerate only the documents that failed in the last run.
+  --concurrency <n> wiki only: worker limit (default 4, clamped to 2 on free models).
   --exported     symbols only: list exported declarations only.
   --kind <k>     search only: restrict to wiki, card, skill or symbol
                  (comma-separated).
@@ -152,14 +154,17 @@ Options:
                  so.
   -h, --help     Show this message.
 
-The multiplier (x1..x10) is one dial for depth. Below x5 it buys breadth; above
-it, it stops buying length and starts buying verification passes.
+The multiplier (x1..x10) is one dial for depth. At x1..x4 it buys breadth with
+1 repair pass; at x5 and above it buys critique passes and additional repair passes
+against grounding defects.
 `;
 
 export interface Flags {
 	root: string;
 	json: boolean;
 	force: boolean;
+	retry: boolean;
+	concurrency?: number;
 	exported: boolean;
 	kind?: string;
 	limit?: number;
@@ -199,6 +204,7 @@ export function parseArgs(argv: string[]): Flags | null {
 		root: process.cwd(),
 		json: false,
 		force: false,
+		retry: false,
 		exported: false,
 		check: false,
 		planOnly: false,
@@ -300,6 +306,15 @@ export function parseArgs(argv: string[]): Flags | null {
 			case "--force":
 				flags.force = true;
 				break;
+			case "--retry":
+				flags.retry = true;
+				break;
+			case "--concurrency": {
+				const next = Number.parseInt(argv[++i] ?? "", 10);
+				if (!Number.isFinite(next) || next < 1) return null;
+				flags.concurrency = next;
+				break;
+			}
 			case "--exported":
 				flags.exported = true;
 				break;

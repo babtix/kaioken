@@ -2,7 +2,15 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { writeProvenance } from "@kaioken/wiki";
+import {
+	readProvenance,
+	readWikiPlan,
+	readWikiState,
+	writeProvenance,
+	writeWikiPlan,
+	writeWikiState,
+	type WikiDocument,
+} from "@kaioken/wiki";
 import { main } from "../dist/main.js";
 import { persistProvenance } from "../dist/commands/wiki.js";
 
@@ -718,4 +726,125 @@ describe("every command reports something", () => {
 			expect(typeof code).toBe("number");
 		});
 	}
+});
+
+describe("wiki provenance", () => {
+	it("merges provenance when a partial run wrote only some documents", async () => {
+		const root = await repo(SAMPLE);
+
+		await writeProvenance(root, [
+			{ document: "ch1/index.md", chapterId: "ch1", generatedAt: "2026-01-01T00:00:00Z", sources: [] },
+			{ document: "ch2/index.md", chapterId: "ch2", generatedAt: "2026-01-01T00:00:00Z", sources: [] },
+		]);
+
+		const freshDoc: WikiDocument = {
+			path: "ch1/index.md",
+			chapterId: "ch1",
+			title: "Ch1 Fresh",
+			body: "Fresh body",
+			provenance: { document: "ch1/index.md", chapterId: "ch1", generatedAt: "2026-02-01T00:00:00Z", sources: [] },
+			verification: { grounded: 1, defects: [], uncovered: [], coverage: 1 },
+		};
+
+		await persistProvenance(root, [freshDoc], true);
+
+		const updated = await readProvenance(root);
+		expect(updated?.documents).toHaveLength(2);
+		expect(updated?.documents.find((d) => d.document === "ch1/index.md")?.generatedAt).toBe("2026-02-01T00:00:00Z");
+		expect(updated?.documents.find((d) => d.document === "ch2/index.md")?.generatedAt).toBe("2026-01-01T00:00:00Z");
+	});
+
+	it("replaces whole provenance index on clean full run", async () => {
+		const root = await repo(SAMPLE);
+
+		await writeProvenance(root, [
+			{ document: "ch1/index.md", chapterId: "ch1", generatedAt: "2026-01-01T00:00:00Z", sources: [] },
+			{ document: "ch2/index.md", chapterId: "ch2", generatedAt: "2026-01-01T00:00:00Z", sources: [] },
+		]);
+
+		const freshDoc: WikiDocument = {
+			path: "ch3/index.md",
+			chapterId: "ch3",
+			title: "Ch3",
+			body: "Ch3 body",
+			provenance: { document: "ch3/index.md", chapterId: "ch3", generatedAt: "2026-02-01T00:00:00Z", sources: [] },
+			verification: { grounded: 1, defects: [], uncovered: [], coverage: 1 },
+		};
+
+		await persistProvenance(root, [freshDoc], false);
+
+		const updated = await readProvenance(root);
+		expect(updated?.documents).toHaveLength(1);
+		expect(updated?.documents[0]?.document).toBe("ch3/index.md");
+	});
+});
+
+describe("kaioken wiki positionals and retry", () => {
+	it("accepts retry as positional and prints 'nothing to retry' on clean state", async () => {
+		const root = await repo(SAMPLE);
+		await writeWikiPlan(root, {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [{ id: "core", title: "Core", goal: "core", files: ["lib.ts"] }],
+		});
+		await writeWikiState(root, {
+			version: 1,
+			updatedAt: "",
+			model: "mock/model",
+			multiplier: 1,
+			failures: [],
+		});
+
+		const code = await main(["wiki", "retry", "--root", root]);
+		expect(code).toBe(0);
+		expect(stdout).toContain("nothing to retry");
+	});
+
+	it("accepts force as a positional without multiplier parse error", async () => {
+		const root = await repo(SAMPLE);
+		await writeWikiPlan(root, {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [{ id: "core", title: "Core", goal: "core", files: ["lib.ts"] }],
+		});
+
+		const code = await main(["wiki", "force", "x1", "--module", "nonexistent", "--root", root]);
+		expect(code).toBe(1);
+		expect(stderr).not.toContain("multiplier must be x1..x10");
+		expect(stderr).toContain('no chapter with id "nonexistent"');
+	});
+
+	it("drops retry entries that are no longer in the outline", async () => {
+		const root = await repo(SAMPLE);
+		await writeWikiPlan(root, {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [{ id: "core", title: "Core", goal: "core", files: ["lib.ts"] }],
+		});
+		await writeWikiState(root, {
+			version: 1,
+			updatedAt: "",
+			model: "mock/model",
+			multiplier: 1,
+			failures: [
+				{
+					kind: "document",
+					chapterId: "deleted-chapter",
+					document: "deleted-chapter/index.md",
+					reason: "failed",
+				},
+			],
+		});
+
+		const code = await main(["wiki", "retry", "--root", root]);
+		expect(code).toBe(0);
+		expect(stdout).toContain("skipped deleted-chapter/index.md — no longer in the outline");
+		expect(stdout).toContain("nothing to retry — no failed documents remain in the outline");
+
+		const state = await readWikiState(root);
+		expect(state?.failures).toEqual([]);
+	});
 });

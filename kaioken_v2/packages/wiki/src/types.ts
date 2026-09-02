@@ -89,3 +89,24 @@ export interface WikiDocument {
 	provenance: Provenance;
 	verification: VerificationReport;
 }
+
+export interface RunFailure {
+	/** "document" — generation, verification, or the sink threw.
+	 *  "sections" — planSections threw; the chapter document may still exist. */
+	kind: "document" | "sections";
+	chapterId: string;
+	sectionId?: string;
+	/** The path the document would have had, for `wiki retry` and the report. */
+	document: string;
+	reason: string;
+}
+
+export interface WikiRunState {
+	version: 1;
+	updatedAt: string;
+	/** The model and multiplier the failed run used, so a retry is not
+	 *  silently shallower than the run it repairs. */
+	model: string;
+	multiplier: number;
+	failures: RunFailure[];
+}

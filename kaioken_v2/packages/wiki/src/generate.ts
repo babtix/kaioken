@@ -28,6 +28,8 @@ Write for an engineer who will work on this code tomorrow.
 Rules:
 - Explain what the code does and WHY it is shaped that way. A description that
   would read identically for any codebase is worthless.
+- If an architecture brief is provided, use its canonical terms and component names.
+  However, the evidence list — not the brief — bounds what you may name in backticks.
 - Name real declarations. Every symbol you write in backticks must appear in the
   evidence below.
 - Every file path you write in backticks must appear in the evidence below.
@@ -64,6 +66,7 @@ export interface GenerateInput {
 	oracle: SymbolOracle;
 	client: ModelClient;
 	multiplier?: number;
+	brief?: string;
 	scanFiles: readonly FileRecord[];
 	readSource: (path: string) => Promise<string | null>;
 }
@@ -86,16 +89,34 @@ export async function generateDocument(input: GenerateInput): Promise<WikiDocume
 
 	let report = await verify();
 
-	// Above the breadth threshold the dial buys scrutiny: first a critique pass
-	// against the rubric, then correction against the verifier's own findings.
-	for (let pass = 0; pass < depth.refinementPasses; pass++) {
+	let repairUsed = 0;
+	let critiqueUsed = 0;
+
+	// Spend repair passes on ungrounded claims, and critique passes on clean documents.
+	while (repairUsed < depth.repairPasses || critiqueUsed < depth.critiquePasses) {
 		const grounding = groundingDefects(report.defects);
-		const done = grounding.length === 0 && report.coverage >= 0.9 && !hasPadding(report.defects);
-		if (done) break;
+		const isGroundedClean = grounding.length === 0;
+		const isFullyDone = isGroundedClean && report.coverage >= 0.9 && !hasPadding(report.defects);
+		if (isFullyDone) break;
+
+		let purpose: string;
+		let system: string;
+
+		if (!isGroundedClean) {
+			if (repairUsed >= depth.repairPasses) break;
+			purpose = "wiki-correct";
+			system = CORRECTION_SYSTEM;
+			repairUsed++;
+		} else {
+			if (critiqueUsed >= depth.critiquePasses) break;
+			purpose = "wiki-critique";
+			system = CRITIQUE_SYSTEM;
+			critiqueUsed++;
+		}
 
 		const revised = await input.client.complete({
-			purpose: pass === 0 && grounding.length === 0 ? "wiki-critique" : "wiki-correct",
-			system: pass === 0 && grounding.length === 0 ? CRITIQUE_SYSTEM : CORRECTION_SYSTEM,
+			purpose,
+			system,
 			prompt: buildRepairPrompt(input, scope, body, report, depth),
 			maxOutputTokens: depth.maxOutputTokens,
 		});
@@ -168,6 +189,10 @@ function buildPrompt(input: GenerateInput, scope: readonly string[], depth: Dept
 
 	if (input.section) {
 		lines.push(`Subsection: ${input.section.title}`, `Covers: ${input.section.summary}`);
+	}
+
+	if (input.brief) {
+		lines.push("", "Architecture brief (canonical terminology and high-level structure):", "", input.brief);
 	}
 
 	lines.push(

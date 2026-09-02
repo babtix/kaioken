@@ -8,7 +8,9 @@
   "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
   "dependencies": {
     "@kaioken/index": "*",
+    "@kaioken/provenance": "*",
     "@kaioken/scan": "*",
-    "@kaioken/search": "*"
+    "@kaioken/search": "*",
+    "yaml": "^2.9.0"
   }
 }

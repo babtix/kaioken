@@ -37,8 +37,11 @@ node apps/cli/dist/bin.js serve --root /path/to/repo
 `search` ranks everything indexed. Lexical ranking (BM25) always runs; semantic
 ranking joins it only when an embedding provider is supplied, and the output
 says which ran rather than letting you assume. `serve` renders the same
-knowledge as a local site on 127.0.0.1 — no external assets, no CDN, nothing
-leaves the machine.
+knowledge as a local site on 127.0.0.1 — no external assets, no CDN, no script
+at all, nothing leaves the machine. It opens on the wiki with the plan's own
+outline as its navigation, labels every document with whether the code has moved
+since it was written, and shows what each one was written from; cards, skills
+and declarations are browsable from the same search box.
 
 ```bash
 node apps/cli/dist/bin.js plan x3 --root /path/to/repo   # proposes a module tree
@@ -126,7 +129,7 @@ Flags: `--json`, `--force`, `--exported`, `--kind`, `--limit`, `--port`,
 | `packages/scan` | One traversal, ignore rules, canonical file set, risk flags | No |
 | `packages/index` | tree-sitter symbol extraction, grounding oracle, anchor resolution | No |
 | `packages/search` | BM25 always; vector fusion when configured | Lexical: no |
-| `packages/serve` | Local site + search endpoint, self-contained | No |
+| `packages/serve` | Local site: wiki, cards, skills, declarations, search endpoint | No |
 | `packages/model` | The `ModelClient` port. No transport, no credentials | — |
 | `packages/plan` | Module plan, card generation, verification | Model, via a port |
 | `packages/wiki` | Cascade, claim extraction, verification, provenance | Model, via a port |

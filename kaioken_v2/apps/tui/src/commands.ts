@@ -77,11 +77,11 @@ export const COMMANDS: readonly Command[] = [
 		args: "[xN] [force|update|retry]",
 		summary: "deep multi-pass wiki",
 		detail:
-			"The main event. Pass 1 plans 8-16 sections over the whole repo; pass 2 plans each section in detail; " +
-			"pass 3 writes long-form chapters plus one document per subsection. The multiplier is the Kaioken " +
-			"dial: ×1 sections only, ×2 adds subsection documents, ×3 (the default) goes deep, ×4 adds a " +
-			"critique-and-revise pass, ×10 adds grounding verification. An existing plan is reused so you can " +
-			"edit wiki_plan.yaml first.",
+			"The main event. Pass 1 plans chapters over the whole repo; pass 2 plans each chapter's " +
+			"subsections; pass 3 writes long-form chapters and subsections, verifying every claim against " +
+			"the structural index. The multiplier is the Kaioken dial: x1..x4 buys breadth with 1 repair pass; " +
+			"x5 and above adds critique passes and additional repair passes. An existing plan is reused so you can " +
+			"edit wiki-plan.yaml first.",
 		examples: [
 			{ cmd: "/wiki", what: "the default ×3 run" },
 			{ cmd: "/wiki x1", what: "a fast, shallow pass" },
@@ -339,7 +339,7 @@ export const COMMANDS: readonly Command[] = [
 			"A full wiki run is expensive; this one is not. Kaioken records the commit the wiki reflects, diffs " +
 			"the repo against it — including uncommitted and untracked files — and revises only the documents " +
 			"that diff invalidates, then refreshes the skills whose sources changed. Each document is revised, " +
-			"not rewritten, so structure and diagrams survive.",
+			"not rewritten.",
 		examples: [
 			{ cmd: "/update", what: "refresh against the recorded baseline" },
 			{ cmd: "/update HEAD~10", what: "use an explicit baseline instead" },
@@ -710,7 +710,7 @@ export const COMMANDS: readonly Command[] = [
 		args: "[port]",
 		summary: "browse the wiki in a browser",
 		detail:
-			"Renders .kaioken/wiki/ as a local site with sidebar navigation, search and mermaid diagrams. Runs in " +
+			"Renders .kaioken/wiki/ as a local site with sidebar navigation and search. Runs in " +
 			"the background so chat stays usable.",
 		examples: [
 			{ cmd: "/serve", what: "start on port 7777" },

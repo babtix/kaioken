@@ -70,7 +70,7 @@ export const CHAPTERS: readonly Chapter[] = [
 		intro:
 			"Two pipelines read the same repo and produce different things.\n\n" +
 			"  The WIKI is long-form documentation for humans and deep agent dives:\n" +
-			"  planned sections, chapters of real depth, diagrams, cross-links.\n\n" +
+			"  planned sections, chapters of real depth, verified against the repo.\n\n" +
 			"  CARDS are short, fixed-schema context blocks per module, meant to be\n" +
 			"  fed to an AI agent cheaply before it touches code.\n\n" +
 			"They are independent — run either, or both. Once a wiki exists, /update\n" +

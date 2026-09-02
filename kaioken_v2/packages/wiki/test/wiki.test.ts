@@ -6,18 +6,27 @@ import type { ModelClient, ModelRequest } from "@kaioken/model";
 import { scan, type ScanResult } from "@kaioken/scan";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+	briefPath,
+	buildBrief,
 	coverageOf,
 	extractClaims,
 	findPadding,
+	locate,
 	planWiki,
+	readBrief,
 	readWikiPlan,
+	readWikiState,
 	runWiki,
 	sourceReader,
 	verifyDocument,
 	type WikiPlan,
+	type WikiRunState,
+	writeBrief,
 	writeProvenance,
 	writeWikiDocument,
+	writeWikiIndex,
 	writeWikiPlan,
+	writeWikiState,
 } from "../dist/index.js";
 
 /**
@@ -34,15 +43,19 @@ afterEach(async () => {
 
 class ScriptedModel implements ModelClient {
 	readonly requests: ModelRequest[] = [];
-	private replies: string[];
+	private replies: Array<string | Error>;
+	private lastString = "{}";
 
-	constructor(replies: string[]) {
+	constructor(replies: Array<string | Error>) {
 		this.replies = [...replies];
 	}
 
 	async complete(request: ModelRequest): Promise<string> {
 		this.requests.push(request);
-		return this.replies.shift() ?? this.replies.at(-1) ?? "{}";
+		const item = this.replies.shift();
+		if (item instanceof Error) throw item;
+		if (typeof item === "string") this.lastString = item;
+		return item ?? this.lastString;
 	}
 }
 
@@ -59,6 +72,11 @@ const WALK = [
 ].join("\n");
 
 const SOURCE = { "src/walk.ts": WALK, "README.md": "# Demo\n" };
+const ROOT_FILES = {
+	"src/walk.ts": WALK,
+	"package.json": '{ "name": "demo", "scripts": { "build": "tsc" } }\n',
+	"deploy.sh": "#!/bin/sh\nset -euo pipefail\nnpm run build\n",
+};
 
 async function repo(files: Record<string, string> = SOURCE): Promise<{
 	root: string;
@@ -520,14 +538,14 @@ describe("refinement", () => {
 	const BAD = "# T\n\nCall `traverseEverything`.\n";
 	const GOOD = "# T\n\n`walkTree` walks the tree; `DEFAULT_IGNORES` seeds it.\n";
 
-	it("makes no repair call below the threshold", async () => {
+	it("makes no critique call when document is clean below the threshold", async () => {
 		const { root, scan: scanned, index } = await repo();
-		const model = new ScriptedModel([BAD, JSON.stringify({ sections: [] })]);
+		const model = new ScriptedModel([GOOD, JSON.stringify({ sections: [] })]);
 		await runWiki({ root, plan: PLAN, scan: scanned, index, client: model, multiplier: 1 });
 		expect(model.requests.map((r) => r.purpose)).toEqual(["wiki-chapter", "wiki-sections"]);
 	});
 
-	it("feeds the verifier's findings back above the threshold", async () => {
+	it("feeds the verifier's findings back to repair ungrounded claims", async () => {
 		const { root, scan: scanned, index } = await repo();
 		const model = new ScriptedModel([BAD, GOOD, JSON.stringify({ sections: [] })]);
 		const { documents: [doc] } = await runWiki({
@@ -536,7 +554,7 @@ describe("refinement", () => {
 			scan: scanned,
 			index,
 			client: model,
-			multiplier: 6,
+			multiplier: 1,
 		});
 
 		expect(model.requests[1]?.purpose).toBe("wiki-correct");
@@ -554,7 +572,7 @@ describe("refinement", () => {
 			scan: scanned,
 			index,
 			client: model,
-			multiplier: 6,
+			multiplier: 1,
 		});
 		expect(doc?.body).toBe(BAD.trim());
 	});
@@ -568,12 +586,6 @@ describe("refinement", () => {
  * rewrites prose that was right.
  */
 describe("what the verifier must not call a defect", () => {
-	const ROOT_FILES = {
-		"src/walk.ts": WALK,
-		"package.json": '{ "name": "demo", "scripts": { "build": "tsc" } }\n',
-		"deploy.sh": "#!/bin/sh\nset -euo pipefail\nnpm run build\n",
-	};
-
 	it("does not call a root-level file an invented symbol", async () => {
 		const { root, scan: scanned, index } = await repo(ROOT_FILES);
 
@@ -628,5 +640,337 @@ describe("what the verifier must not call a defect", () => {
 		// The fallback must not become a pass-through: an unindexed file is
 		// still checked, just against its text rather than its declarations.
 		expect(report.defects.some((d) => d.kind === "excerpt_not_found")).toBe(true);
+	});
+});
+
+describe("wiki durability and failures", () => {
+	it("calls onDocument incrementally as each document completes", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+		const written: string[] = [];
+
+		const client = new ScriptedModel([
+			"# Walk\n\n`walkTree` walks the tree.",
+			JSON.stringify({ sections: [{ id: "sub", title: "Sub", summary: "sub", files: ["src/walk.ts"] }] }),
+			"# Sub\n\n`DEFAULT_IGNORES` is empty.",
+		]);
+
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [{ id: "core", title: "Core", goal: "core", files: ["src/walk.ts"] }],
+		};
+
+		const res = await runWiki({
+			root,
+			plan,
+			scan: scanned,
+			index,
+			client,
+			onDocument: async (doc) => {
+				written.push(doc.path);
+			},
+		});
+
+		expect(written).toEqual(["core/index.md", "core/sub.md"]);
+		expect(res.documents.map((d) => d.path)).toEqual(["core/index.md", "core/sub.md"]);
+		expect(res.failures).toEqual([]);
+	});
+
+	it("keeps succeeded documents when one chapter throws", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const client = new ScriptedModel([
+			"# Chapter 1\n\n`walkTree` walks.",
+			JSON.stringify({ sections: [] }),
+			new Error("500 Server Error on chapter 2"),
+		]);
+
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [
+				{ id: "ch1", title: "Ch1", goal: "goal 1", files: ["src/walk.ts"] },
+				{ id: "ch2", title: "Ch2", goal: "goal 2", files: ["src/walk.ts"] },
+			],
+		};
+
+		const res = await runWiki({
+			root,
+			plan,
+			scan: scanned,
+			index,
+			client,
+			concurrency: 1,
+		});
+
+		expect(res.documents).toHaveLength(1);
+		expect(res.documents[0]?.path).toBe("ch1/index.md");
+		expect(res.failures).toHaveLength(1);
+		expect(res.failures[0]?.chapterId).toBe("ch2");
+		expect(res.failures[0]?.kind).toBe("document");
+		expect(res.failures[0]?.reason).toContain("500 Server Error");
+	});
+
+	it("records a sections failure without losing the chapter document", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const client = new ScriptedModel([
+			"# Chapter 1\n\n`walkTree` walks.",
+			new Error("rate limit on sections planning"),
+		]);
+
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [{ id: "ch1", title: "Ch1", goal: "goal 1", files: ["src/walk.ts"] }],
+		};
+
+		const res = await runWiki({
+			root,
+			plan,
+			scan: scanned,
+			index,
+			client,
+		});
+
+		expect(res.documents).toHaveLength(1);
+		expect(res.documents[0]?.path).toBe("ch1/index.md");
+		expect(res.failures).toHaveLength(1);
+		expect(res.failures[0]?.kind).toBe("sections");
+		expect(res.failures[0]?.chapterId).toBe("ch1");
+	});
+
+	it("resolves sections into the returned plan even when a later chapter fails", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const client = new ScriptedModel([
+			"# Ch1\n\n`walkTree` walks.",
+			JSON.stringify({ sections: [{ id: "sec1", title: "Sec1", summary: "s1", files: ["src/walk.ts"] }] }),
+			new Error("ch2 exploded"),
+			"# Sec1\n\n`DEFAULT_IGNORES` is used.",
+		]);
+
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [
+				{ id: "ch1", title: "Ch1", goal: "g1", files: ["src/walk.ts"] },
+				{ id: "ch2", title: "Ch2", goal: "g2", files: ["src/walk.ts"] },
+			],
+		};
+
+		const res = await runWiki({
+			root,
+			plan,
+			scan: scanned,
+			index,
+			client,
+			concurrency: 1,
+		});
+
+		const ch1 = res.plan.chapters.find((c) => c.id === "ch1");
+		expect(ch1?.sections).toBeDefined();
+		expect(ch1?.sections?.[0]?.id).toBe("sec1");
+	});
+
+	it("treats a throwing sink as a failed document", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const client = new ScriptedModel([
+			"# Ch1\n\n`walkTree` walks.",
+			JSON.stringify({ sections: [] }),
+		]);
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [{ id: "ch1", title: "Ch1", goal: "g1", files: ["src/walk.ts"] }],
+		};
+
+		const res = await runWiki({
+			root,
+			plan,
+			scan: scanned,
+			index,
+			client,
+			onDocument: async () => {
+				throw new Error("disk full");
+			},
+		});
+
+		expect(res.failures).toHaveLength(1);
+		expect(res.failures[0]?.kind).toBe("document");
+		expect(res.failures[0]?.reason).toContain("disk full");
+	});
+
+	it("caches sourceReader promises so duplicate concurrent reads make 1 file read", async () => {
+		const { root } = await repo(ROOT_FILES);
+		const reader = sourceReader(root);
+
+		const [p1, p2, p3] = await Promise.all([
+			reader("src/walk.ts"),
+			reader("src/walk.ts"),
+			reader("src/walk.ts"),
+		]);
+
+		expect(p1).toBe(WALK);
+		expect(p2).toBe(WALK);
+		expect(p3).toBe(WALK);
+	});
+});
+
+describe("wiki retry and onlyDocuments", () => {
+	it("restricting to onlyDocuments produces purposes only for wanted documents", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const client = new ScriptedModel(["# Sub\n\n`DEFAULT_IGNORES` is empty."]);
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [
+				{
+					id: "core",
+					title: "Core",
+					goal: "core",
+					files: ["src/walk.ts"],
+					sections: [{ id: "sub", title: "Sub", summary: "sub", files: ["src/walk.ts"] }],
+				},
+			],
+		};
+
+		const res = await runWiki({
+			root,
+			plan,
+			scan: scanned,
+			index,
+			client,
+			onlyDocuments: ["core/sub.md"],
+		});
+
+		expect(res.documents).toHaveLength(1);
+		expect(res.documents[0]?.path).toBe("core/sub.md");
+		expect(client.requests.map((r) => r.purpose)).toEqual(["wiki-section"]);
+	});
+
+	it("locate helper resolves chapters and subsections accurately", () => {
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [
+				{
+					id: "ch1",
+					title: "Chapter 1",
+					goal: "goal",
+					files: ["src/walk.ts"],
+					sections: [{ id: "sec1", title: "Section 1", summary: "s", files: ["src/walk.ts"] }],
+				},
+			],
+		};
+
+		const c = locate(plan, "ch1/index.md");
+		expect(c?.chapter.id).toBe("ch1");
+		expect(c?.section).toBeUndefined();
+
+		const s = locate(plan, "ch1/sec1.md");
+		expect(s?.chapter.id).toBe("ch1");
+		expect(s?.section?.id).toBe("sec1");
+
+		expect(locate(plan, "ch1/unknown.md")).toBeNull();
+		expect(locate(plan, "unknown/index.md")).toBeNull();
+		expect(locate(plan, "invalid")).toBeNull();
+	});
+});
+
+describe("wiki concurrency and order", () => {
+	it("returns documents in plan order regardless of completion order", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const client: ModelClient = {
+			async complete(req: ModelRequest): Promise<string> {
+				if (req.purpose === "wiki-chapter") {
+					// Chapter 1 takes longer than Chapter 2
+					if (req.prompt.includes("Ch1")) {
+						await new Promise((r) => setTimeout(r, 40));
+						return "# Ch1\n\n`walkTree` walks.";
+					}
+					await new Promise((r) => setTimeout(r, 10));
+					return "# Ch2\n\n`walkTree` walks again.";
+				}
+				return "{}";
+			},
+		};
+
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [
+				{ id: "ch1", title: "Ch1", goal: "g1", files: ["src/walk.ts"] },
+				{ id: "ch2", title: "Ch2", goal: "g2", files: ["src/walk.ts"] },
+			],
+		};
+
+		const res = await runWiki({
+			root,
+			plan,
+			scan: scanned,
+			index,
+			client,
+			concurrency: 2,
+		});
+
+		expect(res.documents.map((d) => d.path)).toEqual(["ch1/index.md", "ch2/index.md"]);
+	});
+});
+
+describe("architecture brief", () => {
+	it("injects the brief into chapter and section prompts", async () => {
+		const { root, scan: scanned, index } = await repo(ROOT_FILES);
+
+		const client = new ScriptedModel([
+			"# Ch1\n\n`walkTree` walks.",
+			JSON.stringify({ sections: [{ id: "sub", title: "Sub", summary: "sub", files: ["src/walk.ts"] }] }),
+			"# Sub\n\n`DEFAULT_IGNORES` is empty.",
+		]);
+
+		const plan: WikiPlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			chapters: [{ id: "core", title: "Core", goal: "core", files: ["src/walk.ts"] }],
+		};
+
+		const briefText = "## Architecture\nThe core system components.";
+
+		await runWiki({
+			root,
+			plan,
+			scan: scanned,
+			index,
+			client,
+			brief: briefText,
+		});
+
+		for (const req of client.requests) {
+			expect(req.prompt).toContain("Architecture brief");
+			expect(req.prompt).toContain(briefText);
+		}
+	});
+
+	it("reads and writes brief to disk stripping comment header", async () => {
+		const { root } = await repo(ROOT_FILES);
+		const content = "## What this system is\nA test system.\n\n## Glossary\n**Scanner** — inspects files.";
+
+		const path = await writeBrief(root, content);
+		expect(path).toBe(briefPath(root));
+
+		const read = await readBrief(root);
+		expect(read).toBe(content);
 	});
 });

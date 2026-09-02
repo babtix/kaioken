@@ -337,3 +337,259 @@ cd D:\project\ai_now_know\kaioken_studio; . .\studio-env.ps1; .\scripts\code.bat
 `studio-env.ps1` reads `.nvmrc` and puts that exact Node on PATH for the one shell.
 Set `VSCODE_SKIP_PRELAUNCH=1` to skip the pre-launch build check when nothing changed.
 After editing TypeScript, `npm run compile` (or `npm run watch`).
+
+---
+
+## 9. Agents window first, IDE second (2026-09-02)
+
+Kaioken Studio now starts in the **Agents window**; the editor window is opened from
+there, the way Antigravity and Qoder open a manager first and an IDE on demand.
+
+Nothing had to be built for the agent surface itself — upstream 1.135 already ships it
+as `src/vs/sessions`, a full top-level layer above `vs/workbench` with its own HTML
+entry point (`sessions.html`), its own layout, and an "Open in Editor" action that
+spawns a real workbench window (`Ctrl+Shift+A`, or the title-bar button). Upstream only
+reached it through `code --agents`. Four small changes make it the default:
+
+| File | Change |
+|---|---|
+| `product.json` | `"defaultWindow": "agents"` |
+| `src/vs/base/common/product.ts` | types `defaultWindow?: 'agents' \| 'editor'` |
+| `src/vs/code/electron-main/app.ts` | `shouldOpenAgentsWindow()` decides the first window |
+| `src/vs/workbench/electron-browser/desktop.contribution.ts` | registers `window.startupWindow` |
+
+**The window is chosen in `openFirstWindow`.** A bare launch opens the Agents window;
+anything that already names what to open (`kaioken-studio .`, `--folder-uri`,
+`--file-uri`, a protocol URL, macOS open-file events) or asks for a particular window
+(`--new-window`, `--profile`, `--profile-temp`, `--remote`) goes straight to the editor
+window, exactly as upstream. Users opt out permanently with
+`"window.startupWindow": "editor"`, whose schema default is read from
+`product.defaultWindow`.
+
+**There is no `--no-agents`.** VS Code parses argv through minimist with every declared
+boolean in `opts.boolean`, and minimist *defaults those to `false`* — so an absent
+`--agents` and an explicit `--no-agents` are the same value. The flag can only force
+the Agents window on; the setting is the opt-out.
+
+**`window.restoreWindows` no longer decides what a bare launch shows.** It still governs
+the editor windows once one is opened, but the app itself now lands on the agent.
+
+### The gate that would have made this useless
+
+The Agents window's *window gate* forces GitHub sign-in behind a non-dismissible modal
+unless `chat.agentHost.allowSignedOutWhenUsable` is on **and** at least one registered
+session type can run without GitHub (`resolveSignedOutWindowGate`). Upstream defaults
+that setting to `false`. This fork authenticates models through BYOK and stays signed
+out of GitHub on purpose (see the BYOK note above), so launching into the Agents window
+with the upstream default would have parked the app on a sign-in wall it could never
+pass. `chat.shared.contribution.ts` now defaults it to **`true`**.
+
+Verified in the launch log: `[sessions welcome] Proceeding without GitHub sign-in;
+signed-out operation is enabled`, followed by the agent host starting and discovering
+local Claude and Copilot sessions.
+
+### Labels
+
+The sessions UI called the editor "VS Code" in the strings on this path. Renamed to the
+neutral "Editor Window" / "Return to Editor" in `vscodeActions.ts`, `openInVSCodeWidget.ts`
+and `sessionsSignInDialog.ts` — the fork ships no product named VS Code.
+
+### Verifying it
+
+`scripts/code.bat` runs `%CODE% . %*`, and that `.` is the **Electron app path**, not a
+folder to open — `stripAppPath` in `argvHelper.ts` removes it before VS Code parses
+argv, so the dev launcher exercises the bare-launch path too. Running the Electron
+binary directly with no argument does *not* work: Electron itself needs the app path and
+just prints its own usage banner.
+
+Two signals confirm the Agents window opened, without needing to look at the screen:
+`%APPDATA%\code-oss-dev\User\agent-sessions.code-workspace` is created on first use, and
+`logs/<ts>/window1/renderer.log` carries the `[sessions welcome]` lines.
+
+---
+
+## 10. BYOK only — the sign-in surfaces are hidden (2026-09-02)
+
+`product.json` now carries `"byokOnly": true` (typed in `base/common/product.ts`).
+It **hides** the GitHub sign-in surfaces; it does not remove the auth machinery, which
+is left intact to be dealt with properly later.
+
+| Surface | Before | After |
+|---|---|---|
+| Startup dialog in the Agents window | sign-in modal, "continue without" button | never shown; goes straight to signed-out operation |
+| Title-bar affordance | prominent **Sign In** / "Agents Signed Out" | quiet **Account** (menu still has Settings and updates) |
+| Account menu | "Sign in to use GitHub Copilot" entry | entry not contributed |
+| Workspace picker, GitHub group | "Sign in to GitHub" action | no action |
+
+Where each one is gated:
+
+- `sessionsSetUpService.ts` — `_start()` marks the welcome complete and calls
+  `_proceedWithoutGitHub()` directly. `_signedOutWindowGate()` also returns `Proceed`
+  unconditionally, so nothing can later re-raise a dialog: `_reevaluateSignedOut()` is
+  the only other path to `_showWelcome()`, and both of its inputs now say proceed.
+- `accountTitleBarState.ts` — `byokOnly` on the state context skips
+  `getCopilotPresentation()` entirely and replaces the "Sign In" fallback with a neutral
+  "Account" state. Kept as a **pure function parameter**, not a service read, so the
+  existing state tests stay table-driven.
+- `account.contribution.ts` — the Sign In `Action2` keeps its **command** (things still
+  invoke it) but contributes **no menu item**. The menu-item filter loop at the bottom
+  of the widget then simply never sees it, so no further change was needed there.
+- `newChatWidget.ts` — `getWorkspaceGroupAction` returns nothing for the GitHub group.
+
+`chat.agentHost.allowSignedOutWhenUsable` (defaulted to `true` in §9) is now belt and
+braces rather than load-bearing: the setup service no longer consults the gate. Leave it
+on — the *editor* window's chat still reads it.
+
+**Not covered: the phone/mobile title bar** (`parts/mobile/mobileTitlebarPart.ts`). It
+renders only in the web sessions build, which this fork does not ship, and its
+conditional-auth handling is already hard-coded off. `byokOnly` is simply not threaded
+there. Same for `contrib/policyBlocked` — that screen appears only under an org policy
+block, which cannot happen here.
+
+Tests: `Sessions - Account Menu` asserted the sign-in menu item exists, which is exactly
+what the fork removes — it now asserts absence under `product.byokOnly` and keeps the
+upstream assertion otherwise. A new `accountTitleBarState` case pins the neutral
+signed-out state. `scripts\test.bat --grep "Sessions - "` → **274 passing, 0 failing**.
+
+Verified at runtime: the launch log goes straight to `[sessions welcome] Proceeding
+without GitHub sign-in` with **no** `Showing sign-in dialog` line, and the window title
+is `Agents`.
+
+---
+
+## 11. A real Kaioken agent provider on `agent-serve` (2026-09-02)
+
+The picker's "Copilot" entry is the `copilotcli` **agent host provider** — a class in
+`platform/agentHost/node/copilot/`, registered in `agentHostMain.ts`. Kaioken is now a
+peer of it rather than a rename of it: `platform/agentHost/node/kaioken/`, provider id
+`kaioken`, display name **Kaioken**.
+
+```
+kaiokenCli.ts          resolve how to launch the engine
+kaiokenServeClient.ts  one `kaioken agent-serve` child process, NDJSON over stdio
+kaiokenAgent.ts        the IAgent implementation
+```
+
+### What is real, and what is not
+
+**Real:** registration and appearance in the picker; a chat per working directory; a
+prompt reaching the actual engine; its answer, reasoning and tool announcements
+streaming back as `ChatResponsePart` actions; `ChatTurnComplete` / `ChatError`; abort.
+
+**Deliberately inert**, because `agent-serve` has no protocol for it — each returns the
+empty answer rather than throwing, so the host's restore and discovery passes run
+cleanly over a provider with nothing to give them:
+
+| Member | Behaviour | Why |
+|---|---|---|
+| `getMessages` | returns `[]` | the wire exposes no transcript, so a restored chat comes back empty rather than fabricated |
+| `onDidDiscoverChats` | `Event.None` | no catalogue of past sessions |
+| `materializeChat` | no-op | the engine keeps no resumable backing |
+| `getProtectedResources` | `[]` | the engine holds its own credentials — this is what keeps it usable signed out |
+| `changeModel` / `changeAgent` | no-op | model choice lives in the engine's own config |
+
+Tool calls are announced as **reasoning parts, not structured tool calls**. The engine's
+`tool` event carries a name and arguments but never a result, so a `ChatToolCallStart`
+would have no `ChatToolCallComplete` to pair with and would hang in the UI. Rendering
+the announcement is the honest option until the protocol carries results.
+
+### Things that shaped the design
+
+- **One process per working directory.** `agent-serve` keeps a single agent session per
+  process, keyed to its `--root`. Sharing one process across directories would put two
+  unrelated conversations in one transcript.
+- **Out of process, again.** Same reason as `agent-serve` itself (§ the stdio bridge):
+  the `@kaioken/*` packages carry native tree-sitter bindings built against a different
+  Node ABI than the agent host's. Nothing is imported.
+- **Turns run `write: false`.** That keeps the engine read-only and means its `approve`
+  round-trip — which *blocks* waiting for an `approve-reply` — is never reached. A stray
+  `approve` is answered `allow: false` rather than left pending, so a turn cannot hang.
+- **Abort kills the process.** There is no cancel message on the wire. The next send
+  starts a fresh process, losing that conversation's history with it.
+- **Every path that ends a turn must settle its promise.** `outcome`, `error`, process
+  `exit`, and spawn `error` all release the in-flight turn; without the process-death
+  cases a crashed engine would leave the chat spinning forever.
+- **`resolveKaiokenCli` gates registration**, the same shape of gate Claude and Codex
+  use — an engine that is not installed leaves no dead picker entry. Order: `KAIOKEN_CLI`
+  → `KAIOKEN_ENGINE_ROOT` → walk up for a built `kaioken_v2` → `kaioken` on PATH. A
+  `.js` entry point is run with `process.execPath` plus `ELECTRON_RUN_AS_NODE=1`,
+  without which the agent host binary opens a window instead of running the script.
+- **`shouldSurfaceLocalAgentHostProvider` returns `true` by default**, so no extra
+  enablement setting was needed (Codex is the special case there, not the rule).
+
+### Verifying it
+
+`spawn` is an injectable constructor parameter on `KaiokenServeClient`, so
+`Agent Host - Kaioken serve client` drives the protocol over a fake process: a streamed
+turn split across chunk boundaries mid-token, the three ways a turn can die (engine
+error, process exit, abort), and noise/stray output being dropped. **3 passing**;
+`Agent Host` **344 passing**, `Sessions - ` **274 passing**, compile 0 errors.
+
+Registration is confirmed at runtime in `logs/<ts>/agenthost.log`:
+`Registering agent provider: kaioken`.
+
+**Not yet confirmed by a human:** typing into a Kaioken session and watching a grounded
+reply stream into the window. The protocol mapping is unit-tested and the provider is
+proven to register, but nobody has clicked it.
+
+**Only `agentHostMain.ts` registers it.** `agentHostServerMain.ts` (the remote agent
+host) does not — remote Kaioken sessions are a separate piece of work.
+
+---
+
+## 12. Kaioken first in **Add Models** (2026-09-02)
+
+The entries in that dropdown are `contributes.languageModelChatProviders` in
+`extensions/copilot/package.json` — one vendor per provider, each with its own API-key
+prompt, stored in the extension's secret storage. There is now a `kaioken` vendor,
+pinned above the alphabetical list.
+
+**The Kaioken vendor is OpenRouter under the product's name, and that is the point.**
+The engine resolves its own models through OpenRouter (via pi-ai's auth layer), so the
+credential the vendor wants is the credential the engine wants — one key value covers
+both, rather than the user reasoning about which of eight providers to pick.
+`KaiokenLMProvider` therefore *extends* `OpenRouterLMProvider` rather than copying it;
+model discovery, capability mapping and the Anthropic-via-Messages routing are inherited
+unchanged, so the two cannot drift.
+
+To make that subclass possible, `OpenRouterLMProvider`'s constructor now takes
+`providerId` / `providerName` as parameters instead of reading its own statics — the
+base class had been passing `OpenRouterLMProvider.providerId` to `super()`, so a
+subclass would silently have registered as `openrouter`.
+
+`buildAddModelsDropdownActions` pins `kaioken` with `unshift` after the alphabetical
+sort, leaving `customoai` and the `customendpoint` separator tail exactly as they were.
+
+**The leading "Kaioken Agent" entry is gone under `byokOnly`.** It was never a vendor —
+it is `CHAT_SETUP_ACTION_ID`, GitHub sign-in, relabelled by the identity-only rebrand.
+With a real Kaioken vendor now at the top of the same menu, leaving it would have put
+two differently-behaved "Kaioken" entries side by side.
+
+### Two pre-existing test failures, fixed in passing
+
+`ChatModelsWidget` had **2 failing** tests before this change: the rebrand relabelled
+that entry to "Kaioken Agent" without updating the expectations, which still asserted
+`signIn-github-copilot:GitHub Copilot`. Updated to the real label. With the new pinning
+test, `ChatModelsWidget` is **14 passing, 0 failing**.
+
+### What "shared keys" does and does not mean yet
+
+Delivered: **one credential value**, one vendor, first in the list. The key you enter
+for Kaioken is the same OpenRouter key the engine uses.
+
+Not delivered: **entering it once.** The vendor's key lands in the *extension host's*
+secret storage; the engine is spawned by the *agent host* and reads its credential from
+the environment through pi-ai (`OPENROUTER_API_KEY` and friends — see
+`apps/tui/src/providers.ts`). Nothing carries a secret across that boundary today, so
+the key still has to exist in the environment for the engine as well.
+
+The right mechanism for that last hop already exists and should not be reinvented:
+`node/copilot/byokLmProxyService.ts` runs a **loopback OpenAI-compatible proxy** in the
+agent host, fronting the editor's BYOK models with a nonce-bearer, precisely so a
+spawned subprocess can use the editor's keys without ever seeing one. Pointing
+`agent-serve` at `providerBaseUrl(vendor)` would mean the engine holds **no credential
+at all**. It needs a base-URL override on the `kaioken_v2` side, which is why it was not
+done here — that is an engine change, not a Studio one.
+
+Copying the key into the child's environment instead would be the easy version and the
+wrong one: it moves a secret out of secret storage into a process environment.

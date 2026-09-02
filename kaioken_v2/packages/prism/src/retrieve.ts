@@ -1,6 +1,6 @@
 import { analyze, cosine, Lexicon, rrf, topN, type Ranked } from "@kaioken/search";
 import type { EmbeddingProvider } from "@kaioken/search";
-import type { ModelClient } from "@kaioken/model";
+import { type ModelClient, mapLimitSettled } from "@kaioken/model";
 import { NO_PARENT, type Chunk, type ModuleData } from "./store.js";
 
 /**
@@ -188,23 +188,14 @@ async function grade(
 	// never ran.
 	if (!grader) return { keep: ranked.map(() => true), graded: false };
 
-	const verdicts: Array<boolean | null> = new Array(ranked.length).fill(null);
-	let next = 0;
-
-	const worker = async (): Promise<void> => {
-		while (true) {
-			const i = next++;
-			if (i >= ranked.length) return;
-			verdicts[i] = await gradeOne(grader, query, textFor((ranked[i] as Ranked).id));
-		}
-	};
-	await Promise.all(
-		Array.from({ length: Math.min(GRADER_CONCURRENCY, ranked.length) }, () => worker()),
+	const settled = await mapLimitSettled(ranked, GRADER_CONCURRENCY, (item) =>
+		gradeOne(grader, query, textFor(item.id)),
 	);
 
 	const keep: boolean[] = [];
 	let graded = true;
-	for (const verdict of verdicts) {
+	for (const res of settled) {
+		const verdict = res.status === "fulfilled" ? res.value : null;
 		if (verdict === null) {
 			keep.push(true);
 			graded = false;

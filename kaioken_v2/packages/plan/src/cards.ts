@@ -66,7 +66,7 @@ export async function generateCard(
 
 	// Above the breadth threshold the multiplier stops buying length and starts
 	// buying scrutiny: each pass feeds the verifier's findings back for repair.
-	for (let pass = 0; pass < depth.refinementPasses; pass++) {
+	for (let pass = 0; pass < depth.repairPasses; pass++) {
 		if (verification.ungrounded.length === 0 && verification.unknownFiles.length === 0) break;
 
 		const revised = await client.complete({

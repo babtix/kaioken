@@ -45,7 +45,14 @@ export interface Depth {
 	declarationsPerFile: number;
 	/** Output budget per generative call. */
 	maxOutputTokens: number;
-	/** Extra critique-and-revise passes. Zero below the threshold. */
+	/** Correction passes against grounding defects. At least 1 at every level. */
+	repairPasses: number;
+	/** Rubric critique passes on clean documents. Available at x5 and above. */
+	critiquePasses: number;
+	/**
+	 * Total extra passes (sum of repairPasses and critiquePasses).
+	 * @deprecated Read repairPasses and critiquePasses separately.
+	 */
 	refinementPasses: number;
 }
 
@@ -63,14 +70,18 @@ export function depthFor(multiplier: number): Depth {
 	const n = Math.min(Math.max(multiplier, MIN_MULTIPLIER), MAX_MULTIPLIER);
 	const breadth = Math.min(n, BREADTH_THRESHOLD);
 
+	const repairPasses = 1 + Math.max(0, n - BREADTH_THRESHOLD);
+	const critiquePasses = n >= BREADTH_THRESHOLD ? n - BREADTH_THRESHOLD + 1 : 0;
+
 	return {
 		multiplier: n,
 		targetModules: 4 + breadth * 3,
 		keyPoints: 2 + breadth,
 		declarationsPerFile: 20 + breadth * 20,
 		maxOutputTokens: 1500 + breadth * 900,
-		// Each level past the threshold buys one more adversarial pass.
-		refinementPasses: Math.max(0, n - BREADTH_THRESHOLD),
+		repairPasses,
+		critiquePasses,
+		refinementPasses: repairPasses + critiquePasses,
 	};
 }
 
@@ -141,3 +152,20 @@ function balancedSpan(text: string, open: string, close: string): string | null 
 	}
 	return null;
 }
+
+export {
+	DEFAULT_CONCURRENCY,
+	FREE_TIER_CONCURRENCY,
+	effectiveConcurrency,
+	isFreeModel,
+	mapLimit,
+	mapLimitSettled,
+} from "./pool.js";
+
+export {
+	computeBackoff,
+	isRetryable,
+	parseRetryAfter,
+	withRetry,
+	type RetryPolicy,
+} from "./retry.js";

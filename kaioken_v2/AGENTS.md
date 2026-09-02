@@ -57,6 +57,29 @@ Open the matching skill FIRST when starting one of these tasks:
 - `use-tools-ask-questions` — Learned from a session: Use your tools, do not ask questions. 1) Write the file s…
 - `write-a-wiki-or-card-artifact` — Write a new wiki document, module plan card, or graph export artifact under the .kaioken/ directory using the established write*/read* pairs. Load when adding a new artifact type to the documentation pipeline.
 
+### Wiki (`.kaioken/wiki/`)
+
+- **What This Repository Is** — What This Toolkit Does, How the Project Defines Itself, Workspace, Scripts, and Tooling Entry Points, Repository Conventions and Agent Instructions
+- **Monorepo Layout and Build Configuration** — Workspace Organization, Shared TypeScript Base Configuration, Project References and Composite Builds, Test Tooling with Vitest
+- **Agent Core: Types, Tools, and Prompt Building** — Shared Types and Knowledge Context, The Knowledge Tool Set, System Prompt Construction, Skills: Discovery and Parsing
+- **The Verification Gate** — Gate Types and Verdicts, Detecting Verification Commands, Running Commands and Building Reports, Testing the Gate with Scripted Runners
+- **AGENTS.md Generation and Knowledge Merging** — Parsing Authored AGENTS.md and Merging Knowledge, Collecting and Ranking Instruction Sources, Generation and Improvement Prompts, The Generation Pipeline and Knowledge Refresh
+- **Repository Scanning: Files, Ignores, and Risk** — Walking the Repository and Honoring Ignores, Language Detection, Risk Classification, Persisting and Reading the Scan Artifact
+- **Code Indexing and Anchors** — Index Types and the Symbol Model, Tree-Sitter Grammars and Language Support, Symbol Extraction with Tree-Sitter Queries, Anchors: Resolving Excerpts to Code Locations, Building the Index Incrementally and Reading the Artifact, The Symbol Oracle: Querying the Built Index
+- **Text Analysis and Lexical Search Ranking** — Tokenization and Text Analysis, Building the Search Corpus, BM25 Scoring and Reciprocal Rank Fusion, The In-Memory Index Store and Query Execution
+- **The Code Graph Artifact** — Graph Data Model, Building the Graph from Provenance and Documents, Persistence and Export Trees, Rendering, Stats, and Coverage
+- **Git Operations and Post-Commit Hooks** — The Git Execution Layer, Diff Snapshots and Recent History, Post-Commit Hook Installation and Removal, Package Exports and Verified Hook Behavior
+- **Provenance and Staleness Tracking** — The Provenance Data Model, Freshness Verdicts and Document Status, Computing Staleness Reports and Changed Sources, Package API and Staleness Testing
+- **Retrieval-Augmented Q&A and Web Research** — Prism Ingestion and Parent-Child Chunking, The Prism Module Store, Prism Retrieval and Grounded Answering, Research Sources: Search, Fetch, and Sanitization, Research Answers: Generation, Citation Verification, and Artifacts
+- **Module Plans and Verification Cards** — Plan Types and Evidence Gathering, Proposing and Validating a Module Plan, Card Generation and Verification, Plan Artifacts, Persistence, and Testing
+- **Wiki Generation and Claim Verification** — Planning the Wiki: Outlines, Sections, and the Editable Plan Artifact, Generating Wiki Documents, Extracting Claims and Detecting Padding, Verification, Provenance, and the End-to-End Run
+- **Impact Prediction** — Impact Report and Predict Input Types, Extracting Candidate Names from a Change Description, Sweeping Dependents and Computing Affected Modules, Documents, and Skills, Rendering the Report and End-to-End Behavior
+- **Extensions, Skills, and Templates** — Safe tar.gz Extraction and Manifest Validation, Installing, Trusting, Locking, and Updating Extensions, Running MCP Tools and WASM Commands, Contributed Skills, Skill Generation, and Templates
+- **Sessions, Conversation Signals, and Model Access** — Session Persistence and Auto-Titling, Conversation Signals and Error Detection, Session Trees and Undo, Model Client Interface and Depth-Aware Cost Tuning
+- **The CLI App** — CLI Entry Point and Command Dispatch, Model, Embedding, Fetch, and Search Wiring, Agent Host, Knowledge Loading, and Session Text Rendering, Command Modules: Scan, Chat, Wiki, Research, and Friends
+- **The Terminal UI App** — Launching the TUI: Entry Point, Terminal Seal, and Curtains, Screen Rendering: Themes, Motion, Transcript, and Status Line, Composer, Command Dispatch, and Autocomplete, Chat Bridging, Session Storage, and Repo State
+- **Serving Artifacts and Studio Design** — Safe Markdown Rendering, Page Templates and Styling, HTTP Server and Request Handling, Testing the Server and Studio Design Direction
+
 Refresh after significant changes with `kaioken update`.
 
 <!-- kaioken:knowledge:end -->

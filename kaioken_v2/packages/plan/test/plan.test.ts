@@ -40,6 +40,7 @@ afterEach(async () => {
 class ScriptedModel implements ModelClient {
 	readonly requests: ModelRequest[] = [];
 	private replies: string[];
+	private last = "{}";
 
 	constructor(replies: string[]) {
 		this.replies = [...replies];
@@ -47,7 +48,9 @@ class ScriptedModel implements ModelClient {
 
 	async complete(request: ModelRequest): Promise<string> {
 		this.requests.push(request);
-		return this.replies.shift() ?? this.replies.at(-1) ?? "{}";
+		const next = this.replies.shift();
+		if (next !== undefined) this.last = next;
+		return next ?? this.last;
 	}
 }
 
@@ -283,14 +286,17 @@ describe("the multiplier", () => {
 
 	it("buys breadth below the threshold", () => {
 		expect(depthFor(3).targetModules).toBeGreaterThan(depthFor(1).targetModules);
-		expect(depthFor(3).refinementPasses).toBe(0);
+		expect(depthFor(3).repairPasses).toBeGreaterThan(0);
+		expect(depthFor(3).critiquePasses).toBe(0);
 	});
 
 	it("stops buying breadth and starts buying passes above it", () => {
 		// Past the threshold more breadth yields longer output, not better
 		// output, so the dial switches to scrutiny.
 		expect(depthFor(8).targetModules).toBe(depthFor(5).targetModules);
-		expect(depthFor(8).refinementPasses).toBe(3);
+		expect(depthFor(8).repairPasses).toBe(4);
+		expect(depthFor(8).critiquePasses).toBe(4);
+		expect(depthFor(8).refinementPasses).toBe(8);
 	});
 });
 
@@ -626,9 +632,9 @@ describe("correction passes", () => {
 		entryPoints: [{ name: "walkTree", file: "src/scan/walk.ts", note: "n" }],
 	});
 
-	it("makes no correction call below the threshold", async () => {
+	it("makes no correction call when card is clean", async () => {
 		const { index } = await repo();
-		const model = new ScriptedModel([BAD]);
+		const model = new ScriptedModel([GOOD]);
 		await generateCards(plan, index, model, { multiplier: 1 });
 		expect(model.requests.map((r) => r.purpose)).toEqual(["card"]);
 	});
@@ -654,7 +660,7 @@ describe("correction passes", () => {
 			],
 		});
 		const model = new ScriptedModel([BAD, WORSE]);
-		const [result] = await generateCards(plan, index, model, { multiplier: 6 });
+		const [result] = await generateCards(plan, index, model, { multiplier: 1 });
 		// A model asked to fix things can make them worse.
 		expect(result?.card.verification.ungrounded).toEqual(["invented"]);
 	});

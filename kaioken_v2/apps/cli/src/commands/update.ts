@@ -7,6 +7,8 @@ import { type IndexResult, SymbolOracle } from "@kaioken/index";
 import {
 	type Chapter,
 	generateDocument,
+	locate,
+	readBrief,
 	readProvenance,
 	readWikiPlan,
 	type Section,
@@ -115,6 +117,7 @@ export async function runUpdate(flags: Flags): Promise<number> {
 		} else {
 			const oracle = new SymbolOracle(index ?? emptyIndex());
 			const readSource = sourceReader(root);
+			const brief = (await readBrief(root)) ?? undefined;
 			const regeneratedDocs = [];
 
 			// One document at a time, not one chapter at a time. Regenerating a
@@ -137,6 +140,7 @@ export async function runUpdate(flags: Flags): Promise<number> {
 					oracle,
 					client: client.client,
 					multiplier,
+					...(brief ? { brief } : {}),
 					scanFiles: scanResult.files,
 					readSource,
 				});
@@ -187,31 +191,6 @@ function reportPlanned(affected: DocumentStatus[], flags: Flags): number {
 	out.push("", "no model was called");
 	process.stdout.write(`${out.join("\n")}\n`);
 	return 0;
-}
-
-/**
- * Resolve a document path back to the chapter — and, for a subsection, the
- * section — that produced it.
- *
- * Sections are persisted into the outline after a run precisely so this lookup
- * is possible. Re-planning them here would invent different ids and leave the
- * documents already on disk describing the same ground under other names.
- */
-function locate(
-	plan: { chapters: Chapter[] },
-	document: string,
-): { chapter: Chapter; section?: Section } | null {
-	const slash = document.indexOf("/");
-	if (slash === -1) return null;
-
-	const chapterId = document.slice(0, slash);
-	const leaf = document.slice(slash + 1).replace(/\.md$/, "");
-	const chapter = plan.chapters.find((c) => c.id === chapterId);
-	if (!chapter) return null;
-
-	if (leaf === "index") return { chapter };
-	const section = chapter.sections?.find((s) => s.id === leaf);
-	return section ? { chapter, section } : null;
 }
 
 function emptyIndex(): IndexResult {

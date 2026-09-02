@@ -16,6 +16,7 @@ export async function runServe(flags: Flags): Promise<number> {
 
 	process.stdout.write(`kaioken serving ${root}\n`);
 	process.stdout.write(`  ${server.url}\n`);
+	if (server.summary) process.stdout.write(`  ${server.summary}\n`);
 	process.stdout.write("  ctrl-c to stop\n");
 
 	await new Promise<void>((done) => {

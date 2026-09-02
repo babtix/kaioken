@@ -74,30 +74,33 @@ export async function planWiki(input: GlobalPlanInput): Promise<{ plan: WikiPlan
 	};
 }
 
+export interface SectionPlanInput {
+	plan: WikiPlan;
+	chapter: Chapter;
+	index: IndexResult | null;
+	client: ModelClient;
+	multiplier?: number;
+	brief?: string;
+}
+
 /**
  * Pass two: detail one chapter against the global plan.
  *
  * The chapter sees the whole outline, which is what stops two chapters from
  * covering the same ground in different words.
  */
-export async function planSections(
-	plan: WikiPlan,
-	chapter: Chapter,
-	index: IndexResult | null,
-	client: ModelClient,
-	multiplier = 1,
-): Promise<Section[]> {
-	const depth = depthFor(multiplier);
+export async function planSections(input: SectionPlanInput): Promise<Section[]> {
+	const depth = depthFor(input.multiplier ?? 1);
 
-	const reply = await client.complete({
+	const reply = await input.client.complete({
 		purpose: "wiki-sections",
 		system: SECTION_SYSTEM,
-		prompt: buildSectionPrompt(plan, chapter, index, depth),
+		prompt: buildSectionPrompt(input, depth),
 		maxOutputTokens: depth.maxOutputTokens,
 	});
 
 	const parsed = extractJson<{ sections?: unknown }>(reply);
-	const allowed = new Set(chapter.files);
+	const allowed = new Set(input.chapter.files);
 
 	return Array.isArray(parsed.sections)
 		? parsed.sections
@@ -159,28 +162,32 @@ export function buildGlobalPrompt(
 }
 
 function buildSectionPrompt(
-	plan: WikiPlan,
-	chapter: Chapter,
-	index: IndexResult | null,
+	input: SectionPlanInput,
 	depth: Depth,
 ): string {
-	const byPath = new Map((index?.files ?? []).map((f) => [f.path, f]));
+	const byPath = new Map((input.index?.files ?? []).map((f) => [f.path, f]));
 
-	const lines: string[] = [
+	const lines: string[] = [];
+
+	if (input.brief) {
+		lines.push("Architecture brief (canonical terminology and high-level structure):", "", input.brief, "");
+	}
+
+	lines.push(
 		"The full outline, for context:",
 		"",
-		...plan.chapters.map((c) => `- ${c.id}: ${c.title} — ${c.goal}`),
+		...input.plan.chapters.map((c) => `- ${c.id}: ${c.title} — ${c.goal}`),
 		"",
-		`Detail this chapter: ${chapter.id} — ${chapter.title}`,
-		`Goal: ${chapter.goal}`,
+		`Detail this chapter: ${input.chapter.id} — ${input.chapter.title}`,
+		`Goal: ${input.chapter.goal}`,
 		"",
 		`Aim for ${Math.max(2, Math.round(depth.keyPoints / 2))} subsections.`,
 		"",
 		"Its files, with what they declare:",
 		"",
-	];
+	);
 
-	for (const path of chapter.files) {
+	for (const path of input.chapter.files) {
 		const file = byPath.get(path);
 		lines.push(`--- ${path}`);
 		if (!file) {

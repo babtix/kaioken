@@ -88,9 +88,38 @@ describe("the knowledge block", () => {
 		expect(await knowledgeSection(await repo({ "package.json": "{}" }))).toBe("");
 	});
 
+	it("omits planned chapters when provenance has no recorded documents for them", async () => {
+		const root = await repo({
+			".kaioken/wiki-plan.yaml": [
+				"version: 1",
+				"generatedAt: 2026-01-01T00:00:00.000Z",
+				"multiplier: 3",
+				"chapters:",
+				"  - id: overview",
+				"    title: Overview",
+				"    goal: What this is",
+				"    files: []",
+			].join("\n"),
+		});
+
+		expect(await knowledgeSection(root)).toBe("");
+	});
+
 	it("lists the skills, chapters and cards that are actually on disk", async () => {
 		const root = await repo({
 			".kaioken/skills/release/SKILL.md": "---\nname: release\ndescription: Cut a release.\n---\n\nSteps.\n",
+			".kaioken/provenance.json": JSON.stringify({
+				version: 1,
+				generatedAt: "2026-01-01T00:00:00.000Z",
+				documents: [
+					{
+						document: "overview/index.md",
+						chapterId: "overview",
+						generatedAt: "2026-01-01T00:00:00.000Z",
+						sources: [],
+					},
+				],
+			}),
 			".kaioken/wiki-plan.yaml": [
 				"version: 1",
 				"generatedAt: 2026-01-01T00:00:00.000Z",

@@ -1,24 +1,36 @@
 import { relative, resolve } from "node:path";
-import { parseMultiplier } from "@kaioken/model";
+import { effectiveConcurrency, parseMultiplier } from "@kaioken/model";
 import { readScanArtifact, scan, writeScanArtifact } from "@kaioken/scan";
 import {
+	briefPath,
+	buildBrief,
 	groundingDefects,
+	locate,
 	planWiki,
+	readBrief,
 	readProvenance,
 	readWikiPlan,
+	readWikiState,
+	type RunFailure,
 	runWiki,
 	summariseDefects,
 	type WikiDocument,
 	wikiDir,
 	wikiPlanPath,
+	writeBrief,
 	writeProvenance,
 	writeWikiDocument,
+	writeWikiIndex,
 	writeWikiPlan,
+	writeWikiState,
 } from "@kaioken/wiki";
 import { ensureIndex } from "../artifacts.js";
 import { refreshKnowledgeBlock } from "@kaioken/agentsmd";
 import type { Flags } from "../main.js";
-import { resolveModelClient } from "../model.js";
+import { readRepoConcurrency, resolveModelClient } from "../model.js";
+import { runUpdate } from "./update.js";
+
+const WIKI_KEYWORDS = new Set(["retry", "force", "update"]);
 
 /**
  * The wiki cascade: outline, then chapters and their subsections, each checked
@@ -31,8 +43,25 @@ import { resolveModelClient } from "../model.js";
 export async function runWikiCommand(flags: Flags): Promise<number> {
 	const root = resolve(flags.root);
 
-	const multiplier = parseMultiplier(flags.positional[0] ?? flags.multiplier);
-	if (multiplier === null) {
+	// Keyword positionals: retry, force, update
+	const nonKeywordArgs: string[] = [];
+	for (const arg of flags.positional) {
+		const lower = arg.toLowerCase();
+		if (lower === "update") {
+			return runUpdate(flags);
+		}
+		if (lower === "retry") {
+			flags.retry = true;
+		} else if (lower === "force") {
+			flags.force = true;
+		} else {
+			nonKeywordArgs.push(arg);
+		}
+	}
+
+	const rawMultiplier = nonKeywordArgs[0] ?? flags.multiplier;
+	let multiplier = parseMultiplier(rawMultiplier);
+	if (rawMultiplier !== undefined && multiplier === null) {
 		process.stderr.write("kaioken wiki: multiplier must be x1..x10\n");
 		return 1;
 	}
@@ -56,6 +85,47 @@ export async function runWikiCommand(flags: Flags): Promise<number> {
 			`kaioken wiki: no chapter with id "${flags.module}" — see ${relative(root, wikiPlanPath(root))}\n`,
 		);
 		return 1;
+	}
+
+	let retryDocs: string[] | undefined;
+
+	if (flags.retry) {
+		const state = await readWikiState(root);
+		if (!state || state.failures.length === 0) {
+			process.stdout.write("nothing to retry — the last wiki run completed\n");
+			return 0;
+		}
+
+		if (multiplier === null || rawMultiplier === undefined) {
+			multiplier = state.multiplier;
+		}
+
+		if (!existing) {
+			process.stderr.write("kaioken wiki: cannot retry without a wiki plan\n");
+			return 1;
+		}
+
+		// Resolve failed documents against the current plan.
+		const validDocs: string[] = [];
+		for (const failure of state.failures) {
+			if (locate(existing, failure.document)) {
+				validDocs.push(failure.document);
+			} else {
+				process.stdout.write(`  skipped ${failure.document} — no longer in the outline\n`);
+			}
+		}
+
+		if (validDocs.length === 0) {
+			await writeWikiState(root, { ...state, failures: [] });
+			process.stdout.write("nothing to retry — no failed documents remain in the outline\n");
+			return 0;
+		}
+
+		retryDocs = validDocs;
+	}
+
+	if (multiplier === null) {
+		multiplier = 1;
 	}
 
 	const client = await resolveModelClient(flags);
@@ -91,22 +161,76 @@ export async function runWikiCommand(flags: Flags): Promise<number> {
 		return 1;
 	}
 
-	const { documents, plan: resolvedPlan } = await runWiki({
+	// Resolve the shared architecture brief.
+	let brief: string | undefined;
+	if (!flags.force) {
+		brief = (await readBrief(root)) ?? undefined;
+	}
+	if (brief) {
+		process.stdout.write(`using ${relative(root, briefPath(root))} (--force to regenerate)\n`);
+	} else {
+		try {
+			brief = await buildBrief({
+				scan: scanResult,
+				index,
+				client: client.client,
+				multiplier,
+				plan,
+			});
+			const bPath = await writeBrief(root, brief);
+			process.stdout.write(`wrote ${relative(root, bPath)}\n`);
+		} catch (error) {
+			process.stderr.write(
+				`kaioken wiki: warning: could not build architecture brief (${error instanceof Error ? error.message : String(error)})\n`,
+			);
+			brief = undefined;
+		}
+	}
+
+	// Concurrency resolution.
+	const requestedConcurrency = flags.concurrency ??
+		(process.env["KAIOKEN_CONCURRENCY"] ? Number.parseInt(process.env["KAIOKEN_CONCURRENCY"], 10) : undefined) ??
+		(await readRepoConcurrency(root));
+
+	const { limit: concurrency, clamped } = effectiveConcurrency(requestedConcurrency, client.describe);
+	if (clamped) {
+		process.stdout.write("free-tier model — concurrency capped at 2 to avoid rate limits\n");
+	}
+
+	const written: WikiDocument[] = [];
+	const onDocument = async (doc: WikiDocument) => {
+		await writeWikiDocument(root, doc);
+		written.push(doc);
+		await persistProvenance(root, written, true);
+	};
+
+	const { documents, failures, plan: resolvedPlan } = await runWiki({
 		root,
 		plan,
 		scan: scanResult,
 		index,
 		client: client.client,
 		multiplier,
+		brief,
+		concurrency,
 		...(flags.module ? { only: [flags.module] } : {}),
+		...(retryDocs ? { onlyDocuments: retryDocs } : {}),
+		onDocument,
 		onProgress: (label, done, total) => {
-			if (!flags.json) process.stdout.write(`  [${done + 1}/${total}] ${label}\n`);
+			if (!flags.json) process.stdout.write(`  [${done}/${total}] ${label}\n`);
 		},
 	});
 
-	if (documents.length === 0) {
-		// Reporting "every claim checks out" over an empty run would be a true
-		// statement that misleads completely.
+	// Persist run state for potential retry.
+	await writeWikiState(root, {
+		version: 1,
+		updatedAt: new Date().toISOString(),
+		model: client.describe,
+		multiplier,
+		failures,
+	});
+
+	if (documents.length === 0 && failures.length === 0) {
 		process.stderr.write(
 			flags.module
 				? `kaioken wiki: no chapter with id "${flags.module}" — see ${relative(root, wikiPlanPath(root))}\n`
@@ -115,14 +239,19 @@ export async function runWikiCommand(flags: Flags): Promise<number> {
 		return 1;
 	}
 
-	for (const doc of documents) await writeWikiDocument(root, doc);
-	await persistProvenance(root, documents, flags.module !== undefined);
+	if (documents.length > 0) {
+		const isPartial = flags.module !== undefined || flags.retry || failures.length > 0;
+		await persistProvenance(root, documents, isPartial);
 
-	// Persist the sections the run actually used. Without this a later `update`
-	// has to re-plan them, invents different ids, and orphans what is on disk.
-	await writeWikiPlan(root, resolvedPlan);
+		// Persist the sections the run actually used. Without this a later `update`
+		// has to re-plan them, invents different ids, and orphans what is on disk.
+		await writeWikiPlan(root, resolvedPlan);
 
-	return report(root, documents, flags);
+		// Write the top-level README.md index in .kaioken/wiki/
+		await writeWikiIndex(root, resolvedPlan);
+	}
+
+	return report(root, documents, failures, multiplier, flags);
 }
 
 async function freshScan(root: string) {
@@ -134,27 +263,17 @@ async function freshScan(root: string) {
 /**
  * Record what this run produced, without forgetting what it did not touch.
  *
- * A whole-wiki run legitimately replaces the index: a `--force` re-outline
- * supersedes documents that no longer belong to any chapter, and dropping their
- * records is how they come to be reported as undocumented rather than as
- * knowledge the engine still stands behind.
- *
- * A `--module` run is the opposite case, and overwriting there was a silent
- * data loss: one chapter regenerates, and every *other* chapter's record
- * disappears with it. Nothing errors — the documents are still on disk — but
- * `status` can no longer say anything about them (they become `unknown`
- * freshness, having no recorded sources), `update` can no longer regenerate
- * them, and they vanish from the graph and any export. `update` has always
- * merged for exactly this reason.
+ * A whole-wiki clean run legitimately replaces the index.
+ * A partial run (scoped by module, retry, or with failures) merges with the existing index.
  */
 export async function persistProvenance(
 	root: string,
 	documents: WikiDocument[],
-	scoped: boolean,
+	partial: boolean,
 ): Promise<void> {
 	const fresh = documents.map((doc) => doc.provenance);
 
-	if (!scoped) {
+	if (!partial) {
 		await writeProvenance(root, fresh);
 		return;
 	}
@@ -199,7 +318,13 @@ function reportPlan(root: string, plan: ReturnType<typeof Object>, known: string
 	return bad === 0 ? 0 : 1;
 }
 
-async function report(root: string, documents: WikiDocument[], flags: Flags): Promise<number> {
+async function report(
+	root: string,
+	documents: WikiDocument[],
+	failures: RunFailure[],
+	multiplier: number,
+	flags: Flags,
+): Promise<number> {
 	const totalGrounding = documents.reduce(
 		(n, d) => n + groundingDefects(d.verification.defects).length,
 		0,
@@ -212,19 +337,21 @@ async function report(root: string, documents: WikiDocument[], flags: Flags): Pr
 		process.stdout.write(
 			`${JSON.stringify(
 				{
+					complete: failures.length === 0 && totalGrounding === 0,
 					documents: documents.map((d) => ({
 						path: d.path,
 						title: d.title,
 						verification: d.verification,
 						provenance: d.provenance,
 					})),
+					failures,
 					refreshedAgents: refreshed,
 				},
 				null,
 				2,
 			)}\n`,
 		);
-		return totalGrounding > 0 ? 1 : 0;
+		return totalGrounding > 0 || failures.length > 0 ? 1 : 0;
 	}
 
 	const out: string[] = ["", `wrote ${documents.length} documents to ${relative(root, wikiDir(root))}`, ""];
@@ -242,15 +369,25 @@ async function report(root: string, documents: WikiDocument[], flags: Flags): Pr
 		}
 	}
 
+	if (failures.length > 0) {
+		out.push("", `${failures.length} document${failures.length === 1 ? "" : "s"} failed during generation:`);
+		for (const f of failures) {
+			out.push(`  ! ${f.document} (${f.reason})`);
+		}
+		out.push("  run `kaioken wiki retry` to regenerate only the failed documents");
+	}
+
 	const kinds = summariseDefects(documents.flatMap((d) => d.verification.defects));
 	out.push("", `defects by kind: ${JSON.stringify(kinds)}`);
-	out.push(
-		totalGrounding === 0
-			? "every claim checks out against the structural index"
-			: `${totalGrounding} claims could not be grounded — raise the multiplier to buy correction passes`,
-	);
+	if (totalGrounding === 0) {
+		out.push("every claim checks out against the structural index");
+	} else {
+		out.push(
+			`${totalGrounding} claims could not be grounded — raise the multiplier to buy correction passes`,
+		);
+	}
 	if (refreshed) out.push("", "refreshed the generated section of AGENTS.md");
 
 	process.stdout.write(`${out.join("\n")}\n`);
-	return totalGrounding > 0 ? 1 : 0;
+	return totalGrounding > 0 || failures.length > 0 ? 1 : 0;
 }

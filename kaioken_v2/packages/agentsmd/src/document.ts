@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { loadSkills } from "@kaioken/agent";
 import { readCards } from "@kaioken/plan";
 import { KAIOKEN_DIR } from "@kaioken/scan";
-import { readWikiPlan } from "@kaioken/wiki";
+import { readProvenance, readWikiPlan } from "@kaioken/wiki";
 
 /**
  * AGENTS.md: the short instruction file an agent reads before it changes
@@ -23,9 +23,8 @@ import { readWikiPlan } from "@kaioken/wiki";
  */
 
 export const AGENTS_FILE = "AGENTS.md";
-
-const MARKER_START = "<!-- kaioken:knowledge:start — generated, do not edit by hand -->";
-const MARKER_END = "<!-- kaioken:knowledge:end -->";
+export const MARKER_START = "<!-- kaioken:knowledge:start — generated, do not edit by hand -->";
+export const MARKER_END = "<!-- kaioken:knowledge:end -->";
 
 export function agentsPath(root: string): string {
 	return join(root, AGENTS_FILE);
@@ -49,32 +48,35 @@ export async function agentsExists(root: string): Promise<boolean> {
 }
 
 /**
- * A BOM and CRLF endings are routine in files edited by Windows tooling, and
- * both would defeat the prefix checks that find the markers.
+ * Replace or append the generated section in AGENTS.md.
+ *
+ * Returns false when AGENTS.md does not exist yet: `kaioken wiki` and `update`
+ * refresh the knowledge block when the file is present, but creating it belongs
+ * to `kaioken init`.
  */
+export async function refreshKnowledgeBlock(root: string): Promise<boolean> {
+	const path = join(root, AGENTS_FILE);
+	const text = await readFile(path, "utf8").catch(() => null);
+	if (text === null) return false;
+
+	const section = await knowledgeSection(root);
+	const updated = mergeKnowledge(text, section);
+	if (updated === text) return false;
+
+	const { writeFile } = await import("node:fs/promises");
+	await writeFile(path, updated, "utf8");
+	return true;
+}
+
 function normalise(text: string): string {
 	return text.replace(/^﻿/, "").replace(/\r\n/g, "\n");
 }
 
 /**
- * The document with the generated block removed — the half a person authored.
+ * Splice the generated section into an existing AGENTS.md.
  *
- * This is what gets fed back to the model when improving a file in place, so
- * the model is never asked to preserve text it does not own.
- */
-export function authoredBody(doc: string): string {
-	const text = normalise(doc);
-	const start = text.indexOf(MARKER_START);
-	if (start === -1) return text.trim();
-	const end = text.indexOf(MARKER_END, start);
-	if (end === -1) return text.slice(0, start).trim();
-	return `${text.slice(0, start).trim()}\n\n${text.slice(end + MARKER_END.length).trim()}`.trim();
-}
-
-/**
- * Splice the generated block into a document, replacing one that is already
- * there so edits around it survive. A document without the markers gets it
- * appended.
+ * Hand-written prose outside the markers is preserved verbatim. If the markers
+ * are absent, the block is appended.
  */
 export function mergeKnowledge(doc: string, section: string): string {
 	let text = normalise(doc);
@@ -92,8 +94,19 @@ export function mergeKnowledge(doc: string, section: string): string {
 		// than nesting a second one inside it.
 		text = text.slice(0, start).trim();
 	}
+
 	if (block === "") return `${text.trim()}\n`;
 	return `${text.trim()}\n\n${block}\n`;
+}
+
+/** The hand-written half of AGENTS.md, with the generated block removed. */
+export function authoredBody(doc: string): string {
+	const text = normalise(doc);
+	const start = text.indexOf(MARKER_START);
+	if (start === -1) return text.trim();
+	const end = text.indexOf(MARKER_END, start);
+	if (end === -1) return text.slice(0, start).trim();
+	return `${text.slice(0, start).trim()}\n\n${text.slice(end + MARKER_END.length).trim()}`.trim();
 }
 
 /**
@@ -104,7 +117,12 @@ export function mergeKnowledge(doc: string, section: string): string {
  */
 export async function knowledgeSection(root: string): Promise<string> {
 	const plan = await readWikiPlan(root);
-	const chapters = plan?.chapters ?? [];
+	const provenance = await readProvenance(root);
+	const recordedDocs = new Set(provenance?.documents.map((d) => d.document) ?? []);
+
+	const chapters = (plan?.chapters ?? []).filter((chapter) =>
+		[...recordedDocs].some((doc) => doc === `${chapter.id}/index.md` || doc.startsWith(`${chapter.id}/`)),
+	);
 	const cards = await readCards(root);
 	const { skills } = await loadSkills(root);
 
