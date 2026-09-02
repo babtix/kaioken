@@ -16,9 +16,6 @@
   <a href="#license--authors"><img src="https://img.shields.io/badge/License-License%20Zero-yellow.svg" alt="License"></a>
 </p>
 
-<details>
-<summary align="center"><b>Terminal / ANSI Logo</b></summary>
-
 ```text
 ██╗  ██╗ █████╗ ██╗ ██████╗ ██╗  ██╗███████╗███╗   ██╗
 ██║ ██╔╝██╔══██╗██║██╔═══██╗██║ ██╔╝██╔════╝████╗  ██║
@@ -29,8 +26,6 @@
 ══════════════════════════════════════════════════════
 A G E N T I C   B U I L D E R S   C O L L E C T I V E
 ```
-
-</details>
 
 ---
 
