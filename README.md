@@ -1,20 +1,36 @@
-```
-██╗  ██╗  █████╗  ██╗  ██████╗  ██╗  ██╗ ███████╗ ███╗   ██╗
-██║ ██╔╝ ██╔══██╗ ██║ ██╔═══██╗ ██║ ██╔╝ ██╔════╝ ████╗  ██║
-█████╔╝  ███████║ ██║ ██║   ██║ █████╔╝  █████╗   ██╔██╗ ██║
-██╔═██╗  ██╔══██║ ██║ ██║   ██║ ██╔═██╗  ██╔══╝   ██║╚██╗██║
-██║  ██╗ ██║  ██║ ██║ ╚██████╔╝ ██║  ██╗ ███████╗ ██║ ╚████║
-╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚═╝  ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚═╝  ╚═══╝
-```
-> **A Repository Knowledge Engine & Agentic Development Ecosystem**  
-> *Deterministic code indexing, verifiable documentation, and grounded AI agents that eliminate documentation rot and LLM hallucinations.*
+<p align="center">
+  <img src="KAIOKEN-logo.png" alt="Kaioken Logo" width="700" />
+</p>
 
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue.svg)](https://www.typescriptlang.org/)
-[![Architecture](https://img.shields.io/badge/Architecture-Offline--First%20%7C%20Monorepo-orange.svg)](#architecture)
-[![Tests](https://img.shields.io/badge/Tests-400%2B%20Offline%20Passing-brightgreen.svg)](#testing)
-[![Website](https://img.shields.io/badge/Docs%20%26%20Showcase-Live-purple.svg)](https://github.com/babtix/kaioken)
-[![License](https://img.shields.io/badge/License-License%20Zero-yellow.svg)](#license)
+<p align="center">
+  <b>A Repository Knowledge Engine &amp; Agentic Development Ecosystem</b><br>
+  <i>Deterministic code indexing, verifiable documentation, and grounded AI agents that eliminate documentation rot and LLM hallucinations.</i>
+</p>
+
+<p align="center">
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%3E%3D22-green.svg" alt="Node.js"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
+  <a href="#core-pillars--design-principles"><img src="https://img.shields.io/badge/Architecture-Offline--First%20%7C%20Monorepo-orange.svg" alt="Architecture"></a>
+  <a href="#testing--quality-assurance"><img src="https://img.shields.io/badge/Tests-400%2B%20Offline%20Passing-brightgreen.svg" alt="Tests"></a>
+  <a href="https://github.com/babtix/kaioken"><img src="https://img.shields.io/badge/Docs%20%26%20Showcase-Live-purple.svg" alt="Website"></a>
+  <a href="#license--authors"><img src="https://img.shields.io/badge/License-License%20Zero-yellow.svg" alt="License"></a>
+</p>
+
+<details>
+<summary align="center"><b>Terminal / ANSI Logo</b></summary>
+
+```text
+██╗  ██╗ █████╗ ██╗ ██████╗ ██╗  ██╗███████╗███╗   ██╗
+██║ ██╔╝██╔══██╗██║██╔═══██╗██║ ██╔╝██╔════╝████╗  ██║
+█████╔╝ ███████║██║██║   ██║█████╔╝ █████╗  ██╔██╗ ██║
+██╔═██╗ ██╔══██║██║██║   ██║██╔═██╗ ██╔══╝  ██║╚██╗██║
+██║  ██╗██║  ██║██║╚██████╔╝██║  ██╗███████╗██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝
+══════════════════════════════════════════════════════
+A G E N T I C   B U I L D E R S   C O L L E C T I V E
+```
+
+</details>
 
 ---
 
