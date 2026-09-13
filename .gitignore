@@ -115,6 +115,7 @@ pnpm-debug.log*
 !**/public/icons/**
 !/KAIOKEN-logo.png
 !/kaioken-pipeline.svg
+!kaioken-site/public/**
 
 
 # IDE & Editor settings

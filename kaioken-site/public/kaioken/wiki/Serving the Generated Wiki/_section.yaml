@@ -1,0 +1,10 @@
+generated_at: "2026-07-25T18:14:37Z"
+model: nvidia/nemotron-3-super-120b-a12b
+section:
+    id: serving_wiki
+    title: Serving the Generated Wiki
+    goal: Explain how to serve the generated wiki documentation via a local web browser for easy browsing, navigation, and searching.
+    files:
+        - internal/serve/serve.go
+        - internal/serve/serve_test.go
+summary: This section explains how to serve the generated wiki documentation via a local web browser using kaioken's built-in HTTP server. It covers starting the server, its routing and request handling, documentation rendering features, and search functionality. The server provides an interactive interface for browsing, navigating, and searching the wiki with features like markdown rendering, table of contents, code highlighting, and contextual navigation.

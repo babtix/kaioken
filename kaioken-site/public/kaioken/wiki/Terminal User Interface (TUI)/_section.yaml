@@ -1,0 +1,14 @@
+generated_at: "2026-07-25T18:04:30Z"
+model: nvidia/nemotron-3-super-120b-a12b
+section:
+    id: tui
+    title: Terminal User Interface (TUI)
+    goal: Describe the Bubble Tea-based terminal interface, including the command palette, session management, markdown rendering, built-in tutorial, and status line.
+    files:
+        - internal/tui/tui.go
+        - internal/tui/palette.go
+        - internal/tui/session.go
+        - internal/tui/markdown.go
+        - internal/tui/tutorial.go
+        - internal/tui/composer.go
+summary: This section details the Terminal User Interface (TUI) of kaioken, built with the Bubble Tea library. It covers the interface structure, command palette for slash-commands, markdown rendering of assistant responses, built-in tutorial for new users, session management, status line displaying context, keybindings, and the approval workflow for tool executions.

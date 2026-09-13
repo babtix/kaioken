@@ -1,0 +1,9 @@
+# kaioken wiki baseline — the commit the generated wiki reflects.
+# `kaioken update` diffs the repo against this commit and revises only
+# the documents the change actually touches. Delete to re-baseline.
+commit: 8dab4b85042749ce37d1dcdd5df9348fe184600b
+generated_at: 2026-07-25T18:19:43.3745032Z
+model: nvidia/nemotron-3-super-120b-a12b
+multiplier: 3
+failed:
+    - LLM Provider Integration
