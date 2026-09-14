@@ -149,3 +149,6 @@ desktop/
 
 # Scratch output from manually exercising the bundle/export command.
 kaioken_bundle_test/
+
+.vercel
+.env*

@@ -1,0 +1,17 @@
+/assets
+/inspire
+/ide_kaioken
+/kaioken_main_STUDIO
+/kaioken_v2
+/kaioken_bundle_test
+/registry-web
+/web-news
+/website-legacy
+/.git
+/.github
+/.kaioken
+/.kaioken_v1
+/.kaio_site_old
+/dist
+node_modules
+**/node_modules
