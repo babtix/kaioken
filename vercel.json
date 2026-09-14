@@ -1,9 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "vite",
-  "buildCommand": "npm --prefix website run build",
-  "outputDirectory": "website/dist",
-  "installCommand": "npm --prefix website install",
+  "framework": null,
+  "buildCommand": "npm --prefix website install && npm --prefix website run build && node -e \"require('fs').cpSync('website/dist', 'dist', {recursive: true, force: true})\"",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",

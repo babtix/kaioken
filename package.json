@@ -4,7 +4,7 @@
   "private": true,
   "description": "The repository that knows your code",
   "scripts": {
-    "build": "npm --prefix website run build",
+    "build": "npm --prefix website run build && node -e \"require('fs').cpSync('website/dist', 'dist', {recursive: true, force: true})\"",
     "install": "npm --prefix website install"
   }
 }

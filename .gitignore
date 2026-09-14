@@ -1,4 +1,6 @@
 # Build artifacts
+/dist/
+dist/
 kaioken v1/cli/kaioken.exe
 kaioken v1/cli/kaioken.exe.old
 kaioken v1/cli/kaioken.exe~
