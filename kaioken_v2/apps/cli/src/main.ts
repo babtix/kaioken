@@ -26,6 +26,7 @@ import { runImpact } from "./commands/impact.js";
 import { runFetcher } from "./commands/fetcher.js";
 import { runPrism } from "./commands/prism.js";
 import { runExt } from "./commands/ext.js";
+import { runDaemon } from "./commands/daemon.js";
 
 const USAGE = `kaioken — a repository knowledge engine
 
@@ -189,6 +190,8 @@ export interface Flags {
 	 * shell is the thing that knows what the user has said this session.
 	 */
 	note?: string[];
+	tokenStdin?: boolean;
+	token?: string;
 	/**
 	 * A saved session id, for the commands that read one.
 	 *
@@ -278,6 +281,15 @@ export function parseArgs(argv: string[]): Flags | null {
 			case "--check":
 				flags.check = true;
 				break;
+			case "--token-stdin":
+				flags.tokenStdin = true;
+				break;
+			case "--token": {
+				const next = argv[++i];
+				if (!next) return null;
+				flags.token = next;
+				break;
+			}
 			case "--plan":
 				flags.planOnly = true;
 				break;
@@ -397,6 +409,8 @@ export async function main(argv: string[]): Promise<number> {
 			return runPrism(flags);
 		case "ext":
 			return runExt(flags);
+		case "daemon":
+			return runDaemon(flags);
 		default:
 			process.stderr.write(`kaioken: unknown command "${command}"\n\n`);
 			process.stdout.write(USAGE);

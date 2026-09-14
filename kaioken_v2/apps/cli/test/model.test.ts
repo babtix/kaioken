@@ -136,4 +136,61 @@ describe("model selection", () => {
 		}
 		await rm(root, { recursive: true, force: true });
 	});
+
+	it("resolves openrouter/z-ai/glm-5.3-flash cleanly without warning and with accurate flash pricing", async () => {
+		delete process.env.KAIOKEN_MODEL;
+		const root = await repoWith(null);
+		const argv = flags(root, "openrouter/z-ai/glm-5.3-flash");
+		process.env.OPENROUTER_API_KEY = "test-key";
+		const resolved = await resolveModel(argv);
+		expect(resolved.ok, JSON.stringify(resolved)).toBe(true);
+		if (resolved.ok) {
+			expect(resolved.describe).toBe("openrouter/z-ai/glm-5.3-flash");
+			expect(resolved.warning).toBeUndefined();
+			expect(resolved.model.cost.input).toBe(0.15);
+			expect(resolved.model.cost.output).toBe(0.5);
+			expect(resolved.model.contextWindow).toBe(1048576);
+		}
+
+		// Also verify when typed without openrouter/ prefix
+		const shortArgv = flags(root, "z-ai/glm-5.3-flash");
+		process.env.OPENROUTER_API_KEY = "test-key";
+		const shortResolved = await resolveModel(shortArgv);
+		expect(shortResolved.ok, JSON.stringify(shortResolved)).toBe(true);
+		if (shortResolved.ok) {
+			expect(shortResolved.describe).toBe("openrouter/z-ai/glm-5.3-flash");
+			expect(shortResolved.warning).toBeUndefined();
+		}
+
+		await rm(root, { recursive: true, force: true });
+	});
+
+	it("resolves custom model definitions from .kaioken/models.json without warning", async () => {
+		delete process.env.KAIOKEN_MODEL;
+		const root = await repoWith(null);
+		await mkdir(join(root, ".kaioken"), { recursive: true });
+		await writeFile(
+			join(root, ".kaioken", "models.json"),
+			JSON.stringify({
+				"openrouter/my-custom-model": {
+					name: "My Custom Model",
+					contextWindow: 500000,
+					maxTokens: 64000,
+					cost: { input: 0.1, output: 0.2 },
+				},
+			}),
+		);
+		const argv = flags(root, "openrouter/my-custom-model");
+		process.env.OPENROUTER_API_KEY = "test-key";
+		const resolved = await resolveModel(argv);
+		expect(resolved.ok, JSON.stringify(resolved)).toBe(true);
+		if (resolved.ok) {
+			expect(resolved.warning).toBeUndefined();
+			expect(resolved.model.contextWindow).toBe(500000);
+			expect(resolved.model.maxTokens).toBe(64000);
+			expect(resolved.model.cost.input).toBe(0.1);
+			expect(resolved.model.cost.output).toBe(0.2);
+		}
+		await rm(root, { recursive: true, force: true });
+	});
 });

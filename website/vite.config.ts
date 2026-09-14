@@ -1,17 +1,37 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: 'case-insensitive-public-assets',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url) {
+            const [path, query] = req.url.split('?');
+            const cleanPath = path.toLowerCase();
+            if (cleanPath === '/kaioken-logo.png' || cleanPath === '/assets/kaioken-logo.png') {
+              req.url = '/kaioken-logo.png' + (query ? `?${query}` : '');
+            } else if (cleanPath === '/kaio_pet.png' || cleanPath === '/assets/kaio_pet.png') {
+              req.url = '/kaio_pet.png' + (query ? `?${query}` : '');
+            }
+          }
+          next();
+        });
+      },
+    },
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {
-    // honour an assigned PORT so the dev server can move off a busy 5173
-    port: process.env.PORT ? Number(process.env.PORT) : 5173,
+    port: 5180,
+    host: true,
   },
-})
+});

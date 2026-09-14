@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { isAbsolute, relative, resolve } from "node:path";
+import { resolveInside, posix } from "./tools/path.js";
+export { resolveInside } from "./tools/path.js";
 import type { SymbolRecord } from "@kaioken/index";
 import { computeStaleness, invalidatedBy } from "@kaioken/provenance";
 import type { Kind } from "@kaioken/search";
@@ -413,24 +414,6 @@ function render(symbol: SymbolRecord): string {
 	return symbol.doc ? `${head}\n${signature}\n      ${cut(firstLine(symbol.doc), 160)}` : `${head}\n${signature}`;
 }
 
-/**
- * Keep a path from escaping the repository.
- *
- * Returning null rather than clamping is deliberate: a tool that quietly reads
- * something other than what it was asked for is worse than one that refuses.
- */
-export function resolveInside(root: string, path: string): string | null {
-	const absoluteRoot = resolve(root);
-	const target = isAbsolute(path) ? resolve(path) : resolve(absoluteRoot, path);
-	const rel = relative(absoluteRoot, target);
-	if (rel === "") return target;
-	if (rel.startsWith("..") || isAbsolute(rel)) return null;
-	return target;
-}
-
-function posix(path: string): string {
-	return path.split("\\").join("/");
-}
 
 function str(value: unknown): string {
 	return typeof value === "string" ? value.trim() : "";

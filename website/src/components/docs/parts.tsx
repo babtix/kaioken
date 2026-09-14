@@ -11,9 +11,9 @@ export function H2({ id, children }: { id: string; children: React.ReactNode }) 
   return (
     <h2
       id={id}
-      className="scroll-mt-24 pt-10 font-mono text-xl font-bold text-foreground first:pt-0"
+      className="scroll-mt-24 pt-10 font-sans text-2xl font-semibold tracking-[-0.02em] text-foreground first:pt-0"
     >
-      <span className="mr-2 text-kai-orange" aria-hidden>
+      <span className="mr-2 font-mono text-kai-orange" aria-hidden>
         ##
       </span>
       {children}
@@ -23,7 +23,7 @@ export function H2({ id, children }: { id: string; children: React.ReactNode }) 
 
 export function H3({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="pt-6 font-mono text-[15px] font-bold text-kai-amber">{children}</h3>
+    <h3 className="pt-6 font-sans text-[17px] font-semibold tracking-[-0.01em] text-kai-amber">{children}</h3>
   )
 }
 
@@ -131,7 +131,7 @@ export function DocPage({
         <p className="font-mono text-[11px] tracking-[0.25em] text-kai-dim uppercase">
           <span className="text-kai-orange">▎</span> docs
         </p>
-        <h1 className="mt-3 font-mono text-3xl font-bold tracking-tight text-foreground">
+        <h1 className="mt-3 font-sans text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">
           {title}
         </h1>
         <p className="mt-3 max-w-2xl font-sans text-[15px] leading-relaxed text-muted-foreground">

@@ -23,37 +23,81 @@ export default function SectionNav({
   className?: string
 }) {
   const [active, setActive] = React.useState(items[0]?.id ?? "")
+  const navRef = React.useRef<HTMLElement>(null)
 
   React.useEffect(() => {
-    const targets = items
-      .map((i) => document.getElementById(i.id))
-      .filter((el): el is HTMLElement => el !== null)
-    if (!targets.length) return
+    const handleScroll = () => {
+      // If near the bottom of the page, activate the last section item
+      const isAtBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 60
 
-    const obs = new IntersectionObserver(
-      (entries) => {
-        // The heading nearest the top of the band wins, so passing a short
-        // section does not leave the previous one lit.
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-        if (visible[0]) setActive(visible[0].target.id)
-      },
-      // a band just below the header — the section under it is "current"
-      { rootMargin: "-20% 0px -70% 0px", threshold: 0 }
-    )
-    targets.forEach((t) => obs.observe(t))
-    return () => obs.disconnect()
+      if (isAtBottom && items.length > 0) {
+        setActive(items[items.length - 1].id)
+        return
+      }
+
+      // Header is 56px, SectionNav is ~42px (total 98px).
+      // We look at the section header entering around 130px from top.
+      const activationPoint = 130
+      let currentActive = items[0]?.id ?? ""
+
+      for (let i = 0; i < items.length; i++) {
+        const el = document.getElementById(items[i].id)
+        if (!el) continue
+        const rect = el.getBoundingClientRect()
+        if (rect.top <= activationPoint) {
+          currentActive = items[i].id
+        } else {
+          break
+        }
+      }
+
+      setActive(currentActive)
+    }
+
+    let ticking = false
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll()
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true })
+    handleScroll() // initial position check
+
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+    }
   }, [items])
+
+  // Keep active tab visible in horizontal scroll if narrow
+  React.useEffect(() => {
+    if (!navRef.current) return
+    const activeEl = navRef.current.querySelector<HTMLElement>('[aria-current="true"]')
+    if (activeEl) {
+      const nav = navRef.current
+      const navRect = nav.getBoundingClientRect()
+      const elRect = activeEl.getBoundingClientRect()
+      if (elRect.left < navRect.left || elRect.right > navRect.right) {
+        activeEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+      }
+    }
+  }, [active])
 
   return (
     <div
       className={cn(
-        "sticky top-14 z-30 border-y border-border bg-background/80 backdrop-blur-md",
+        "sticky top-[56px] z-40 border-y border-[var(--rule)] bg-[var(--surface-1)]/70 backdrop-blur-md transition-shadow",
         className
       )}
     >
       <nav
+        ref={navRef}
         aria-label="Sections"
         className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-1.5 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
@@ -63,17 +107,25 @@ export default function SectionNav({
             <a
               key={item.id}
               href={`#${item.id}`}
-              onClick={(e) => scrollToAnchor(e, item.id)}
+              onClick={(e) => {
+                setActive(item.id)
+                scrollToAnchor(e, item.id)
+              }}
               aria-current={isActive ? "true" : undefined}
               className={cn(
-                "shrink-0 rounded-sm px-2.5 py-1 font-mono text-[11px] whitespace-nowrap transition-colors",
+                "shrink-0 rounded-sm px-2.5 py-1 font-mono text-[11px] whitespace-nowrap transition-all duration-150",
                 "focus-visible:ring-1 focus-visible:ring-kai-orange/60 focus-visible:outline-none",
                 isActive
-                  ? "bg-accent text-kai-amber"
-                  : "text-kai-dim hover:bg-kai-panel hover:text-kai-text"
+                  ? "border border-kai-orange/35 bg-kai-orange/15 font-semibold text-kai-amber"
+                  : "border border-transparent text-kai-dim hover:bg-kai-panel hover:text-kai-text"
               )}
             >
-              <span className={cn("mr-1.5", isActive ? "text-kai-orange" : "text-kai-line")}>
+              <span
+                className={cn(
+                  "mr-1.5 transition-colors",
+                  isActive ? "font-bold text-kai-orange" : "text-kai-line"
+                )}
+              >
                 {String(i + 1).padStart(2, "0")}
               </span>
               {item.label}

@@ -45,7 +45,10 @@ export interface RunOutcome {
  * codebase that knows about the outside world.
  */
 export interface CommandRunner {
-	run(command: string, options: { cwd: string; timeoutMs: number }): Promise<RunOutcome>;
+	run(
+		command: string,
+		options: { cwd: string; timeoutMs: number; signal?: AbortSignal },
+	): Promise<RunOutcome>;
 }
 
 export interface GateResult extends GateCommand {
@@ -73,6 +76,31 @@ const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 const OUTPUT_TAIL_LINES = 60;
 const OUTPUT_TAIL_CHARS = 8000;
 
+export type PackageManager = "pnpm" | "yarn" | "bun" | "npm";
+
+/**
+ * Detect which package manager this repository uses based on lockfiles.
+ */
+export async function detectPackageManager(root: string): Promise<PackageManager> {
+	if (await exists(join(root, "pnpm-lock.yaml"))) return "pnpm";
+	if (await exists(join(root, "yarn.lock"))) return "yarn";
+	if (await exists(join(root, "bun.lockb"))) return "bun";
+	return "npm";
+}
+
+/**
+ * Detect if this repository is a monorepo workspace.
+ */
+export async function detectMonorepo(root: string, pkgJson?: unknown): Promise<boolean> {
+	if (await exists(join(root, "pnpm-workspace.yaml"))) return true;
+	if (await exists(join(root, "lerna.json"))) return true;
+	if (pkgJson && typeof pkgJson === "object") {
+		const ws = (pkgJson as { workspaces?: unknown }).workspaces;
+		if (Array.isArray(ws) || (ws && typeof ws === "object")) return true;
+	}
+	return false;
+}
+
 /**
  * Work out what this repository calls "building" and "testing".
  *
@@ -93,17 +121,25 @@ export async function detectCommands(root: string): Promise<{
 
 	const pkg = await readJson(join(root, "package.json"));
 	if (pkg && typeof pkg === "object") {
+		const pm = await detectPackageManager(root);
+		const isMonorepo = await detectMonorepo(root, pkg);
 		const scripts = (pkg as { scripts?: unknown }).scripts;
+
 		if (scripts && typeof scripts === "object") {
 			const names = scripts as Record<string, unknown>;
 			// `test` last: a failing typecheck explains a failing test suite, and
 			// seeing the cheaper failure first saves reading the noisier one.
 			for (const label of ["typecheck", "build", "test"]) {
 				if (typeof names[label] === "string") {
+					let command = `${pm} run ${label}`;
+					if (isMonorepo && label === "test") {
+						command = pm === "pnpm" ? `${command} -r` : `${command} --workspace`;
+					}
+
 					found.push({
-						id: `npm:${label}`,
+						id: `${pm}:${label}`,
 						label,
-						command: `npm run ${label}`,
+						command,
 						source: "package.json scripts",
 					});
 				}
@@ -168,7 +204,7 @@ export async function detectCommands(root: string): Promise<{
 export async function runGate(
 	commands: readonly GateCommand[],
 	runner: CommandRunner,
-	options: { cwd: string; timeoutMs?: number },
+	options: { cwd: string; timeoutMs?: number; signal?: AbortSignal },
 ): Promise<GateReport> {
 	if (commands.length === 0) {
 		return {
@@ -183,11 +219,24 @@ export async function runGate(
 
 	const results: GateResult[] = [];
 	for (const command of commands) {
+		if (options.signal?.aborted) {
+			results.push({
+				...command,
+				ok: false,
+				exitCode: -1,
+				durationMs: 0,
+				timedOut: false,
+				output: "aborted by signal",
+			});
+			break;
+		}
+
 		let outcome: RunOutcome;
 		try {
 			outcome = await runner.run(command.command, {
 				cwd: options.cwd,
 				timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+				signal: options.signal,
 			});
 		} catch (error) {
 			// A runner that throws is a failed command, not a broken gate.
@@ -201,12 +250,14 @@ export async function runGate(
 
 		results.push({
 			...command,
-			ok: outcome.exitCode === 0 && outcome.timedOut !== true,
+			ok: outcome.exitCode === 0 && outcome.timedOut !== true && !options.signal?.aborted,
 			exitCode: outcome.exitCode,
 			durationMs: outcome.durationMs,
 			timedOut: outcome.timedOut === true,
 			output: tail(`${outcome.stdout}${outcome.stderr}`),
 		});
+
+		if (options.signal?.aborted) break;
 	}
 
 	const failed = results.filter((result) => !result.ok);

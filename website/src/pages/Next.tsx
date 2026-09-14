@@ -137,7 +137,7 @@ export default function Next() {
           eyebrow="next"
           title={
             <>
-              What comes <span className="text-kai-orange glow-orange">next</span>
+              What comes <span className="serif">next.</span>
             </>
           }
           description="A next-generation interface for Kaioken — advanced agents, richer search, a GUI shell, deeper integrations, and extended language support. Every item builds on the existing architecture: the agent loop, tool framework, codemap index, wiki engine, and serve layer."
@@ -183,7 +183,7 @@ export default function Next() {
             eyebrow="foundation"
             title={
               <>
-                Architectural <span className="text-kai-amber">enablers</span>
+                Architectural <span className="serif">enablers.</span>
               </>
             }
             description="Cross-cutting changes that underpin multiple categories above. Each one extends an existing structure rather than introducing a new system."
@@ -226,9 +226,9 @@ export default function Next() {
           <p className="font-mono text-[11px] tracking-[0.3em] text-kai-dim uppercase">
             the roadmap is the repo
           </p>
-          <h2 className="mx-auto mt-4 max-w-2xl text-balance font-mono text-xl font-bold text-foreground sm:text-2xl">
+          <h2 className="mx-auto mt-4 max-w-2xl text-balance font-sans text-2xl font-bold tracking-[-0.03em] text-foreground sm:text-3xl">
             Every feature here maps to an{" "}
-            <span className="text-kai-orange glow-orange">existing interface</span>
+            <span className="serif">existing interface.</span>
           </h2>
           <p className="mx-auto mt-4 max-w-xl font-sans text-[14px] leading-relaxed text-muted-foreground">
             The agent's UI interface, the tool schema, the Progress callbacks, the serve routes, and

@@ -1,3 +1,4 @@
+// Legacy extension system exports
 export {
 	isExecutable,
 	loadManifest,
@@ -42,3 +43,18 @@ export { callMcpTool, listMcpTools } from "./mcp.js";
 export type { McpCallResult, McpTool } from "./mcp.js";
 export { fetchRegistry, RegistryUnpublished, registryUrl, searchRegistry } from "./registry.js";
 export type { RegistryEntry, RegistryOptions } from "./registry.js";
+
+// Sprint 5: Unified Extension Architecture
+export { ExtensionLoader } from "./loader.js";
+export type { ExtensionLoaderOptions } from "./loader.js";
+export { ExtensionRunner } from "./runner.js";
+export { wrapExtensionTool } from "./wrapper.js";
+export { createExtensionPort } from "./extension-port.js";
+export type { ExtensionPortOptions } from "./extension-port.js";
+export type {
+	ExtensionManifest,
+	ExtensionContext,
+	ExtensionToolDefinition,
+	ExtensionAPI,
+	ExtensionInstance,
+} from "./types.js";

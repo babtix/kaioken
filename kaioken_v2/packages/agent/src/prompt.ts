@@ -1,5 +1,6 @@
 import { basename } from "node:path";
 import type { GateCommand } from "./gate.js";
+import { posix } from "./tools/path.js";
 import type { KnowledgeContext } from "./types.js";
 
 /**
@@ -17,11 +18,22 @@ import type { KnowledgeContext } from "./types.js";
  * tasks this session is not doing.
  */
 
+export interface EnvironmentInfo {
+	os?: string;
+	cwd?: string;
+	shell?: string;
+	node?: string;
+}
+
 export interface PromptOptions {
 	/** Commands the gate will run when the agent claims it is finished. */
 	gate: readonly GateCommand[];
 	/** Whether the agent can change files this session. */
 	canWrite: boolean;
+	/** Optional environment information override (for testing or custom host env). */
+	env?: EnvironmentInfo;
+	/** Optional context files prompt section (from @kaioken/agentsmd discoverContextFiles/formatContextFilesPrompt). */
+	contextFilesPrompt?: string;
 }
 
 export function buildSystemPrompt(ctx: KnowledgeContext, options: PromptOptions): string {
@@ -39,6 +51,12 @@ export function buildSystemPrompt(ctx: KnowledgeContext, options: PromptOptions)
 	);
 
 	sections.push(["## This repository", "", describeRepository(ctx)].join("\n"));
+
+	sections.push(environmentSection(ctx, options));
+
+	if (options.contextFilesPrompt) {
+		sections.push(options.contextFilesPrompt);
+	}
 
 	if (ctx.skills.length > 0) {
 		const lines = ctx.skills.map((skill) => `- **${skill.name}** — ${skill.description}`);
@@ -70,6 +88,44 @@ export function buildSystemPrompt(ctx: KnowledgeContext, options: PromptOptions)
 	sections.push(gateSection(options));
 
 	return sections.join("\n\n");
+}
+
+function environmentSection(ctx: KnowledgeContext, options: PromptOptions): string {
+	const os = options.env?.os ?? formatOs();
+	const cwd = options.env?.cwd ?? posix(ctx.root);
+	const shell = options.env?.shell ?? detectShell();
+	const node = options.env?.node ?? process.version;
+
+	return [
+		"## Environment",
+		"",
+		`- OS: ${os}`,
+		`- CWD: ${cwd}`,
+		`- Shell: ${shell}`,
+		`- Node: ${node}`,
+	].join("\n");
+}
+
+function formatOs(): string {
+	switch (process.platform) {
+		case "win32":
+			return "win32 (Windows)";
+		case "darwin":
+			return "darwin (macOS)";
+		case "linux":
+			return "linux (Linux)";
+		default:
+			return `${process.platform}`;
+	}
+}
+
+function detectShell(): string {
+	if (process.platform === "win32") {
+		if (process.env.SHELL) return basename(process.env.SHELL);
+		if (process.env.PSModulePath) return "PowerShell";
+		return basename(process.env.ComSpec || "cmd.exe");
+	}
+	return basename(process.env.SHELL || "/bin/sh");
 }
 
 /**

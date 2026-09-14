@@ -113,8 +113,8 @@ pnpm-debug.log*
 !kaioken v1/desktop/src-tauri/icons/**
 !**/public/favicon.*
 !**/public/icons/**
-!/KAIOKEN-logo.png
-!/kaioken-pipeline.svg
+!/assets/**
+!website/public/**
 !kaioken-site/public/**
 
 

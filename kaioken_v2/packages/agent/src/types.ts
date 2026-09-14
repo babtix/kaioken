@@ -38,14 +38,55 @@ export interface ToolResult {
 	isError?: boolean;
 }
 
-/** A tool as the knowledge layer defines it: a name, a shape, and a function. */
+/** Callback for partial tool results streamed during execution. */
+export type ToolUpdateCallback = (partial: ToolResult) => void;
+
+/** Options passed to tool execution. */
+export interface ToolRunOptions {
+	signal?: AbortSignal;
+	onUpdate?: ToolUpdateCallback;
+}
+
+/**
+ * A tool as the knowledge layer defines it: a name, a shape, and a function.
+ *
+ * The optional `options` bag on `run` is backwards-compatible: existing call
+ * sites that pass only (args, ctx) continue to work without change.
+ */
 export interface KnowledgeTool {
 	name: string;
 	label: string;
 	description: string;
 	params: Record<string, ToolParam>;
-	run(args: Record<string, unknown>, ctx: KnowledgeContext): Promise<ToolResult>;
+	run(
+		args: Record<string, unknown>,
+		ctx: KnowledgeContext,
+		options?: ToolRunOptions,
+	): Promise<ToolResult>;
 }
+
+/**
+ * A coding tool with JSON Schema parameters (passthrough to provider).
+ *
+ * Unlike KnowledgeTool which takes a KnowledgeContext per call, a CodingTool
+ * binds to ports at creation time. It never imports node:fs, node:child_process,
+ * or any LLM SDK — the host injects concrete port implementations.
+ */
+export interface CodingTool {
+	name: string;
+	label: string;
+	description: string;
+	/** JSON Schema object for parameters, passed through to the provider. */
+	inputSchema: Record<string, unknown>;
+	run(
+		args: Record<string, unknown>,
+		options?: ToolRunOptions,
+	): Promise<ToolResult>;
+}
+
+// ---------------------------------------------------------------------------
+// Port interfaces — agent depends on shapes, never on concrete packages
+// ---------------------------------------------------------------------------
 
 /**
  * Search as the tools need it — one method.
@@ -57,6 +98,62 @@ export interface KnowledgeTool {
 export interface SearchPort {
 	search(query: SearchQuery): Promise<SearchHit[]>;
 }
+
+/** Filesystem operations for coding tools. Implemented by the host. */
+export interface FileSystemPort {
+	readFile(path: string, encoding: "utf8"): Promise<string>;
+	writeFile(path: string, content: string): Promise<void>;
+	exists(path: string): Promise<boolean>;
+	mkdir(path: string): Promise<void>;
+	readdir(path: string): Promise<Array<{ name: string; isDirectory: boolean; size: number }>>;
+	stat(path: string): Promise<{ isFile: boolean; isDirectory: boolean; size: number }>;
+}
+
+/** Shell execution for coding tools. Implemented by the host. */
+export interface ShellPort {
+	exec(
+		command: string,
+		options: {
+			cwd: string;
+			signal?: AbortSignal;
+			timeoutMs?: number;
+			env?: Record<string, string>;
+			onChunk?: (chunk: string) => void;
+		},
+	): Promise<{ exitCode: number | null; stdout: string; stderr: string }>;
+}
+
+/** Ports needed to construct coding tools. */
+export interface CodingToolPorts {
+	fs: FileSystemPort;
+	shell: ShellPort;
+}
+
+export interface SessionPort {
+	save(messages: unknown[]): Promise<void>;
+	load(id: string): Promise<unknown[] | null>;
+	list(): Promise<Array<{ id: string; title: string; updated: string }>>;
+}
+
+export interface CompactionPort {
+	shouldCompact(messages: unknown[]): boolean;
+	compact(messages: unknown[], signal?: AbortSignal): Promise<unknown[]>;
+}
+
+export interface ExtensionPort {
+	/** Discover tools contributed by trusted extensions. */
+	discoverTools(): Promise<CodingTool[]>;
+}
+
+export interface GitOpsPort {
+	isRepo(root: string): Promise<boolean>;
+	currentBranch(root: string): Promise<string | null>;
+	checkpoint(root: string, message: string): Promise<void>;
+}
+
+// ---------------------------------------------------------------------------
+// Context — unchanged
+// ---------------------------------------------------------------------------
 
 /**
  * Everything the tools read, loaded once per session.

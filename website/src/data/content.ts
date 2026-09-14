@@ -45,17 +45,19 @@ export const PROVIDERS = [
 /* ── features ───────────────────────────────────────────────────────────── */
 
 export interface Feature {
-  /** lucide-react icon name, resolved in the component */
-  icon: string
+  id?: string
+  num?: string
+  icon?: string
   title: string
   description: string
-  highlights: string[]
-  /** which accent the card leans on */
-  tone: "orange" | "amber" | "blue" | "green"
+  highlights?: string[]
+  tone?: "orange" | "amber" | "blue" | "green"
 }
 
 export const FEATURES: Feature[] = [
   {
+    id: "chat-agent",
+    num: "01",
     icon: "MessageSquareCode",
     title: "Chat agent",
     description:
@@ -68,6 +70,8 @@ export const FEATURES: Feature[] = [
     tone: "blue",
   },
   {
+    id: "knowledge-engine",
+    num: "02",
     icon: "BrainCircuit",
     title: "Knowledge engine",
     description:
@@ -80,6 +84,8 @@ export const FEATURES: Feature[] = [
     tone: "orange",
   },
   {
+    id: "deep-wiki",
+    num: "03",
     icon: "BookOpenText",
     title: "Deep wiki",
     description:
@@ -92,6 +98,8 @@ export const FEATURES: Feature[] = [
     tone: "amber",
   },
   {
+    id: "skills",
+    num: "04",
     icon: "Wrench",
     title: "Skills",
     description:
@@ -104,6 +112,8 @@ export const FEATURES: Feature[] = [
     tone: "green",
   },
   {
+    id: "incremental-updates",
+    num: "05",
     icon: "Zap",
     title: "Incremental updates",
     description:
@@ -116,6 +126,8 @@ export const FEATURES: Feature[] = [
     tone: "orange",
   },
   {
+    id: "wiki-server",
+    num: "06",
     icon: "Globe",
     title: "Wiki server",
     description:
@@ -128,6 +140,8 @@ export const FEATURES: Feature[] = [
     tone: "amber",
   },
   {
+    id: "verification-loop",
+    num: "07",
     icon: "ShieldCheck",
     title: "Self-verification loop",
     description:
@@ -140,6 +154,8 @@ export const FEATURES: Feature[] = [
     tone: "blue",
   },
   {
+    id: "worktree-delegation",
+    num: "08",
     icon: "GitFork",
     title: "Worktree delegation",
     description:
@@ -152,6 +168,8 @@ export const FEATURES: Feature[] = [
     tone: "green",
   },
   {
+    id: "hub-drift",
+    num: "09",
     icon: "FolderGit2",
     title: "Hub & drift poller",
     description:
@@ -164,6 +182,105 @@ export const FEATURES: Feature[] = [
     tone: "orange",
   },
 ]
+
+export const MARQUEE_ITEMS = [
+  'TREE-SITTER GRAMMARS',
+  'SHA-256 PROVENANCE',
+  'SYMBOLORACLE AST',
+  'DIFF-VERIFIED PATCHES',
+  'HARD GO TEST GATES',
+  'CONTENT-HASH INCREMENTALITY',
+];
+
+export interface PlatformDownload {
+  os: string;
+  version: string;
+  art: string;
+  webp1200?: string;
+  webp600?: string;
+  chips?: string[];
+  href?: string;
+  buttonText: string;
+}
+
+export const OS_DOWNLOADS: PlatformDownload[] = [
+  { os: 'macOS', version: 'v2.0.0 · Apple Silicon & Intel', art: '/kaioken-logo.png', buttonText: 'Download .dmg' },
+  { os: 'Linux', version: 'v2.0.0 · x86_64 & aarch64', art: '/kaioken-logo.png', buttonText: 'Download tar.gz' },
+  { os: 'Windows', version: 'v2.0.0 · x64 MSI & Portable', art: '/kaioken-logo.png', buttonText: 'Download .msi' },
+];
+
+export interface GuaranteeItem {
+  num: string;
+  title: string;
+  claim: string;
+  metric: string;
+  verification: string;
+}
+
+export const GUARANTEES: GuaranteeItem[] = [
+  { num: '01', title: 'Deterministic AST Indexing', claim: 'Symbol skeletons and declaration ranges are indexed via Tree-sitter without embedding approximations.', metric: '100% exact', verification: 'AST tree traversal' },
+  { num: '02', title: 'Cryptographic Provenance', claim: 'Each declaration hash tracks source drift. Invalidated nodes trigger surgical updates.', metric: 'SHA-256', verification: 'Hash verification' },
+  { num: '03', title: 'Zero Hallucination Gate', claim: 'SymbolOracle confirms every cited file, symbol, and line range exists in active code before response completes.', metric: '0% drift', verification: 'Codebase check' },
+];
+
+export interface MultiplierTier {
+  tier: string;
+  multiplier: string;
+  name: string;
+  headline: string;
+  breadth: string;
+  depth: string;
+  budget: string;
+  verification: string;
+  description: string;
+  accent: string;
+}
+
+export const MULTIPLIER_TIERS: MultiplierTier[] = [
+  { tier: 'TIER 1', multiplier: '×1', name: 'Glance', headline: 'Fast Public Surface', breadth: 'Single Module', depth: 'Signatures Only', budget: '0.02 USD', verification: 'Basic syntax', description: 'Instant inspection of public APIs and declarations.', accent: 'var(--kai-blue)' },
+  { tier: 'TIER 2', multiplier: '×3', name: 'Working', headline: 'Repository Wide', breadth: 'Full Project', depth: 'Declarations & Calls', budget: '0.15 USD', verification: 'AST SymbolOracle', description: 'Exhaustive repository coverage with cross-module call maps.', accent: 'var(--kai-orange)' },
+  { tier: 'TIER 3', multiplier: '×5', name: 'Deep', headline: 'Repo + Web Swarm', breadth: 'Project & Specs', depth: 'Deep Implementation', budget: '0.45 USD', verification: '2-pass critique', description: 'Multi-agent critique and cross-checks against web references.', accent: 'var(--kai-amber)' },
+  { tier: 'TIER 4', multiplier: '×10', name: 'Kaioken', headline: 'Full Swarm Verification', breadth: 'Complete Ecosystem', depth: 'Byte-level Grounding', budget: '1.20 USD', verification: 'Test suite gate', description: 'Autonomous swarm with hard test execution gates and auto-fixing.', accent: 'var(--kai-red)' },
+];
+
+export interface CommandExample {
+  label: string;
+  cmd: string;
+  output: string[];
+}
+
+export const COMMANDS: CommandExample[] = [
+  {
+    label: 'index',
+    cmd: 'kaioken index .',
+    output: [
+      'KAIOKEN AST Indexer v2.0.0',
+      '✔ 1,284 source files parsed with tree-sitter',
+      '✔ 8,412 symbol declarations hashed with SHA-256',
+      '✔ Symbol lattice persisted to .kaioken/index.db',
+    ],
+  },
+  {
+    label: 'wiki',
+    cmd: 'kaioken wiki --x3',
+    output: [
+      'KAIOKEN Deep Living Documentation Engine',
+      'Parallel generating 14 modules across 3 swarm workers...',
+      '✔ 71 markdown chapters generated and verified',
+      '✔ Grounding score: 100% verified against AST index',
+    ],
+  },
+  {
+    label: 'verify',
+    cmd: 'kaioken verify --fix',
+    output: [
+      'KAIOKEN Grounding & Self-Verification Gate',
+      'Detected build command: npm test',
+      '✔ All 142 unit tests passing cleanly',
+      '✔ Zero ungrounded references detected',
+    ],
+  },
+];
 
 /* ── pipeline ───────────────────────────────────────────────────────────── */
 

@@ -117,7 +117,7 @@ export default function Showcase() {
           title={
             <>
               The wiki Kaioken wrote{" "}
-              <span className="text-kai-orange glow-orange">about itself</span>
+              <span className="serif">about itself.</span>
             </>
           }
           description="Kaioken was pointed at its own Go source and left to run. The result ships with this site — you can read every document it produced, unedited."
@@ -146,7 +146,7 @@ export default function Showcase() {
       <section className="mx-auto mt-16 max-w-6xl px-4 sm:px-6">
         <SectionHeading
           eyebrow="what it cost"
-          title="×3 by default, ×10 if you want every pass"
+          title={<>×3 by default, <span className="serif">×10 if you want every pass.</span></>}
           description="The multiplier buys passes, and passes cost tokens. Kaioken prints the estimate before the run starts, so the difference below is a decision rather than a surprise."
         />
         <div className="mt-8 grid gap-px overflow-hidden rounded-sm border border-border bg-border sm:grid-cols-2">
@@ -184,7 +184,7 @@ export default function Showcase() {
       <section className="mx-auto mt-20 max-w-6xl px-4 sm:px-6">
         <SectionHeading
           eyebrow="kaioken serve"
-          title="Browsing it locally"
+          title={<>Browsing it <span className="serif">locally.</span></>}
           description="One command renders the same folder as a local site. These screenshots come from an earlier run against this repository — the plan differs from the output shipped above, but the interface is the one you get."
         />
         <div className="mt-10 grid gap-12 lg:grid-cols-2 lg:gap-10">
@@ -219,7 +219,7 @@ export default function Showcase() {
       <section className="mx-auto mt-20 max-w-6xl px-4 sm:px-6">
         <SectionHeading
           eyebrow="deep research"
-          title="Kaioken's research engine in action"
+          title={<>Kaioken's research engine <span className="serif">in action.</span></>}
           description="The /research command (or TUI /research) searches the open web, reads sources, reasons through gaps, and writes cited reports to .kaioken/research/. These three reports shipped with this site are unedited outputs from real runs."
         />
         <div className="mt-10 grid gap-8 lg:grid-cols-3">
@@ -253,7 +253,7 @@ export default function Showcase() {
           eyebrow="head-to-head benchmark"
           title={
             <>
-              Kaioken Research <span className="text-kai-orange">vs</span> Gemini Deep Search
+              Kaioken Research <span className="serif">vs</span> Gemini Deep Search
             </>
           }
           description="We submitted the exact same clinical prompt to both research engines: compare SGLT2 inhibitors vs GLP-1 receptor agonists in T2D with CKD and extract RCT sample sizes and p-values. Here is how their unedited outputs compare."
@@ -425,7 +425,7 @@ export default function Showcase() {
       <section className="mx-auto mt-20 max-w-6xl px-4 sm:px-6">
         <SectionHeading
           eyebrow="the plan it produced"
-          title={`${WIKI_STATS.sections} sections, planned then verified`}
+          title={<>{WIKI_STATS.sections} sections, <span className="serif">planned then verified.</span></>}
           description="The outline came from wiki_plan.yaml — proposed by the model, editable by hand before a single chapter was generated. Every row opens the real documents."
         />
         <div className="mt-8 overflow-hidden rounded-sm border border-border">
@@ -460,7 +460,7 @@ export default function Showcase() {
           <div>
             <SectionHeading
               eyebrow="reproduce it"
-              title="Two commands on your own repo"
+              title={<>Two commands on your <span className="serif">own repo.</span></>}
               description="The scan is free and the plan is a file you can edit. The cost estimate prints before anything expensive runs."
             />
             <div className="mt-7 flex flex-wrap gap-3">

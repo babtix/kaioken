@@ -10,6 +10,8 @@ import {
 	type SkillProblem,
 } from "@kaioken/agent";
 import {
+	codingToolToRuntime,
+	createNodeExtensionPort,
 	createSession,
 	executionTools,
 	mcpAgentTools,
@@ -17,6 +19,7 @@ import {
 	nodeCommandRunner,
 	toRuntimeTools,
 } from "../agent-host.js";
+import { buildCliPrompt } from "../prompt.js";
 import { loadKnowledge } from "../knowledge.js";
 import type { Flags } from "../main.js";
 import { describeFailure, resolveModel, type ResolvedModel } from "../model.js";
@@ -196,13 +199,14 @@ export async function runChat(flags: Flags, hooks: ChatHooks = {}): Promise<numb
 
 		({ commands } = await detectCommands(root));
 
-		const check = await resolveModel(flags);
+		const check = (cache?.resolved as Extract<ResolvedModel, { ok: true }> | undefined) ?? (await resolveModel(flags));
 		if (!check.ok) {
 			process.stderr.write(`kaioken chat: ${check.reason}\n`);
 			return 1;
 		}
+		const isInitialResolution = !cache?.resolved;
 		resolved = check;
-		if (resolved.warning) process.stderr.write(`kaioken: ${resolved.warning}\n`);
+		if (resolved.warning && isInitialResolution) process.stderr.write(`kaioken: ${resolved.warning}\n`);
 	}
 
 	const runtime = await import("@earendil-works/pi-agent-core");
@@ -217,6 +221,15 @@ export async function runChat(flags: Flags, hooks: ChatHooks = {}): Promise<numb
 	if (!reusable) {
 		if (flags.write) tools.push(...executionTools(runtime, nodeRuntime, root));
 		tools.push(...(await mcpAgentTools()));
+		try {
+			const extPort = createNodeExtensionPort(root);
+			const extTools = await extPort.discoverTools();
+			for (const extTool of extTools) {
+				tools.push(codingToolToRuntime(extTool));
+			}
+		} catch {
+			// Extension port discovery failure should not crash chat
+		}
 	}
 
 	const { models, model } = resolved;
@@ -232,7 +245,7 @@ export async function runChat(flags: Flags, hooks: ChatHooks = {}): Promise<numb
 	const session = reusable && cache?.session
 		? cache.session
 		: createSession(runtime, {
-				systemPrompt: buildSystemPrompt(context, {
+				systemPrompt: await buildCliPrompt(context, {
 					gate: commands,
 					canWrite: flags.write === true,
 				}),
@@ -381,7 +394,7 @@ export async function runChat(flags: Flags, hooks: ChatHooks = {}): Promise<numb
 		cache.session = undefined;
 		cache.tools = undefined;
 		cache.context = undefined;
-		cache.resolved = undefined;
+		// cache.resolved is preserved: repo file mutations invalidate knowledge and index, not model selection
 		cache.gate = undefined;
 		cache.skillProblems = undefined;
 		cache.thinking = undefined;

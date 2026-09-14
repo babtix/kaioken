@@ -2,29 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- viewport-fit=cover so the phone site can pad itself out of the notch
-         and the home indicator with env(safe-area-inset-*) -->
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#080808" />
-    <meta name="color-scheme" content="dark" />
-
-    <title>kaioken — terminal AI coding assistant + knowledge engine</title>
-    <meta
-      name="description"
-      content="A single Go binary with two faces: a chat agent that edits your repo behind diff approval, and a knowledge engine that turns any codebase into deep wikis, knowledge cards and skills."
-    />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Kaioken — The Repository That Knows Your Code</title>
+    <meta name="description" content="Deterministic AST code indexing, verifiable documentation, and grounded AI agents that eliminate documentation rot and LLM hallucinations. Available for macOS, Windows, and Linux." />
+    
+    <!-- Open Graph / Meta -->
+    <meta property="og:title" content="Kaioken — The Repository That Knows Your Code" />
+    <meta property="og:description" content="Deterministic AST code indexing, verifiable documentation, and grounded AI agents that eliminate documentation rot and LLM hallucinations." />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="kaioken — terminal AI coding assistant + knowledge engine" />
-    <meta
-      property="og:description"
-      content="Scan a repo, generate deep wikis, knowledge cards and skills, and chat with any model — all from one terminal binary."
-    />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#ff1e00" />
+
+    <!-- Google Fonts: Bodoni Moda (Display), Inter Tight (Sans), JetBrains Mono (Mono Label) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Inter+Tight:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="/assets/favicon-64.png" />
   </head>
   <body>
     <div id="root"></div>

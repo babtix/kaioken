@@ -1,7 +1,155 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type ModelClient, type ModelRequest, withRetry } from "@kaioken/model";
 import type { Flags } from "./main.js";
+
+type PiModel = import("@earendil-works/pi-ai").Model<import("@earendil-works/pi-ai").Api>;
+
+/**
+ * Built-in descriptors for models known to exist on providers but omitted from
+ * pi-ai's static snapshot.
+ */
+const SUPPLEMENTAL_CATALOG: readonly PiModel[] = [
+	{
+		id: "z-ai/glm-5.3-flash",
+		name: "Z.ai: GLM 5.3 Flash",
+		api: "openai-completions",
+		baseUrl: "https://openrouter.ai/api/v1",
+		provider: "openrouter",
+		reasoning: true,
+		input: ["text", "image"],
+		cost: { input: 0.15, output: 0.5, cacheRead: 0.03, cacheWrite: 0 },
+		contextWindow: 1048576,
+		maxTokens: 131072,
+		compat: { supportsDeveloperRole: false, thinkingFormat: "openrouter" },
+	} as PiModel,
+];
+
+const dynamicOpenRouterCache = new Map<string, PiModel>();
+
+/**
+ * Dynamically fetch uncataloged models from OpenRouter when online with an API key.
+ * Caches results in-memory and to .kaioken/cache/openrouter-models.json.
+ */
+async function fetchOpenRouterModel(modelId: string, root?: string): Promise<PiModel | null> {
+	if (dynamicOpenRouterCache.has(modelId)) {
+		return dynamicOpenRouterCache.get(modelId)!;
+	}
+
+	const cachePath = join(root ?? ".", ".kaioken", "cache", "openrouter-models.json");
+	try {
+		const cachedText = await readFile(cachePath, "utf8").catch(() => null);
+		if (cachedText) {
+			const parsed = JSON.parse(cachedText) as Record<string, PiModel>;
+			if (parsed && typeof parsed === "object" && parsed[modelId]) {
+				const m = parsed[modelId];
+				dynamicOpenRouterCache.set(modelId, m);
+				return m;
+			}
+		}
+	} catch {
+		// Silent cache read error
+	}
+
+	if (!process.env["OPENROUTER_API_KEY"]) {
+		return null;
+	}
+
+	try {
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), 3000);
+		const res = await fetch("https://openrouter.ai/api/v1/models", {
+			headers: {
+				Authorization: `Bearer ${process.env["OPENROUTER_API_KEY"]}`,
+				"User-Agent": "kaioken",
+			},
+			signal: controller.signal,
+		}).finally(() => clearTimeout(timer));
+
+		if (!res.ok) return null;
+		const body = (await res.json()) as {
+			data?: Array<{
+				id: string;
+				name?: string;
+				context_length?: number;
+				pricing?: { prompt?: string; completion?: string; input_cache_read?: string };
+				top_provider?: { context_length?: number; max_completion_tokens?: number };
+			}>;
+		};
+
+		if (!Array.isArray(body.data)) return null;
+		const found = body.data.find((m) => m.id === modelId);
+		if (!found) return null;
+
+		const promptPrice = Number(found.pricing?.prompt ?? 0) * 1_000_000;
+		const completionPrice = Number(found.pricing?.completion ?? 0) * 1_000_000;
+		const cacheReadPrice = Number(found.pricing?.input_cache_read ?? 0) * 1_000_000;
+
+		const dynamicModel: PiModel = {
+			id: found.id,
+			name: found.name ?? found.id,
+			api: "openai-completions",
+			baseUrl: "https://openrouter.ai/api/v1",
+			provider: "openrouter",
+			reasoning: true,
+			input: ["text"],
+			cost: {
+				input: Number.isFinite(promptPrice) ? promptPrice : 0,
+				output: Number.isFinite(completionPrice) ? completionPrice : 0,
+				cacheRead: Number.isFinite(cacheReadPrice) ? cacheReadPrice : 0,
+				cacheWrite: 0,
+			},
+			contextWindow: found.top_provider?.context_length ?? found.context_length ?? 128000,
+			maxTokens: found.top_provider?.max_completion_tokens ?? 32768,
+			compat: { supportsDeveloperRole: false, thinkingFormat: "openrouter" },
+		} as PiModel;
+
+		dynamicOpenRouterCache.set(modelId, dynamicModel);
+
+		try {
+			await mkdir(join(root ?? ".", ".kaioken", "cache"), { recursive: true });
+			const existingText = await readFile(cachePath, "utf8").catch(() => null);
+			const currentCache = existingText ? (JSON.parse(existingText) as Record<string, unknown>) : {};
+			currentCache[modelId] = dynamicModel;
+			await writeFile(cachePath, JSON.stringify(currentCache, null, 2), "utf8");
+		} catch {
+			// Best-effort cache write
+		}
+
+		return dynamicModel;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Read user or repo-defined model overrides from .kaioken/models.json if present.
+ */
+async function readRepoCustomModels(root: string | undefined): Promise<Record<string, Record<string, unknown>>> {
+	const text = await readFile(join(root ?? ".", ".kaioken", "models.json"), "utf8").catch(() => null);
+	if (!text) return {};
+	try {
+		const parsed = JSON.parse(text);
+		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+			return parsed as Record<string, Record<string, unknown>>;
+		}
+		if (Array.isArray(parsed)) {
+			const dict: Record<string, Record<string, unknown>> = {};
+			for (const item of parsed) {
+				if (item && typeof item === "object" && typeof item.id === "string") {
+					dict[item.id] = item;
+					if (typeof item.provider === "string") {
+						dict[`${item.provider}/${item.id}`] = item;
+					}
+				}
+			}
+			return dict;
+		}
+		return {};
+	} catch {
+		return {};
+	}
+}
 
 /**
  * Wiring the borrowed provider layer to the knowledge layer's port.
@@ -146,7 +294,9 @@ export async function resolveModel(flags: Flags): Promise<ResolvedModel> {
 	let describe = spec;
 	if (!model && !models.getProviders().some((p) => p.id === providerId)) {
 		const serving =
-			available.find((m) => m.id === spec) ?? available.find((m) => m.id.startsWith(`${providerId}/`));
+			available.find((m) => m.id === spec) ??
+			available.find((m) => m.id.startsWith(`${providerId}/`)) ??
+			SUPPLEMENTAL_CATALOG.find((m) => m.id === spec || m.id.startsWith(`${providerId}/`));
 		if (serving) {
 			providerId = serving.provider;
 			modelId = spec;
@@ -164,6 +314,52 @@ export async function resolveModel(flags: Flags): Promise<ResolvedModel> {
 			model = available.find((m) => m.provider === providerId && m.id === modelId);
 		} catch {
 			// Offline or the provider refused: fall through.
+		}
+	}
+
+	const providerConfigured = available.some((m) => m.provider === providerId);
+
+	// Check supplemental catalog for known modern models omitted from the snapshot
+	if (!model && providerConfigured) {
+		const supp = SUPPLEMENTAL_CATALOG.find((m) => m.provider === providerId && m.id === modelId);
+		if (supp) {
+			model = supp;
+		}
+	}
+
+	// Check repository-level custom model catalog in .kaioken/models.json
+	if (!model && providerConfigured) {
+		const repoModels = await readRepoCustomModels(flags.root);
+		const custom = repoModels[`${providerId}/${modelId}`] ?? repoModels[modelId] ?? repoModels[spec];
+		if (custom && typeof custom === "object") {
+			const sibling = synthesizeModel(available, providerId, modelId);
+			const costObj =
+				custom.cost && typeof custom.cost === "object" ? (custom.cost as Record<string, unknown>) : undefined;
+			model = {
+				...(sibling ?? {}),
+				...custom,
+				id: modelId,
+				name: (typeof custom.name === "string" ? custom.name : undefined) ?? modelId,
+				provider: providerId,
+				api: (typeof custom.api === "string" ? custom.api : undefined) ?? sibling?.api ?? "openai-completions",
+				baseUrl: (typeof custom.baseUrl === "string" ? custom.baseUrl : undefined) ?? sibling?.baseUrl,
+				cost: {
+					input: typeof costObj?.input === "number" ? costObj.input : (sibling?.cost?.input ?? 0),
+					output: typeof costObj?.output === "number" ? costObj.output : (sibling?.cost?.output ?? 0),
+					cacheRead: typeof costObj?.cacheRead === "number" ? costObj.cacheRead : (sibling?.cost?.cacheRead ?? 0),
+					cacheWrite: typeof costObj?.cacheWrite === "number" ? costObj.cacheWrite : (sibling?.cost?.cacheWrite ?? 0),
+				},
+				contextWindow: typeof custom.contextWindow === "number" ? custom.contextWindow : (sibling?.contextWindow ?? 128000),
+				maxTokens: typeof custom.maxTokens === "number" ? custom.maxTokens : (sibling?.maxTokens ?? 32768),
+			} as PiModel;
+		}
+	}
+
+	// Try fetching model metadata dynamically from OpenRouter when online
+	if (!model && providerConfigured && providerId === "openrouter") {
+		const dynamicModel = await fetchOpenRouterModel(modelId, flags.root);
+		if (dynamicModel) {
+			model = dynamicModel;
 		}
 	}
 

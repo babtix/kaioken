@@ -16,8 +16,8 @@ export default function PreviewIndex() {
         <p className="font-mono text-[11px] tracking-[0.25em] text-kai-dim uppercase">
           <span className="text-kai-orange">▎</span> real output
         </p>
-        <h1 className="mt-3 font-mono text-3xl font-bold tracking-tight text-foreground">
-          .kaioken/wiki
+        <h1 className="mt-3 font-sans text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">
+          The wiki written <span className="serif">from source.</span>
         </h1>
         <p className="mt-3 max-w-2xl font-sans text-[15px] leading-relaxed text-muted-foreground">
           This is a real generation from the tool itself. Every document below is the unedited

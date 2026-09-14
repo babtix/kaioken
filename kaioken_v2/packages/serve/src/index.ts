@@ -14,3 +14,4 @@ export {
 export type { Heading } from "./markdown.js";
 export { EMPTY_LIBRARY, readLibrary } from "./library.js";
 export type { CardSummary, Library, Skill, WikiChapter, WikiDoc } from "./library.js";
+export { buildGraph } from "./graph.js";

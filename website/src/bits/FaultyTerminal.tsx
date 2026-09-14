@@ -1,5 +1,6 @@
 import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
 import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import './FaultyTerminal.css';
 
 type Vec2 = [number, number];
 
@@ -22,6 +23,7 @@ export interface FaultyTerminalProps extends React.HTMLAttributes<HTMLDivElement
   dpr?: number;
   pageLoadAnimation?: boolean;
   brightness?: number;
+  lightMode?: boolean;
   /** Frame-rate cap — the noise field moves slowly, 30fps looks identical
    *  to 60fps but halves the GPU load. */
   fps?: number;
@@ -66,6 +68,7 @@ uniform float uUseMouse;
 uniform float uPageLoadProgress;
 uniform float uUsePageLoadAnimation;
 uniform float uBrightness;
+uniform float uLightMode;
 
 float time;
 
@@ -233,6 +236,13 @@ void main() {
       col += (rnd - 0.5) * (uDither * 0.003922);
     }
 
+    if (uLightMode > 0.5) {
+      float energy = max(max(col.r, col.g), col.b);
+      float coverage = clamp(smoothstep(0.0, 0.72, energy) * 0.9, 0.0, 0.9);
+      vec3 ink = clamp(col * 0.42, 0.0, 0.76);
+      col = mix(vec3(1.0), ink, coverage);
+    }
+
     gl_FragColor = vec4(col, 1.0);
 }
 `;
@@ -267,6 +277,7 @@ export default function FaultyTerminal({
   dpr = Math.min(window.devicePixelRatio || 1, 2),
   pageLoadAnimation = true,
   brightness = 1,
+  lightMode = false,
   fps = 30,
   resolutionScale = 1,
   className,
@@ -305,7 +316,7 @@ export default function FaultyTerminal({
     const renderer = new Renderer({ dpr });
     rendererRef.current = renderer;
     const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(lightMode ? 1 : 0, lightMode ? 1 : 0, lightMode ? 1 : 0, 1);
 
     const geometry = new Triangle(gl);
 
@@ -336,7 +347,8 @@ export default function FaultyTerminal({
         uUseMouse: { value: mouseReact ? 1 : 0 },
         uPageLoadProgress: { value: pageLoadAnimation ? 0 : 1 },
         uUsePageLoadAnimation: { value: pageLoadAnimation ? 1 : 0 },
-        uBrightness: { value: brightness }
+        uBrightness: { value: brightness },
+        uLightMode: { value: lightMode ? 1 : 0 }
       }
     });
     programRef.current = program;
@@ -428,13 +440,13 @@ export default function FaultyTerminal({
     }
     ctn.appendChild(gl.canvas);
 
-    if (mouseReact) ctn.addEventListener('mousemove', handleMouseMove);
+    if (mouseReact) window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
       cancelAnimationFrame(rafRef.current);
       resizeObserver.disconnect();
       inViewObserver.disconnect();
-      if (mouseReact) ctn.removeEventListener('mousemove', handleMouseMove);
+      if (mouseReact) window.removeEventListener('mousemove', handleMouseMove);
       if (gl.canvas.parentElement === ctn) ctn.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
       loadAnimationStartRef.current = 0;
@@ -459,12 +471,13 @@ export default function FaultyTerminal({
     mouseStrength,
     pageLoadAnimation,
     brightness,
+    lightMode,
     fps,
     resolutionScale,
     handleMouseMove
   ]);
 
   return (
-    <div ref={containerRef} className={`w-full h-full relative overflow-hidden ${className}`} style={style} {...rest} />
+    <div ref={containerRef} className={`faulty-terminal-container w-full h-full relative overflow-hidden ${className || ''}`} style={style} {...rest} />
   );
 }

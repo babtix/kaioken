@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="KAIOKEN-logo.png" alt="Kaioken Logo" width="700" />
+  <img src="assets/KAIOKEN-logo.png" alt="Kaioken Logo" width="700" />
 </p>
 
 <p align="center">
@@ -58,66 +58,150 @@ Large codebases suffer from two compounding problems when combined with AI:
 ### The Kaioken Solution
 
 <p align="center">
-  <img src="kaioken-pipeline.svg" alt="Kaioken Knowledge Engine Architecture" width="100%" />
+  <img src="assets/kaioken-pipeline.svg" alt="Kaioken Knowledge Engine Architecture" width="100%" />
 </p>
-
-<details>
-<summary><b>View Interactive Mermaid Flowchart</b></summary>
 
 ```mermaid
 flowchart TD
-    subgraph INGEST ["1. STRUCTURAL CODE INGESTION (OFFLINE)"]
+    %% ─────────────────────────────────────────────────────────────
+    %% STAGE 1: INGESTION & STRUCTURAL AST INDEXING (OFFLINE)
+    %% ─────────────────────────────────────────────────────────────
+    subgraph STAGE1 ["1. STRUCTURAL CODE INGESTION (100% OFFLINE)"]
+        direction TB
+        REPO["Target Repository<br/><code>Source Files (TS, Go, Py, Rust)</code>"] --> SCAN["packages/scan<br/><i>Ignore rules · Lang detection · Binary filter</i>"]
+        SCAN --> PARSER["packages/index (Tree-Sitter)<br/><i>AST parsing · Symbol declarations &amp; skeletons</i>"]
+        PARSER --> INDEX_STORE[(".kaioken/index.json<br/><code>Declarations · Exports · Spans</code>")]
+        PARSER --> ORACLE["SymbolOracle &amp; Anchor Resolver<br/><i>Definitive existence &amp; exact line excerpts</i>"]
+        SCAN --> PROV_ENGINE["packages/provenance<br/><i>Cryptographic SHA-256 source hashing</i>"]
+        PARSER --> BM25["packages/search<br/><i>BM25 lexical index &amp; RRF ranking</i>"]
+    end
+
+    %% ─────────────────────────────────────────────────────────────
+    %% STAGE 2: GROUNDED MULTI-PASS GENERATION
+    %% ─────────────────────────────────────────────────────────────
+    subgraph STAGE2 ["2. GROUNDED GENERATION (Transport-Free Model Port)"]
+        direction TB
+        ORACLE --> PLAN["kaioken plan (packages/plan)<br/><i>Discovers module boundaries ➔ modules.yaml</i>"]
+        PLAN --> CARDS["kaioken cards<br/><i>Dense 5-file technical summaries per module</i>"]
+        PLAN --> WIKI["kaioken wiki (packages/wiki)<br/><i>Global outline ➔ Chapters ➔ Sections</i>"]
+        ORACLE --> RESEARCH["kaioken research (packages/research)<br/><i>Autonomous web research with citations [N]</i>"]
+    end
+
+    %% ─────────────────────────────────────────────────────────────
+    %% STAGE 3: MECHANICAL VERIFICATION & ADVERSARIAL REPAIR
+    %% ─────────────────────────────────────────────────────────────
+    subgraph STAGE3 ["3. MECHANICAL VERIFICATION &amp; ADVERSARIAL REPAIR"]
+        direction TB
+        WIKI --> VERIFY_ENGINE{"Mechanical Verifier<br/><i>packages/wiki/src/verify.ts</i>"}
+        CARDS --> VERIFY_ENGINE
+        RESEARCH --> VERIFY_ENGINE
+        
+        ORACLE -. "AST symbol &amp; anchor checks" .-> VERIFY_ENGINE
+        
+        VERIFY_ENGINE -- "Defects detected<br/>(unverified symbols / padding / low coverage)" --> REPAIR_LOOP["Adversarial Repair<br/><i>CORRECTION &amp; CRITIQUE passes</i>"]
+        REPAIR_LOOP -- "Strict re-scoring" --> VERIFY_ENGINE
+        
+        VERIFY_ENGINE -- "100% Verified Claims" --> ARTIFACTS[(".kaioken/ Verified Store<br/><code>wiki/ · cards/ · research/ · graph/</code>")]
+    end
+
+    %% ─────────────────────────────────────────────────────────────
+    %% STAGE 4: DETERMINISTIC DRIFT & ZERO-TOKEN REFRESH
+    %% ─────────────────────────────────────────────────────────────
+    subgraph STAGE4 ["4. CONTENT-HASH PROVENANCE &amp; FRESHNESS GATE"]
+        direction TB
+        PROV_ENGINE --> PROV_MAP["Provenance Index<br/><code>Document ➔ SHA-256 Dependencies</code>"]
+        ARTIFACTS --> PROV_MAP
+        PROV_MAP --> STATUS_CHECK["kaioken status --check<br/><i>0 tokens · 0 network · Instant drift diff</i>"]
+        STATUS_CHECK -- "Drift detected" --> UPDATE_CMD["kaioken update<br/><i>Selective refresh of invalidated docs only</i>"]
+        UPDATE_CMD --> WIKI
+    end
+
+    %% ─────────────────────────────────────────────────────────────
+    %% STAGE 5: GROUNDED AGENT WORKFLOW & HARD TEST GATE
+    %% ─────────────────────────────────────────────────────────────
+    subgraph STAGE5 ["5. GROUNDED AGENT WORKFLOW &amp; HARD TEST GATE"]
+        direction TB
+        ARTIFACTS --> AGENT_HOST["Agent Runtime (apps/cli &amp; packages/agent)<br/><i>TUI &amp; CLI interactive sessions</i>"]
+        ORACLE --> AGENT_TOOLS["Grounding Knowledge Tools<br/><code>symbol_lookup · wiki_search · read_file · impact</code>"]
+        AGENT_TOOLS --> AGENT_HOST
+        
+        AGENT_HOST --> DELEGATE["Sub-Agent Worktrees (packages/gitops)<br/><i>Isolated git worktrees (delegate)</i>"]
+        DELEGATE --> CODING_TOOLS["Coding Tools<br/><code>bash · edit · write · grep · find · ls</code>"]
+        
+        CODING_TOOLS --> TEST_GATE{"Hard Verification Gate<br/><i>packages/agent/src/gate.ts</i>"}
+        TEST_GATE -- "Native tests fail" --> AGENT_FIX["Auto-Repair Loop<br/><i>Iterative test-driven code fix</i>"]
+        AGENT_FIX --> TEST_GATE
+        TEST_GATE -- "Tests pass (0 errors)" --> VERIFIED_CODE["Verified Code Changes<br/><i>Clean git worktree commit &amp; merge</i>"]
+    end
+
+    %% ─────────────────────────────────────────────────────────────
+    %% STAGE 6: CONSUMPTION SURFACES
+    %% ─────────────────────────────────────────────────────────────
+    subgraph STAGE6 ["6. CONSUMPTION SURFACES"]
         direction LR
-        REPO["Target Repository<br/><code>Source Files (TS, Go, Py, Rust)</code>"] --> SCAN["Tree-Sitter AST Parser<br/><code>Declaration Extraction &amp; Skeletons</code>"]
-        SCAN --> INDEX["Symbol &amp; BM25 Index<br/><code>AST Declarations + Lexical Store</code>"]
+        SURF_TUI["Terminal TUI<br/><code>kaioken chat (CRT HUD)</code>"]
+        SURF_SERVE["Local Web Server<br/><code>kaioken serve (127.0.0.1)</code>"]
+        SURF_STUDIO["Desktop Studio<br/><code>Tauri v2 Desktop App</code>"]
+        SURF_WEB["Modern Web Portal<br/><code>website/ (React 19 + Vite)</code>"]
     end
 
-    INDEX --> ORACLE["Grounding Oracle &amp; Anchor Resolver<br/><code>Definitive Existence &amp; Line Resolution</code>"]
-    INDEX --> PROV["Content-Hash Provenance Engine<br/><code>SHA-256 Dependency Mapping</code>"]
-
-    subgraph PIPELINE ["2A. GROUNDED GENERATION"]
-        direction TB
-        ORACLE --> GEN["Generative Pipeline (LLM Port)<br/><code>Plan ➔ Cards ➔ Deep Wiki (×1..×10)</code>"]
-        GEN --> VERIF{"Mechanical Verifier<br/><i>Checks citations, symbols &amp; anchors</i>"}
-        VERIF -- "Defects detected" --> REPAIR["Adversarial Repair<br/><code>Iterative Correction Loop</code>"]
-        REPAIR --> VERIF
-    end
-
-    subgraph LIFECYCLE ["2B. DETERMINISTIC FRESHNESS"]
-        direction TB
-        PROV --> STATUS["Freshness Drift Gate<br/><code>kaioken status --check (0 tokens)</code>"]
-        STATUS -- "Changes detected" --> UPDATE["Selective Incremental Refresh<br/><code>update invalidated docs only</code>"]
-    end
-
-    VERIF -- "Verified Grounding" --> ARTIFACTS[(".kaioken/ Verified Store<br/><code>Wiki, Cards, Skills, Graph</code>")]
-    UPDATE --> ARTIFACTS
-
-    ARTIFACTS --> SURFACES["Consumption Surfaces<br/><code>Terminal TUI · CLI Engine · Local Web Server · Agent Tools</code>"]
+    ARTIFACTS --> SURF_TUI
+    ARTIFACTS --> SURF_SERVE
+    ARTIFACTS --> SURF_STUDIO
+    ARTIFACTS --> SURF_WEB
 
     %% Styling
-    style INGEST fill:#0d1117,stroke:#388bfd,stroke-width:1.5px,color:#fff
-    style PIPELINE fill:#0d1117,stroke:#f0883e,stroke-width:1.5px,color:#fff
-    style LIFECYCLE fill:#0d1117,stroke:#a371f7,stroke-width:1.5px,color:#fff
+    style STAGE1 fill:#0d1117,stroke:#388bfd,stroke-width:1.5px,color:#fff
+    style STAGE2 fill:#0d1117,stroke:#f0883e,stroke-width:1.5px,color:#fff
+    style STAGE3 fill:#0d1117,stroke:#f85149,stroke-width:1.5px,color:#fff
+    style STAGE4 fill:#0d1117,stroke:#a371f7,stroke-width:1.5px,color:#fff
+    style STAGE5 fill:#0d1117,stroke:#3fb950,stroke-width:1.5px,color:#fff
+    style STAGE6 fill:#0f1523,stroke:#58a6ff,stroke-width:1.5px,color:#fff
+    
     style ARTIFACTS fill:#162a1e,stroke:#3fb950,stroke-width:2px,color:#7ee787
-    style SURFACES fill:#0f1523,stroke:#58a6ff,stroke-width:1.5px,color:#58a6ff
+    style VERIFIED_CODE fill:#162a1e,stroke:#3fb950,stroke-width:2px,color:#7ee787
     style REPO fill:#161f33,stroke:#388bfd,color:#fff
     style SCAN fill:#161f33,stroke:#388bfd,color:#fff
-    style INDEX fill:#161f33,stroke:#58a6ff,color:#fff
+    style PARSER fill:#161f33,stroke:#388bfd,color:#fff
+    style INDEX_STORE fill:#161f33,stroke:#58a6ff,color:#fff
     style ORACLE fill:#2a1810,stroke:#f0883e,color:#fff
-    style PROV fill:#241432,stroke:#a371f7,color:#fff
-    style GEN fill:#2a1810,stroke:#ff8700,color:#fff
-    style VERIF fill:#1c1214,stroke:#f85149,color:#ff7b72
-    style REPAIR fill:#1c1214,stroke:#f85149,color:#ff7b72
-    style STATUS fill:#241432,stroke:#a371f7,color:#fff
-    style UPDATE fill:#241432,stroke:#a371f7,color:#fff
+    style PROV_ENGINE fill:#241432,stroke:#a371f7,color:#fff
+    style BM25 fill:#161f33,stroke:#58a6ff,color:#fff
+    
+    style PLAN fill:#2a1810,stroke:#f0883e,color:#fff
+    style CARDS fill:#2a1810,stroke:#ff8700,color:#fff
+    style WIKI fill:#2a1810,stroke:#ff8700,color:#fff
+    style RESEARCH fill:#2a1810,stroke:#ff8700,color:#fff
+    
+    style VERIFY_ENGINE fill:#1c1214,stroke:#f85149,color:#ff7b72
+    style REPAIR_LOOP fill:#1c1214,stroke:#f85149,color:#ff7b72
+    
+    style PROV_MAP fill:#241432,stroke:#a371f7,color:#fff
+    style STATUS_CHECK fill:#241432,stroke:#a371f7,color:#fff
+    style UPDATE_CMD fill:#241432,stroke:#a371f7,color:#fff
+    
+    style AGENT_HOST fill:#162a1e,stroke:#3fb950,color:#fff
+    style AGENT_TOOLS fill:#2a1810,stroke:#f0883e,color:#fff
+    style DELEGATE fill:#162a1e,stroke:#3fb950,color:#fff
+    style CODING_TOOLS fill:#162a1e,stroke:#3fb950,color:#fff
+    style TEST_GATE fill:#1c1214,stroke:#f85149,color:#ff7b72
+    style AGENT_FIX fill:#1c1214,stroke:#f85149,color:#ff7b72
+    
+    style SURF_TUI fill:#0f1523,stroke:#58a6ff,color:#fff
+    style SURF_SERVE fill:#0f1523,stroke:#58a6ff,color:#fff
+    style SURF_STUDIO fill:#0f1523,stroke:#58a6ff,color:#fff
+    style SURF_WEB fill:#0f1523,stroke:#58a6ff,color:#fff
 ```
 
-</details>
+### Core Architecture & Verification Guarantees
 
-- **Claims are checked, not trusted**: Every symbol, quoted code snippet, line anchor, and file path asserted by an LLM is checked against the structural AST index.
-- **Definitive negative guarantees**: The `SymbolOracle` can definitively answer *"this repository declares no symbol by that name"*, neutralizing the primary cause of model hallucinations.
-- **Structure before text**: A file's skeleton always fits the token budget, so nothing in scope is ever invisible to the model. Detail is rationed, never coverage.
-- **Deterministic staleness**: Invalidation is governed by source content hashes, not git log scraping or prose heuristics.
+- **Claims are checked, not trusted**: Every symbol in backticks, quoted code snippet, line anchor, and file path asserted by an LLM is mechanically checked against the structural AST index (`SymbolOracle`, `resolveRange`, `resolveExcerpt`).
+- **Definitive negative guarantees**: The `SymbolOracle` can definitively answer *"this repository declares no symbol by that name"*, directly neutralizing model hallucinations.
+- **Structure before text**: Skeletons and signatures always fit the token budget, so nothing in scope is ever invisible to the model. Detail is rationed, never coverage.
+- **Deterministic staleness (0 tokens)**: Invalidation is governed by cryptographic SHA-256 source content hashes recorded in `ProvenanceIndex`. Running `kaioken status --check` executes offline in milliseconds with zero tokens spent.
+- **Adversarial repair loop**: Unverifiable claims, hallucinated symbols, and generic padding are rejected. Documents undergo adversarial correction and critique passes, only accepting revisions if the verification score strictly improves.
+- **Hard native test gate (`verify`)**: When writing code, agents discover and run the repository's native test suites (`npm test`, `go test`, `cargo test`, `Makefile`). If broken, the agent enters an automated test-fix repair loop before completing the task.
+- **Sub-agent isolation (`delegate`)**: Autonomous coding tasks execute on isolated Git worktrees (`packages/gitops`), preventing dirty working trees and file collision conflicts.
 
 ---
 
@@ -172,9 +256,11 @@ This repository is organized as a multi-project workspace:
 │       ├── templates/      # Parameterized prompt templates (/t:<name>)
 │       └── wiki/           # Multi-pass wiki cascade, claim extraction, verification
 │
-├── website/                # Showcase & documentation web app (React 19, Vite, Tailwind 4, Base UI)
+├── website/                # Main showcase & documentation web app (React 19, Vite, Tailwind 4)
+├── website-legacy/         # Legacy web portal
 ├── registry-web/           # Community extensions registry portal (browse, search, submit wizard)
 ├── web-news/               # Serverless publishing feed for project news and release notes
+├── assets/                 # Brand assets, architecture diagrams, and wallpapers
 ├── DESIGN.md               # Master Kaioken Design System v2 specification (TUI, GUI, Web, Mobile)
 ├── kaioken_main_STUDIO/    # Kaioken Studio (Tauri v2 desktop GUI) architectural blueprint
 └── ide_kaioken/            # Experimental agentic IDE builds (VS Code Code-OSS & Theia)
@@ -387,7 +473,7 @@ For the complete architectural design specification, see [DESIGN.md](DESIGN.md).
 
 - **Author & Architect**: [Babtix / Babtich El Habib](https://github.com/babtix)
 - **News & Updates**: [kaioken-news.vercel.app](https://kaioken-news.vercel.app)
-- **License**: Licensed under the [License Zero Noncommercial Public License 2.0.1](.kaioken_v1/LICENSE) (Commercial licenses available; subcomponents under MIT where indicated).
+- **License**: Licensed under the [License Zero Noncommercial Public License 2.0.1](LICENSE) (Commercial licenses available; subcomponents under MIT where indicated).
 
 ---
 

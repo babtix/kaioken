@@ -1,6 +1,7 @@
+import * as React from "react"
 import { cn } from "@/lib/utils"
 
-interface SectionHeadingProps {
+export interface SectionHeadingProps {
   /** two-digit index rendered like a terminal gutter */
   index?: string
   eyebrow: string
@@ -20,28 +21,23 @@ export default function SectionHeading({
 }: SectionHeadingProps) {
   return (
     <div className={cn("max-w-3xl", align === "center" && "mx-auto text-center", className)}>
-      {/* Eyebrow pill */}
+      {/* Home page technical eyebrow */}
       <div
         className={cn(
-          "inline-flex items-center gap-2 rounded-full border border-border/70 bg-kai-panel/60 px-3 py-1",
-          align === "center" && "mx-auto"
+          "flex items-center gap-2 font-mono text-[11px] tracking-[0.14em] uppercase",
+          align === "center" && "justify-center"
         )}
       >
-        <span className="text-kai-orange text-[10px]" aria-hidden>
-          ▎
+        <span className="font-bold text-[var(--accent)]">
+          {index ? (index.startsWith('§') ? index : `§${index}`) : '▎'}
         </span>
-        {index ? (
-          <span className="font-mono text-[11px] font-bold text-kai-amber">{index}</span>
-        ) : null}
-        <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-          {eyebrow}
-        </span>
+        <span className="text-[var(--fg-mute)]">{eyebrow}</span>
       </div>
 
       <h2
         className={cn(
-          "mt-4 text-balance font-mono font-bold tracking-tight text-foreground",
-          "text-3xl sm:text-4xl"
+          "mt-2 text-balance font-sans font-semibold tracking-[-0.03em] text-[var(--fg)]",
+          "text-xl sm:text-2xl lg:text-3xl"
         )}
       >
         {title}
@@ -49,13 +45,29 @@ export default function SectionHeading({
       {description ? (
         <p
           className={cn(
-            "mt-4 font-sans text-[15px] leading-relaxed text-muted-foreground sm:text-base",
+            "mt-1.5 font-sans text-[13.5px] leading-relaxed text-[var(--fg-2)] sm:text-sm",
             align === "center" && "mx-auto"
           )}
         >
           {description}
         </p>
       ) : null}
+    </div>
+  )
+}
+
+export function StickySectionHeader({
+  containerClassName,
+  ...props
+}: SectionHeadingProps & { containerClassName?: string }) {
+  return (
+    <div
+      className={cn(
+        "mx-auto max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-1",
+        containerClassName
+      )}
+    >
+      <SectionHeading {...props} />
     </div>
   )
 }

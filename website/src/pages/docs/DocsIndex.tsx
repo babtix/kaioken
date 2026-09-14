@@ -10,8 +10,8 @@ export default function DocsIndex() {
         <p className="font-mono text-[11px] tracking-[0.25em] text-kai-dim uppercase">
           <span className="text-kai-orange">▎</span> docs
         </p>
-        <h1 className="mt-3 font-mono text-3xl font-bold tracking-tight text-foreground">
-          Documentation
+        <h1 className="mt-3 font-sans text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">
+          Everything about <span className="serif">Kaioken.</span>
         </h1>
         <p className="mt-3 max-w-2xl font-sans text-[15px] leading-relaxed text-muted-foreground">
           Kaioken is one Go binary with two faces — an agent that edits your repo behind diff
