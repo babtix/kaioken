@@ -1,0 +1,240 @@
+{
+  "main": {
+    "id": "6778ba7c31527033",
+    "type": "split",
+    "children": [
+      {
+        "id": "9d228afb26852586",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "42b37ff8c4f83a13",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "roadmap/m01-green-everywhere/03-flaky-test-quarantine.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "03-flaky-test-quarantine"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "3c1a6d4c307b4738",
+    "type": "split",
+    "children": [
+      {
+        "id": "41ed1f49456b413b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "79c4518acce19045",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "d2bc17515be740fe",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "9359d08190f1cdf6",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "1e65a26178a926c6",
+    "type": "split",
+    "children": [
+      {
+        "id": "19b1a2503973059e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0e0f793b18640b5f",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": true,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "daa00eee52240d29",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "cli_kaioken/knowledge/kaioken/architecture.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "8b1e977920a2681e",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "f97decd70d7ec088",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "8fc3330f54280566",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          },
+          {
+            "id": "c6973ea4dcdb2fec",
+            "type": "leaf",
+            "state": {
+              "type": "git-view",
+              "state": {},
+              "icon": "lucide-ghost",
+              "title": "git-view"
+            }
+          }
+        ],
+        "currentTab": 3
+      }
+    ],
+    "direction": "horizontal",
+    "width": 341,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "audio-recorder:Start/stop recording": false,
+      "obsidian-excalidraw-plugin:New drawing": false,
+      "obsidian-git:Open Git source control": false
+    }
+  },
+  "active": "79c4518acce19045",
+  "lastOpenFiles": [
+    "roadmap/m01-green-everywhere/01-retarget-ci-workflow.md",
+    "roadmap/0_money_print/b2-billing-engineering/07-billing-test-and-reconciliation.md",
+    "roadmap/0_money_print/b2-billing-engineering/05-inference-proxy-and-margin.md",
+    "roadmap/0_money_print/b2-billing-engineering/04-usage-metering.md",
+    "roadmap/0_money_print/b2-billing-engineering/02-payment-provider-integration.md",
+    "roadmap/0_money_print/b2-billing-engineering/01-account-and-identity.md",
+    "roadmap/0_money_print/b6-scale/02-solo-maintainer-limits.md",
+    "roadmap/0_money_print/b6-scale/01-when-to-hire.md",
+    "roadmap/0_money_print/b4-company-formation/05-contributor-agreement.md",
+    "roadmap/0_money_print/b4-company-formation/04-terms-privacy-dpa.md",
+    "roadmap/0_money_print/b4-company-formation/03-tax-and-invoicing.md",
+    "roadmap/0_money_print/b4-company-formation/02-banking-and-payment-rails.md",
+    "roadmap/0_money_print/b4-company-formation/01-entity-and-jurisdiction.md",
+    "roadmap/0_money_print/b3-hosted-surface/04-uptime-and-support-promise.md",
+    "roadmap/0_money_print/b3-hosted-surface/03-team-workspaces.md",
+    "roadmap/0_money_print/b3-hosted-surface/02-registry-monetisation.md",
+    "roadmap/0_money_print/b3-hosted-surface/01-what-gets-hosted.md",
+    "roadmap/0_money_print/b2-billing-engineering/README.md",
+    "roadmap/0_money_print/b2-billing-engineering/06-quotas-and-abuse-controls.md",
+    "roadmap/0_money_print/b2-billing-engineering/03-entitlements-and-license-keys.md",
+    "roadmap/0_money_print/b1-model-and-positioning/01-study-the-comparables.md",
+    "roadmap/0_money_print/b0-preconditions/03-dependency-license-audit.md",
+    "roadmap/0_money_print/b0-preconditions/02-choose-the-commercial-license-model.md",
+    "roadmap/0_money_print/b0-preconditions/01-fix-the-license-vacuum.md",
+    "roadmap/0_money_print/README.md",
+    "roadmap/README.md",
+    "roadmap/studio-v0.1",
+    "roadmap/0_money_print/b6-scale",
+    "roadmap/0_money_print/b5-go-to-market",
+    "roadmap/0_money_print/b4-company-formation",
+    "roadmap/0_money_print/b3-hosted-surface",
+    "roadmap/0_money_print/b2-billing-engineering",
+    "roadmap/0_money_print/b1-model-and-positioning",
+    "roadmap/0_money_print/b0-preconditions",
+    "roadmap/0_money_print",
+    "roadmap/m12-ecosystem-ga",
+    "Screenshot 2026-07-06 161851.png"
+  ]
+}
