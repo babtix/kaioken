@@ -113,6 +113,10 @@ pnpm-debug.log*
 
 # Allow required app icons and favicons
 !kaioken v1/desktop/src-tauri/icons/**
+
+# Allow website images (needed for the Vercel build)
+!website/src/assets/**
+!website/public/assets/**
 !**/public/favicon.*
 !**/public/icons/**
 !/assets/**
