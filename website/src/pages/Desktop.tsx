@@ -219,9 +219,8 @@ export default function Desktop() {
                     aria-pressed={isActive}
                     aria-controls="surface-detail"
                     className={cn(
-                      "lift rounded-md border p-4 text-left",
+                      "lift glass rounded-md p-4 text-left",
                       "focus-visible:ring-1 focus-visible:ring-kai-orange/60 focus-visible:outline-none",
-                      toneBg[s.tone],
                       isActive ? toneRing[s.tone] : "hover:bg-accent/40"
                     )}
                   >

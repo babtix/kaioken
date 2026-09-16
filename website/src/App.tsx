@@ -5,6 +5,7 @@ import Desktop from './pages/Desktop.tsx';
 import DesktopBgPreview from './pages/DesktopBgPreview.tsx';
 import Showcase from './pages/Showcase.tsx';
 import Next from './pages/Next.tsx';
+import RoadmapPage from './pages/RoadmapPage.tsx';
 import DocsLayout from './pages/docs/DocsLayout.tsx';
 import DocsIndex from './pages/docs/DocsIndex.tsx';
 import Install from './pages/docs/Install.tsx';
@@ -107,6 +108,14 @@ export const App: React.FC = () => {
         element={
           <SubpageLayout>
             <Next />
+          </SubpageLayout>
+        }
+      />
+      <Route
+        path="/roadmap"
+        element={
+          <SubpageLayout>
+            <RoadmapPage />
           </SubpageLayout>
         }
       />

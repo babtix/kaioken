@@ -28,7 +28,7 @@
     </filter>
   </defs>
 
-  <rect width="512" height="512" rx="96" fill="#0a0a0c"/>
+  <circle cx="256" cy="256" r="256" fill="#0a0a0c"/>
 
   <!-- Outer Glow Energy Bolt -->
   <path d="M282 44 L138 276 H242 L198 468 L374 236 H270 Z" fill="url(#boltGradMain)" filter="url(#neonGlow)" opacity="0.6"/>

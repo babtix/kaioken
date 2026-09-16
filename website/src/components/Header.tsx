@@ -44,7 +44,7 @@ export const Header: React.FC = () => {
     { to: '/docs', label: 'Docs' },
     { to: '/preview', label: 'Output' },
     { to: '/showcase', label: 'Showcase' },
-    { to: '/next', label: 'Next' },
+    { to: '/roadmap', label: 'Roadmap' },
   ];
 
   return (

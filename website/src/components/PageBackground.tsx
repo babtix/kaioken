@@ -26,14 +26,8 @@ export default function PageBackground({
       {/* Dark contrast scrim */}
       <div className="home-bg-overlay absolute inset-0 bg-black/35" />
 
-      {/* Subtle depth vignette */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(130% 90% at 50% 30%, transparent 30%, rgba(8, 8, 10, 0.5) 70%, rgba(8, 8, 10, 0.88) 100%)",
-        }}
-      />
+      {/* Depth vignette — themed in CSS (dark: deepen, light: wash out) */}
+      <div className="home-bg-vignette absolute inset-0" />
 
       {/* Hairline technical grid overlay */}
       <div className="tech-grid-bg absolute inset-0 opacity-20" />
