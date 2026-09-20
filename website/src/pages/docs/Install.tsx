@@ -6,46 +6,58 @@ export default function Install() {
   return (
     <DocPage
       title="Install"
-      lead="Kaioken is a single Go binary. Build it, export a key, and run it inside the repository you want to work on."
+      lead="Kaioken is a TypeScript CLI and TUI monorepo. Build it, export a key, and run it inside the repository you want to work on."
     >
-      <H2 id="download">Download the ready exe</H2>
+      <H2 id="quickstart">Quick start</H2>
       <P>
-        Skip the build entirely — grab the pre-built <C>kaioken.exe</C> from{" "}
+        Kaioken is built from source using Node.js. Clone the repository from{" "}
         <a
-          href={`${GITHUB_URL}/releases`}
+          href={GITHUB_URL}
           target="_blank"
           rel="noreferrer"
           className="font-mono text-kai-orange underline decoration-kai-orange/40 underline-offset-4 transition-colors hover:text-kai-amber"
         >
-          GitHub releases
-        </a>{" "}
-        and it&apos;s ready to use. Then it&apos;s just provider → key → model → ready to start:
+          GitHub
+        </a>
+        , install dependencies, and build the TypeScript workspace:
       </P>
-      <Steps
-        items={[
-          <>
-            Pick a <strong className="font-semibold text-foreground">provider</strong> — OpenRouter,
-            OpenAI, Anthropic, Google, Groq, Together, DeepSeek, Mistral, Azure, or a local Ollama.
-          </>,
-          <>
-            Set its API <strong className="font-semibold text-foreground">key</strong> —{" "}
-            <C>$env:OPENROUTER_API_KEY = "sk-or-..."</C>, or <C>/key</C> inside the TUI.
-          </>,
-          <>
-            Choose a <strong className="font-semibold text-foreground">model</strong> —{" "}
-            <C>/models</C> lists what that provider actually offers.
-          </>,
-          <>
-            Run <C>kaioken</C> — you&apos;re <strong className="font-semibold text-foreground">ready
-            to start</strong>.
-          </>,
-        ]}
-      />
+      <div className="pt-4">
+        <CodeBlock
+          title="powershell"
+          prompt
+          code={`git clone ${GITHUB_URL}.git
+cd kaioken\\kaioken_v2
+npm install
+npm run build`}
+        />
+      </div>
+      <div className="pt-6">
+        <Steps
+          items={[
+            <>
+              Pick a <strong className="font-semibold text-foreground">provider</strong> — OpenRouter,
+              OpenAI, Anthropic, Google, Groq, Together, DeepSeek, Mistral, Azure, or a local Ollama.
+            </>,
+            <>
+              Set its API <strong className="font-semibold text-foreground">key</strong> —{" "}
+              <C>$env:OPENROUTER_API_KEY = "sk-or-..."</C>, or <C>/key</C> inside the TUI.
+            </>,
+            <>
+              Choose a <strong className="font-semibold text-foreground">model</strong> —{" "}
+              <C>/models</C> lists what that provider actually offers.
+            </>,
+            <>
+              Run <C>kaioken</C> — you&apos;re <strong className="font-semibold text-foreground">ready
+              to start</strong>.
+            </>,
+          ]}
+        />
+      </div>
 
       <H2 id="requirements">Requirements</H2>
       <UL>
         <LI>
-          <C>Go ≥ 1.24</C> to build the binary.
+          <C>Node.js ≥ 22</C> and <C>npm</C>.
         </LI>
         <LI>
           An API key for any of ~20 built-in providers — OpenRouter, OpenAI, Anthropic, Google,
@@ -56,16 +68,29 @@ export default function Install() {
         </LI>
       </UL>
 
-      <H2 id="build">Build</H2>
+      <H2 id="build">Monorepo structure</H2>
       <P>
-        The Go source lives in <C>cli/</C>, and the site you are reading lives in <C>website/</C>.
+        The TypeScript source lives in <C>kaioken_v2/</C> with npm workspaces for <C>apps/cli</C>,{" "}
+        <C>apps/tui</C>, and modular packages under <C>packages/</C>. The documentation site lives
+        in <C>website/</C>.
       </P>
       <div className="pt-4">
         <CodeBlock
           title="powershell"
           prompt
-          code={`cd cli
-go build -o kaioken.exe ./cmd/kaioken`}
+          code={`cd kaioken_v2
+npm install
+npm run build`}
+        />
+      </div>
+      <P>
+        To invoke the CLI globally, link it with npm:
+      </P>
+      <div className="pt-4">
+        <CodeBlock
+          title="powershell"
+          prompt
+          code={`npm link --workspace=apps/cli`}
         />
       </div>
 
@@ -143,17 +168,16 @@ kaioken models claude        # discover model ids`}
 
       <H2 id="upgrade">Staying up to date</H2>
       <P>
-        Kaioken updates itself from its GitHub releases. Interactive launches check in the
-        background and let a later command print the notice, so the TUI is never corrupted
-        mid-frame.
+        Pull the latest changes from the repository and rebuild the TypeScript workspace:
       </P>
       <div className="pt-4">
         <CodeBlock
           title="powershell"
           prompt
-          code={`kaioken upgrade check        # is there a newer release?
-kaioken upgrade              # install it
-kaioken version              # what is running now`}
+          code={`git pull
+cd kaioken_v2
+npm install
+npm run build`}
         />
       </div>
 

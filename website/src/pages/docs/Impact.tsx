@@ -24,7 +24,7 @@ export default function Impact() {
         <CodeBlock
           title="tui"
           code={`/impact rename parseArgs to parseCLIArgs
-/impact change the return type of Load to (*Plan, error)`}
+/impact change the return type of Load to Promise<Plan>`}
         />
       </div>
       <P>
@@ -96,7 +96,7 @@ kaioken review -severity blocker -fail-on-findings   # CI gate`}
       <P>
         <C>/verify</C> is the trust layer under &ldquo;I fixed it&rdquo;. Kaioken detects the repo&apos;s own
         build and test commands, lets a background agent diagnose and fix what fails, then re-runs
-        every command in plain Go as the final gate. The model&apos;s word is never taken at face value —
+        every command directly as the final gate. The model&apos;s word is never taken at face value —
         the gate&apos;s exit is what counts.
       </P>
       <H3>How commands are detected</H3>
@@ -106,18 +106,18 @@ kaioken review -severity blocker -fail-on-findings   # CI gate`}
           told you how it wants to be checked.
         </LI>
         <LI>
-          Otherwise the markers combine: <C>go.mod</C> contributes <C>go build ./...</C> and{" "}
-          <C>go test ./... -count=1</C>, a <C>package.json</C> contributes its own, and a repo with
-          both gets both.
+          Otherwise the markers combine: <C>package.json</C> contributes <C>npm run build</C> and{" "}
+          <C>npm test</C>, a <C>Makefile</C> or other manifests contribute their own, and a repo with
+          multiple markers gets all of them.
         </LI>
         <LI>No markers at all is an error, not an empty pass.</LI>
       </UL>
       <div className="pt-4">
         <TerminalWindow title="kaioken — verify" bodyClassName="text-[12.5px]">
-          <div className="text-kai-dim">  → detected: go build ./... · go test ./... -count=1</div>
+          <div className="text-kai-dim">  → detected: npm run build · npm test</div>
           <div className="text-kai-tan">  → agent pass 1/3 — 2 failures diagnosed</div>
-          <div className="text-kai-green">  ✓ go build ./...</div>
-          <div className="text-kai-green">  ✓ go test ./... -count=1</div>
+          <div className="text-kai-green">  ✓ npm run build</div>
+          <div className="text-kai-green">  ✓ npm test</div>
           <div className="mt-1 text-kai-green">gate passed</div>
         </TerminalWindow>
       </div>

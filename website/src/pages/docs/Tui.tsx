@@ -7,7 +7,7 @@ export default function Tui() {
   return (
     <DocPage
       title="The TUI"
-      lead="An in-terminal app in the spirit of Claude Code and OpenCode, built on Bubble Tea. Chat and the knowledge engine share one window."
+      lead="An in-terminal app in the spirit of Claude Code and OpenCode, built in TypeScript. Chat and the knowledge engine share one window."
     >
       <H2 id="chat">Chat</H2>
       <P>
@@ -58,13 +58,13 @@ export default function Tui() {
       </P>
       <div className="pt-4">
         <TerminalWindow title="kaioken — approval" bodyClassName="text-[12.5px]">
-          <div className="text-kai-tan">● proposed edit: internal/api/handler.go</div>
-          <div className="text-kai-rose">- {"\t"}return nil</div>
+          <div className="text-kai-tan">● proposed edit: apps/api/src/handler.ts</div>
+          <div className="text-kai-rose">- {"\t"}return undefined</div>
           <div className="text-kai-green">
-            + {"\t"}return fmt.Errorf(&quot;validate: %w&quot;, err)
+            + {"\t"}throw new Error(&quot;validation failed: &quot; + err.message)
           </div>
           <div className="mt-2 font-semibold text-kai-amber">
-            apply edit → internal/api/handler.go ?   [y] yes   [n] no
+            apply edit → apps/api/src/handler.ts ?   [y] yes   [n] no
           </div>
         </TerminalWindow>
       </div>

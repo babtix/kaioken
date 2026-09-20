@@ -52,6 +52,9 @@ export const Hero: React.FC = () => {
               >
                 Read the docs
               </a>
+              <a href="#builder" className="btn">
+                Build with us
+              </a>
               <a
                 className="hero-repo mono flex items-center gap-1.5"
                 href="https://github.com/babtix/kaioken"
@@ -81,11 +84,22 @@ export const Hero: React.FC = () => {
                 }}
               />
 
-              <div className="mt-4 flex items-center gap-2 rounded-full border border-[var(--rule-strong)] bg-[var(--surface-1)] px-3.5 py-1.5 font-mono text-[11px] text-[var(--fg-mute)] shadow-sm backdrop-blur-md">
-                <span className="size-2 rounded-full bg-[var(--accent)]" />
-                <span className="tracking-wider text-[var(--fg-1)] uppercase">
-                  KAIO // REPO GUARDIAN
-                </span>
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <div className="flex items-center gap-2 rounded-full border border-[var(--rule-strong)] bg-[var(--surface-1)] px-3.5 py-1.5 font-mono text-[11px] text-[var(--fg-mute)] shadow-sm backdrop-blur-md">
+                  <span className="size-2 rounded-full bg-[var(--accent)]" />
+                  <span className="tracking-wider text-[var(--fg-1)] uppercase">
+                    KAIO // BUILT ON TOP OF PI
+                  </span>
+                </div>
+                <a
+                  href="https://github.com/earendil-works/pi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--fg-mute)] transition-colors hover:text-[var(--accent)]"
+                >
+                  <span>earendil-works/pi</span>
+                  <ExternalLink className="size-3 opacity-60" />
+                </a>
               </div>
             </div>
           </div>
@@ -95,8 +109,8 @@ export const Hero: React.FC = () => {
       <div className="hero-footer-bar">
         <div className="wrap flex items-center justify-between font-mono text-[11px] text-[var(--fg-mute)]">
           <div className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-[var(--ember)]" />
-            <span className="tracking-wider uppercase">Local Agent // Go (v1.3.4) → TypeScript (v2.0.0) // L0-NC</span>
+            <span className="size-1.5 rounded-full bg-[var(--accent)]" />
+            <span className="tracking-wider uppercase">In Discovery &amp; Development // Built on top of Pi // Looking for Team</span>
           </div>
 
           <a

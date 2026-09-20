@@ -473,7 +473,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { name: "/copy", summary: "Copy the last reply to the clipboard." },
       { name: "/tutorial", args: "[chapter|command]", summary: "Guided walkthrough — an overview, a chapter, or a single command." },
       { name: "/explain", args: "[command|all]", summary: "The full reference page for one command, or the whole manual." },
-      { name: "/version", summary: "Version, Go build and platform." },
+      { name: "/version", summary: "Version, build and platform." },
       { name: "/quit", summary: "Exit the TUI." },
     ],
   },
@@ -626,9 +626,10 @@ export const OUTPUT_TREE: TreeNode[] = [
 
 /* ── quick start ────────────────────────────────────────────────────────── */
 
-export const QUICK_START = `# build (Go >= 1.24)
-cd cli
-go build -o kaioken.exe ./cmd/kaioken
+export const QUICK_START = `# build (Node.js >= 22)
+cd kaioken_v2
+npm install
+npm run build
 
 # set your OpenRouter key (get one at openrouter.ai/keys)
 $env:OPENROUTER_API_KEY = "sk-or-..."

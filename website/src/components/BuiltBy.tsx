@@ -5,7 +5,7 @@ import {
   Terminal,
   ShieldCheck,
   Cpu,
-  GitBranch,
+  Users,
 } from 'lucide-react';
 import SectionHeading from './SectionHeading.tsx';
 import AsciiArt from './AsciiArt.tsx';
@@ -94,18 +94,18 @@ const CONTACTS: ContactItem[] = [
 const HIGHLIGHTS = [
   {
     icon: <Cpu className="size-4 text-[var(--accent)]" />,
-    title: 'Go → TypeScript (v1.3.4 → v2.0.0)',
-    desc: 'Originally single-binary Go, rewritten to modular TypeScript. Compact enough to run coding agents on a Raspberry Pi.',
+    title: 'Built on top of Pi · Active Dev',
+    desc: 'The project is in active discovery and development, engineered on top of the Pi foundation (earendil-works/pi).',
   },
   {
-    icon: <ShieldCheck className="size-4 text-[var(--ember)]" />,
+    icon: <Users className="size-4 text-[var(--ember)]" />,
+    title: 'Looking for Team & Builders',
+    desc: 'Seeking engineers and collaborators to team up and build together. Reach out via direct channels to join!',
+  },
+  {
+    icon: <ShieldCheck className="size-4 text-[var(--accent)]" />,
     title: 'Auto-Test & Git Worktrees',
     desc: 'Local-first terminal agent with native test gates (verify) and parallel sub-agent worktree isolation (delegate).',
-  },
-  {
-    icon: <GitBranch className="size-4 text-[var(--accent)]" />,
-    title: 'Knowledge Engine & L0-NC License',
-    desc: 'Built by Babtich El Habib. Multi-repo staleness tracking (hub) and static wiki export (publish) under License Zero Noncommercial (L0-NC).',
   },
 ];
 
@@ -160,7 +160,7 @@ export const BuiltBy: React.FC = () => {
             <blockquote className="mt-4 font-serif text-[19px] sm:text-[21px] leading-relaxed italic text-[var(--fg)]">
               “I built Kaioken out of pure frustration with AI agents that feel magical until you inspect what they generate and discover invented methods, phantom imports, and fabricated dependencies.
               <br /><br />
-              When you have better knowledge, deep docs, and background, it makes developers, engineers, and AI agents gain fast knowledge so they can perform better. That is why I built this: to make it easy for myself first, and AI agents second. I cancelled my Claude subscription because having Kaioken is 30% cheaper for my work + deep knowledge system. And thanks to all supporters!”
+              When you have better knowledge, deep docs, and background, it makes developers, engineers, and AI agents gain fast knowledge so they can perform better. The app is currently in active discovery and development — built on top of Pi — and I am actively looking for a team of talented engineers to build and explore this with me!”
             </blockquote>
 
             <div className="mt-6 flex items-center justify-between border-t border-[var(--rule)] pt-4">

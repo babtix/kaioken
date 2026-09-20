@@ -6,14 +6,14 @@ name: add-a-tui-command
 description: How to add a slash command to the Kaioken TUI. Use when adding,
   renaming or removing TUI commands.
 sources:
-  - internal/tui/tui.go
+  - apps/tui/src/commands.ts
 generated_at: 2026-07-24T19:02:36Z
 ---
 
 # Add a TUI command
 
 ## Steps
-1. Add a case to \`dispatch\` …`
+1. Add the command definition to \`commands.ts\` …`
 
 export default function Skills() {
   return (

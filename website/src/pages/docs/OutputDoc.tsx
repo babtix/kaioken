@@ -96,7 +96,7 @@ export default function OutputDoc() {
       <div className="pt-4">
         <CodeBlock
           title="wiki/section/document.md"
-          code={`<!-- kaioken:files internal/tui/tui.go internal/tui/commands.go -->`}
+          code={`<!-- kaioken:files apps/tui/src/index.ts apps/tui/src/commands.ts -->`}
         />
       </div>
 

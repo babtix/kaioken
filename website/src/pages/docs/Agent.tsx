@@ -196,7 +196,7 @@ export default function Agent() {
         <CodeBlock
           title="tui"
           code={`/templates                                # list them and their placeholders
-/t:review file=main.go error handling     # expand and send`}
+/t:review file=src/index.ts error handling     # expand and send`}
         />
       </div>
       <P>

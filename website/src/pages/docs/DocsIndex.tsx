@@ -14,7 +14,7 @@ export default function DocsIndex() {
           Everything about <span className="serif">Kaioken.</span>
         </h1>
         <p className="mt-3 max-w-2xl font-sans text-[15px] leading-relaxed text-muted-foreground">
-          Kaioken is one Go binary with two faces — an agent that edits your repo behind diff
+          Kaioken is a TypeScript monorepo with two faces — an agent that edits your repo behind diff
           approval, and an engine that documents it. Start with the install, then read whichever
           half you came for.
         </p>

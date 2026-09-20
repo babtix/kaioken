@@ -65,7 +65,7 @@ const CLI: CliGroup[] = [
         summary:
           "Review a diff against the repo's own documented conventions and skills. Exit code is the CI contract; -format json|sarif feeds a dashboard.",
       },
-      { cmd: "kaioken verify", args: "", summary: "Run the repo's build/test commands green — an agent fixes failures, then Go re-runs every command as the gate." },
+      { cmd: "kaioken verify", args: "", summary: "Run the repo's build/test commands green — an agent fixes failures, then the gate re-runs every command." },
       { cmd: "kaioken watch", args: "[-interval <s>]", summary: "Poll the working tree and print a line when new changed paths appear." },
       { cmd: "kaioken usage", args: "[7d|all|refresh|prune]", summary: "What Kaioken has spent — by operation, model and workspace." },
       { cmd: "kaioken gitdraft", args: "[base]", summary: "LLM-drafted commit message + PR description grounded in the diff." },
