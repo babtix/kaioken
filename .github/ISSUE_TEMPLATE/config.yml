@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: ../SECURITY.md
+    about: Do not file public issues for vulnerabilities. Report privately per SECURITY.md.
+  - name: Question / discussion
+    url: https://github.com/babtix/kaioken/discussions
+    about: Questions and open-ended discussion belong in Discussions, not issues.

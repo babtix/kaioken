@@ -1,0 +1,35 @@
+{
+  "name": "kaioken-studio",
+  "version": "0.1.0",
+  "description": "Kaioken Desktop Studio",
+  "main": "./out/main/index.js",
+  "author": "Kaioken Team",
+  "scripts": {
+    "dev": "electron-vite dev --watch",
+    "desktop:dev": "npm run dev",
+    "build": "electron-vite build",
+    "desktop:build": "npm run build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
+  },
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.1",
+    "@electron-toolkit/utils": "^4.0.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.26.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.2",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5"
+  }
+}

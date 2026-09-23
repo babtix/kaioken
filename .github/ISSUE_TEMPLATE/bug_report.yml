@@ -1,0 +1,69 @@
+name: Bug report
+description: Report a reproducible problem
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Minimal steps, including the command and --root context where applicable.
+      placeholder: |
+        1. cd .kaioken_v2 && npm run build
+        2. node apps/cli/dist/bin.js <command> --root /path/to/repo
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. actual
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Commit SHA or release tag.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Node version (node -v), npm version.
+      placeholder: "Windows 11, node v22.x, npm 10.x"
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - engine (.kaioken_v2/packages/*)
+        - cli (apps/cli)
+        - tui (apps/tui)
+        - desktop/
+        - website/
+        - registry-web/
+        - web-news/
+        - docs / design
+        - not sure
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (redacted)
+      description: Paste relevant output. Remove all secrets, tokens, and private paths.
+      render: text
+    validations:
+      required: false

@@ -53,6 +53,10 @@ kaioken v1/desktop/src-tauri/target/
 kaioken v1/desktop/src-tauri/binaries/
 kaioken v1/desktop/src-tauri/gen/
 kaioken v1/desktop/src-tauri/target/release/bundle/
+desktop/node_modules/
+desktop/dist/
+desktop/out/
+*.tsbuildinfo
 
 # OS files
 Thumbs.db
@@ -115,6 +119,8 @@ pnpm-debug.log*
 
 # Allow required app icons and favicons
 !kaioken v1/desktop/src-tauri/icons/**
+!desktop/resources/**
+!desktop/src/renderer/src/assets/**
 
 # Allow website images (needed for the Vercel build)
 !website/src/assets/**
@@ -140,7 +146,6 @@ ide_kaioken/
 kaioken_studio/
 kaioken_studio_theia/
 kaioken_main_STUDIO/
-desktop/
 
 # Archived, superseded top-level projects, kept locally for reference but not
 # tracked going forward - same treatment as kaioken_studio/ above.

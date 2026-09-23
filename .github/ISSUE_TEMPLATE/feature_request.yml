@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose an enhancement
+title: "[feat]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem would this solve, and for whom?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change? Which package or surface does it touch?
+    validations:
+      required: true
+  - type: dropdown
+    id: offline
+    attributes:
+      label: Offline impact
+      description: Must this work offline (no network / no API key)?
+      options:
+        - Must work offline
+        - May use the ModelClient port
+        - Needs network by design (justify below)
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches and why they fall short.
+    validations:
+      required: false
+  - type: textarea
+    id: verification
+    attributes:
+      label: How would this be verified?
+      description: Tests, grounding checks, or docs that would prove it works.
+    validations:
+      required: false
