@@ -39,8 +39,6 @@ kaioken v1/.kaioken/research/
 # ignored so it can't land in a commit by accident (it carries node_modules).
 /opencode/
 /pi/
-/kaiopi/
-/kaioken_kaiopi/
 
 # Website
 website/node_modules/

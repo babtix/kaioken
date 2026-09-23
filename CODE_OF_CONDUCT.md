@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Kaioken follows the spirit of the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html), adapted for a solo-maintainer project.
+Kaioken follows the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html), the standard used by most open-source projects.
 
 ## Our pledge
 
@@ -23,7 +23,9 @@ We pledge to make participation in Kaioken a respectful, harassment-free experie
 
 ## Enforcement
 
-This is a solo-maintainer project. Enforcement is handled by the repository owner ([babtix](https://github.com/babtix)):
+Project maintainers are responsible for clarifying and enforcing these standards. They may remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that do not align with this Code of Conduct, and will communicate reasons for moderation decisions when appropriate.
+
+Enforcement ladder:
 
 1. **Warning** — a private or public request to stop the behavior.
 2. **Temporary ban** — loss of interaction privileges (issues, PRs, discussions) for a defined period.
