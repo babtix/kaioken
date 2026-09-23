@@ -1,0 +1,27 @@
+{
+  "name": "@kaioken/verify",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./gate.js": {
+      "types": "./dist/gate.d.ts",
+      "default": "./dist/gate.js"
+    }
+  },
+  "dependencies": {
+    "@kaioken/scan": "0.1.0"
+  },
+  "scripts": {
+    "test": "vitest --run"
+  },
+  "devDependencies": {
+    "vitest": "4.1.9"
+  }
+}

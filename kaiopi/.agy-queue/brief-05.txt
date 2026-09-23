@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/impact (package dir: kaioken/impact). Three issues:
+
+1. Serial disk reads in sweep(): kaioken/impact/src/predict.ts reads up to MAX_FILES_SWEPT (8000) files one-by-one with await readFile in a loop. Batch reads with bounded concurrency (16-32) using a small hand-rolled concurrency limiter (no new npm deps).
+2. Regex word-boundary false positives: sweep matches candidate files with a raw word-boundary regex, so common symbol names (id, name, status, config, error) match strings/comments/unrelated identifiers, inflating blast radius. Down-rank or filter matches: if the repo has a @kaioken/index artifact available, prefer matches that occur in import statements, call sites, or type annotations; treat short/generic names more conservatively.
+3. No dependency graph integration: impact analysis ignores import/export structure. Before falling back to full text sweeping, consult the indexed imports/exports from @kaioken/index artifacts (read the index artifact the same way other kaioken packages do — inspect how kaioken/impact currently reads scan/index artifacts and follow that pattern) to root impact in actual dependency links.
+
+Touch only kaioken/impact/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/impact run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/impact/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/impact. No new npm dependencies. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

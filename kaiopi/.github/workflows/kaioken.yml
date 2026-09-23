@@ -1,0 +1,72 @@
+name: Kaioken
+
+# The Kaioken offline core and its bridge.
+#
+# Deliberately a separate workflow from CI: this job needs no secrets, no
+# network and no model, so it can run on forks and on a machine that has never
+# seen a credential. That property is the point of the architecture
+# (Invariant 10), so the workflow asserts it rather than assuming it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "kaioken/**"
+      - ".pi/extensions/kaioken/**"
+      - "tsconfig.kaioken.json"
+      - ".github/workflows/kaioken.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "kaioken/**"
+      - ".pi/extensions/kaioken/**"
+      - "tsconfig.kaioken.json"
+      - ".github/workflows/kaioken.yml"
+
+concurrency:
+  group: kaioken-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kaioken:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Typecheck the kaioken tree and assert it stays offline
+        run: npm run check:kaioken
+
+      - name: Build the kaioken packages
+        run: npm run build:kaioken
+
+      # Proves the published package is installable, not merely that a build
+      # exited zero: the built extension is loaded through its own package
+      # specifiers and has to register its full surface.
+      - name: Build and verify the kaioken-pi package
+        run: npm run pack:kaioken
+
+      - name: Test the kaioken packages
+        run: |
+          npm test -w kaioken/scan -w kaioken/index -w kaioken/search \
+                   -w kaioken/provenance -w kaioken/impact -w kaioken/graph \
+                   -w kaioken/gitops -w kaioken/verify -w kaioken/verifycore \
+                   -w kaioken/skills -w kaioken/serve -w kaioken/modelport \
+                   -w kaioken/plan -w kaioken/wiki -w kaioken/research \
+                   -w kaioken/skillgen -w kaioken/evals \
+                   -w .pi/extensions/kaioken
+
+      # The gate exits non-zero when a grounding metric misses its threshold.
+      # It runs after the unit tests because a probe failure is more useful
+      # when the suite beneath it is known to be green.
+      - name: Grounding eval gate
+        run: node kaioken/evals/bin.mjs

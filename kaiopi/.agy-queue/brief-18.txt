@@ -1,0 +1,28 @@
+<task>
+Improve the kaioken CLI entrypoint and Pi extension bridge. Two target files:
+- kaioken/bin.ts (root CLI)
+- .pi/extensions/kaioken/index.ts (Pi extension bridge)
+
+Three issues:
+
+1. CLI command deficit: kaioken/bin.ts exposes only 6 commands (scan, symbols, status, search, impact, verify). Add the missing subcommands so all kaioken modules are reachable from the CLI: plan, cards, wiki, serve, research, skills, skillgen, graph, gitops, evals. For each, wire to the corresponding package's public API the same way the existing 6 commands do (inspect how existing commands import and call their packages, follow that pattern exactly). Keep per-command flags minimal but sensible (e.g. --root everywhere, --json where the underlying API returns structured data).
+2. Fragile arg parsing: bin.ts parses args with naive .find() checks. Refactor to node:util parseArgs (built into Node 18+, no new deps) with per-command option definitions. Multi-word queries, --limit, --json, --output must parse cleanly. Update --help to list all subcommands with descriptions.
+3. ESM require() crash: .pi/extensions/kaioken/index.ts readConfiguredTheme() uses bare require("node:fs") inside try/catch, which throws ReferenceError in ESM ("type": "module") and silently fails. Replace with createRequire(import.meta.url) or a top-level static import of node:fs (prefer the static import if no circularity issue). Verify the theme setting actually gets read.
+
+Touch only kaioken/bin.ts and .pi/extensions/kaioken/index.ts (plus tests if a test file exists for them). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npx tsc -p tsconfig.kaioken.json --noEmit
+  npx tsx kaioken/bin.ts --help
+Confirm --help lists all subcommands. Confirm git status shows only the two target files changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to the CLI and bridge files. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

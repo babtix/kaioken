@@ -1,0 +1,25 @@
+<task>
+Improve @kaioken/serve (package dir: kaioken/serve). Four issues:
+
+1. No live reload: kaioken/serve/src/server.ts loads index/search/library artifacts once at startup, so doc updates require a restart. Add artifact freshness: on each request (or a lightweight fs.watch on the .kaioken artifacts dir), detect changed artifacts and reload library/index/search so the browser reflects updates without restarting the process. Keep it simple and robust; a timestamp/mtime check per request is acceptable.
+2. Monolithic pages.ts: kaioken/serve/src/pages.ts is a ~64KB single file mixing layout, CSS, and per-page templates. Split it into focused modules (e.g. layout.ts, wikiView.ts, cardsView.ts, graphView.ts, searchView.ts) under kaioken/serve/src/pages/ with pages.ts re-exporting the same public functions so no callers change. Rendered HTML output must remain byte-identical or near-identical.
+3. Search page full reload: add a JSON endpoint /api/search?q=... returning search results, and wire the search page to use it for instant client-side filtering (small inline script is fine).
+4. Fatal crash on missing/corrupt artifacts: if artifacts are missing or mid-write at startup, serve a friendly status page explaining generation is required instead of throwing.
+
+Touch only kaioken/serve/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/serve run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/serve/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/serve. No new npm dependencies. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

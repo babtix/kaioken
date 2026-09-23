@@ -1,0 +1,25 @@
+<task>
+Improve @kaioken/verifycore (package dir: kaioken/verifycore) and de-duplicate @kaioken/wiki. Three issues:
+
+1. Duplication: kaioken/verifycore/src/verify.ts and kaioken/verifycore/src/claims.ts are ~90% identical to kaioken/wiki/src/verify.ts and kaioken/wiki/src/claims.ts. Consolidate: make @kaioken/wiki import verifyDocument, extractClaims, and related helpers from @kaioken/verifycore and delete the duplicated wiki copies (keep any wiki-specific wrappers as thin re-exports if other wiki code imports them). Check kaioken/wiki/package.json dependencies and add @kaioken/verifycore as a workspace dependency if missing (match the version/protocol style used by sibling kaioken packages).
+2. Loose substring false grounding: in verifycore's file-claim check, a fabricated path like src/controllers/index.ts is deemed grounded if the basename "index.ts" appears anywhere in scope text. Restrict basename matching to actual known repository files only, and never ground generic filenames (index.ts, types.ts, mod.rs, main.go, utils.ts) via scope-text substring alone.
+3. O(N) lookups: the knownFiles endsWith loops run linearly per claim. Pre-index a basename -> paths map at initialization for O(1) lookups.
+
+Touch kaioken/verifycore/ and kaioken/wiki/ only (this is the sanctioned cross-package change). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/verifycore run test
+  npm --prefix kaioken/wiki run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/verifycore/ and kaioken/wiki/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to the verifycore/wiki consolidation. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

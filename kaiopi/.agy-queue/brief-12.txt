@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/modelport (package dir: kaioken/modelport). Three issues:
+
+1. No rate-limit resilience: in kaioken/modelport/src/piai.ts, a single 429 or transient network error throws and halts multi-call pipelines. Add retry with exponential backoff plus jitter for rate-limit and transient connection errors in the PiAi client path, with a bounded retry count (e.g. 3-5 attempts) and clear error after exhaustion. Make retry policy injectable/optional so tests can simulate it without real delays.
+2. Inaccurate spend estimation: kaioken/modelport/src/spend.ts STAGE_CONTEXT_TOKENS assumes one call per stage. Extend estimateTokens (or the equivalent API) to accept an optional itemCount/unitCount so estimates multiply across planned documents/cards (e.g. 50 cards -> 50x the per-card estimate). Keep the existing single-arg call sites working.
+3. No streaming: ModelClient supports only monolithic complete(). Add optional streaming support: an onChunk callback (or a completeStream method) for real-time progress on large generations. Follow the existing client interface patterns in the package.
+
+Touch only kaioken/modelport/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/modelport run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/modelport/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/modelport. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

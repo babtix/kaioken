@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/plan (package dir: kaioken/plan). Three issues:
+
+1. Initial JSON parse fragility: in kaioken/plan/src/cards.ts, the first parseCard(reply) after the LLM call throws fatally on slightly malformed JSON (markdown wrap, trailing commas), even though the later repair loop catches errors. Wrap the initial draft parse in the same tolerant handling: on parse failure, feed the raw reply plus the parse error back to the model for one correction pass before falling through to the existing repair loop / abort path.
+2. No offline fallback for module proposal: kaioken/plan/src/propose.ts relies entirely on an LLM call to propose modules. Add a deterministic structural clustering fallback: when no model is configured or the call fails, group files by top-level directories/package boundaries to produce a reasonable modules proposal. Mark the result as heuristic (e.g. a source field on the proposal) so callers can tell.
+3. Incremental card updates: generateCards regenerates every card. Add support for selective regeneration: consult provenance/staleness data (inspect what artifacts kaioken/plan already reads; if it reads .kaioken artifacts, use those) so only cards whose source files changed are regenerated. Keep full regeneration as the default behavior; make incremental opt-in via an option so no existing callers change behavior.
+
+Touch only kaioken/plan/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/plan run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/plan/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/plan. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

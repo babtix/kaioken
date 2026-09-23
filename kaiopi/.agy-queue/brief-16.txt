@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/skillgen (package dir: kaioken/skillgen). Three issues:
+
+1. No repair loop: kaioken/skillgen/src/write.ts writeSkill() detects ungrounded file-path citations and records them in an ungrounded[] field but never repairs them, unlike the write-verify-repair loops in @kaioken/plan (cards) and @kaioken/wiki. Add an adversarial correction loop: when ungrounded paths are detected, feed them back to the model with a critique prompt (follow the pattern used in kaioken/plan/src/cards.ts repair loop) and accept the revision only when ungrounded paths are resolved (or a bounded attempt count is exhausted, then write with ungrounded recorded as today).
+2. Generic task proposals: kaioken/skillgen/src/propose.ts proposes skills from a single generic LLM prompt. Seed the prompt with concrete commands discovered from the repo: package.json scripts, Makefile targets, and GitHub Actions workflow step commands (read the workspace files and include the discovered commands in the prompt context). Fall back to the current generic prompt if none are found.
+3. Unverified verification commands: generated skills prescribe verification commands that are never validated. After generation, check each prescribed verification command against what the repo actually declares (package.json scripts, Makefile targets, known detectors) and flag/report commands that do not correspond to anything real (reuse or mirror the approach in @kaioken/verify's command detection if importable; otherwise implement a local check).
+
+Touch only kaioken/skillgen/ (src and test) plus minimal package.json dependency edits if importing @kaioken/verify. Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/skillgen run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/skillgen/ (plus optional package.json dep) changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/skillgen. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

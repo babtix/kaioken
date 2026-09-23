@@ -1,0 +1,25 @@
+<task>
+Improve @kaioken/verify (package dir: kaioken/verify). Four issues:
+
+1. runVerify() hardcodes npm test: in kaioken/verify/src/gate.ts, runVerify() ignores both detectPackageManager() and the .kaioken/verify.json config (readConfig) that already exist in the same file, and ignores pyproject.toml. Rewrite runVerify() to use the existing detectCommands/root detection so it honors .kaioken/verify.json first, then detected package managers (pnpm, yarn, bun, npm), then python (pytest), go, cargo, make as it does now.
+2. Missing modern lockfile/runtime detection: detectPackageManager misses bun.lock (text format; it only checks bun.lockb) and Deno (deno.json/deno.lock -> deno test). Add both.
+3. Monorepo handling: if root package.json has a workspaces field or pnpm-workspace.yaml exists and the root has no test script, fall back to a workspace-aware test command instead of failing.
+4. Structured failure reporting: failures currently extract a crude 60-line text tail. Improve failure extraction to identify failing test file/case names where parseable (vitest/jest/go test output patterns), while keeping the text tail as fallback.
+
+Touch only kaioken/verify/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/verify run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/verify/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/verify. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

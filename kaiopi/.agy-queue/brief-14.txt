@@ -1,0 +1,25 @@
+<task>
+Improve @kaioken/wiki (package dir: kaioken/wiki). Four issues:
+
+1. Verify logic duplication: kaioken/wiki/src/verify.ts and wiki/src/claims.ts duplicate @kaioken/verifycore. NOTE: a companion change consolidates this into verifycore importing from wiki; coordinate by making wiki import from @kaioken/verifycore. First check whether kaioken/wiki/src/verify.ts already imports from @kaioken/verifycore (a prior task may have done this); if already done, skip and note it. If not, replace the duplicated logic with imports from @kaioken/verifycore (add the workspace dependency to kaioken/wiki/package.json if missing, matching sibling package style) and keep thin wrappers where wiki code imports these functions.
+2. Context overflow on large chapters: gatherModuleEvidence can produce evidence prompts far beyond LLM context budgets. Ration evidence hierarchically: top-level exported symbols first, detailed signatures only for entry-point files, cap total evidence size with a budget.
+3. Cross-chapter link verification: the verify pass does not check relative markdown links between chapters ([Architecture](../architecture/index.md)). Add link validation to verification: relative links must resolve to existing or planned wiki documents; broken links become verification defects.
+4. Resume capability: runWiki() restarts all chapters from scratch after a partial failure. Before generating, check for existing valid, verified chapters on disk and skip/keep them (opt-in resume option or sensible default with an override to force full regeneration; your call, state it).
+
+Touch only kaioken/wiki/ (src and test) plus minimal package.json dependency edits. Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/wiki run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/wiki/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/wiki. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

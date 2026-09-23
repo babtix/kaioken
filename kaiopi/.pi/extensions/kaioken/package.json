@@ -1,0 +1,12 @@
+{
+  "name": "@kaioken/pi-bridge",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "vitest --run"
+  },
+  "devDependencies": {
+    "vitest": "4.1.9"
+  }
+}

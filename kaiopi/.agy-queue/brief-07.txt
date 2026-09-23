@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/gitops (package dir: kaioken/gitops). Three issues:
+
+1. Untracked files invisible in diffs: kaioken/gitops/src/diff.ts readDiff() only uses git diff / git diff --cached, which never report untracked files. Discover untracked files via git status --porcelain (or git ls-files --others --exclude-standard) and include them in the DiffSnapshot files list with a synthetic diff patch (treat as all-added lines).
+2. Post-commit hook background execution on Windows: kaioken/gitops/src/hook.ts installs a detached background node process (node ... &) in the post-commit hook. On Windows this can fail silently (node not on sh PATH, file locks). Use the absolute node executable path when detectable (process.execPath at install time), and redirect background execution errors to .kaioken/hook.log instead of /dev/null so failures are diagnosable.
+3. Worktree conflict handling: kaioken/gitops worktree operations (inspect kaioken/gitops/src for the worktree file) lack merge conflict detection; checkout failures surface as opaque errors. Detect conflict/dirty status and produce clean, actionable errors with recovery guidance.
+
+Touch only kaioken/gitops/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/gitops run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/gitops/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/gitops. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

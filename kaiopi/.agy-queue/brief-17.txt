@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/evals (package dir: kaioken/evals). Three issues:
+
+1. Tiny TypeScript-only fixture: kaioken/evals/src/fixture.ts hardcodes a 2-file TS repo. Expand the fixture to include multi-language files (main.py, service.go, lib.rs) and cross-language grounding, plus a class-inheritance/interface AST case. Keep the fixture synthetic and self-contained.
+2. Sparse probe suite: currently 4 probes (nonexistent-symbol negative, exact quote anchor, verify gate, card export coverage). Add probes for: drift detection (source file changes after indexing must be detected), impact prediction accuracy under renamed symbols, and padding/boilerplate rejection (generic filler text must not count as grounded). Follow the existing probe structure in kaioken/evals/src/probes.ts.
+3. No real-repo benchmark CLI: kaioken/evals/bin.mjs only runs the synthetic fixture. Add a --repo <path> option that runs the eval suite against an arbitrary real git repository on disk and reports grounding metrics. Keep the default (no flag) behavior unchanged.
+
+Touch only kaioken/evals/ (src, bin, test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/evals run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/evals/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/evals. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

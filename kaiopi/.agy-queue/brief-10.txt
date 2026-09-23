@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/skills (package dir: kaioken/skills). Three issues:
+
+1. Duplicate skill shadowing: in kaioken/skills/src/skills.ts, duplicate skill names are recorded as problems but both skills stay in the returned array, and loadSkill(name) silently returns the first match. Resolve explicitly: when loading by name and duplicates exist, either omit shadowed duplicates from the resolved list or surface a clear warning/error to the caller. Keep the problems reporting intact.
+2. Single search directory: skillsDir() only looks at .kaioken/skills. Support additional standard agent skill roots: .agents/skills and .pi/skills, discovered in addition to .kaioken/skills (all present dirs are scanned; later/earlier precedence should be deterministic and documented in code). Allow callers to configure extra search paths.
+3. Frontmatter schema validation: parseSkill only checks YAML parses and name exists. Validate required fields (name, description) and warn/error with helpful messages on missing or malformed optional fields (parameters, triggers) per the existing types in the package.
+
+Touch only kaioken/skills/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/skills run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/skills/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/skills. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

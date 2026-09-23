@@ -1,0 +1,31 @@
+{
+  "name": "@kaioken/evals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "eval": "node bin.mjs",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@kaioken/impact": "0.1.0",
+    "@kaioken/index": "0.1.0",
+    "@kaioken/modelport": "0.1.0",
+    "@kaioken/plan": "0.1.0",
+    "@kaioken/provenance": "0.1.0",
+    "@kaioken/scan": "0.1.0",
+    "@kaioken/wiki": "0.1.0"
+  },
+  "devDependencies": {
+    "vitest": "4.1.9"
+  }
+}

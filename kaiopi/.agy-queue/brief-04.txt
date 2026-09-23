@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/provenance (package dir: kaioken/provenance). Three issues:
+
+1. Hardcoded ".kaioken" paths: kaioken/provenance/src/status.ts hardcodes join(root, ".kaioken", ...) instead of using the exported KAIOKEN_DIR constant from @kaioken/scan. Import and use KAIOKEN_DIR consistently for all artifact path lookups. Check @kaioken/scan's actual export name first (grep kaioken/scan/src) and use whatever it actually exports.
+2. Overly aggressive undocumentedFiles metric: kaioken/provenance/src/staleness.ts counts every non-binary file not cited in docs as undocumented, including config files, tests, and build scripts, dragging freshness toward zero. Exclude standard non-source patterns from undocumentedFiles (tests: test/, __tests__/, *.test.*, *.spec.*; lockfiles; dotfiles; scripts/; common config files). Add a filter option so callers can customize.
+3. Coarse file-level staleness: staleness invalidates on whole-file hash, so trivial edits flag all citing docs stale. Add an optional symbol-aware provenance mode where documentation can bind to specific symbol/line-range hashes rather than only whole-file hashes, while keeping the existing whole-file behavior as the default so no callers break.
+
+Touch only kaioken/provenance/ (src and test) plus, if needed, minimal read-only imports from @kaioken/scan. Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/provenance run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only kaioken/provenance/ (plus possibly kaioken/scan exports if strictly needed) changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to the provenance fixes. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

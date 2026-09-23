@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/research (package dir: kaioken/research). Three issues:
+
+1. Serial fetching: kaioken/research/src/run.ts fetches web hits strictly serially in a for loop. Fetch with bounded concurrency (4-6) using a small hand-rolled concurrency limiter (no new npm deps). Preserve result ordering and per-hit error handling.
+2. SSRF hardening: kaioken/research/src/ports.ts isFetchableUrl() checks protocol/host-suffix/literal-IP only, leaving DNS rebinding open (domain resolving to 127.0.0.1 or 169.254.169.254 at connect time). Add resolution-time validation: resolve the hostname via dns.lookup and reject resolved addresses in private/reserved ranges (loopback, link-local 169.254.0.0/16 including the cloud metadata endpoint, RFC1918, ULA, 0.0.0.0/8) before the fetch proceeds. If the fetch port in this package does not expose a connect-time hook, validate at lookup time before calling fetch and document the residual limitation in a code comment.
+3. Regex HTML stripping: kaioken/research/src/sanitize.ts strips HTML with regexes, which malformed/nested markup can bypass. Replace with a small dependency-free tokenizer-based HTML-to-text converter (character-by-character tag state machine) that removes tags, script/style content, comments, and decodes common entities. No new npm dependencies.
+
+Touch only kaioken/research/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/research run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/research/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/research. No new npm dependencies. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

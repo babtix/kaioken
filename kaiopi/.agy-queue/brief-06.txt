@@ -1,0 +1,24 @@
+<task>
+Improve @kaioken/graph (package dir: kaioken/graph). Three issues:
+
+1. Dangling edges: kaioken/graph/src/build.ts pushes edges with to: source.path but never registers source.path as a node, so consumers hit edges pointing to nonexistent nodes. Register every source.path as a node (kind "source" or "file" as fits the existing node types) and add an integrity guarantee that every edge endpoint exists in nodes.
+2. No code dependency graph: the package only builds a document provenance graph. Add buildCodeGraph() that builds file/module import dependency edges (using whatever import data is available from the existing artifacts this package already reads — inspect kaioken/graph/src to see what inputs it has; if it reads @kaioken/index output, use its import/export records). Export it alongside the existing builder without breaking current API.
+3. Mermaid scaling: kaioken/graph/src/render.ts renders one flat Mermaid graph that breaks beyond ~40-50 nodes. Add subgraph clustering by directory/module for Mermaid output and support a JSON export format suitable for D3/Cytoscape.
+
+Touch only kaioken/graph/ (src and test). Follow repo rules from the root AGENTS.md: no `any`, top-level imports only, erasable TypeScript syntax.
+</task>
+
+<verification_loop>
+Run and make green before finishing:
+  npm --prefix kaioken/graph run test
+  npx tsc -p tsconfig.kaioken.json --noEmit
+Confirm git status shows only files under kaioken/graph/ changed.
+</verification_loop>
+
+<action_safety>
+Scope strictly to kaioken/graph. No unrelated refactors. Do NOT run git add or git commit.
+</action_safety>
+
+<structured_output_contract>
+Report: (1) what changed and why, (2) files touched, (3) gate outcomes with counts, (4) anything deviated, left open, or needing a decision.
+</structured_output_contract>

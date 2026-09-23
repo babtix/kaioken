@@ -1,0 +1,14 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext"
+	},
+	"include": [
+		"kaioken/*/src/**/*.ts",
+		"kaioken/*/test/**/*.ts",
+		".pi/extensions/kaioken/**/*.ts"
+	],
+	"exclude": ["**/dist/**", "**/node_modules/**", "kaioken/*/test/fixtures/**/*"]
+}
