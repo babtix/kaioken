@@ -1,3 +1,5 @@
+import { detectHighEntropyStrings, maskToken } from "./entropy.ts";
+import type { SecretFinding } from "./quarantine.ts";
 import type { Risk } from "./types.ts";
 
 /**
@@ -42,32 +44,141 @@ const CREDENTIAL_FILENAMES = new Set([
 /** Suffixes that mark an env file as a documented template rather than a real one. */
 const ENV_TEMPLATE_SUFFIXES = [".example", ".sample", ".template", ".dist", ".defaults"];
 
+export interface NamedPattern {
+	category: string;
+	pattern: RegExp;
+	severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+	action: string;
+}
+
 /**
  * Provider token shapes. Each of these is specific enough that a match is
  * effectively never a coincidence.
  */
-const CREDENTIAL_CONTENT = [
-	/\bAKIA[0-9A-Z]{16}\b/, // AWS access key id
-	/\bASIA[0-9A-Z]{16}\b/, // AWS temporary access key id
-	/\bgh[pousr]_[A-Za-z0-9]{36,}\b/, // GitHub classic token
-	/\bgithub_pat_[A-Za-z0-9_]{22,}\b/, // GitHub fine-grained PAT
-	/\bxox[baprs]-[A-Za-z0-9-]{10,}\b/, // Slack token
-	/\bAIza[0-9A-Za-z_-]{35}\b/, // Google API key
-	/\bya29\.[0-9A-Za-z_-]{20,}\b/, // GCP OAuth / access token
-	/\b[sr]k_live_[0-9a-zA-Z]{24,}\b/, // Stripe live secret or restricted key
-	/\bsk-ant-[A-Za-z0-9_-]{20,}\b/, // Anthropic
-	/\bsk-(?:proj|admin|svcacct)-[A-Za-z0-9_-]{20,}\b/, // OpenAI project/admin key
-	/\bsk-[A-Za-z0-9]{32,}\b/, // OpenAI key
-	/\bhf_[A-Za-z0-9]{20,}\b/, // HuggingFace token
-	/\bpypi-[A-Za-z0-9_-]{20,}\b/, // PyPI API token
-	/\bDefaultEndpointsProtocol=https?;[^\s"']*/, // Azure Storage connection string
-	/\b(?:SharedAccessKey|AccountKey)=[A-Za-z0-9+/=]{40,}\b/, // Azure account / access key
-	/\bSharedAccessSignature(?:=|\s+)[^\s"']{20,}/, // Azure SAS token
-	/\b(?:sv=\d{4}-\d{2}-\d{2}[^\s"']*sig=|sig=[A-Za-z0-9%+/=]{20,}[^\s"']*sv=\d{4}-\d{2}-\d{2})[A-Za-z0-9%+/=]{20,}/, // Azure SAS query token
-	/\b[Bb]earer\s+(?!example|sample|test|placeholder|your|dummy|fake)[A-Za-z0-9_\-\.~+/]{20,}\b/, // Bearer auth header
-	/\bglpat-[A-Za-z0-9_-]{20,}\b/, // GitLab PAT
-	/\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/, // JWT
+export const PROVIDER_SECRET_PATTERNS: NamedPattern[] = [
+	{
+		category: "AWS Access Key",
+		pattern: /\bAKIA[0-9A-Z]{16}\b/,
+		severity: "CRITICAL",
+		action: "Quarantine and rotate AWS IAM credentials",
+	},
+	{
+		category: "AWS Temp Key",
+		pattern: /\bASIA[0-9A-Z]{16}\b/,
+		severity: "HIGH",
+		action: "Quarantine temporary AWS credentials",
+	},
+	{
+		category: "GitHub Classic Token",
+		pattern: /\bgh[pousr]_[A-Za-z0-9]{36,}\b/,
+		severity: "CRITICAL",
+		action: "Revoke token and remove from repository",
+	},
+	{
+		category: "GitHub Fine-Grained PAT",
+		pattern: /\bgithub_pat_[A-Za-z0-9_]{22,}\b/,
+		severity: "CRITICAL",
+		action: "Revoke PAT and add to .gitignore",
+	},
+	{
+		category: "Slack Token",
+		pattern: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/,
+		severity: "HIGH",
+		action: "Revoke bot/user token from Slack workspace",
+	},
+	{
+		category: "Google API Key",
+		pattern: /\bAIza[0-9A-Za-z_-]{35}\b/,
+		severity: "HIGH",
+		action: "Restrict API key scope in Google Cloud Console",
+	},
+	{
+		category: "GCP OAuth Token",
+		pattern: /\bya29\.[0-9A-Za-z_-]{20,}\b/,
+		severity: "CRITICAL",
+		action: "Revoke OAuth token and quarantine file",
+	},
+	{
+		category: "Stripe Live Secret Key",
+		pattern: /\b[sr]k_live_[0-9a-zA-Z]{24,}\b/,
+		severity: "CRITICAL",
+		action: "Roll key immediately in Stripe Dashboard",
+	},
+	{
+		category: "Anthropic API Key",
+		pattern: /\bsk-ant-[A-Za-z0-9_-]{20,}\b/,
+		severity: "CRITICAL",
+		action: "Revoke Anthropic console key and quarantine",
+	},
+	{
+		category: "OpenAI Project/Admin Key",
+		pattern: /\bsk-(?:proj|admin|svcacct)-[A-Za-z0-9_-]{20,}\b/,
+		severity: "CRITICAL",
+		action: "Revoke OpenAI organization/project key",
+	},
+	{
+		category: "OpenAI API Key",
+		pattern: /\bsk-[A-Za-z0-9]{32,}\b/,
+		severity: "CRITICAL",
+		action: "Revoke OpenAI platform API key",
+	},
+	{
+		category: "HuggingFace Token",
+		pattern: /\bhf_[A-Za-z0-9]{20,}\b/,
+		severity: "HIGH",
+		action: "Rotate HuggingFace user access token",
+	},
+	{
+		category: "PyPI Deployment Token",
+		pattern: /\bpypi-[A-Za-z0-9_-]{20,}\b/,
+		severity: "CRITICAL",
+		action: "Revoke package deployment token on PyPI",
+	},
+	{
+		category: "Azure Storage Connection String",
+		pattern: /\bDefaultEndpointsProtocol=https?;[^\s"']*/,
+		severity: "CRITICAL",
+		action: "Rotate storage keys in Azure portal",
+	},
+	{
+		category: "Azure Account Access Key",
+		pattern: /\b(?:SharedAccessKey|AccountKey)=[A-Za-z0-9+/=]{40,}\b/,
+		severity: "CRITICAL",
+		action: "Regenerate account key in Azure",
+	},
+	{
+		category: "Azure SAS Token",
+		pattern: /\bSharedAccessSignature(?:=|\s+)[^\s"']{20,}/,
+		severity: "HIGH",
+		action: "Expire SAS token and update storage policy",
+	},
+	{
+		category: "Azure SAS Query Token",
+		pattern: /\b(?:sv=\d{4}-\d{2}-\d{2}[^\s"']*sig=|sig=[A-Za-z0-9%+/=]{20,}[^\s"']*sv=\d{4}-\d{2}-\d{2})[A-Za-z0-9%+/=]{20,}/,
+		severity: "HIGH",
+		action: "Invalidate SAS signature",
+	},
+	{
+		category: "Bearer Authorization Header",
+		pattern: /\b[Bb]earer\s+(?!example|sample|test|placeholder|your|dummy|fake)[A-Za-z0-9_\-\.~+/]{20,}\b/,
+		severity: "HIGH",
+		action: "Remove hardcoded Authorization header",
+	},
+	{
+		category: "GitLab PAT",
+		pattern: /\bglpat-[A-Za-z0-9_-]{20,}\b/,
+		severity: "CRITICAL",
+		action: "Revoke GitLab personal access token",
+	},
+	{
+		category: "JWT Token",
+		pattern: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+		severity: "MEDIUM",
+		action: "Investigate whether JWT contains sensitive claims",
+	},
 ];
+
+const CREDENTIAL_CONTENT = PROVIDER_SECRET_PATTERNS.map((p) => p.pattern);
 
 /**
  * The generic rule: a secret-ish name assigned a high-entropy literal. This is
@@ -155,6 +266,8 @@ export interface RiskInput {
 	/** Head of the file, decoded as UTF-8. Empty for binary files. */
 	text: string;
 	largeBinaryBytes: number;
+	checkEntropy?: boolean;
+	entropyThreshold?: number;
 }
 
 export function classifyRisk(input: RiskInput): Risk[] {
@@ -189,9 +302,63 @@ export function classifyRisk(input: RiskInput): Risk[] {
 		if (hasPrivateKeyContent(input.text)) risk.add("private_key");
 		if (hasCredentialContent(input.text)) risk.add("credentials");
 		if (hasGeneratedBanner(input.text)) risk.add("generated");
+
+		if (input.checkEntropy) {
+			const highEntropy = detectHighEntropyStrings(input.text, {
+				minEntropy: input.entropyThreshold,
+			});
+			if (highEntropy.length > 0) {
+				risk.add("high_entropy");
+			}
+		}
 	}
 
 	return [...risk].sort();
+}
+
+/**
+ * Extracts structured secret findings with category, line number, masked preview, and action.
+ */
+export function extractSecretFindings(path: string, text: string): SecretFinding[] {
+	const findings: SecretFinding[] = [];
+	if (!text) return findings;
+
+	const lines = text.split(/\r?\n/);
+
+	// Check private keys
+	for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+		const line = lines[lineIdx]!;
+		if (hasPrivateKeyContent(line)) {
+			findings.push({
+				path,
+				category: "Private Key Certificate",
+				line: lineIdx + 1,
+				maskedToken: maskToken(line.trim()),
+				severity: "CRITICAL",
+				recommendedAction: "Move private key to secure keystore and add to .gitignore",
+			});
+		}
+	}
+
+	// Check provider patterns
+	for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+		const line = lines[lineIdx]!;
+		for (const prov of PROVIDER_SECRET_PATTERNS) {
+			const m = line.match(prov.pattern);
+			if (m && m[0]) {
+				findings.push({
+					path,
+					category: prov.category,
+					line: lineIdx + 1,
+					maskedToken: maskToken(m[0]),
+					severity: prov.severity,
+					recommendedAction: prov.action,
+				});
+			}
+		}
+	}
+
+	return findings;
 }
 
 export function hasPrivateKeyContent(text: string): boolean {

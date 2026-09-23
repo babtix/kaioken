@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { IgnoreStack, type ScanResult, scan } from "../src/index.ts";
+import { BufferPool, IgnoreStack, type ScanProgress, type ScanResult, scan } from "../src/index.ts";
 
 const roots: string[] = [];
 
@@ -252,5 +252,62 @@ describe("case sensitivity", () => {
 		const caseInsensitive = IgnoreStack.fromPatterns(["*.log"], { ignoreCase: true });
 		expect(caseInsensitive.ignores("file.log")).toBe(true);
 		expect(caseInsensitive.ignores("file.LOG")).toBe(true);
+	});
+});
+
+describe("BufferPool", () => {
+	it("acquires, loans and recycles slabs without excessive allocation", () => {
+		const pool = new BufferPool(1024, 4);
+		expect(pool.size).toBe(0);
+		expect(pool.slabBytes).toBe(1024);
+
+		const b1 = pool.acquire();
+		expect(b1.length).toBe(1024);
+		expect(pool.size).toBe(0);
+
+		pool.release(b1);
+		expect(pool.size).toBe(1);
+
+		const b2 = pool.acquire();
+		expect(b2).toBe(b1); // Recycled same instance
+		expect(pool.size).toBe(0);
+
+		pool.release(b2);
+		pool.clear();
+		expect(pool.size).toBe(0);
+	});
+});
+
+describe("streaming progress and cancellation", () => {
+	it("emits real-time progress events with throughput metrics during scan", async () => {
+		const root = await repo({
+			"a.ts": "1\n",
+			"b.ts": "2\n",
+			"c.ts": "3\n",
+		});
+
+		const progressEvents: ScanProgress[] = [];
+		const result = await scan(root, {
+			onProgress: (p) => progressEvents.push({ ...p }),
+		});
+
+		expect(result.fileCount).toBe(3);
+		expect(progressEvents.length).toBeGreaterThanOrEqual(1);
+		const last = progressEvents[progressEvents.length - 1]!;
+		expect(last.scannedFiles).toBe(3);
+		expect(last.throughputFilesPerSec).toBeGreaterThanOrEqual(0);
+	});
+
+	it("aborts traversal cleanly when AbortSignal is triggered", async () => {
+		const root = await repo({
+			"file1.ts": "1\n",
+			"file2.ts": "2\n",
+		});
+
+		const controller = new AbortController();
+		controller.abort();
+
+		const result = await scan(root, { signal: controller.signal });
+		expect(result.fileCount).toBe(0);
 	});
 });

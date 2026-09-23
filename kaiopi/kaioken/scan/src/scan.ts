@@ -1,13 +1,22 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import type { Dirent } from "node:fs";
-import { open, readdir, stat } from "node:fs/promises";
+import { open, readdir, realpath, stat } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
-import { StringDecoder } from "node:string_decoder";
+import { detectHighEntropyStrings } from "./entropy.ts";
 import { DEFAULT_IGNORES, IgnoreStack, readIgnoreFiles } from "./ignore.ts";
 import { detectLanguage } from "./language.ts";
-import { classifyRisk, hasCredentialContent, hasPrivateKeyContent, isBinary } from "./risk.ts";
-import type { FileRecord, Risk, ScanOptions, ScanResult } from "./types.ts";
+import { BufferPool, defaultBufferPool } from "./pool.ts";
+import {
+	classifyRisk,
+	extractSecretFindings,
+	hasCredentialContent,
+	hasPrivateKeyContent,
+	isBinary,
+} from "./risk.ts";
+import { SlidingWindowAnalyzer } from "./sliding-window.ts";
+import type { FileRecord, Risk, ScanOptions, ScanProgress, ScanResult } from "./types.ts";
+import type { SecretFinding } from "./quarantine.ts";
 
 /** Bytes read for language, binary and risk detection when a file is not read whole. */
 const DETECTION_WINDOW = 64 * 1024;
@@ -27,6 +36,9 @@ export async function scan(root: string, options: ScanOptions = {}): Promise<Sca
 	const maxSecretScanBytes = options.maxSecretScanBytes ?? DEFAULT_MAX_SECRET_SCAN_BYTES;
 	const largeBinaryBytes = options.largeBinaryBytes ?? DEFAULT_LARGE_BINARY_BYTES;
 	const ignoreCase = options.ignoreCase ?? (process.platform === "win32");
+	const checkEntropy = options.checkEntropy ?? false;
+	const entropyThreshold = options.entropyThreshold;
+	const signal = options.signal;
 
 	const rootPatterns = [...DEFAULT_IGNORES, ...(options.ignore ?? [])];
 	let stack = IgnoreStack.fromPatterns(rootPatterns, { ignoreCase });
@@ -36,9 +48,42 @@ export async function scan(root: string, options: ScanOptions = {}): Promise<Sca
 	}
 
 	const files: FileRecord[] = [];
+	const secretFindings: SecretFinding[] = [];
+	const circularPaths: string[] = [];
 	const seenDirs = new Set<string>();
+	const activeAncestors = new Set<string>();
+
+	let scannedFilesCount = 0;
+	let scannedBytesCount = 0;
+	let risksCount = 0;
+	const startTime = Date.now();
+	let lastProgressEmit = 0;
+
+	const reportProgress = (currentFile: string, force = false) => {
+		if (!options.onProgress) return;
+		const now = Date.now();
+		if (!force && now - lastProgressEmit < 50) return;
+		lastProgressEmit = now;
+
+		const elapsedMs = Math.max(1, now - startTime);
+		const throughputFilesPerSec = Number(((scannedFilesCount / elapsedMs) * 1000).toFixed(1));
+		const throughputBytesPerSec = Number(((scannedBytesCount / elapsedMs) * 1000).toFixed(0));
+
+		options.onProgress({
+			scannedFiles: scannedFilesCount,
+			scannedBytes: scannedBytesCount,
+			currentFile,
+			throughputFilesPerSec,
+			throughputBytesPerSec,
+			elapsedMs,
+			risksFound: risksCount,
+		});
+	};
 
 	await walk(absRoot, "", stack);
+
+	// Final progress update
+	reportProgress("", true);
 
 	files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
@@ -48,16 +93,23 @@ export async function scan(root: string, options: ScanOptions = {}): Promise<Sca
 		fileCount: files.length,
 		totalBytes: files.reduce((sum, f) => sum + f.size, 0),
 		files,
+		secretFindings: secretFindings.length > 0 ? secretFindings : undefined,
+		circularPaths: circularPaths.length > 0 ? circularPaths : undefined,
 	};
 
 	async function walk(absDir: string, relDir: string, inherited: IgnoreStack): Promise<void> {
-		// Guard against symlink cycles even when following is off, since a
-		// hardlinked or junctioned directory can still reappear. Preserve case on
-		// case-sensitive platforms so sibling directories like Component/ and component/
-		// are not conflated.
+		if (signal?.aborted) return;
+
 		const realKey = ignoreCase ? absDir.toLowerCase() : absDir;
-		if (seenDirs.has(realKey)) return;
+		if (seenDirs.has(realKey)) {
+			if (activeAncestors.has(realKey)) {
+				// Circular symlink loop or junction cycle detected
+				circularPaths.push(relDir || absDir);
+			}
+			return;
+		}
 		seenDirs.add(realKey);
+		activeAncestors.add(realKey);
 
 		let stack = inherited;
 		if (!options.noIgnoreFiles && relDir !== "") {
@@ -69,40 +121,61 @@ export async function scan(root: string, options: ScanOptions = {}): Promise<Sca
 		try {
 			entries = await readdir(absDir, { withFileTypes: true });
 		} catch {
-			// An unreadable directory is reported by omission rather than by
-			// aborting the scan — a partial inventory beats none.
+			activeAncestors.delete(realKey);
 			return;
 		}
 
-		for (const entry of entries) {
-			const relPath = relDir === "" ? entry.name : `${relDir}/${entry.name}`;
-			const absPath = join(absDir, entry.name);
+		try {
+			for (const entry of entries) {
+				if (signal?.aborted) break;
 
-			let isDir = entry.isDirectory();
-			let isFile = entry.isFile();
+				const relPath = relDir === "" ? entry.name : `${relDir}/${entry.name}`;
+				const absPath = join(absDir, entry.name);
 
-			if (entry.isSymbolicLink()) {
-				if (!options.followSymlinks) continue;
-				try {
-					const st = await stat(absPath);
-					isDir = st.isDirectory();
-					isFile = st.isFile();
-				} catch {
+				let isDir = entry.isDirectory();
+				let isFile = entry.isFile();
+
+				if (entry.isSymbolicLink()) {
+					if (!options.followSymlinks) continue;
+					try {
+						const resolvedTarget = await realpath(absPath);
+						const targetKey = ignoreCase ? resolvedTarget.toLowerCase() : resolvedTarget;
+						if (activeAncestors.has(targetKey)) {
+							// Circular symlink loop
+							circularPaths.push(relPath);
+							continue;
+						}
+						const st = await stat(absPath);
+						isDir = st.isDirectory();
+						isFile = st.isFile();
+					} catch {
+						continue;
+					}
+				}
+
+				if (isDir) {
+					if (stack.ignores(`${relPath}/`)) continue;
+					await walk(absPath, relPath, stack);
 					continue;
 				}
+
+				if (!isFile) continue;
+				if (stack.ignores(relPath)) continue;
+
+				reportProgress(relPath);
+
+				const record = await readFile(absPath, relPath);
+				if (record) {
+					files.push(record);
+					scannedFilesCount++;
+					scannedBytesCount += record.size;
+					if (record.risk.length > 0) {
+						risksCount += record.risk.length;
+					}
+				}
 			}
-
-			if (isDir) {
-				if (stack.ignores(`${relPath}/`)) continue;
-				await walk(absPath, relPath, stack);
-				continue;
-			}
-
-			if (!isFile) continue;
-			if (stack.ignores(relPath)) continue;
-
-			const record = await readFile(absPath, relPath);
-			if (record) files.push(record);
+		} finally {
+			activeAncestors.delete(realKey);
 		}
 	}
 
@@ -141,41 +214,106 @@ export async function scan(root: string, options: ScanOptions = {}): Promise<Sca
 			const language = detectLanguage(relPath, binary ? null : window);
 			const text = binary ? "" : head.toString("utf8");
 
+			const risks = classifyRisk({
+				path: relPath,
+				size,
+				binary,
+				text,
+				largeBinaryBytes,
+				checkEntropy,
+				entropyThreshold,
+			});
+
+			// Extract structured secret findings
+			if (!binary && text) {
+				const findings = extractSecretFindings(relPath, text);
+				if (findings.length > 0) {
+					secretFindings.push(...findings);
+				}
+			}
+
+			const entropyFindings =
+				checkEntropy && !binary && text
+					? detectHighEntropyStrings(text, { minEntropy: entropyThreshold })
+					: undefined;
+
 			return {
 				path: relPath,
 				hash,
 				size,
 				language,
 				binary,
-				risk: classifyRisk({ path: relPath, size, binary, text, largeBinaryBytes }),
+				risk: risks,
+				entropyFindings: entropyFindings && entropyFindings.length > 0 ? entropyFindings : undefined,
 			};
 		}
 
-		// Too large to hold in memory whole: read detection window for language/binary,
-		// stream hash and scan for secrets across chunks.
-		let head: Buffer;
+		// Too large to hold in memory whole: read detection window using buffer pool
+		let windowBuf: Buffer;
+		let windowLength = 0;
+		const slab = defaultBufferPool.acquire();
 		try {
-			head = await readHead(absPath, DETECTION_WINDOW);
+			const handle = await open(absPath, "r");
+			try {
+				const { bytesRead } = await handle.read(slab, 0, Math.min(slab.length, DETECTION_WINDOW), 0);
+				windowLength = bytesRead;
+				windowBuf = Buffer.from(slab.subarray(0, bytesRead));
+			} finally {
+				await handle.close();
+			}
 		} catch {
+			defaultBufferPool.release(slab);
 			return null;
+		} finally {
+			defaultBufferPool.release(slab);
 		}
 
-		const window = head.subarray(0, DETECTION_WINDOW);
-		const binary = isBinary(window);
-		const language = detectLanguage(relPath, binary ? null : window);
-		const text = binary ? "" : head.toString("utf8");
+		const binary = isBinary(windowBuf);
+		const language = detectLanguage(relPath, binary ? null : windowBuf);
+		const text = binary ? "" : windowBuf.toString("utf8");
 		const risks = new Set<Risk>(
-			classifyRisk({ path: relPath, size, binary, text, largeBinaryBytes }),
+			classifyRisk({
+				path: relPath,
+				size,
+				binary,
+				text,
+				largeBinaryBytes,
+				checkEntropy,
+				entropyThreshold,
+			}),
 		);
 
 		let hash: string;
 		try {
-			const streamResult = await streamHashAndScan(absPath, {
-				scanSecrets: !binary,
-				maxSecretScanBytes,
-				hasCredentials: risks.has("credentials"),
-				hasPrivateKey: risks.has("private_key"),
+			const stream = createReadStream(absPath);
+			const analyzer = new SlidingWindowAnalyzer({
+				maxScanBytes: binary ? 0 : maxSecretScanBytes,
+				overlapBytes: 4096,
 			});
+
+			const streamResult = await new Promise<{
+				hash: string;
+				hasCredentials: boolean;
+				hasPrivateKey: boolean;
+			}>((resolvePromise, rejectPromise) => {
+				stream.on("data", (chunk: Buffer | string) => {
+					try {
+						analyzer.feed(chunk);
+					} catch (e) {
+						rejectPromise(e);
+					}
+				});
+				stream.on("error", rejectPromise);
+				stream.on("end", () => {
+					const res = analyzer.finish();
+					resolvePromise({
+						hash: res.hash,
+						hasCredentials: res.hasCredentials,
+						hasPrivateKey: res.hasPrivateKey,
+					});
+				});
+			});
+
 			hash = streamResult.hash;
 			if (streamResult.hasCredentials) risks.add("credentials");
 			if (streamResult.hasPrivateKey) risks.add("private_key");
@@ -192,75 +330,6 @@ export async function scan(root: string, options: ScanOptions = {}): Promise<Sca
 			risk: [...risks].sort(),
 		};
 	}
-}
-
-async function readHead(absPath: string, bytes: number): Promise<Buffer> {
-	const handle = await open(absPath, "r");
-	try {
-		const buf = Buffer.alloc(bytes);
-		const { bytesRead } = await handle.read(buf, 0, bytes, 0);
-		return buf.subarray(0, bytesRead);
-	} finally {
-		await handle.close();
-	}
-}
-
-function streamHashAndScan(
-	absPath: string,
-	options: {
-		scanSecrets: boolean;
-		maxSecretScanBytes: number;
-		hasCredentials: boolean;
-		hasPrivateKey: boolean;
-	},
-): Promise<{ hash: string; hasCredentials: boolean; hasPrivateKey: boolean }> {
-	return new Promise((resolvePromise, rejectPromise) => {
-		const hash = createHash("sha256");
-		const stream = createReadStream(absPath);
-		const decoder = new StringDecoder("utf8");
-		let scannedBytes = 0;
-		let overlap = "";
-		let hasCredentials = options.hasCredentials;
-		let hasPrivateKey = options.hasPrivateKey;
-		const scanSecrets = options.scanSecrets;
-		const maxBytes = options.maxSecretScanBytes;
-
-		stream.on("data", (chunk: string | Buffer) => {
-			const buf = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
-			hash.update(buf);
-
-			if (scanSecrets && scannedBytes < maxBytes && (!hasCredentials || !hasPrivateKey)) {
-				scannedBytes += buf.length;
-				const text = typeof chunk === "string" ? chunk : decoder.write(chunk);
-				const textChunk = overlap + text;
-				if (!hasPrivateKey && hasPrivateKeyContent(textChunk)) {
-					hasPrivateKey = true;
-				}
-				if (!hasCredentials && hasCredentialContent(textChunk)) {
-					hasCredentials = true;
-				}
-				overlap = textChunk.slice(-4096);
-			}
-		});
-
-		stream.on("error", rejectPromise);
-		stream.on("end", () => {
-			if (scanSecrets && (!hasCredentials || !hasPrivateKey)) {
-				const remaining = overlap + decoder.end();
-				if (!hasPrivateKey && hasPrivateKeyContent(remaining)) {
-					hasPrivateKey = true;
-				}
-				if (!hasCredentials && hasCredentialContent(remaining)) {
-					hasCredentials = true;
-				}
-			}
-			resolvePromise({
-				hash: hash.digest("hex"),
-				hasCredentials,
-				hasPrivateKey,
-			});
-		});
-	});
 }
 
 /** Normalise a native path to the repo-relative POSIX form used in artifacts. */

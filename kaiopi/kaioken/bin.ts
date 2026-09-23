@@ -25,7 +25,14 @@ import { buildIndex, readIndexArtifact, SymbolOracle, writeIndexArtifact } from 
 import { proposeModulePlan, readCards, writeModulePlan } from "./plan/src/index.ts";
 import { checkDrift, gatherProvenance } from "./provenance/src/index.ts";
 import { readResearchDocuments } from "./research/src/index.ts";
-import { KAIOKEN_DIR, scan, writeScanArtifact } from "./scan/src/index.ts";
+import {
+	formatClassificationTable,
+	KAIOKEN_DIR,
+	scan,
+	suggestIgnoreRules,
+	visualizeEntropyProfile,
+	writeScanArtifact,
+} from "./scan/src/index.ts";
 import { bm25Search } from "./search/src/index.ts";
 import { serve } from "./serve/src/index.ts";
 import { discoverRepoCommands } from "./skillgen/src/index.ts";
@@ -63,6 +70,10 @@ Global Options:
   -h, --help          Show this help message
 
 Command Options:
+  scan:     --progress           Display streaming throughput meter and file counter
+            --table              Display formatted risk classification breakdown table
+            --entropy            Compute Shannon entropy and identify suspicious strings
+            --quarantine         Interactive quarantine suggestions and .gitignore updates
   search:   --limit <n>          Maximum search results to return (default: 8)
             --preview            Instant live query preview across code, docs, cards
             --explain            Reciprocal Rank Fusion (RRF) & BM25 score visualizer
@@ -86,6 +97,10 @@ async function main(): Promise<void> {
 			root: { type: "string" },
 			json: { type: "boolean" },
 			help: { type: "boolean", short: "h" },
+			progress: { type: "boolean" },
+			table: { type: "boolean" },
+			entropy: { type: "boolean" },
+			quarantine: { type: "boolean" },
 			limit: { type: "string" },
 			preview: { type: "boolean" },
 			explain: { type: "boolean" },
@@ -113,7 +128,25 @@ async function main(): Promise<void> {
 
 	switch (cmd) {
 		case "scan": {
-			const scanResult = await scan(root);
+			const showProgress = Boolean(values.progress);
+			const checkEntropy = Boolean(values.entropy);
+			const showTable = Boolean(values.table);
+			const doQuarantine = Boolean(values.quarantine);
+
+			const scanResult = await scan(root, {
+				checkEntropy,
+				onProgress: showProgress
+					? (p) => {
+							process.stdout.write(
+								`\rScanning [${p.scannedFiles} files, ${(p.scannedBytes / 1024).toFixed(0)} KB] (${p.throughputFilesPerSec} files/s) ${p.currentFile.slice(-35)}   `,
+							);
+						}
+					: undefined,
+			});
+			if (showProgress) {
+				process.stdout.write("\n");
+			}
+
 			await writeScanArtifact(root, scanResult);
 
 			const previous = await readIndexArtifact(root);
@@ -130,6 +163,32 @@ async function main(): Promise<void> {
 			await mkdir(join(root, KAIOKEN_DIR), { recursive: true });
 			await writeFile(riskPath, `${JSON.stringify(risks, null, 2)}\n`, "utf8");
 
+			if (showTable) {
+				console.log(formatClassificationTable(scanResult.secretFindings ?? []));
+			}
+
+			if (checkEntropy) {
+				const allEntropy = scanResult.files.flatMap((f) => f.entropyFindings ?? []);
+				console.log(visualizeEntropyProfile(allEntropy));
+			}
+
+			if (doQuarantine) {
+				const findings = scanResult.secretFindings ?? [];
+				const suggested = suggestIgnoreRules(findings);
+				console.log("=== Kaioken Quarantine Wizard ===");
+				console.log(`Detected ${findings.length} quarantine candidate(s).`);
+				if (suggested.length > 0) {
+					console.log("\nRecommended .gitignore rules to prevent credential leaks:");
+					for (const rule of suggested) {
+						console.log(`  + ${rule}`);
+					}
+				}
+			}
+
+			if (!isJson && (showTable || checkEntropy || doQuarantine)) {
+				break;
+			}
+
 			console.log(
 				JSON.stringify(
 					{
@@ -138,6 +197,7 @@ async function main(): Promise<void> {
 							fileCount: scanResult.fileCount,
 							totalBytes: scanResult.totalBytes,
 							riskCount: Object.keys(risks).length,
+							secretFindingsCount: scanResult.secretFindings?.length ?? 0,
 						},
 						index: {
 							fileCount: index.fileCount,

@@ -84,10 +84,10 @@
 ### Step 8: Category 06 — Repo Scan, File Discovery & Risk Shield
 *Rank: #8 Security & Source Hygiene | Package: `kaioken/scan` | Features: `#UX-0501` – `#UX-0600`*  
 📄 **Plan Reference**: [`06-repo-scan-file-discovery-risk-shield.md`](categories/06-repo-scan-file-discovery-risk-shield.md)
-- [ ] **8.1** Implement zero-allocation streaming fast-path file scanner (`UX-0501`–`UX-0510`)
-- [ ] **8.2** Build secret-scanning quarantine wizard (API keys, GitHub tokens, AWS certs) (`UX-0511`–`UX-0520`)
-- [ ] **8.3** Deploy high-entropy string detector with Shannon entropy visualization (`UX-0521`–`UX-0530`)
-- [ ] **8.4** Implement sliding-window chunk analyzer eliminating boundary split misses (`UX-0531`–`UX-0540`)
+- [x] **8.1** Implement zero-allocation streaming fast-path file scanner (`UX-0501`–`UX-0510`)
+- [x] **8.2** Build secret-scanning quarantine wizard (API keys, GitHub tokens, AWS certs) (`UX-0511`–`UX-0520`)
+- [x] **8.3** Deploy high-entropy string detector with Shannon entropy visualization (`UX-0521`–`UX-0530`)
+- [x] **8.4** Implement sliding-window chunk analyzer eliminating boundary split misses (`UX-0531`–`UX-0540`)
 
 ---
 
