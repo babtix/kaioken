@@ -14,6 +14,7 @@ import {
 	stickyHeader,
 	truncate,
 	visibleWidth,
+	welcomeBanner,
 } from "../ui/logo.ts";
 import { TIMING, chargeOffset, easeOut, phase, powerMeter, revealedRows, sweepRule } from "../ui/motion.ts";
 import {
@@ -179,6 +180,23 @@ describe("kaioken ui: the info panel", () => {
 	it("adds the branch row only when there is a branch", () => {
 		expect(statusPanel(paint, info).join("\n")).not.toContain("Branch:");
 		expect(statusPanel(paint, { ...info, knowledge: { branch: "main" } }).join("\n")).toContain("main");
+	});
+
+	it("suppresses duplicate branch and freshness from statusPanel when hideTelemetry is enabled", () => {
+		const full = statusPanel(paint, {
+			...info,
+			hideTelemetry: true,
+			knowledge: { files: 352, documents: 12, cards: 6, branch: "main", freshness: 0.83, stale: 2 },
+		}).join("\n");
+		expect(full).not.toContain("Branch:");
+		expect(full).not.toContain("83% fresh");
+		expect(full).not.toContain("2 stale");
+		expect(full).toContain("352 files · 12 docs · 6 cards");
+	});
+
+	it("omits redundant command and chat hint from welcomeBanner", () => {
+		const banner = welcomeBanner(paint, info, 140).join("\n");
+		expect(banner).not.toContain("type to chat · press / for commands");
 	});
 
 	it("names the way out when nothing has been generated", () => {
@@ -1005,6 +1023,52 @@ describe("Step 18: Terminal UI (TUI) & Visual Aesthetics (UX-0001 - UX-0100)", (
 			});
 			const tooltipLines = header.render(80);
 			expect(tooltipLines.some((l) => l.includes("[Live Telemetry]"))).toBe(true);
+
+			header.dispose();
+			poller.dispose();
+		});
+
+		it("KaiokenHeader renders branch and freshness exactly once across header and HUD", () => {
+			const mockTui = {
+				terminal: { columns: 120, rows: 30 },
+				requestRender: () => {},
+			} as any;
+
+			const poller = new HudTelemetryPoller();
+			poller.updateFreshness(0.95, 2);
+			poller.updateWorktree("master", false);
+
+			const header = new KaiokenHeader(mockTui, theme, {
+				info,
+				state: () => ({
+					files: 200,
+					documents: 20,
+					cards: 10,
+					branch: "master",
+					freshness: 0.95,
+					stale: 2,
+				}),
+				busy: () => false,
+				hud: poller,
+			});
+			(header as any).entranceDone = true;
+
+			const lines = header.render(120);
+			const fullText = lines.join("\n");
+
+			// Branch appears only in the HUD status bar pill, not as "Branch: master"
+			expect(fullText).not.toContain("Branch:");
+			expect((fullText.match(/master/g) || []).length).toBe(1);
+
+			// Freshness badge appears only in the HUD status bar, not duplicated in Knowledge
+			expect((fullText.match(/95% fresh/g) || []).length).toBe(1);
+			expect((fullText.match(/2 stale/g) || []).length).toBe(1);
+
+			// Knowledge row has the artifact scale
+			expect(fullText).toContain("200 files · 20 docs · 10 cards");
+
+			// Redundant command prompt is absent
+			expect(fullText).not.toContain("type to chat · press / for commands");
 
 			header.dispose();
 			poller.dispose();

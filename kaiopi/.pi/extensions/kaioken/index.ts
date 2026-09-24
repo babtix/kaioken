@@ -1,7 +1,7 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { TUI } from "@earendil-works/pi-tui";
 import { registerCommands } from "./commands/index.ts";
@@ -83,6 +83,44 @@ export function readConfiguredTheme(env: NodeJS.ProcessEnv = process.env): strin
 }
 
 /**
+ * Resolve the git branch for a directory, checking ancestor directories for .git
+ * and handling both regular git repos and git worktrees/submodules.
+ */
+export async function resolveGitBranch(startDir: string): Promise<string | undefined> {
+	try {
+		let current = resolve(startDir);
+		while (true) {
+			const gitPath = join(current, ".git");
+			try {
+				const s = await stat(gitPath);
+				if (s.isDirectory()) {
+					const head = await readFile(join(gitPath, "HEAD"), "utf8");
+					const match = /ref:\s*refs\/heads\/(.+)/.exec(head.trim());
+					if (match?.[1]) return match[1].trim();
+				} else if (s.isFile()) {
+					const content = await readFile(gitPath, "utf8");
+					const match = /^gitdir:\s*(.+)$/m.exec(content.trim());
+					if (match?.[1]) {
+						const gitDir = resolve(current, match[1].trim());
+						const head = await readFile(join(gitDir, "HEAD"), "utf8");
+						const headMatch = /ref:\s*refs\/heads\/(.+)/.exec(head.trim());
+						if (headMatch?.[1]) return headMatch[1].trim();
+					}
+				}
+			} catch {
+				// not in this directory, check parent
+			}
+			const parent = dirname(current);
+			if (parent === current) break;
+			current = parent;
+		}
+	} catch {
+		// ignore
+	}
+	return undefined;
+}
+
+/**
  * Read what `.kaioken/` currently holds, for the header's knowledge row.
  *
  * Tolerant by design: the row is a summary, and a header that threw because an
@@ -119,13 +157,8 @@ async function readRepoState(root: string): Promise<RepoState | undefined> {
 
 	// Branch is best-effort and never blocks the header: a non-git directory
 	// simply keeps the shorter panel.
-	try {
-		const head = await readFile(join(root, ".git", "HEAD"), "utf8");
-		const match = /ref:\s*refs\/heads\/(.+)/.exec(head.trim());
-		if (match?.[1]) state.branch = match[1].trim();
-	} catch {
-		// not a git checkout, or a worktree whose HEAD lives elsewhere
-	}
+	const branch = await resolveGitBranch(root);
+	if (branch) state.branch = branch;
 
 	// Freshness answers "is this still true", so it comes from the verification
 	// record rather than from anything the generator claimed.
@@ -224,11 +257,13 @@ export default function (pi: ExtensionAPI) {
 	// masthead, so this is a supported seam rather than a patch: Pi core is never
 	// forked (Invariant 1), and everything here enters through the API.
 	pi.on("session_start", async (_event, ctx) => {
-		stateCache = await readRepoState(ctx.cwd ?? root()).catch(() => undefined);
+		const workingDir = ctx.cwd ?? root();
+		stateCache = await readRepoState(workingDir).catch(() => undefined);
+		const branch = stateCache?.branch ?? (await resolveGitBranch(workingDir)) ?? "main";
 		if (stateCache) {
 			hud.updateFreshness(stateCache.freshness ?? 1.0, stateCache.stale ?? 0);
-			hud.updateWorktree(stateCache.branch ?? "main", isDirty());
 		}
+		hud.updateWorktree(branch, isDirty());
 		hud.start(1000);
 
 		// Only the TUI mode has a header to replace; print and rpc modes have no

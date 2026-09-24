@@ -174,7 +174,12 @@ export class KaiokenHeader implements Component {
 		}
 
 		const state = this.options.state();
-		const info: HeaderInfo = { ...this.info, ...(state ? { knowledge: state } : {}) };
+		const hasActiveHud = Boolean(this.hud && this.hudVisible);
+		const info: HeaderInfo = {
+			...this.info,
+			...(state ? { knowledge: state } : {}),
+			hideTelemetry: hasActiveHud,
+		};
 		// `undefined` once the entrance has landed, which is what tells the
 		// banner to render its settled form rather than a frame of the rise.
 		const lines = stickyHeader(
@@ -186,8 +191,8 @@ export class KaiokenHeader implements Component {
 		);
 
 		// HUD status bar: renders passive telemetry readouts when attached and visible
-		if (this.hud && this.hudVisible) {
-			const hudBar = renderHudBar(this.hud.current, this.hud.velocityBuffer, paint, width);
+		if (hasActiveHud) {
+			const hudBar = renderHudBar(this.hud!.current, this.hud!.velocityBuffer, paint, width);
 			if (hudBar) lines.push(hudBar);
 		}
 

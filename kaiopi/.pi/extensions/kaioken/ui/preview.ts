@@ -43,25 +43,27 @@ const info: HeaderInfo = {
 const width = 132;
 const height = 40;
 
-const arg = process.argv[2] ?? "header";
+if (process.argv[1] && process.argv[1].replace(/\\/g, "/").endsWith("preview.ts")) {
+	const arg = process.argv[2] ?? "header";
 
-if (arg === "boot") {
-	// Three frames of the opening, so the rise, the aura and the typing are
-	// all visible at once.
-	for (const fraction of [0.15, 0.45, 0.9]) {
-		const ms = CURTAIN.open * fraction;
-		console.log(`\n--- boot @ ${Math.round(ms)}ms (${Math.round(fraction * 100)}%) ---`);
-		console.log(bootFrame(paint, width, 18, ms, info.version).join("\n"));
+	if (arg === "boot") {
+		// Three frames of the opening, so the rise, the aura and the typing are
+		// all visible at once.
+		for (const fraction of [0.15, 0.45, 0.9]) {
+			const ms = CURTAIN.open * fraction;
+			console.log(`\n--- boot @ ${Math.round(ms)}ms (${Math.round(fraction * 100)}%) ---`);
+			console.log(bootFrame(paint, width, 18, ms, info.version).join("\n"));
+		}
+	} else if (arg === "power") {
+		console.log(powerMeter(paint, 3));
+		console.log(powerMeter(paint, 5));
+		console.log(powerMeter(paint, 9, 0));
+	} else {
+		console.log("--- settled header ---");
+		console.log(stickyHeader(paint, info, width, height).join("\n"));
+		console.log("\n--- entrance @ 40% ---");
+		console.log(stickyHeader(paint, info, width, height, TIMING.riseIn * 0.4).join("\n"));
+		console.log("\n--- compact (short terminal) ---");
+		console.log(stickyHeader(paint, info, width, 8).join("\n"));
 	}
-} else if (arg === "power") {
-	console.log(powerMeter(paint, 3));
-	console.log(powerMeter(paint, 5));
-	console.log(powerMeter(paint, 9, 0));
-} else {
-	console.log("--- settled header ---");
-	console.log(stickyHeader(paint, info, width, height).join("\n"));
-	console.log("\n--- entrance @ 40% ---");
-	console.log(stickyHeader(paint, info, width, height, TIMING.riseIn * 0.4).join("\n"));
-	console.log("\n--- compact (short terminal) ---");
-	console.log(stickyHeader(paint, info, width, 8).join("\n"));
 }

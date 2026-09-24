@@ -133,6 +133,8 @@ export interface HeaderInfo {
 	hasKey: boolean;
 	/** What this repository already has. Rows appear only when it has any. */
 	knowledge?: RepoState;
+	/** When telemetry is active in HUD bar, suppress duplicate Branch and Freshness in statusPanel. */
+	hideTelemetry?: boolean;
 }
 
 /** What `.kaioken/` currently holds, for the one row that reports it. */
@@ -166,13 +168,20 @@ export function statusPanel(paint: Painter, info: HeaderInfo): string[] {
 		["Version", info.version],
 		["Repo", shortPath(info.repo)],
 	];
-	if (info.knowledge?.branch) rows.push(["Branch", fg(paint, "user", info.knowledge.branch)]);
+	if (info.knowledge?.branch && !info.hideTelemetry) {
+		rows.push(["Branch", fg(paint, "user", info.knowledge.branch)]);
+	}
 	rows.push(
 		["Model", displayModel(info.model, info.provider) || dim(paint, "(none)")],
 		["Provider", info.provider || dim(paint, "(none)")],
 		["API Key", key],
 	);
-	if (info.knowledge) rows.push(["Knowledge", knowledgeSummary(paint, info.knowledge)]);
+	if (info.knowledge) {
+		rows.push([
+			"Knowledge",
+			knowledgeSummary(paint, info.knowledge, { includeFreshness: !info.hideTelemetry }),
+		]);
+	}
 
 	return [
 		bold(paint, fg(paint, "accent", heading)),
@@ -181,8 +190,17 @@ export function statusPanel(paint: Painter, info: HeaderInfo): string[] {
 	];
 }
 
+export interface KnowledgeSummaryOptions {
+	includeFreshness?: boolean;
+}
+
 /** The knowledge row: what exists, and whether it is still true. */
-export function knowledgeSummary(paint: Painter, state: RepoState): string {
+export function knowledgeSummary(
+	paint: Painter,
+	state: RepoState,
+	options: KnowledgeSummaryOptions = {},
+): string {
+	const includeFreshness = options.includeFreshness ?? true;
 	if (isEmpty(state)) {
 		return `${dim(paint, "nothing generated yet —")} ${fg(paint, "accent", "/kaio-wiki")}`;
 	}
@@ -192,12 +210,17 @@ export function knowledgeSummary(paint: Painter, state: RepoState): string {
 	if (state.documents) parts.push(`${state.documents} ${dim(paint, "docs")}`);
 	if (state.cards) parts.push(`${state.cards} ${dim(paint, "cards")}`);
 
-	if (state.freshness !== undefined) {
+	if (includeFreshness && state.freshness !== undefined) {
 		const pct = Math.round(state.freshness * 100);
 		const role = pct >= 80 ? "ok" : pct >= 50 ? "warn" : "error";
 		parts.push(fg(paint, role, `${pct}% fresh`));
 		if (state.stale) parts.push(fg(paint, "warn", `${state.stale} stale`));
 	}
+
+	if (parts.length === 0) {
+		return `${dim(paint, "nothing generated yet —")} ${fg(paint, "accent", "/kaio-wiki")}`;
+	}
+
 	return parts.join(dim(paint, " · "));
 }
 
@@ -224,11 +247,7 @@ export function welcomeBanner(
 	elapsedMs?: number,
 ): string[] {
 	const left = logoBlock(paint, termWidth, info.knowledge, elapsedMs);
-	const right = [
-		...statusPanel(paint, info),
-		"",
-		dim(paint, "type to chat · press / for commands"),
-	];
+	const right = statusPanel(paint, info);
 
 	const gap = "   ";
 	if (termWidth > 0 && termWidth < blockWidth(left) + gap.length + blockWidth(right) + 2) {
