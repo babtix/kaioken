@@ -6,6 +6,7 @@ import { gatherModuleEvidence } from "@kaioken/plan";
 import type { ScanResult } from "@kaioken/scan";
 import { skillsDir } from "@kaioken/skills";
 import { detectCommands } from "@kaioken/verify";
+import { ungroundedPaths } from "./critique.ts";
 import type { SkillProposal } from "./propose.ts";
 
 /**
@@ -204,18 +205,11 @@ function resolveSources(scan: ScanResult, wanted: readonly string[]): string[] {
 
 /** Paths the body cites in backticks that the scan does not contain. */
 function citedButMissing(body: string, known: ReadonlyMap<string, string>): string[] {
-	const missing = new Set<string>();
-	for (const match of body.matchAll(/`([^`\n]+)`/g)) {
-		const candidate = (match[1] as string).trim();
-		// Only things shaped like a repository path are checked. A command in
-		// backticks is not a claim about a file, and flagging `npm test` as a
-		// missing path would bury the real findings.
-		if (!/^[\w./-]+\.[A-Za-z0-9]{1,8}$/.test(candidate)) continue;
-		if (candidate.startsWith("http")) continue;
-		const path = candidate.replace(/^\.\//, "");
-		if (!known.has(path)) missing.add(path);
-	}
-	return [...missing].sort();
+	// Delegates to the adversarial critic so the writer and the critic agree on
+	// what counts as ungrounded. Only path defects drive the repair loop; a
+	// command in backticks is not a claim about a file, and flagging `npm test`
+	// as a missing path would bury the real findings.
+	return ungroundedPaths(body, known);
 }
 
 function buildPrompt(

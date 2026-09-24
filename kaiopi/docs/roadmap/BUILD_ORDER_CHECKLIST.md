@@ -138,11 +138,11 @@
 ### Step 13: Category 18 — Agent Skills, Autonomous Procedures & SkillGen
 *Rank: #13 Agent Autonomy Procedures | Package: `kaioken/skills` / `skillgen` | Features: `#UX-1701` – `#UX-1800`*  
 📄 **Plan Reference**: [`18-agent-skills-autonomous-procedures-skillgen.md`](categories/18-agent-skills-autonomous-procedures-skillgen.md)
-- [ ] **13.1** Build automated skill discovery from `package.json` scripts and `Makefiles` (`UX-1701`–`UX-1710`)
-- [ ] **13.2** Implement YAML frontmatter schema validator for skill parameters and triggers (`UX-1711`–`UX-1720`)
-- [ ] **13.3** Deploy adversarial critique repair loop eliminating ungrounded skill steps (`UX-1721`–`UX-1730`)
-- [ ] **13.4** Build step-through procedure execution debugger (`UX-1731`–`UX-1740`)
-- [ ] **13.5** Add multi-root skill loader scanning both `.agents` and `.pi` directories (`UX-1741`–`UX-1750`)
+- [x] **13.1** Build automated skill discovery from `package.json` scripts and `Makefiles` (`UX-1701`–`UX-1710`)
+- [x] **13.2** Implement YAML frontmatter schema validator for skill parameters and triggers (`UX-1711`–`UX-1720`)
+- [x] **13.3** Deploy adversarial critique repair loop eliminating ungrounded skill steps (`UX-1721`–`UX-1730`)
+- [x] **13.4** Build step-through procedure execution debugger (`UX-1731`–`UX-1740`)
+- [x] **13.5** Add multi-root skill loader scanning both `.agents` and `.pi` directories (`UX-1741`–`UX-1750`)
 
 ---
 
