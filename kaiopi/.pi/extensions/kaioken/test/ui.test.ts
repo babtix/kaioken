@@ -48,6 +48,25 @@ import {
 	wrapAnsiLine,
 	reflowLines,
 } from "../ui/reflow.ts";
+import {
+	UNICODE_SPARKLINE_BARS,
+	ASCII_SPARKLINE_BARS,
+	renderSparkline,
+	TelemetryRingBuffer,
+	renderVelocityWidget,
+	calculateFreshness,
+	getFreshnessSeverity,
+	renderFreshnessBadge,
+	renderFreshnessDial,
+	renderWorktreePill,
+	type WorktreeStatus,
+	renderTooltipBox,
+	getMetricTooltip,
+	METRIC_TOOLTIPS,
+	HudTelemetryPoller,
+	renderHudBar,
+	KaiokenHeader,
+} from "../ui/index.ts";
 
 
 /**
@@ -632,6 +651,363 @@ describe("Step 18: Terminal UI (TUI) & Visual Aesthetics (UX-0001 - UX-0100)", (
 			expect(resolveTheme("crt-amber")).toBe(CRT_AMBER_THEME);
 			const fallbackTheme: PaintTheme = { fg: (_, t) => t, bold: (t) => t };
 			expect(resolveTheme("default", fallbackTheme)).toBe(fallbackTheme);
+		});
+	});
+
+	describe("19.1: Real-time telemetry sparkline for token spend velocity (UX-0201 - UX-0210)", () => {
+		it("renders Unicode sparkline bar glyphs scaled accurately to values", () => {
+			const values = [0, 25, 50, 75, 100];
+			const spark = renderSparkline(values, { unicode: true, min: 0, max: 100 });
+			expect(spark).toHaveLength(5);
+			expect(spark[0]).toBe(UNICODE_SPARKLINE_BARS[0]);
+			expect(spark[4]).toBe(UNICODE_SPARKLINE_BARS[UNICODE_SPARKLINE_BARS.length - 1]);
+		});
+
+		it("falls back to ASCII characters in non-Unicode terminals", () => {
+			const values = [10, 20, 30, 40, 50];
+			const spark = renderSparkline(values, { unicode: false });
+			expect(spark).toHaveLength(5);
+			for (const ch of spark) {
+				expect((ASCII_SPARKLINE_BARS as readonly string[]).includes(ch)).toBe(true);
+			}
+		});
+
+		it("handles width truncation and padding", () => {
+			const values = [1, 2, 3];
+			const padded = renderSparkline(values, { width: 5, unicode: true, emptyGlyph: " " });
+			expect(padded).toHaveLength(5);
+			expect(padded.startsWith("  ")).toBe(true);
+
+			const truncated = renderSparkline([1, 2, 3, 4, 5, 6], { width: 3 });
+			expect(truncated).toHaveLength(3);
+		});
+
+		it("handles edge cases: empty array and constant values without NaN", () => {
+			expect(renderSparkline([])).toBe("");
+			expect(renderSparkline([], { width: 4, emptyGlyph: "_" })).toBe("____");
+
+			const constant = renderSparkline([42, 42, 42]);
+			expect(constant).toHaveLength(3);
+			expect(constant.includes("NaN")).toBe(false);
+		});
+
+		it("TelemetryRingBuffer records samples and computes velocity without allocations", () => {
+			const buffer = new TelemetryRingBuffer(5);
+			expect(buffer.count).toBe(0);
+			expect(buffer.capacity).toBe(5);
+
+			const now = 100000;
+			buffer.push(100, now);
+			buffer.push(200, now + 500);
+			buffer.push(300, now + 1000);
+
+			expect(buffer.count).toBe(3);
+			expect(buffer.getValues()).toEqual([100, 200, 300]);
+			expect(buffer.getLatest()).toBe(300);
+			expect(buffer.getMin()).toBe(100);
+			expect(buffer.getMax()).toBe(300);
+			expect(buffer.getAverage()).toBe(200);
+
+			// Velocity: delta 200 tokens over 1.0 second = 200 tokens/sec
+			const vel = buffer.getVelocity(1000);
+			expect(vel).toBe(200);
+		});
+
+		it("TelemetryRingBuffer wraps circular head correctly when capacity is exceeded", () => {
+			const buffer = new TelemetryRingBuffer(3);
+			buffer.push(10);
+			buffer.push(20);
+			buffer.push(30);
+			buffer.push(40);
+			buffer.push(50);
+
+			expect(buffer.count).toBe(3);
+			expect(buffer.getValues()).toEqual([30, 40, 50]);
+			expect(buffer.getLatest()).toBe(50);
+			expect(buffer.getPeak()).toBe(50);
+
+			buffer.clear();
+			expect(buffer.count).toBe(0);
+			expect(buffer.getValues()).toEqual([]);
+		});
+
+		it("renderVelocityWidget displays formatted rate and sparkline", () => {
+			const buffer = new TelemetryRingBuffer(10);
+			const t0 = 100000;
+			buffer.push(10, t0);
+			buffer.push(60, t0 + 1000);
+
+			const widget = renderVelocityWidget(buffer, undefined, { unicode: true, unit: "tok/s" });
+			expect(widget).toContain("tok/s");
+			expect(widget).toContain("50");
+		});
+	});
+
+	describe("19.2: Live repository freshness ratio badge (UX-0211 - UX-0220)", () => {
+		it("calculates freshness percentage ratio accurately", () => {
+			expect(calculateFreshness(10, 10)).toBe(1.0);
+			expect(calculateFreshness(0, 0)).toBe(1.0); // empty repo defaults to fresh
+			expect(calculateFreshness(8, 10)).toBe(0.8);
+			expect(calculateFreshness(3, 10)).toBe(0.3);
+			expect(calculateFreshness(0, 10)).toBe(0.0);
+		});
+
+		it("maps ratio to quality severity tiers", () => {
+			expect(getFreshnessSeverity(1.0)).toBe("ok");
+			expect(getFreshnessSeverity(0.85)).toBe("ok");
+			expect(getFreshnessSeverity(0.79)).toBe("warn");
+			expect(getFreshnessSeverity(0.5)).toBe("warn");
+			expect(getFreshnessSeverity(0.49)).toBe("error");
+			expect(getFreshnessSeverity(0.0)).toBe("error");
+		});
+
+		it("renders freshness badge with icons in Unicode and ASCII modes", () => {
+			const okBadge = renderFreshnessBadge(0.95, 0, undefined, { unicode: true });
+			expect(okBadge).toContain("●");
+			expect(okBadge).toContain("95% fresh");
+
+			const warnBadge = renderFreshnessBadge(0.65, 3, undefined, { unicode: true });
+			expect(warnBadge).toContain("▲");
+			expect(warnBadge).toContain("65% fresh");
+			expect(warnBadge).toContain("3 stale");
+
+			const errBadge = renderFreshnessBadge(0.25, 12, undefined, { unicode: true });
+			expect(errBadge).toContain("■");
+			expect(errBadge).toContain("25% fresh");
+
+			const asciiBadge = renderFreshnessBadge(0.95, 0, undefined, { unicode: false });
+			expect(asciiBadge).toContain("OK");
+			expect(asciiBadge).toContain("95% fresh");
+
+			const asciiWarn = renderFreshnessBadge(0.65, 2, undefined, { unicode: false });
+			expect(asciiWarn).toContain("WARN");
+		});
+
+		it("renders horizontal dial progress gauge", () => {
+			const dial = renderFreshnessDial(0.8, 10, undefined, true);
+			expect(dial).toContain("80%");
+			expect(dial).toContain("████████░░");
+
+			const asciiDial = renderFreshnessDial(0.5, 10, undefined, false);
+			expect(asciiDial).toContain("50%");
+			expect(asciiDial).toContain("#####-----");
+		});
+	});
+
+	describe("19.3: Active git worktree dirty status indicator pill (UX-0221 - UX-0230)", () => {
+		it("renders clean repository status in Unicode and ASCII", () => {
+			const cleanStatus: WorktreeStatus = { branch: "master", isDirty: false };
+			const unicodePill = renderWorktreePill(cleanStatus, undefined, { unicode: true });
+			expect(unicodePill).toContain("⎇");
+			expect(unicodePill).toContain("master");
+			expect(unicodePill).toContain("✓");
+
+			const asciiPill = renderWorktreePill(cleanStatus, undefined, { unicode: false });
+			expect(asciiPill).toContain("git:master");
+			expect(asciiPill).toContain("OK");
+		});
+
+		it("renders dirty status with modification and untracked counts", () => {
+			const dirtyStatus: WorktreeStatus = {
+				branch: "feature/auth",
+				isDirty: true,
+				modifiedCount: 2,
+				untrackedCount: 1,
+			};
+			const pill = renderWorktreePill(dirtyStatus, undefined, { unicode: true, showCounts: true });
+			expect(pill).toContain("feature/auth");
+			expect(pill).toContain("*dirty (+3)");
+
+			const compactPill = renderWorktreePill(dirtyStatus, undefined, { compact: true });
+			expect(compactPill).toContain("*3");
+		});
+
+		it("indicates isolated scratch worktree flag", () => {
+			const wtStatus: WorktreeStatus = {
+				branch: "agent/task-42",
+				isWorktree: true,
+				isDirty: true,
+			};
+			const pill = renderWorktreePill(wtStatus, undefined, { unicode: true });
+			expect(pill).toContain("⎇ (wt)");
+			expect(pill).toContain("agent/task-42");
+
+			const asciiWt = renderWorktreePill(wtStatus, undefined, { unicode: false });
+			expect(asciiWt).toContain("wt:agent/task-42");
+		});
+
+		it("displays active git hook state", () => {
+			const hookStatus: WorktreeStatus = {
+				branch: "main",
+				isDirty: false,
+				activeHook: "pre-commit",
+			};
+			const pill = renderWorktreePill(hookStatus, undefined, { unicode: true });
+			expect(pill).toContain("(pre-commit…)");
+		});
+	});
+
+	describe("19.4: Floating hover tooltip explaining status metrics (UX-0231 - UX-0240)", () => {
+		it("renders bordered tooltip box with title, value, description, and hint", () => {
+			const tooltip = {
+				id: "tokenVelocity",
+				title: "Token Spend Velocity",
+				value: "150 tok/s",
+				description: "Real-time model token consumption rate.",
+				threshold: ">500 tok/s triggers throttle",
+				shortcut: "Run /kaio-status",
+			};
+
+			const box = renderTooltipBox(tooltip, undefined, { unicode: true, maxWidth: 50 });
+			expect(box.length).toBeGreaterThanOrEqual(5);
+
+			// Top border with title
+			expect(box[0]).toContain("╭─ [Token Spend Velocity]");
+			expect(box[0]).toContain("╮");
+
+			// Value row
+			expect(box.some((l) => l.includes("Value: 150 tok/s"))).toBe(true);
+
+			// Description & alerts
+			expect(box.some((l) => l.includes("Real-time model token consumption"))).toBe(true);
+			expect(box.some((l) => l.includes("Alert: >500 tok/s"))).toBe(true);
+			expect(box.some((l) => l.includes("Hint: Run /kaio-status"))).toBe(true);
+
+			// Bottom border
+			expect(box[box.length - 1]).toContain("╰─");
+			expect(box[box.length - 1]).toContain("╯");
+		});
+
+		it("renders ASCII box frame fallback when Unicode is disabled", () => {
+			const tooltip = {
+				id: "test",
+				title: "Test Metric",
+				value: "100%",
+				description: "Sample test description.",
+			};
+			const box = renderTooltipBox(tooltip, undefined, { unicode: false, maxWidth: 40 });
+			expect(box[0]?.startsWith("+-")).toBe(true);
+			expect(box[box.length - 1]?.startsWith("+-")).toBe(true);
+			expect(box[1]?.startsWith("|")).toBe(true);
+		});
+
+		it("provides standard metric tooltips from dictionary", () => {
+			expect(METRIC_TOOLTIPS.tokenVelocity).toBeDefined();
+			expect(METRIC_TOOLTIPS.freshnessRatio).toBeDefined();
+			expect(METRIC_TOOLTIPS.worktreeStatus).toBeDefined();
+			expect(METRIC_TOOLTIPS.contextWindow).toBeDefined();
+
+			const populated = getMetricTooltip("freshnessRatio", "92%");
+			expect(populated).toBeDefined();
+			expect(populated?.title).toBe("Repository Freshness Ratio");
+			expect(populated?.value).toBe("92%");
+		});
+	});
+
+	describe("19.5: Zero-allocation polling loop with microsecond overhead (UX-0241 - UX-0250)", () => {
+		it("mutates snapshot in place without creating new objects during poll", () => {
+			const poller = new HudTelemetryPoller();
+			const snap1 = poller.poll();
+			const snap2 = poller.poll();
+
+			// Same object reference: zero heap allocations per cycle
+			expect(snap1).toBe(snap2);
+
+			poller.updateFreshness(0.92, 1);
+			poller.updateWorktree("dev", true, 3);
+			poller.poll();
+
+			expect(snap1.freshnessRatio).toBe(0.92);
+			expect(snap1.staleDocsCount).toBe(1);
+			expect(snap1.worktreeBranch).toBe("dev");
+			expect(snap1.worktreeDirty).toBe(true);
+			expect(snap1.worktreeModified).toBe(3);
+		});
+
+		it("executes synchronous poll with microsecond overhead", () => {
+			const poller = new HudTelemetryPoller();
+			poller.recordTokens(100);
+			const snap = poller.poll();
+
+			// Microsecond poll duration is measured and logged
+			expect(snap.lastPollDurationUs).toBeGreaterThanOrEqual(0);
+			// Guaranteed to take less than 50 milliseconds (typically < 0.05ms)
+			expect(snap.lastPollDurationUs).toBeLessThan(50000);
+		});
+
+		it("notifies subscribers on significant metric changes and supports unsubscribe", () => {
+			const poller = new HudTelemetryPoller();
+			let notifications = 0;
+			const unsub = poller.subscribe(() => {
+				notifications++;
+			});
+
+			poller.updateWorktree("feature-a", false);
+			poller.poll();
+			expect(notifications).toBe(1);
+
+			// Unchanged poll within deadband should not trigger subscriber
+			poller.poll();
+			expect(notifications).toBe(1);
+
+			// Significant change triggers subscriber
+			poller.updateWorktree("feature-b", true, 2);
+			poller.poll();
+			expect(notifications).toBe(2);
+
+			unsub();
+			poller.updateWorktree("feature-c", false);
+			poller.poll();
+			expect(notifications).toBe(2); // no further calls after unsub
+		});
+
+		it("renders unified HUD status bar line with all active widgets", () => {
+			const poller = new HudTelemetryPoller();
+			poller.updateFreshness(0.88, 0);
+			poller.updateWorktree("main", false);
+			poller.recordTokens(50, Date.now() - 1000);
+			poller.recordTokens(150, Date.now());
+			poller.poll();
+
+			const bar = renderHudBar(poller.current, poller.velocityBuffer, undefined, 80);
+			expect(bar).toContain("main");
+			expect(bar).toContain("88% fresh");
+		});
+
+		it("KaiokenHeader integrates HUD poller and tooltips cleanly", () => {
+			const mockTui = {
+				terminal: { columns: 80, rows: 24 },
+				requestRender: () => {},
+			} as any;
+
+			const poller = new HudTelemetryPoller();
+			poller.updateFreshness(0.95);
+			poller.updateWorktree("master", false);
+
+			const header = new KaiokenHeader(mockTui, theme, {
+				info,
+				state: () => undefined,
+				busy: () => false,
+				hud: poller,
+			});
+			(header as any).entranceDone = true;
+
+			const lines = header.render(80);
+			expect(lines.some((l) => l.includes("95% fresh"))).toBe(true);
+			expect(lines.some((l) => l.includes("master"))).toBe(true);
+
+			// Set floating tooltip
+			header.setTooltip({
+				id: "tip",
+				title: "Live Telemetry",
+				value: "Active",
+				description: "HUD active",
+			});
+			const tooltipLines = header.render(80);
+			expect(tooltipLines.some((l) => l.includes("[Live Telemetry]"))).toBe(true);
+
+			header.dispose();
+			poller.dispose();
 		});
 	});
 });

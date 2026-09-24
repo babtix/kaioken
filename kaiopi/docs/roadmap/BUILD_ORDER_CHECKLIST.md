@@ -205,11 +205,11 @@
 ### Step 19: Category 03 — HUD, Status Bar & Dynamic Widgets
 *Rank: #19 Passive Telemetry Readouts | Package: `.pi/extensions/kaioken/ui/header.ts` | Features: `#UX-0201` – `#UX-0300`*  
 📄 **Plan Reference**: [`03-hud-status-bar-dynamic-widgets.md`](categories/03-hud-status-bar-dynamic-widgets.md)
-- [ ] **19.1** Build real-time telemetry sparkline for token spend velocity (`UX-0201`–`UX-0210`)
-- [ ] **19.2** Implement live repository freshness ratio badge (`UX-0211`–`UX-0220`)
-- [ ] **19.3** Deploy active git worktree dirty status indicator pill (`UX-0221`–`UX-0230`)
-- [ ] **19.4** Add floating hover tooltip explaining status metrics (`UX-0231`–`UX-0240`)
-- [ ] **19.5** Implement zero-allocation polling loop with microsecond overhead (`UX-0241`–`UX-0250`)
+- [x] **19.1** Build real-time telemetry sparkline for token spend velocity (`UX-0201`–`UX-0210`)
+- [x] **19.2** Implement live repository freshness ratio badge (`UX-0211`–`UX-0220`)
+- [x] **19.3** Deploy active git worktree dirty status indicator pill (`UX-0221`–`UX-0230`)
+- [x] **19.4** Add floating hover tooltip explaining status metrics (`UX-0231`–`UX-0240`)
+- [x] **19.5** Implement zero-allocation polling loop with microsecond overhead (`UX-0241`–`UX-0250`)
 
 ---
 

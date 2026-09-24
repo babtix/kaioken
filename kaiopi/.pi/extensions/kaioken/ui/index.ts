@@ -15,3 +15,8 @@ export * from "./curtain.ts";
 export * from "./motion.ts";
 export * from "./layout.ts";
 export * from "./preview.ts";
+export * from "./sparkline.ts";
+export * from "./freshness.ts";
+export * from "./worktree-status.ts";
+export * from "./tooltip.ts";
+export * from "./hud.ts";

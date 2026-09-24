@@ -5,9 +5,10 @@ import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { TUI } from "@earendil-works/pi-tui";
 import { registerCommands } from "./commands/index.ts";
-import { registerHooks, setDirty } from "./hooks/index.ts";
+import { isDirty, registerHooks, setDirty } from "./hooks/index.ts";
 import { registerTools } from "./tools/index.ts";
 import { KaiokenHeader, playPowerOff } from "./ui/header.ts";
+import { HudTelemetryPoller } from "./ui/hud.ts";
 import type { HeaderInfo, RepoState } from "./ui/logo.ts";
 import { motionFromEnv, setMotion } from "./ui/motion.ts";
 import type { PaintTheme } from "./ui/theme.ts";
@@ -209,6 +210,8 @@ export default function (pi: ExtensionAPI) {
 
 	registerCommands(pi, root);
 
+	const hud = new HudTelemetryPoller();
+
 	// ---- the header ----
 	//
 	// `ui.setHeader` is the extensions API's own hook for replacing the built-in
@@ -216,6 +219,11 @@ export default function (pi: ExtensionAPI) {
 	// forked (Invariant 1), and everything here enters through the API.
 	pi.on("session_start", async (_event, ctx) => {
 		stateCache = await readRepoState(ctx.cwd ?? root()).catch(() => undefined);
+		if (stateCache) {
+			hud.updateFreshness(stateCache.freshness ?? 1.0, stateCache.stale ?? 0);
+			hud.updateWorktree(stateCache.branch ?? "main", isDirty());
+		}
+		hud.start(1000);
 
 		// Only the TUI mode has a header to replace; print and rpc modes have no
 		// terminal, and `setHeader` would be a no-op at best.
@@ -230,6 +238,7 @@ export default function (pi: ExtensionAPI) {
 				info: infoFor(ctx),
 				state: () => stateCache,
 				busy: () => !ctx.isIdle(),
+				hud,
 			});
 			header = created;
 			return created;
@@ -239,9 +248,17 @@ export default function (pi: ExtensionAPI) {
 	// Keep the row honest after anything that could have generated or verified.
 	pi.on("tool_execution_end", async (_event, ctx) => {
 		stateCache = await readRepoState(ctx?.cwd ?? lastCtx?.cwd ?? root()).catch(() => undefined);
+		if (stateCache) {
+			hud.updateFreshness(stateCache.freshness ?? 1.0, stateCache.stale ?? 0);
+			hud.updateWorktree(stateCache.branch ?? "main", isDirty());
+		}
 	});
 	pi.on("agent_end", async (_event, ctx) => {
 		stateCache = await readRepoState(ctx?.cwd ?? lastCtx?.cwd ?? root()).catch(() => undefined);
+		if (stateCache) {
+			hud.updateFreshness(stateCache.freshness ?? 1.0, stateCache.stale ?? 0);
+			hud.updateWorktree(stateCache.branch ?? "main", isDirty());
+		}
 	});
 
 	// ---- the curtain ----
@@ -250,6 +267,7 @@ export default function (pi: ExtensionAPI) {
 	// reload or a session swap is a transition rather than an ending, and
 	// playing a power-off for one would make `/model` look like a crash.
 	pi.on("session_shutdown", async (event) => {
+		hud.dispose();
 		if (event.reason !== "quit" || !tui || !theme) return;
 		await playPowerOff(tui, theme, VERSION).catch(() => null);
 	});

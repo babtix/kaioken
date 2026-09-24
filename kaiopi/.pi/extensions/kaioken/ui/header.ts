@@ -23,6 +23,8 @@ import { pinHeader, unpinHeader, type PinnedHeader } from "./layout.ts";
 import { blockWidth, stickyHeader, type HeaderInfo, type RepoState } from "./logo.ts";
 import { motionEnabled, sweepRule } from "./motion.ts";
 import { colorFromEnv, type Painter, type PaintTheme } from "./theme.ts";
+import { HudTelemetryPoller, renderHudBar } from "./hud.ts";
+import { StatusTooltip, renderTooltipBox } from "./tooltip.ts";
 
 export interface KaiokenHeaderOptions {
 	info: HeaderInfo;
@@ -30,6 +32,8 @@ export interface KaiokenHeaderOptions {
 	state: () => RepoState | undefined;
 	/** Whether a run is in flight, which is what the sweeping rule indicates. */
 	busy: () => boolean;
+	/** Optional HUD telemetry poller providing passive metrics and sparklines. */
+	hud?: HudTelemetryPoller;
 }
 
 export class KaiokenHeader implements Component {
@@ -44,12 +48,22 @@ export class KaiokenHeader implements Component {
 	/** What `pinHeader` needs to put Pi's layout back on dispose. */
 	private pinned: PinnedHeader | null = null;
 	private info: HeaderInfo;
+	private hud: HudTelemetryPoller | undefined;
+	private hudUnsub: (() => void) | undefined;
+	private activeTooltip: StatusTooltip | null = null;
 
 	constructor(tui: TUI, theme: PaintTheme, options: KaiokenHeaderOptions) {
 		this.tui = tui;
 		this.theme = theme;
 		this.options = options;
 		this.info = options.info;
+		this.hud = options.hud;
+
+		if (this.hud) {
+			this.hudUnsub = this.hud.subscribe(() => {
+				this.tui.requestRender();
+			});
+		}
 
 		// The entrance needs frames even when nothing else is happening, so it
 		// owns a timer — but only for as long as it is playing. A header that
@@ -77,6 +91,31 @@ export class KaiokenHeader implements Component {
 	/** Update what the panel reports, e.g. after a model or key change. */
 	setInfo(info: HeaderInfo): void {
 		this.info = info;
+		this.tui.requestRender();
+	}
+
+	/** Attach or update the HUD telemetry poller. */
+	setHud(hud: HudTelemetryPoller | undefined): void {
+		if (this.hudUnsub) {
+			this.hudUnsub();
+			this.hudUnsub = undefined;
+		}
+		this.hud = hud;
+		if (this.hud) {
+			this.hudUnsub = this.hud.subscribe(() => {
+				this.tui.requestRender();
+			});
+		}
+		this.tui.requestRender();
+	}
+
+	getHud(): HudTelemetryPoller | undefined {
+		return this.hud;
+	}
+
+	/** Set active hovering tooltip or clear it. */
+	setTooltip(tooltip: StatusTooltip | null): void {
+		this.activeTooltip = tooltip;
 		this.tui.requestRender();
 	}
 
@@ -130,6 +169,20 @@ export class KaiokenHeader implements Component {
 			this.entranceDone ? undefined : elapsed,
 		);
 
+		// HUD status bar: renders passive telemetry readouts when attached
+		if (this.hud) {
+			const hudBar = renderHudBar(this.hud.current, this.hud.velocityBuffer, paint, width);
+			if (hudBar) lines.push(hudBar);
+		}
+
+		// Floating hover tooltip: renders overlay box when hovering or inspecting a metric
+		if (this.activeTooltip) {
+			const tooltipBox = renderTooltipBox(this.activeTooltip, paint, {
+				maxWidth: Math.min(width > 0 ? width : 60, 60),
+			});
+			lines.push(...tooltipBox);
+		}
+
 		// The sweeping rule is the only thing that keeps moving, and only while
 		// there is something to indicate.
 		if (this.options.busy()) {
@@ -146,6 +199,10 @@ export class KaiokenHeader implements Component {
 
 	dispose(): void {
 		this.stop();
+		if (this.hudUnsub) {
+			this.hudUnsub();
+			this.hudUnsub = undefined;
+		}
 		unpinHeader(this.tui, this, this.pinned);
 		this.pinned = null;
 	}
