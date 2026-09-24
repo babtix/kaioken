@@ -4,7 +4,7 @@
  * Implements Step 19.4 (Features #UX-0231 - #UX-0240).
  * Formats multi-line bordered popover cards with threshold explanations and shortcut hints.
  */
-import { bold, dim, fg, type Painter } from "./theme.ts";
+import { bold, dim, fg, type Painter, type Role } from "./theme.ts";
 import { visibleWidth, pad } from "./logo.ts";
 
 export interface StatusTooltip {
@@ -172,7 +172,8 @@ export function renderTooltipBox(
 	// Value row
 	const valPadded = pad(` ${valLabel}`, innerWidth + 2);
 	if (paint) {
-		const valRole = tooltip.severity ?? "ok";
+		const severityToRole: Record<string, Role> = { ok: "ok", warn: "warn", error: "error", info: "accent" };
+		const valRole: Role = severityToRole[tooltip.severity ?? "ok"] ?? "ok";
 		output.push(`${dim(paint, bVert)}${fg(paint, valRole, valPadded)}${dim(paint, bVert)}`);
 	} else {
 		output.push(`${bVert}${valPadded}${bVert}`);

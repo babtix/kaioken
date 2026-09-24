@@ -216,8 +216,8 @@
 ### Step 20: Category 04 — Keyboard Navigation, Shortcuts & Command Palette
 *Rank: #20 Keyboard Efficiency | Package: `packages/tui` | Features: `#UX-0301` – `#UX-0400`*  
 📄 **Plan Reference**: [`04-keyboard-navigation-shortcuts-command-palette.md`](categories/04-keyboard-navigation-shortcuts-command-palette.md)
-- [ ] **20.1** Implement Vim-style navigation hotkeys (`j`/`k`, `g`/`G`) across lists (`UX-0301`–`UX-0310`)
-- [ ] **20.2** Build fuzzy search quick selector command palette (`UX-0311`–`UX-0320`)
-- [ ] **20.3** Add global hotkey shortcuts to toggle HUD and drawer panes (`UX-0321`–`UX-0330`)
-- [ ] **20.4** Deploy contextual quick-action menu (`Alt+Enter`) on symbols and cards (`UX-0331`–`UX-0340`)
-- [ ] **20.5** Build visual keyboard cheat-sheet overlay displaying shortcuts (`UX-0341`–`UX-0350`)
+- [x] **20.1** Implement Vim-style navigation hotkeys (`j`/`k`, `g`/`G`) across lists (`UX-0301`–`UX-0310`)
+- [x] **20.2** Build fuzzy search quick selector command palette (`UX-0311`–`UX-0320`)
+- [x] **20.3** Add global hotkey shortcuts to toggle HUD and drawer panes (`UX-0321`–`UX-0330`)
+- [x] **20.4** Deploy contextual quick-action menu (`Alt+Enter`) on symbols and cards (`UX-0331`–`UX-0340`)
+- [x] **20.5** Build visual keyboard cheat-sheet overlay displaying shortcuts (`UX-0341`–`UX-0350`)

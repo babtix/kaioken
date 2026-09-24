@@ -39,6 +39,8 @@ export interface Keybindings {
 	"tui.select.down": true;
 	"tui.select.pageUp": true;
 	"tui.select.pageDown": true;
+	"tui.select.top": true;
+	"tui.select.bottom": true;
 	"tui.select.confirm": true;
 	"tui.select.cancel": true;
 	// Alternate-screen viewport navigation
@@ -151,6 +153,8 @@ export const TUI_KEYBINDINGS = {
 		defaultKeys: "pageDown",
 		description: "Selection page down",
 	},
+	"tui.select.top": { defaultKeys: "home", description: "Move selection to top" },
+	"tui.select.bottom": { defaultKeys: "end", description: "Move selection to bottom" },
 	"tui.select.confirm": { defaultKeys: "enter", description: "Confirm selection" },
 	"tui.select.cancel": {
 		defaultKeys: ["escape", "ctrl+c"],

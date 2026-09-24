@@ -34,6 +34,8 @@ export * from "./diff.ts";
 export * from "./clipboard.ts";
 export * from "./autoscroll.ts";
 export * from "./breadcrumbs.ts";
+import { KeyboardCheatSheet } from "../ui/cheatsheet.ts";
+import { CommandPalette } from "../ui/command-palette.ts";
 
 import { proposeModulePlan, validatePlan, writeModulePlan, type ModulePlan } from "../../../../kaioken/plan/src/index.ts";
 import { generateCards, readCards, readModulePlan, writeCard } from "../../../../kaioken/plan/src/index.ts";
@@ -1246,6 +1248,27 @@ export function registerCommands(
 			} finally {
 				ctx.ui?.setWorkingMessage?.(undefined);
 			}
+		},
+	});
+
+	// 17. /kaio-keys
+	pi.registerCommand("kaio-keys", {
+		description: "Display visual keyboard shortcuts cheat-sheet overlay",
+		handler: async (_args, ctx) => {
+			const sheet = new KeyboardCheatSheet();
+			const rendered = sheet.render(ctx.ui ? 80 : 70);
+			ctx.ui?.notify?.(rendered.join("\n"), "info");
+		},
+	});
+
+	// 18. /kaio-palette
+	pi.registerCommand("kaio-palette", {
+		description: "Open interactive fuzzy command palette",
+		handler: async (args, ctx) => {
+			const palette = new CommandPalette();
+			if (args) palette.setQuery(args.trim());
+			const rendered = palette.render(ctx.ui ? 80 : 70);
+			ctx.ui?.notify?.(rendered.join("\n"), "info");
 		},
 	});
 }

@@ -80,12 +80,14 @@ describe("Phase 6: Command Surface & HUD", () => {
 			"kaio-update",
 			"kaio-research",
 			"kaio-skills",
+			"kaio-keys",
+			"kaio-palette",
 		];
 
 		for (const name of expected) {
 			expect(fake.commands.has(name)).toBe(true);
 		}
-		expect(fake.commands.size).toBe(16);
+		expect(fake.commands.size).toBe(18);
 	});
 
 	it("parses multiplier dial accurately", () => {

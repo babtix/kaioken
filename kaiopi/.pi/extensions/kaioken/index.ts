@@ -9,6 +9,7 @@ import { isDirty, registerHooks, setDirty } from "./hooks/index.ts";
 import { registerTools } from "./tools/index.ts";
 import { KaiokenHeader, playPowerOff } from "./ui/header.ts";
 import { HudTelemetryPoller } from "./ui/hud.ts";
+import { GlobalShortcutManager } from "./ui/shortcuts.ts";
 import type { HeaderInfo, RepoState } from "./ui/logo.ts";
 import { motionFromEnv, setMotion } from "./ui/motion.ts";
 import type { PaintTheme } from "./ui/theme.ts";
@@ -211,6 +212,11 @@ export default function (pi: ExtensionAPI) {
 	registerCommands(pi, root);
 
 	const hud = new HudTelemetryPoller();
+	const shortcuts = new GlobalShortcutManager();
+	shortcuts.onToggleHud = (visible) => {
+		header?.setHudVisible(visible);
+		badge(visible ? "HUD on" : "HUD off");
+	};
 
 	// ---- the header ----
 	//

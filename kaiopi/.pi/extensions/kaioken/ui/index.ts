@@ -20,3 +20,8 @@ export * from "./freshness.ts";
 export * from "./worktree-status.ts";
 export * from "./tooltip.ts";
 export * from "./hud.ts";
+export * from "./vim-nav.ts";
+export * from "./command-palette.ts";
+export * from "./shortcuts.ts";
+export * from "./quick-action-menu.ts";
+export * from "./cheatsheet.ts";

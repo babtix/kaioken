@@ -113,4 +113,41 @@ describe("SelectList", () => {
 		assert.ok(rendered[0].includes("…"));
 		assert.equal(visibleIndexOf(rendered[0], "first"), visibleIndexOf(rendered[1], "second"));
 	});
+
+	it("supports vim navigation hotkeys (j/k, g/G, ctrl+d/u) when vimNavigation is enabled", () => {
+		const items = [
+			{ value: "item0", label: "item0" },
+			{ value: "item1", label: "item1" },
+			{ value: "item2", label: "item2" },
+			{ value: "item3", label: "item3" },
+			{ value: "item4", label: "item4" },
+		];
+
+		const list = new SelectList(items, 3, testTheme, { vimNavigation: true });
+		assert.equal(list.getSelectedIndex(), 0);
+
+		// 'j' moves down
+		list.handleInput("j");
+		assert.equal(list.getSelectedIndex(), 1);
+
+		// 'k' moves up
+		list.handleInput("k");
+		assert.equal(list.getSelectedIndex(), 0);
+
+		// 'G' moves to bottom
+		list.handleInput("G");
+		assert.equal(list.getSelectedIndex(), 4);
+
+		// 'g' moves to top
+		list.handleInput("g");
+		assert.equal(list.getSelectedIndex(), 0);
+
+		// 'ctrl+d' (\x04) advances by maxVisible
+		list.handleInput("\x04");
+		assert.equal(list.getSelectedIndex(), 3);
+
+		// 'ctrl+u' (\x15) retreats by maxVisible
+		list.handleInput("\x15");
+		assert.equal(list.getSelectedIndex(), 0);
+	});
 });

@@ -35,6 +35,7 @@ export interface SelectListLayoutOptions {
 	minPrimaryColumnWidth?: number;
 	maxPrimaryColumnWidth?: number;
 	truncatePrimary?: (context: SelectListTruncatePrimaryContext) => string;
+	vimNavigation?: boolean;
 }
 
 export class SelectList implements Component {
@@ -56,6 +57,14 @@ export class SelectList implements Component {
 		this.maxVisible = maxVisible;
 		this.theme = theme;
 		this.layout = layout;
+	}
+
+	setVimNavigation(enabled: boolean): void {
+		this.layout.vimNavigation = enabled;
+	}
+
+	getSelectedIndex(): number {
+		return this.selectedIndex;
 	}
 
 	setFilter(filter: string): void {
@@ -143,15 +152,38 @@ export class SelectList implements Component {
 	}
 
 	handleInput(keyData: string): void {
+		if (this.filteredItems.length === 0) return;
 		const kb = getKeybindings();
-		// Up arrow - wrap to bottom when at top
-		if (kb.matches(keyData, "tui.select.up")) {
+		const vim = this.layout.vimNavigation ?? false;
+
+		// Up arrow or vim 'k' - wrap to bottom when at top
+		if (kb.matches(keyData, "tui.select.up") || (vim && (keyData === "k" || keyData === "\x10"))) {
 			this.selectedIndex = this.selectedIndex === 0 ? this.filteredItems.length - 1 : this.selectedIndex - 1;
 			this.notifySelectionChange();
 		}
-		// Down arrow - wrap to top when at bottom
-		else if (kb.matches(keyData, "tui.select.down")) {
+		// Down arrow or vim 'j' - wrap to top when at bottom
+		else if (kb.matches(keyData, "tui.select.down") || (vim && (keyData === "j" || keyData === "\x0e"))) {
 			this.selectedIndex = this.selectedIndex === this.filteredItems.length - 1 ? 0 : this.selectedIndex + 1;
+			this.notifySelectionChange();
+		}
+		// Page up or vim ctrl+u / half-page
+		else if (kb.matches(keyData, "tui.select.pageUp") || (vim && keyData === "\x15")) {
+			this.selectedIndex = Math.max(0, this.selectedIndex - this.maxVisible);
+			this.notifySelectionChange();
+		}
+		// Page down or vim ctrl+d / half-page
+		else if (kb.matches(keyData, "tui.select.pageDown") || (vim && keyData === "\x04")) {
+			this.selectedIndex = Math.min(this.filteredItems.length - 1, this.selectedIndex + this.maxVisible);
+			this.notifySelectionChange();
+		}
+		// Jump to top (home or vim 'g')
+		else if (kb.matches(keyData, "tui.select.top") || (vim && keyData === "g")) {
+			this.selectedIndex = 0;
+			this.notifySelectionChange();
+		}
+		// Jump to bottom (end or vim 'G')
+		else if (kb.matches(keyData, "tui.select.bottom") || (vim && (keyData === "G" || keyData === "shift+g"))) {
+			this.selectedIndex = this.filteredItems.length - 1;
 			this.notifySelectionChange();
 		}
 		// Enter

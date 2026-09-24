@@ -8,6 +8,7 @@
  * animation frame rendering.
  */
 
+export { visibleWidth } from "./logo.ts";
 import { visibleWidth } from "./logo.ts";
 
 const ANSI_REGEX = /\x1b\[[0-9;]*[a-zA-Z]/g;

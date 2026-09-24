@@ -50,6 +50,7 @@ export class KaiokenHeader implements Component {
 	private info: HeaderInfo;
 	private hud: HudTelemetryPoller | undefined;
 	private hudUnsub: (() => void) | undefined;
+	private hudVisible = true;
 	private activeTooltip: StatusTooltip | null = null;
 
 	constructor(tui: TUI, theme: PaintTheme, options: KaiokenHeaderOptions) {
@@ -113,6 +114,21 @@ export class KaiokenHeader implements Component {
 		return this.hud;
 	}
 
+	isHudVisible(): boolean {
+		return this.hudVisible;
+	}
+
+	setHudVisible(visible: boolean): void {
+		this.hudVisible = visible;
+		this.tui.requestRender();
+	}
+
+	toggleHud(): boolean {
+		this.hudVisible = !this.hudVisible;
+		this.tui.requestRender();
+		return this.hudVisible;
+	}
+
 	/** Set active hovering tooltip or clear it. */
 	setTooltip(tooltip: StatusTooltip | null): void {
 		this.activeTooltip = tooltip;
@@ -169,8 +185,8 @@ export class KaiokenHeader implements Component {
 			this.entranceDone ? undefined : elapsed,
 		);
 
-		// HUD status bar: renders passive telemetry readouts when attached
-		if (this.hud) {
+		// HUD status bar: renders passive telemetry readouts when attached and visible
+		if (this.hud && this.hudVisible) {
 			const hudBar = renderHudBar(this.hud.current, this.hud.velocityBuffer, paint, width);
 			if (hudBar) lines.push(hudBar);
 		}
