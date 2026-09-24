@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 import { parseArgs } from "node:util";
 import { formatReport, runEval } from "./evals/src/index.ts";
 import {
@@ -35,7 +35,11 @@ import {
 } from "./modelport/src/index.ts";
 import {
 	computeCoverageIndicator,
+	deduplicateCards,
+	exportCardsToObsidianVault,
+	formatCardBadge,
 	formatCheckpointReport,
+	formatCitationDensityGauge,
 	formatCoverageGauge,
 	mergeModules,
 	moveFile,
@@ -43,6 +47,8 @@ import {
 	readCards,
 	readModulePlan,
 	readModulePlanRaw,
+	renderCard3D,
+	renderCardPair,
 	renderCardSortingGrid,
 	renderModuleTree,
 	splitModule,
@@ -54,6 +60,7 @@ import { readResearchDocuments } from "./research/src/index.ts";
 import {
 	formatClassificationTable,
 	KAIOKEN_DIR,
+	readScanArtifact,
 	scan,
 	suggestIgnoreRules,
 	visualizeEntropyProfile,
@@ -64,7 +71,18 @@ import { serve } from "./serve/src/index.ts";
 import { discoverRepoCommands } from "./skillgen/src/index.ts";
 import { loadSkills } from "./skills/src/index.ts";
 import { runVerify } from "./verify/src/index.ts";
-import { readProvenance, readVerification, readWikiPlan } from "./wiki/src/index.ts";
+import {
+	budgetChapterEvidence,
+	computeDocCoverageHeatmap,
+	formatLinkValidationReport,
+	readProvenance,
+	readVerification,
+	readWikiPlan,
+	renderCoverageHeatmap,
+	validateWikiLinks,
+	wikiDir,
+	type WikiDocument,
+} from "./wiki/src/index.ts";
 
 function printHelp(): void {
 	console.log(`Kaioken CLI — Grounded Intelligence Pipeline for Codebases
@@ -114,6 +132,14 @@ Command Options:
             --split <modId>      Split an oversized module into submodules
             --merge <src:target> Merge two modules together
             --move <file:modId>  Reassign file to a target module
+  cards:    --3d                 Render 3D isometric perspective box
+            --flip               Render dual-sided card pair (front & back)
+            --badge              Display visual verification status badges and citation density
+            --dedupe             Deduplicate and merge overlapping knowledge cards
+            --export <dir>       Export knowledge cards to Obsidian-compatible vault directory
+  wiki:     --heatmap            Display repository documentation coverage heatmap
+            --validate-links     Validate cross-chapter relative markdown links and anchors
+            --budget <tokens>    Display hierarchical token budgeting breakdown per chapter
   spend:    --multiplier <n>     Depth multiplier (1–10, default: 1)
             --budget <usd>       Session hard budget ceiling in USD
             --model <name>       Target model ID for pricing calculations
@@ -167,6 +193,13 @@ async function main(): Promise<void> {
 			merge: { type: "string" },
 			move: { type: "string" },
 			cardsort: { type: "boolean" },
+			"3d": { type: "boolean" },
+			flip: { type: "boolean" },
+			badge: { type: "boolean" },
+			dedupe: { type: "boolean" },
+			export: { type: "string" },
+			heatmap: { type: "boolean" },
+			"validate-links": { type: "boolean" },
 		},
 	});
 
@@ -513,6 +546,34 @@ async function main(): Promise<void> {
 
 		case "cards": {
 			const cards = await readCards(root);
+
+			if (values.export) {
+				const targetDir = String(values.export);
+				const exportResult = await exportCardsToObsidianVault(cards, targetDir);
+				if (isJson) {
+					console.log(JSON.stringify(exportResult, null, 2));
+				} else {
+					console.log(`Exported ${exportResult.writtenFiles.length} card(s) to Obsidian vault at ${targetDir}`);
+					console.log(`Map of Content (MOC): ${exportResult.mapOfContentPath}`);
+				}
+				break;
+			}
+
+			if (values.dedupe) {
+				const dedupeResult = deduplicateCards(cards);
+				if (isJson) {
+					console.log(JSON.stringify(dedupeResult, null, 2));
+				} else {
+					console.log(
+						`Deduplication: ${cards.length} original card(s) -> ${dedupeResult.cards.length} deduplicated card(s)`,
+					);
+					console.log(
+						`Merged ${dedupeResult.mergedCount} overlapping card(s) in ${dedupeResult.clusters.length} cluster(s).`,
+					);
+				}
+				break;
+			}
+
 			if (isJson) {
 				console.log(JSON.stringify(cards, null, 2));
 			} else if (cards.length === 0) {
@@ -520,9 +581,18 @@ async function main(): Promise<void> {
 			} else {
 				console.log(`Loaded ${cards.length} card(s) from .kaioken/cards:`);
 				for (const c of cards) {
-					console.log(
-						`  - [${c.moduleId}] (${c.entryPoints.length} entry point(s)): ${c.summary.slice(0, 100)}`,
-					);
+					if (values["3d"]) {
+						console.log(renderCard3D(c, { side: "front" }));
+					} else if (values.flip) {
+						console.log(renderCardPair(c));
+					} else {
+						const badge = values.badge
+							? ` ${formatCardBadge(c.verification)} ${formatCitationDensityGauge(c.verification)}`
+							: "";
+						console.log(
+							`  - [${c.moduleId}] (${c.entryPoints.length} entry point(s)): ${c.summary.slice(0, 100)}${badge}`,
+						);
+					}
 				}
 			}
 			break;
@@ -532,6 +602,112 @@ async function main(): Promise<void> {
 			const plan = await readWikiPlan(root);
 			const verification = await readVerification(root);
 			const provenance = await readProvenance(root);
+
+			const wikiDirAbs = wikiDir(root);
+			const docFiles: string[] = [];
+			async function collectDocs(dir: string): Promise<void> {
+				try {
+					const entries = await readdir(dir, { withFileTypes: true });
+					for (const entry of entries) {
+						const res = join(dir, entry.name);
+						if (entry.isDirectory()) {
+							await collectDocs(res);
+						} else if (entry.isFile() && entry.name.endsWith(".md")) {
+							docFiles.push(res);
+						}
+					}
+				} catch {
+					// directory might not exist
+				}
+			}
+			await collectDocs(wikiDirAbs);
+
+			const documents: WikiDocument[] = [];
+			for (const f of docFiles) {
+				try {
+					const relPath = relative(wikiDirAbs, f).split("\\").join("/");
+					const body = await readFile(f, "utf8");
+					const titleMatch = /^#\s+(.+)$/m.exec(body);
+					const title = titleMatch ? titleMatch[1].trim() : relPath;
+					const prov = provenance?.documents.find((p) => p.document === relPath) ?? {
+						document: relPath,
+						chapterId: relPath.split("/")[0] || "",
+						generatedAt: "",
+						sources: [],
+					};
+					const ver = verification?.documents.find((v) => v.document === relPath) ?? {
+						grounded: 0,
+						defects: [],
+						uncovered: [],
+						coverage: 0,
+					};
+					documents.push({
+						path: relPath,
+						chapterId: prov.chapterId,
+						title,
+						body,
+						provenance: prov,
+						verification: ver,
+					});
+				} catch {
+					// ignore read errors
+				}
+			}
+
+			if (values.heatmap) {
+				const scanResult = await readScanArtifact(root);
+				const indexResult = await readIndexArtifact(root);
+				if (!scanResult || !indexResult || !plan) {
+					console.error("Heatmap requires scan, index, and wiki-plan artifacts. Run `kaioken scan` and plan first.");
+					break;
+				}
+				const heatmap = computeDocCoverageHeatmap(documents, scanResult, indexResult, plan);
+				if (isJson) {
+					console.log(JSON.stringify(heatmap, null, 2));
+				} else {
+					console.log(renderCoverageHeatmap(heatmap));
+				}
+				break;
+			}
+
+			if (values["validate-links"]) {
+				const report = validateWikiLinks({ documents });
+				if (isJson) {
+					console.log(JSON.stringify(report, null, 2));
+				} else {
+					console.log(formatLinkValidationReport(report));
+				}
+				break;
+			}
+
+			if (values.budget !== undefined) {
+				if (!plan) {
+					console.log("No wiki plan found in .kaioken/wiki/plan.json.");
+					break;
+				}
+				const indexResult = await readIndexArtifact(root);
+				const maxTokens = typeof values.budget === "string" ? parseInt(values.budget, 10) || 4000 : 4000;
+				console.log(
+					`Hierarchical Evidence Budgeting across ${plan.chapters.length} chapter(s) (ceiling: ${maxTokens} tokens):`,
+				);
+				for (const ch of plan.chapters) {
+					const chFiles = (ch.files ?? []).map((p) => {
+						const fMap = indexResult?.files.find((f) => f.path === p);
+						return {
+							path: p,
+							language: fMap?.language ?? "typescript",
+							lineCount: fMap?.lineCount ?? 50,
+							declarations: (fMap?.symbols ?? []).map((s) => `+ export ${s.kind} ${s.name}: ${s.signature}`),
+						};
+					});
+					const budgeted = budgetChapterEvidence({ chapter: ch, files: chFiles, maxTokens });
+					console.log(
+						`  - Chapter [${ch.id}] (${ch.title}): ${budgeted.tokenEstimate} est. tokens (${budgeted.compressionRatio < 1 ? `pruned ${budgeted.prunedDeclarationsCount} decls, ratio ${budgeted.compressionRatio.toFixed(2)}` : "100% full detail"})`,
+					);
+				}
+				break;
+			}
+
 			if (isJson) {
 				console.log(JSON.stringify({ plan, verification, provenance }, null, 2));
 			} else if (!plan) {

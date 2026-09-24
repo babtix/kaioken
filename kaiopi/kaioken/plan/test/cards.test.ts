@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { SymbolOracle, type IndexResult } from "@kaioken/index";
 import type { ModelClient, ModelRequest } from "@kaioken/modelport";
-import { buildCardPrompt, generateCard, generateCards, verifyCard } from "../src/cards.ts";
+import {
+	buildCardPrompt,
+	formatCardBadge,
+	formatCitationDensityGauge,
+	generateCard,
+	generateCards,
+	isCardSymbolStale,
+	renderCard3D,
+	renderCardPair,
+	updateCardsIncrementally,
+	verifyCard,
+} from "../src/cards.ts";
 import type { Module, ModulePlan } from "../src/types.ts";
 import type { ModuleEvidence } from "../src/evidence.ts";
 
@@ -340,3 +351,112 @@ describe("cards: prompt shape", () => {
 		expect(prompt).toContain("(no declarations indexed)");
 	});
 });
+
+describe("cards: visual presentation and 3D terminal viewer", () => {
+	const sampleCard = {
+		moduleId: "crypto",
+		name: "Cryptographic Security",
+		generatedAt: "2026-09-24T00:00:00.000Z",
+		summary: "Provides AES encryption and secure key exchange.",
+		keyPoints: ["Zero key leaks in heap", "Hardware accelerated AES-GCM"],
+		entryPoints: [
+			{ name: "encrypt", file: "src/crypto.ts", note: "Primary encryption helper", line: 12, kind: "function", exported: true },
+			{ name: "decrypt", file: "src/crypto.ts", note: "Primary decryption helper", line: 45, kind: "function", exported: true },
+		],
+		sources: [{ path: "src/crypto.ts", hash: "hash-crypto" }],
+		verification: { grounded: 2, ungrounded: [], unknownFiles: [], uncovered: [], score: 100, status: "grounded" as const },
+	};
+
+	it("formats status badge correctly for grounded and defective cards", () => {
+		expect(formatCardBadge(sampleCard.verification)).toContain("GROUNDED 100%");
+		expect(formatCardBadge({ grounded: 1, ungrounded: ["fake"], unknownFiles: [], uncovered: [], status: "partial" })).toContain("PARTIAL");
+		expect(formatCardBadge({ grounded: 0, ungrounded: ["ghost"], unknownFiles: ["missing.ts"], uncovered: [], status: "defects" })).toContain("DEFECTS");
+	});
+
+	it("formats citation density gauge with percentage and ratio", () => {
+		const gauge = formatCitationDensityGauge(sampleCard, { width: 10 });
+		expect(gauge).toContain("100%");
+		expect(gauge).toContain("2/2 verified");
+	});
+
+	it("renders 3D-styled card front and back views", () => {
+		const front = renderCard3D(sampleCard, { side: "front" });
+		expect(front).toContain("[FRONT] 📇 MODULE: CRYPTO — Cryptographic Security");
+		expect(front).toContain("SUMMARY:");
+		expect(front).toContain("Zero key leaks in heap");
+
+		const back = renderCard3D(sampleCard, { side: "back" });
+		expect(back).toContain("[BACK] 🔍 CITATIONS & DECLARATIONS: crypto");
+		expect(back).toContain("encrypt -> src/crypto.ts:12 [function] [VERIFIED]");
+		expect(back).toContain("PROVENANCE SOURCES (1):");
+	});
+
+	it("renders a 3D flip pair with rotation divider", () => {
+		const pair = renderCardPair(sampleCard);
+		expect(pair).toContain("[FRONT]");
+		expect(pair).toContain("[ 3D CARD ROTATION FLIP ]");
+		expect(pair).toContain("[BACK]");
+	});
+});
+
+describe("cards: symbol-level incremental freshness", () => {
+	const card = {
+		moduleId: "api",
+		name: "API",
+		generatedAt: "2026-01-01T00:00:00.000Z",
+		summary: "API routes.",
+		keyPoints: ["Routes"],
+		entryPoints: [{ name: "handleRequest", file: "src/api.ts", note: "" }],
+		sources: [{ path: "src/api.ts", hash: "hash-api" }],
+		verification: { grounded: 1, ungrounded: [], unknownFiles: [], uncovered: [] },
+	};
+
+	it("detects symbol staleness when a cited symbol was modified", () => {
+		expect(isCardSymbolStale(card, new Set(["handleRequest"]))).toBe(true);
+		expect(isCardSymbolStale(card, new Set(["unrelatedFunction"]))).toBe(false);
+	});
+
+	it("selectively updates only invalidated cards with updateCardsIncrementally", async () => {
+		const plan: ModulePlan = {
+			version: 1,
+			generatedAt: "",
+			multiplier: 1,
+			modules: [
+				{ id: "api", name: "API", purpose: "API layer", files: ["src/api.ts"] },
+				{ id: "util", name: "Util", purpose: "Util layer", files: ["src/util.ts"] },
+			],
+		};
+		const existingUtil = {
+			moduleId: "util",
+			name: "Util",
+			generatedAt: "2026-01-01T00:00:00.000Z",
+			summary: "Util helpers.",
+			keyPoints: ["Helpers"],
+			entryPoints: [{ name: "clamp", file: "src/util.ts", note: "" }],
+			sources: [{ path: "src/util.ts", hash: "h-util" }],
+			verification: { grounded: 1, ungrounded: [], unknownFiles: [], uncovered: [] },
+		};
+
+		const client = scriptedClient([draft("Regenerated API", [{ name: "handleRequest", file: "src/api.ts" }])]);
+		const oracleIndex = indexOf([
+			{ path: "src/api.ts", symbols: [{ name: "handleRequest" }] },
+			{ path: "src/util.ts", symbols: [{ name: "clamp" }] },
+		]);
+
+		const res = await updateCardsIncrementally(
+			plan,
+			[card, existingUtil],
+			oracleIndex,
+			client,
+			{
+				modifiedSymbols: new Set(["handleRequest"]),
+				knownFiles: new Map([["src/api.ts", "new-hash"], ["src/util.ts", "h-util"]]),
+			},
+		);
+
+		expect(res.regenerated).toContain("api");
+		expect(res.reused).toContain("util");
+		expect(res.cards).toHaveLength(2);
+	});
+});
+

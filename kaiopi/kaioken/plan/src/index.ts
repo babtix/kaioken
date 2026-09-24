@@ -11,8 +11,32 @@ export {
 	writeCard,
 	writeModulePlan,
 } from "./artifact.ts";
-export { buildCardPrompt, generateCard, generateCards, verifyCard } from "./cards.ts";
+export {
+	buildCardPrompt,
+	formatCardBadge,
+	formatCitationDensityGauge,
+	generateCard,
+	generateCards,
+	isCardSymbolStale,
+	renderCard3D,
+	renderCardPair,
+	updateCardsIncrementally,
+	verifyCard,
+} from "./cards.ts";
 export type { CardResult } from "./cards.ts";
+export {
+	calculateCardSimilarity,
+	deduplicateCards,
+	detectDuplicateCards,
+	mergeCardCluster,
+	mergeDuplicateCards,
+} from "./dedupe.ts";
+export {
+	cardToFrontmatter,
+	cardToMarkdown,
+	exportCardsToObsidianVault,
+	generateVaultMapOfContent,
+} from "./export.ts";
 export {
 	CardSortingSession,
 	createModule,
@@ -60,11 +84,17 @@ export {
 export type { RepairResult, SelfRepairParseResult } from "./repair.ts";
 export type {
 	Card,
+	Card3DRenderOptions,
+	CardDuplicateCluster,
 	CardEntryPoint,
+	CardSimilarity,
 	CardVerification,
+	DeduplicationResult,
 	Module,
 	ModulePlan,
+	ObsidianExportOptions,
 	PlanDefect,
 	PlanValidation,
 } from "./types.ts";
 export { expandDirectories, findModule, flatten, moduleScope, validatePlan } from "./validate.ts";
+

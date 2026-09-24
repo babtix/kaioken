@@ -2,7 +2,7 @@ import { type IndexResult, SymbolOracle } from "@kaioken/index";
 import { type Depth, depthFor, extractJson, type ModelClient } from "@kaioken/modelport";
 import { readCards } from "./artifact.ts";
 import { gatherModuleEvidence, type ModuleEvidence } from "./evidence.ts";
-import type { Card, CardEntryPoint, CardVerification, Module, ModulePlan } from "./types.ts";
+import type { Card, Card3DRenderOptions, CardEntryPoint, CardVerification, Module, ModulePlan } from "./types.ts";
 import { moduleScope } from "./validate.ts";
 
 const SYSTEM = `You write a knowledge card for one module of a repository.
@@ -157,19 +157,38 @@ export function verifyCard(
 		// bare name with a parent. Checking only the literal string would flag a
 		// perfectly correct reference.
 		const candidates = nameCandidates(entry.name);
+		let matchedRecord: { startLine?: number; kind?: string; exported?: boolean } | null = null;
 
 		// Prefer the scoped check: a name that exists elsewhere in the repository
 		// is still wrong if this module does not declare it.
-		const scoped = entry.file ? candidates.some((name) => oracle.lookupIn(entry.file, name) !== null) : false;
-		if (scoped) {
-			grounded++;
-			continue;
+		if (entry.file) {
+			for (const cand of candidates) {
+				const rec = oracle.lookupIn(entry.file, cand);
+				if (rec) {
+					matchedRecord = rec;
+					break;
+				}
+			}
 		}
-		if (!entry.file && candidates.some((name) => oracle.has(name))) {
-			grounded++;
-			continue;
+
+		if (!matchedRecord && !entry.file) {
+			for (const cand of candidates) {
+				const locs = oracle.lookup(cand);
+				if (locs.length > 0 && locs[0]?.symbol) {
+					matchedRecord = locs[0].symbol;
+					break;
+				}
+			}
 		}
-		ungrounded.push(entry.name);
+
+		if (matchedRecord) {
+			grounded++;
+			if (matchedRecord.startLine !== undefined) entry.line = matchedRecord.startLine;
+			if (matchedRecord.kind !== undefined) entry.kind = matchedRecord.kind;
+			if (matchedRecord.exported !== undefined) entry.exported = matchedRecord.exported;
+		} else {
+			ungrounded.push(entry.name);
+		}
 	}
 
 	const mentioned = new Set(draft.entryPoints.flatMap((e) => nameCandidates(e.name)));
@@ -178,11 +197,22 @@ export function verifyCard(
 	// A module's own claimed files that the index never had.
 	for (const missing of evidence.missing) unknownFiles.push(missing);
 
+	const total = grounded + ungrounded.length;
+	const score = total > 0 ? Math.round((grounded / total) * 100) : 100;
+	const status: "grounded" | "defects" | "partial" =
+		ungrounded.length === 0 && unknownFiles.length === 0
+			? "grounded"
+			: grounded > 0
+				? "partial"
+				: "defects";
+
 	return {
 		grounded,
 		ungrounded,
 		unknownFiles: [...new Set(unknownFiles)],
 		uncovered,
+		score,
+		status,
 	};
 }
 
@@ -421,3 +451,310 @@ function emptyIndex(): IndexResult {
 		files: [],
 	};
 }
+
+/**
+ * Format a visual status badge for a card verification record.
+ * [GROUNDED 100%] | [PARTIAL 75%] | [DEFECTS: 2 ungrounded]
+ */
+export function formatCardBadge(
+	verification: CardVerification | undefined,
+	options: { unicode?: boolean } = {},
+): string {
+	if (!verification) return "[UNVERIFIED]";
+	const useUnicode = options.unicode ?? true;
+	const grounded = verification.grounded;
+	const ungroundedCount = verification.ungrounded.length;
+	const total = grounded + ungroundedCount;
+	const score = verification.score ?? (total > 0 ? Math.round((grounded / total) * 100) : 100);
+
+	const isGrounded =
+		verification.status === "grounded" ||
+		(ungroundedCount === 0 && verification.unknownFiles.length === 0);
+
+	if (isGrounded) {
+		return useUnicode ? `[✔ GROUNDED ${score}%]` : `[GROUNDED ${score}%]`;
+	}
+	if (verification.status === "partial" || grounded > 0) {
+		return useUnicode ? `[⚠ PARTIAL ${score}%]` : `[PARTIAL ${score}%]`;
+	}
+	return useUnicode
+		? `[✖ DEFECTS: ${ungroundedCount} ungrounded]`
+		: `[DEFECTS: ${ungroundedCount} ungrounded]`;
+}
+
+/**
+ * Visual citation density gauge measuring evidence ratio (grounded citations / total citations).
+ * e.g. [████████░░] 80% (4/5 verified)
+ */
+export function formatCitationDensityGauge(
+	card: Card,
+	options: { width?: number; unicode?: boolean } = {},
+): string {
+	const width = options.width ?? 12;
+	const useUnicode = options.unicode ?? true;
+	const grounded = card.verification?.grounded ?? 0;
+	const ungrounded = card.verification?.ungrounded.length ?? 0;
+	const total = grounded + ungrounded || card.entryPoints.length || 1;
+	const ratio = Math.min(1, Math.max(0, grounded / total));
+	const filled = Math.round(ratio * width);
+	const empty = Math.max(0, width - filled);
+
+	const fillChar = useUnicode ? "█" : "#";
+	const emptyChar = useUnicode ? "░" : "-";
+	const bar = fillChar.repeat(filled) + emptyChar.repeat(empty);
+	const pct = Math.round(ratio * 100);
+
+	return `[${bar}] ${pct}% (${grounded}/${total} verified)`;
+}
+
+/**
+ * Check whether a card cites any symbols that were modified or removed.
+ * Returns true if the card is stale at the symbol level.
+ */
+export function isCardSymbolStale(
+	card: Card,
+	modifiedSymbols?: ReadonlySet<string>,
+	oracle?: SymbolOracle,
+): boolean {
+	if (!modifiedSymbols || modifiedSymbols.size === 0) return false;
+
+	for (const ep of card.entryPoints) {
+		const candidates = nameCandidates(ep.name);
+		for (const cand of candidates) {
+			if (modifiedSymbols.has(cand)) return true;
+		}
+		if (oracle && ep.file) {
+			const loc = oracle.lookupIn(ep.file, ep.name);
+			if (!loc) return true; // symbol no longer exists in scope
+		}
+	}
+	return false;
+}
+
+/**
+ * Wrap text lines cleanly to fit within target width.
+ */
+function wrapText(text: string, maxWidth: number): string[] {
+	if (!text) return [];
+	const words = text.split(/\s+/);
+	const lines: string[] = [];
+	let current = "";
+
+	for (const word of words) {
+		if (!current) {
+			current = word;
+		} else if (current.length + 1 + word.length <= maxWidth) {
+			current += ` ${word}`;
+		} else {
+			lines.push(current);
+			current = word;
+		}
+	}
+	if (current) lines.push(current);
+	return lines;
+}
+
+/**
+ * Render an interactive 3D-styled terminal card flip viewer (UX-1301 to UX-1310).
+ * Simulates isometric terminal depth with shaded right/bottom borders and front/back views.
+ */
+export function renderCard3D(card: Card, options: Card3DRenderOptions = {}): string {
+	const side = options.side ?? "front";
+	const targetWidth = Math.max(48, Math.min(100, options.width ?? 68));
+	const innerWidth = targetWidth - 4; // account for borders "│ " and " │"
+	const u = options.unicode ?? true;
+
+	const cTopLeft = u ? "╭" : "+";
+	const cTopRight = u ? "╮" : "+";
+	const cBottomLeft = u ? "╰" : "+";
+	const cBottomRight = u ? "╯" : "+";
+	const cHoriz = u ? "─" : "-";
+	const cVert = u ? "│" : "|";
+	const cDivider = u ? "├" : "+";
+	const cDividerR = u ? "┤" : "+";
+	const shadowRight = u ? "█" : "#";
+	const shadowBottom = u ? "▀" : "-";
+
+	const lines: string[] = [];
+
+	const formatRow = (content: string): string => {
+		const strippedLength = content.replace(/\u001b\[\d+m/g, "").length;
+		const padding = Math.max(0, innerWidth - strippedLength);
+		return `${cVert} ${content}${" ".repeat(padding)} ${cVert}${shadowRight}`;
+	};
+
+	const dividerRow = (): string => {
+		return `${cDivider}${cHoriz.repeat(innerWidth + 2)}${cDividerR}${shadowRight}`;
+	};
+
+	// Top border
+	lines.push(`${cTopLeft}${cHoriz.repeat(innerWidth + 2)}${cTopRight}`);
+
+	if (side === "front") {
+		// FRONT SIDE
+		const badge = formatCardBadge(card.verification, { unicode: u });
+		const gauge = formatCitationDensityGauge(card, { unicode: u, width: 10 });
+
+		lines.push(formatRow(`[FRONT] 📇 MODULE: ${card.moduleId.toUpperCase()} — ${card.name}`));
+		lines.push(formatRow(`Status: ${badge}  Density: ${gauge}`));
+		lines.push(dividerRow());
+
+		lines.push(formatRow("SUMMARY:"));
+		const summaryLines = wrapText(card.summary || "(No summary generated)", innerWidth);
+		for (const sl of summaryLines) {
+			lines.push(formatRow(`  ${sl}`));
+		}
+
+		lines.push(formatRow(""));
+		lines.push(formatRow(`KEY POINTS (${card.keyPoints.length}):`));
+		for (const kp of card.keyPoints) {
+			const kpLines = wrapText(kp, innerWidth - 4);
+			if (kpLines.length > 0) {
+				lines.push(formatRow(`  • ${kpLines[0]}`));
+				for (let k = 1; k < kpLines.length; k++) {
+					lines.push(formatRow(`    ${kpLines[k]}`));
+				}
+			}
+		}
+
+		lines.push(dividerRow());
+		lines.push(formatRow(`Sources: ${card.sources.length} file(s) | Entry Points: ${card.entryPoints.length}`));
+		lines.push(formatRow("Tip: Flip to back view with --flip to inspect verified symbols & lines"));
+	} else {
+		// BACK SIDE
+		const badge = formatCardBadge(card.verification, { unicode: u });
+		lines.push(formatRow(`[BACK] 🔍 CITATIONS & DECLARATIONS: ${card.moduleId}`));
+		lines.push(formatRow(`Status: ${badge} | Generated: ${card.generatedAt.slice(0, 19).replace("T", " ")}`));
+		lines.push(dividerRow());
+
+		lines.push(formatRow("VERIFIED ENTRY POINTS:"));
+		if (card.entryPoints.length === 0) {
+			lines.push(formatRow("  (No entry points declared)"));
+		} else {
+			for (const ep of card.entryPoints) {
+				const lineInfo = ep.line ? `:${ep.line}` : "";
+				const kindInfo = ep.kind ? ` [${ep.kind}]` : "";
+				const statusTag = ep.line ? "[VERIFIED]" : "[UNGROUNDED]";
+				const main = `${ep.name} -> ${ep.file}${lineInfo}${kindInfo} ${statusTag}`;
+				const epLines = wrapText(main, innerWidth - 4);
+				lines.push(formatRow(`  • ${epLines[0]}`));
+				for (let k = 1; k < epLines.length; k++) {
+					lines.push(formatRow(`    ${epLines[k]}`));
+				}
+				if (ep.note) {
+					const noteLines = wrapText(`Note: ${ep.note}`, innerWidth - 6);
+					for (const nl of noteLines) {
+						lines.push(formatRow(`      ${nl}`));
+					}
+				}
+			}
+		}
+
+		lines.push(dividerRow());
+		lines.push(formatRow(`PROVENANCE SOURCES (${card.sources.length}):`));
+		for (const s of card.sources.slice(0, 5)) {
+			const hashShort = s.hash ? ` (${s.hash.slice(0, 8)})` : "";
+			lines.push(formatRow(`  - ${s.path}${hashShort}`));
+		}
+		if (card.sources.length > 5) {
+			lines.push(formatRow(`    ... and ${card.sources.length - 5} more sources`));
+		}
+		lines.push(dividerRow());
+		lines.push(formatRow("Tip: Flip to front view with --3d to review executive summary & key points"));
+	}
+
+	// Bottom border with isometric shadow
+	lines.push(`${cBottomLeft}${cHoriz.repeat(innerWidth + 2)}${cBottomRight}${shadowRight}`);
+	lines.push(`  ${shadowBottom.repeat(innerWidth + 2)}`);
+
+	return lines.join("\n");
+}
+
+/**
+ * Render both front and back views of a card as a 3D flip pair.
+ */
+export function renderCardPair(card: Card, options: Card3DRenderOptions = {}): string {
+	const front = renderCard3D(card, { ...options, side: "front" });
+	const back = renderCard3D(card, { ...options, side: "back" });
+	const separator = `\n${" ".repeat(18)}│▲│ [ 3D CARD ROTATION FLIP ] │▼│\n`;
+	return `${front}${separator}${back}`;
+}
+
+/**
+ * Incrementally update cards, regenerating only cards whose cited symbols or source files changed.
+ */
+export async function updateCardsIncrementally(
+	plan: ModulePlan,
+	existingCards: readonly Card[],
+	index: IndexResult | null,
+	client: ModelClient,
+	options: {
+		modifiedFiles?: ReadonlySet<string>;
+		modifiedSymbols?: ReadonlySet<string>;
+		knownFiles?: ReadonlyMap<string, string>;
+		multiplier?: number;
+		onTaskStart?: (moduleId: string, index: number, total: number) => void;
+		onProgress?: (moduleId: string, done: number, total: number) => void;
+	} = {},
+): Promise<{ cards: Card[]; regenerated: string[]; reused: string[] }> {
+	const oracle = new SymbolOracle(index ?? emptyIndex());
+	const existingByModule = new Map<string, Card>(existingCards.map((c) => [c.moduleId, c]));
+	const modules = flattenLeaves(plan);
+
+	const cards: Card[] = [];
+	const regenerated: string[] = [];
+	const reused: string[] = [];
+
+	for (let i = 0; i < modules.length; i++) {
+		const mod = modules[i] as Module;
+		options.onTaskStart?.(mod.id, i, modules.length);
+		options.onProgress?.(mod.id, i, modules.length);
+
+		const existing = existingByModule.get(mod.id);
+
+		let needsRegen = false;
+		if (!existing) {
+			needsRegen = true;
+		} else {
+			// Check file freshness
+			if (!isCardFresh(existing, mod, options.knownFiles)) {
+				// If files changed, check if modified symbols touched this card
+				if (options.modifiedSymbols && options.modifiedSymbols.size > 0) {
+					needsRegen = isCardSymbolStale(existing, options.modifiedSymbols, oracle);
+				} else {
+					needsRegen = true;
+				}
+			} else if (options.modifiedSymbols && isCardSymbolStale(existing, options.modifiedSymbols, oracle)) {
+				needsRegen = true;
+			}
+		}
+
+		if (!needsRegen && existing) {
+			// Re-verify deterministically without LLM inference
+			const scope = moduleScope(mod);
+			const evidence = gatherModuleEvidence(index, scope, {
+				maxDeclarationsPerFile: 10,
+				...(options.knownFiles ? { knownFiles: options.knownFiles } : {}),
+			});
+			const verification = verifyCard(
+				{ summary: existing.summary, keyPoints: existing.keyPoints, entryPoints: existing.entryPoints },
+				mod,
+				evidence,
+				oracle,
+			);
+			cards.push({ ...existing, verification });
+			reused.push(mod.id);
+		} else {
+			const res = await generateCard(mod, index, client, {
+				...(options.multiplier !== undefined ? { multiplier: options.multiplier } : {}),
+				...(options.knownFiles ? { knownFiles: options.knownFiles } : {}),
+				oracle,
+			});
+			cards.push(res.card);
+			regenerated.push(mod.id);
+		}
+	}
+
+	return { cards, regenerated, reused };
+}
+

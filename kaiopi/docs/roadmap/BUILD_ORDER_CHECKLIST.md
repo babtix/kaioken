@@ -116,22 +116,22 @@
 ### Step 11: Category 14 — Knowledge Cards & Atomic Fact Base
 *Rank: #11 Verified Fact Capture | Package: `kaioken/plan/src/cards.ts` | Features: `#UX-1301` – `#UX-1400`*  
 📄 **Plan Reference**: [`14-knowledge-cards-atomic-fact-base.md`](categories/14-knowledge-cards-atomic-fact-base.md)
-- [ ] **11.1** Generate structured atomic knowledge cards citing verified symbols and lines (`UX-1301`–`UX-1310`)
-- [ ] **11.2** Build incremental card updater regenerating only cards citing modified symbols (`UX-1311`–`UX-1320`)
-- [ ] **11.3** Add visual card verification status badges (Grounded / Defects) (`UX-1321`–`UX-1330`)
-- [ ] **11.4** Deploy duplicate card deduplication engine merging overlapping fact sheets (`UX-1331`–`UX-1340`)
-- [ ] **11.5** Build export bridge converting cards to Markdown and Obsidian frontmatter (`UX-1341`–`UX-1350`)
+- [x] **11.1** Generate structured atomic knowledge cards citing verified symbols and lines (`UX-1301`–`UX-1310`)
+- [x] **11.2** Build incremental card updater regenerating only cards citing modified symbols (`UX-1311`–`UX-1320`)
+- [x] **11.3** Add visual card verification status badges (Grounded / Defects) (`UX-1321`–`UX-1330`)
+- [x] **11.4** Deploy duplicate card deduplication engine merging overlapping fact sheets (`UX-1331`–`UX-1340`)
+- [x] **11.5** Build export bridge converting cards to Markdown and Obsidian frontmatter (`UX-1341`–`UX-1350`)
 
 ---
 
 ### Step 12: Category 15 — Wiki Cascade, Chapter Generation & Documentation Web
 *Rank: #12 Comprehensive Living Docs | Package: `kaioken/wiki` | Features: `#UX-1401` – `#UX-1500`*  
 📄 **Plan Reference**: [`15-wiki-cascade-chapter-generation-documentation-web.md`](categories/15-wiki-cascade-chapter-generation-documentation-web.md)
-- [ ] **12.1** Build resumable cascade runner skipping already-verified chapters on retry (`UX-1401`–`UX-1410`)
-- [ ] **12.2** Implement real-time token streaming typewriter effect for chapter text (`UX-1411`–`UX-1420`)
-- [ ] **12.3** Deploy cross-chapter relative markdown link validator catching 404 dead links (`UX-1421`–`UX-1430`)
-- [ ] **12.4** Build repository documentation coverage heatmap (`UX-1431`–`UX-1440`)
-- [ ] **12.5** Implement hierarchical evidence budgeting preventing context window overflow (`UX-1441`–`UX-1450`)
+- [x] **12.1** Build resumable cascade runner skipping already-verified chapters on retry (`UX-1401`–`UX-1410`)
+- [x] **12.2** Implement real-time token streaming typewriter effect for chapter text (`UX-1411`–`UX-1420`)
+- [x] **12.3** Deploy cross-chapter relative markdown link validator catching 404 dead links (`UX-1421`–`UX-1430`)
+- [x] **12.4** Build repository documentation coverage heatmap (`UX-1431`–`UX-1440`)
+- [x] **12.5** Implement hierarchical evidence budgeting preventing context window overflow (`UX-1441`–`UX-1450`)
 
 ---
 

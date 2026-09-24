@@ -57,6 +57,12 @@ export interface CardEntryPoint {
 	file: string;
 	/** Why a reader should start here. */
 	note: string;
+	/** Declaration start line in source file if resolved from AST oracle. */
+	line?: number;
+	/** Declaration kind, e.g. function, class, interface, type. */
+	kind?: string;
+	/** Whether the symbol is exported from its declaring file. */
+	exported?: boolean;
 }
 
 export interface CardVerification {
@@ -68,6 +74,52 @@ export interface CardVerification {
 	unknownFiles: string[];
 	/** Exported declarations in scope that the card never mentions. */
 	uncovered: string[];
+	/** Grounding score percentage (0–100). */
+	score?: number;
+	/** Status badge classification. */
+	status?: "grounded" | "defects" | "partial";
+}
+
+export interface Card3DRenderOptions {
+	/** Which side of the 3D card to render (default: "front"). */
+	side?: "front" | "back";
+	/** Target width of the card box in characters (default: 68). */
+	width?: number;
+	/** Use Unicode box-drawing characters (default: true). */
+	unicode?: boolean;
+}
+
+export interface CardSimilarity {
+	cardAId: string;
+	cardBId: string;
+	fileOverlap: number;
+	symbolOverlap: number;
+	contentOverlap: number;
+	combinedScore: number;
+}
+
+export interface CardDuplicateCluster {
+	canonicalModuleId: string;
+	duplicateModuleIds: string[];
+	cards: Card[];
+	similarity: number;
+}
+
+export interface DeduplicationResult {
+	cards: Card[];
+	mergedCount: number;
+	clusters: CardDuplicateCluster[];
+}
+
+export interface ObsidianExportOptions {
+	/** Vault root or subdirectory. */
+	vaultDir?: string;
+	/** Include Obsidian wikilinks format [[symbol]]. */
+	wikilinks?: boolean;
+	/** Include Obsidian callouts > [!note]. */
+	callouts?: boolean;
+	/** Custom tags to include in YAML frontmatter. */
+	extraTags?: string[];
 }
 
 /** A problem found by validating a plan against the scan. */
