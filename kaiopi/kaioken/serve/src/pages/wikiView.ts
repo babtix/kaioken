@@ -371,18 +371,19 @@ function railGraphBoot(path: string): string {
       var v = function (name, fb) { return (s.getPropertyValue(name).trim()) || fb; };
       return {
         background: 'transparent',
-        doc: v('--accent', '#b3341c'),
-        file: v('--muted', '#5f6672'),
-        section: v('--muted', '#5f6672'),
-        edge: v('--line', '#e6e4df'),
-        label: v('--muted', '#5f6672'),
-        accent: v('--accent', '#b3341c')
+        doc: v('--accent', '#ff3b1f'),
+        file: v('--fg-mute', '#70707a'),
+        section: v('--fg-mute', '#70707a'),
+        edge: v('--rule', '#232327'),
+        label: v('--fg-mute', '#70707a'),
+        accent: v('--accent', '#ff3b1f')
       };
     }
+    function recolor() { engine.setColors(colors()); }
     engine.setColors(colors());
-    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
-      engine.setColors(colors());
-    });
+    // The site themes via data-theme (toggle), not the OS preference.
+    new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.__kaioRecolor = recolor;
 
     engine.onSelect = function (node) {
       if (node.kind === 'doc' && node.rel) location.href = '/d/' + encodeURI(node.rel);

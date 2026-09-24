@@ -12,12 +12,13 @@ import { STYLE } from "./layout.ts";
  */
 export function graphPage(): string {
 	return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Graph · kaioken wiki</title>
+<script>try{var __t=localStorage.getItem('kaioken-theme')||'dark';document.documentElement.dataset.theme=__t;}catch(__e){document.documentElement.dataset.theme='dark';}</script>
 <style>${STYLE}${GRAPH_STYLE}</style>
 </head>
 <body class="graph-page">
@@ -42,21 +43,25 @@ const GRAPH_STYLE = `
 body.graph-page{display:block;height:100vh;overflow:hidden}
 .graph-main{position:relative;width:100%;height:100vh}
 #graph-canvas{display:block}
-.graph-back{position:fixed;top:14px;left:16px;z-index:5;font-size:13px;color:var(--muted);
-  text-decoration:none;background:var(--surface);border:1px solid var(--line);
-  border-radius:7px;padding:6px 12px;box-shadow:var(--shadow)}
+.graph-back{position:fixed;top:14px;left:16px;z-index:5;font-family:var(--font-mono);
+  font-size:var(--fs-xs);color:var(--fg-mute);
+  text-decoration:none;background:var(--bg-raise);border:var(--hair) solid var(--rule);
+  border-radius:var(--r-sm);padding:6px 12px;box-shadow:var(--shadow)}
 .graph-back:hover{color:var(--accent);border-color:var(--accent)}
 .graph-bar{position:fixed;top:14px;right:16px;z-index:5;display:flex;gap:12px;align-items:center;
-  background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 12px;
-  font-size:12px;color:var(--muted);box-shadow:var(--shadow)}
+  background:var(--bg-raise);border:var(--hair) solid var(--rule);border-radius:var(--r-sm);
+  padding:7px 12px;font-family:var(--font-mono);
+  font-size:var(--fs-xs);color:var(--fg-mute);box-shadow:var(--shadow)}
 .graph-bar label{display:flex;gap:4px;align-items:center;cursor:pointer;user-select:none}
 .graph-bar input{accent-color:var(--accent)}
-.graph-bar button{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
-  background:none;border:1px solid var(--line);border-radius:5px;padding:3px 9px;cursor:pointer}
+.graph-bar button{font-family:var(--font-mono);font-size:var(--fs-micro);
+  text-transform:uppercase;letter-spacing:var(--track-label);color:var(--fg-mute);
+  background:none;border:var(--hair) solid var(--rule);border-radius:var(--r-sm);
+  padding:3px 9px;cursor:pointer}
 .graph-bar button:hover{color:var(--accent);border-color:var(--accent)}
-#g-stats{font-size:11.5px}
+#g-stats{font-size:var(--fs-micro)}
 #g-empty{display:none;position:absolute;inset:0;align-items:center;justify-content:center;
-  color:var(--muted);font-size:14px}`;
+  color:var(--fg-mute);font-size:var(--fs-base)}`;
 
 /**
  * Wires the embedded engine to the page: fetch the payload, read the palette
@@ -73,18 +78,19 @@ const GRAPH_BOOT_JS = `
     var v = function (name, fb) { return (s.getPropertyValue(name).trim()) || fb; };
     return {
       background: 'transparent',
-      doc: v('--accent', '#b3341c'),
-      file: v('--muted', '#5f6672'),
-      section: v('--muted', '#5f6672'),
-      edge: v('--line', '#e6e4df'),
-      label: v('--muted', '#5f6672'),
-      accent: v('--accent', '#b3341c')
+      doc: v('--accent', '#ff3b1f'),
+      file: v('--fg-mute', '#70707a'),
+      section: v('--fg-mute', '#70707a'),
+      edge: v('--rule', '#232327'),
+      label: v('--fg-mute', '#70707a'),
+      accent: v('--accent', '#ff3b1f')
     };
   }
+  function recolor() { engine.setColors(colors()); }
   engine.setColors(colors());
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
-    engine.setColors(colors());
-  });
+  // The site themes via data-theme (toggle), not the OS preference.
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.__kaioRecolor = recolor;
 
   engine.onSelect = function (node) {
     if (node.kind === 'doc' && node.rel) location.href = '/d/' + encodeURI(node.rel);
@@ -108,4 +114,17 @@ const GRAPH_BOOT_JS = `
       g.stats.docs + ' docs · ' + g.stats.files + ' files · ' + g.stats.edges + ' edges';
     if (!g.nodes.length) document.getElementById('g-empty').style.display = 'flex';
   });
+
+  if (window.EventSource) {
+    try {
+      var es = new EventSource('/api/events');
+      es.addEventListener('reload', function () {
+        fetch('/graph.json').then(function (r) { return r.json(); }).then(function (g) {
+          engine.setGraph(g);
+          document.getElementById('g-stats').textContent =
+            g.stats.docs + ' docs · ' + g.stats.files + ' files · ' + g.stats.edges + ' edges';
+        }).catch(function () { location.reload(); });
+      });
+    } catch (_) {}
+  }
 })();`;

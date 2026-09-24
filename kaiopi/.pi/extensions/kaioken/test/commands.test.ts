@@ -100,34 +100,38 @@ describe("Phase 6: Command Surface & HUD", () => {
 			const fake = createFakePi();
 			registerCommands(fake.pi, () => tempDir);
 
+			const hasOutput = (text: string) =>
+				notifications.some((n) => n.includes(text)) ||
+				fake.entries.some((e) => String((e.data as any)?.message ?? "").includes(text));
+
 			// 1. /kaio-scan
 			const scanCmd = fake.commands.get("kaio-scan");
 			await scanCmd.handler("", fakeCtx);
-			expect(notifications.some((n) => n.includes("Scan complete"))).toBe(true);
+			expect(hasOutput("Scan complete")).toBe(true);
 
 			// 2. /kaio-symbols
 			notifications.length = 0;
 			const symCmd = fake.commands.get("kaio-symbols");
 			await symCmd.handler("testFn", fakeCtx);
-			expect(notifications.some((n) => n.includes("testFn"))).toBe(true);
+			expect(hasOutput("testFn")).toBe(true);
 
 			// 3. /kaio-status
 			notifications.length = 0;
 			const statusCmd = fake.commands.get("kaio-status");
 			await statusCmd.handler("", fakeCtx);
-			expect(notifications.some((n) => n.includes("DRIFT REPORT"))).toBe(true);
+			expect(hasOutput("DRIFT REPORT")).toBe(true);
 
 			// 4. /kaio-graph
 			notifications.length = 0;
 			const graphCmd = fake.commands.get("kaio-graph");
 			await graphCmd.handler("", fakeCtx);
-			expect(notifications.some((n) => n.includes("Knowledge Graph"))).toBe(true);
+			expect(hasOutput("Knowledge Graph")).toBe(true);
 
 			// 5. /kaio-export
 			notifications.length = 0;
 			const exportCmd = fake.commands.get("kaio-export");
 			await exportCmd.handler("", fakeCtx);
-			expect(notifications.some((n) => n.includes("Exported"))).toBe(true);
+			expect(hasOutput("Exported")).toBe(true);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true }).catch(() => {});
 		}

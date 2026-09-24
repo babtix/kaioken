@@ -11,6 +11,7 @@ import {
 	type WebSearchPort,
 } from "./ports.ts";
 import { excerptOf, fenceSource, htmlToText, injectionPatterns } from "./sanitize.ts";
+import { scoreCredibility } from "./credibility.ts";
 import type { ResearchDepth, ResearchDocument, ResearchSource, ResearchVerification, SourceExcerpt } from "./types.ts";
 import { verifyCitations } from "./verify.ts";
 
@@ -164,6 +165,7 @@ export async function gatherSources(input: GatherInput): Promise<GatherResult> {
 				hash: "",
 				fetched: false,
 				...(result.error ? { error: result.error } : {}),
+				credibility: scoreCredibility({ url: hit.url, error: result.error ?? "no content" }),
 			});
 			continue;
 		}
@@ -177,6 +179,7 @@ export async function gatherSources(input: GatherInput): Promise<GatherResult> {
 				hash: "",
 				fetched: false,
 				error: "page contained no readable text after sanitisation",
+				credibility: scoreCredibility({ url: hit.url, error: "page contained no readable text after sanitisation" }),
 			});
 			continue;
 		}
@@ -192,6 +195,7 @@ export async function gatherSources(input: GatherInput): Promise<GatherResult> {
 			title: result.title ?? hit.title,
 			hash: sha256(text),
 			fetched: true,
+			credibility: scoreCredibility({ url: hit.url, bodyText: text, injectionHits: patterns.length > 0 }),
 		});
 	}
 

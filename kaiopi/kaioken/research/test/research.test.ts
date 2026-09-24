@@ -13,6 +13,7 @@ import { excerptOf, fenceSource, htmlToText, injectionPatterns } from "../src/sa
 import { uncitedSentences, verifyCitations } from "../src/verify.ts";
 import { buildPrompt, gatherSources, generateResearch, pathFor } from "../src/run.ts";
 import { depthFor, parseMultiplier } from "../src/types.ts";
+import { calculateDomainAuthority, scoreCredibility } from "../src/credibility.ts";
 import { asProvenance, parseArtifact, renderMarkdown } from "../src/artifact.ts";
 import type { ResearchSource, SourceExcerpt } from "../src/types.ts";
 
@@ -564,3 +565,132 @@ describe("research: artifact rendering", () => {
 		expect(parsed.sources.find((s) => s.number === 2)?.fetched).toBe(false);
 	});
 });
+
+describe("research: credibility and domain authority (#UX-1631 - #UX-1640)", () => {
+	it("recognizes official technical documentation domains with high authority", () => {
+		const mdn = calculateDomainAuthority("https://developer.mozilla.org/en-US/docs/Web/HTTP");
+		expect(mdn.authority).toBeGreaterThanOrEqual(80);
+		expect(mdn.isOfficial).toBe(true);
+		expect(mdn.factors.some((f) => f.includes("Verified technical documentation"))).toBe(true);
+
+		const gh = calculateDomainAuthority("https://github.com/nodejs/node");
+		expect(gh.authority).toBeGreaterThanOrEqual(80);
+		expect(gh.isOfficial).toBe(true);
+	});
+
+	it("identifies government and academic domains", () => {
+		const gov = calculateDomainAuthority("https://cve.nist.gov/vuln/detail");
+		expect(gov.authority).toBeGreaterThanOrEqual(80);
+		expect(gov.isAcademicGov).toBe(true);
+
+		const edu = calculateDomainAuthority("https://cs.stanford.edu/research/paper.pdf");
+		expect(edu.authority).toBeGreaterThanOrEqual(75);
+		expect(edu.isAcademicGov).toBe(true);
+	});
+
+	it("penalizes raw IP addresses and deep subdomains", () => {
+		const ip = calculateDomainAuthority("http://93.184.216.34/path");
+		expect(ip.authority).toBeLessThan(35);
+		expect(ip.factors.some((f) => f.includes("Direct IP address"))).toBe(true);
+
+		const deep = calculateDomainAuthority("https://a.b.c.d.e.example.com");
+		expect(deep.factors.some((f) => f.includes("Deep subdomain hierarchy"))).toBe(true);
+	});
+
+	it("scores credibility with appropriate tiers and badges", () => {
+		const officialDoc = scoreCredibility({
+			url: "https://docs.python.org/3/tutorial/index.html",
+			bodyText: "Python is an easy to learn, powerful programming language. ".repeat(30),
+		});
+		expect(officialDoc.tier).toBe("high");
+		expect(officialDoc.badge).toBe("Official Documentation");
+		expect(officialDoc.score).toBeGreaterThanOrEqual(85);
+
+		const failed = scoreCredibility({
+			url: "https://broken-link.example.com",
+			error: "ETIMEDOUT",
+		});
+		expect(failed.score).toBe(0);
+		expect(failed.tier).toBe("low");
+		expect(failed.badge).toBe("Fetch Failed");
+	});
+
+	it("penalizes prompt injection patterns in retrieved content", () => {
+		const safe = scoreCredibility({
+			url: "https://example.com/guide",
+			bodyText: "A helpful guide about web performance tuning. ".repeat(25),
+			injectionHits: false,
+		});
+		const injected = scoreCredibility({
+			url: "https://example.com/guide",
+			bodyText: "A helpful guide about web performance tuning. ".repeat(25),
+			injectionHits: true,
+		});
+		expect(injected.score).toBeLessThan(safe.score);
+		expect(injected.factors.some((f) => f.includes("prompt injection pattern"))).toBe(true);
+	});
+
+	it("attaches credibility to gathered sources in gatherSources", async () => {
+		const search: WebSearchPort = {
+			async search() {
+				return [
+					{ url: "https://developer.mozilla.org/en-US/docs/Web/API", title: "MDN Web API" },
+					{ url: "https://example.com/blog", title: "Blog Post" },
+				];
+			},
+		};
+		const fetch: WebFetchPort = {
+			async fetch(url) {
+				return {
+					status: 200,
+					body: `<html><body><h1>API</h1><p>${"Comprehensive API documentation text. ".repeat(40)}</p></body></html>`,
+					title: "Doc",
+				};
+			},
+		};
+		const result = await gatherSources({
+			question: "How to use Fetch API?",
+			depth: depthFor(1),
+			search,
+			fetch,
+		});
+		expect(result.sources).toHaveLength(2);
+		expect(result.sources[0]?.credibility).toBeDefined();
+		expect(result.sources[0]?.credibility?.tier).toBe("high");
+		expect(result.sources[0]?.credibility?.badge).toBe("Official Documentation");
+	});
+
+	it("renders credibility badges in markdown export and preserves roundtrip", () => {
+		const testDoc = {
+			question: "How does indexing work?",
+			path: "test.md",
+			title: "Incremental index",
+			body: "The index is rebuilt incrementally [1].",
+			generatedAt: "2026-01-01",
+			verification: { grounded: 1, cited: 1, defects: [], groundedRatio: 1 },
+			sourcesAsProvenance: [{ path: "https://developer.mozilla.org/test", hash: "h1" }],
+			sources: [
+				{
+					number: 1,
+					url: "https://developer.mozilla.org/test",
+					title: "MDN",
+					hash: "h1",
+					fetched: true,
+					credibility: {
+						score: 95,
+						tier: "high" as const,
+						domainAuthority: 90,
+						badge: "Official Documentation",
+						factors: [],
+					},
+				},
+			],
+		};
+		const md = renderMarkdown(testDoc);
+		expect(md).toContain("[Official Documentation · 95/100]");
+		const parsed = parseArtifact(md, "test.md");
+		expect(parsed.sources[0]?.credibility?.badge).toBe("Official Documentation");
+		expect(parsed.sources[0]?.credibility?.score).toBe(95);
+	});
+});
+

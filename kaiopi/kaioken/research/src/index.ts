@@ -27,6 +27,15 @@ export {
 	depthFor,
 	parseMultiplier,
 } from "./types.ts";
+export {
+	calculateDomainAuthority,
+	scoreCredibility,
+} from "./credibility.ts";
+export type {
+	CredibilityInput,
+	CredibilityTier,
+	SourceCredibility,
+} from "./credibility.ts";
 export type {
 	Citation,
 	CitationDefect,

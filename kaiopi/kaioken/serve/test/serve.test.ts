@@ -130,11 +130,14 @@ describe("boundaries", () => {
 		expect((await fetch(`${server.url}/d/secret.env`)).status).toBe(404);
 	});
 
-	it("sends a content security policy that forbids script", async () => {
+	it("sends a content security policy that allows only inline scripts", async () => {
 		const server = await start(await repo(FILES));
 		const csp = (await fetch(`${server.url}/`)).headers.get("content-security-policy");
 		expect(csp).toContain("default-src 'none'");
-		expect(csp).not.toContain("script-src");
+		// Every page carries the inline theme boot + toggle scripts, so inline
+		// scripts are permitted — but no script host is, so nothing is fetched.
+		expect(csp).toContain("script-src 'unsafe-inline'");
+		expect(csp).not.toMatch(/script-src[^;]*https?:/);
 	});
 
 	it("returns 404 for unknown pages and files", async () => {
@@ -645,6 +648,60 @@ describe("live reloading and robustness", () => {
 		expect(res.status).toBe(200);
 		const body = await res.text();
 		expect(body).toContain("Nothing indexed yet");
+	});
+
+	it("streams Server-Sent Events on /api/events and notifies clients on reload (#UX-1511 - #UX-1520)", async () => {
+		const root = await repo(FILES);
+		const server = await start(root);
+
+		const controller = new AbortController();
+		const sseRes = await fetch(`${server.url}/api/events`, { signal: controller.signal });
+		expect(sseRes.status).toBe(200);
+		expect(sseRes.headers.get("content-type")).toContain("text/event-stream");
+		expect(server.clientCount).toBe(1);
+
+		const reader = sseRes.body?.getReader();
+		expect(reader).toBeDefined();
+
+		const decoder = new TextDecoder();
+		// First chunk: connected
+		const chunk1 = await reader!.read();
+		const text1 = decoder.decode(chunk1.value);
+		expect(text1).toContain("event: connected");
+		expect(text1).toContain('{"type":"connected"}');
+
+		// Trigger reload
+		server.notifyReload();
+
+		// Second chunk: reload
+		const chunk2 = await reader!.read();
+		const text2 = decoder.decode(chunk2.value);
+		expect(text2).toContain("event: reload");
+		expect(text2).toContain('{"type":"reload"}');
+
+		controller.abort();
+		await new Promise((r) => setTimeout(r, 50));
+		expect(server.clientCount).toBe(0);
+	});
+
+	it("embeds live-reload script and print-optimized PDF export stylesheet (#UX-1541 - #UX-1550)", async () => {
+		const root = await repo(FILES);
+		const server = await start(root);
+
+		const res = await fetch(`${server.url}/wiki`);
+		const html = await res.text();
+
+		// Live-reload script connected to /api/events
+		expect(html).toContain("new EventSource('/api/events')");
+		expect(html).toContain("location.reload()");
+
+		// Print-optimized PDF stylesheet
+		expect(html).toContain("@media print");
+		expect(html).toContain("@page");
+		expect(html).toContain("margin: 1.5cm 1.5cm 2cm 1.5cm");
+		expect(html).toContain(".hdr, .sidebar, .rail, .pager, .skip, footer.foot");
+		expect(html).toContain("break-after: avoid");
+		expect(html).toContain("white-space: pre-wrap !important");
 	});
 });
 

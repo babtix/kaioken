@@ -12,6 +12,8 @@ import type { ProvenanceSource } from "@kaioken/provenance";
  * exactly as the sanitizer emitted it.
  */
 
+import type { SourceCredibility } from "./credibility.ts";
+
 /** One web page actually fetched, pinned to its content. */
 export interface ResearchSource {
 	/**
@@ -28,6 +30,8 @@ export interface ResearchSource {
 	fetched: boolean;
 	/** Why the fetch failed, when it did. */
 	error?: string;
+	/** Domain authority and content credibility rating. */
+	credibility?: SourceCredibility;
 }
 
 /**

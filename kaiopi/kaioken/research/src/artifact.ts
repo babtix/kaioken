@@ -43,11 +43,12 @@ export function renderMarkdown(doc: ResearchDocument): string {
 	];
 
 	for (const source of doc.sources) {
+		const badge = source.credibility ? ` [${source.credibility.badge} · ${source.credibility.score}/100]` : "";
 		if (!source.fetched) {
-			lines.push(`${source.number}. ${source.url} — *fetch failed: ${source.error ?? "unknown"}*`);
+			lines.push(`${source.number}. ${source.url}${badge} — *fetch failed: ${source.error ?? "unknown"}*`);
 			continue;
 		}
-		lines.push(`${source.number}. [${source.title || source.url}](${source.url}) — fetched ${doc.generatedAt}`);
+		lines.push(`${source.number}. [${source.title || source.url}](${source.url})${badge} — fetched ${doc.generatedAt}`);
 	}
 
 	const v = doc.verification;
@@ -124,14 +125,26 @@ export function parseArtifact(markdown: string, fileName: string): ResearchDocum
 			const number = Number.parseInt(match[1] as string, 10);
 			const rest = match[2] as string;
 			const failed = /fetch failed/.test(rest);
-			const url = /https?:\/\/\S+/.exec(rest)?.[0]?.replace(/[).,]+$/, "") ?? "";
-			const title = failed ? "" : (/\[(.+)\]/.exec(rest)?.[1] ?? url);
+			const url = /https?:\/\/[^\s)\]]+/.exec(rest)?.[0]?.replace(/[).,]+$/, "") ?? "";
+			const title = failed ? "" : (/\[([^\]]+)\]/.exec(rest)?.[1] ?? url);
+			const credMatch = /\[([^\]·]+)·\s*(\d+)\/100\]/.exec(rest);
 			sources.push({
 				number,
 				url,
 				title,
 				hash: "", // not recoverable from the receipt; staleness re-fetches
 				fetched: !failed,
+				...(credMatch
+					? {
+							credibility: {
+								badge: credMatch[1]?.trim() ?? "",
+								score: Number.parseInt(credMatch[2] ?? "0", 10),
+								tier: Number.parseInt(credMatch[2] ?? "0", 10) >= 70 ? "high" : Number.parseInt(credMatch[2] ?? "0", 10) >= 40 ? "medium" : "low",
+								domainAuthority: Number.parseInt(credMatch[2] ?? "0", 10),
+								factors: [],
+							},
+						}
+					: {}),
 			});
 		}
 	}

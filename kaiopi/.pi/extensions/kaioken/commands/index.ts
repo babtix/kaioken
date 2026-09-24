@@ -259,7 +259,9 @@ export class LiveLog {
 	failure(message: string, detail?: string): void {
 		this.completed.push(`✗ ${message}`);
 		this.ui?.setWorkingMessage?.(undefined);
-		this.ui?.notify?.(message, "error");
+		// Only fall back to notify when no transcript renderer is wired up;
+		// the kaioken-progress entry renderer handles display in the chat otherwise.
+		if (!this.append) this.ui?.notify?.(message, "error");
 		this.refreshWidget();
 		this.emitTranscript("error", message, detail);
 	}
@@ -268,13 +270,16 @@ export class LiveLog {
 	done(summary: string, statusText?: string, detail?: string): void {
 		this.ui?.setWorkingMessage?.(undefined);
 		if (statusText !== undefined) this.ui?.setStatus?.("kaioken", statusText);
-		this.ui?.notify?.(summary, "info");
+		// Only fall back to notify when no transcript renderer is wired up.
+		if (!this.append) this.ui?.notify?.(summary, "info");
 		this.emitTranscript("done", summary, detail);
 	}
 
 	private emitStatus(text: string): void {
 		this.ui?.setStatus?.("kaioken", text);
-		this.ui?.notify?.(text, "info");
+		// Only fall back to notify when no transcript renderer is wired up;
+		// the kaioken-progress entry renderer handles display in the chat otherwise.
+		if (!this.append) this.ui?.notify?.(text, "info");
 		this.ui?.setWorkingMessage?.(text);
 	}
 

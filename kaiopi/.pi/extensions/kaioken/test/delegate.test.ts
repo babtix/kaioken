@@ -124,9 +124,12 @@ describe("Phase 5: Gates, Repair Loop & Delegation", () => {
 			const mergeCmd = fake.commands.get("kaio-merge");
 			await mergeCmd.handler(taskName, fakeCtx);
 
+			const errEntry = fake.entries.find((e: any) => e.data?.kind === "error")?.data as any;
 			const errNotify = notifications.find((n) => n.type === "error") ?? notifications[0];
-			expect(errNotify.type).toBe("error");
-			expect(errNotify.message).toContain("VERIFY FAIL in");
+			const errType = errNotify?.type ?? (errEntry ? "error" : undefined);
+			const errMsg = errNotify?.message ?? errEntry?.message;
+			expect(errType).toBe("error");
+			expect(errMsg).toContain("VERIFY FAIL in");
 		} finally {
 			await rm(testRepo, { recursive: true, force: true }).catch(() => {});
 		}

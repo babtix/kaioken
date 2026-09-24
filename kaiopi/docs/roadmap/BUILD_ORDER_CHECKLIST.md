@@ -160,22 +160,22 @@
 ### Step 15: Category 17 — Grounded Web Research & Intelligence Gatherer
 *Rank: #15 External Context & Verification | Package: `kaioken/research` | Features: `#UX-1601` – `#UX-1700`*  
 📄 **Plan Reference**: [`17-grounded-web-research-intelligence-gatherer.md`](categories/17-grounded-web-research-intelligence-gatherer.md)
-- [ ] **15.1** Deploy SSRF and DNS-rebinding guard blocking private IP connections (`UX-1601`–`UX-1610`)
-- [ ] **15.2** Build bounded-concurrency parallel HTTP page fetcher (`UX-1611`–`UX-1620`)
-- [ ] **15.3** Implement HTML-to-text sanitization parser stripping script payloads (`UX-1621`–`UX-1630`)
-- [ ] **15.4** Add web source domain authority and credibility scoring (`UX-1631`–`UX-1640`)
-- [ ] **15.5** Deploy configurable research depth multiplier dial (×1 to ×10) (`UX-1641`–`UX-1650`)
+- [x] **15.1** Deploy SSRF and DNS-rebinding guard blocking private IP connections (`UX-1601`–`UX-1610`)
+- [x] **15.2** Build bounded-concurrency parallel HTTP page fetcher (`UX-1611`–`UX-1620`)
+- [x] **15.3** Implement HTML-to-text sanitization parser stripping script payloads (`UX-1621`–`UX-1630`)
+- [x] **15.4** Add web source domain authority and credibility scoring (`UX-1631`–`UX-1640`)
+- [x] **15.5** Deploy configurable research depth multiplier dial (×1 to ×10) (`UX-1641`–`UX-1650`)
 
 ---
 
 ### Step 16: Category 16 — Serve Preview, Web UI & Interactive Knowledge Graph
 *Rank: #16 Web Visualization | Package: `kaioken/serve` | Features: `#UX-1501` – `#UX-1600`*  
 📄 **Plan Reference**: [`16-serve-preview-web-ui-interactive-knowledge-graph.md`](categories/16-serve-preview-web-ui-interactive-knowledge-graph.md)
-- [ ] **16.1** Build offline localhost HTTP preview server bound to loopback only (`UX-1501`–`UX-1510`)
-- [ ] **16.2** Deploy Server-Sent Events (SSE) live-reload watcher on file modifications (`UX-1511`–`UX-1520`)
-- [ ] **16.3** Embed interactive 2D/3D force-directed Cytoscape dependency graph (`UX-1521`–`UX-1530`)
-- [ ] **16.4** Add instant client-side JSON search endpoint (`/api/search`) (`UX-1531`–`UX-1540`)
-- [ ] **16.5** Implement print-optimized PDF export stylesheet (`UX-1541`–`UX-1550`)
+- [x] **16.1** Build offline localhost HTTP preview server bound to loopback only (`UX-1501`–`UX-1510`)
+- [x] **16.2** Deploy Server-Sent Events (SSE) live-reload watcher on file modifications (`UX-1511`–`UX-1520`)
+- [x] **16.3** Embed interactive 2D/3D force-directed Cytoscape dependency graph (`UX-1521`–`UX-1530`)
+- [x] **16.4** Add instant client-side JSON search endpoint (`/api/search`) (`UX-1531`–`UX-1540`)
+- [x] **16.5** Implement print-optimized PDF export stylesheet (`UX-1541`–`UX-1550`)
 
 ---
 

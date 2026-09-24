@@ -1,5 +1,5 @@
 import { readFile, stat } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import { createServer, type Server, type ServerResponse } from "node:http";
 import { join, normalize, resolve, sep } from "node:path";
 import { type IndexResult, readIndexArtifact } from "@kaioken/index";
 import { KAIOKEN_DIR } from "@kaioken/scan";
@@ -43,6 +43,10 @@ export interface RunningServer {
 	 */
 	summary: string;
 	close(): Promise<void>;
+	/** Notify all connected SSE browser clients to reload (#UX-1511 – #UX-1520). */
+	notifyReload(): void;
+	/** Number of active SSE browser clients connected. */
+	readonly clientCount: number;
 }
 
 class ArtifactState {
@@ -57,9 +61,41 @@ class ArtifactState {
 		this.root = root;
 	}
 
-	async refresh(): Promise<{ index: IndexResult | null; search: SearchIndex | null; library: Library }> {
+	async check(): Promise<boolean> {
+		const artifactsDir = join(this.root, KAIOKEN_DIR);
+		const watchPaths = [
+			artifactsDir,
+			join(artifactsDir, "index.json"),
+			join(artifactsDir, "provenance.json"),
+			join(artifactsDir, "wiki"),
+			join(artifactsDir, "cards"),
+			join(artifactsDir, "skills"),
+			join(artifactsDir, "search"),
+		];
+
+		let changed = false;
+		for (const p of watchPaths) {
+			let mtime = 0;
+			try {
+				const s = await stat(p);
+				mtime = s.mtimeMs;
+			} catch {}
+			const prev = this.mtimes.get(p) ?? 0;
+			if (mtime !== prev) {
+				changed = true;
+				this.mtimes.set(p, mtime);
+			}
+		}
+
+		if (changed) {
+			await this.refresh(true);
+		}
+		return changed;
+	}
+
+	async refresh(force = false): Promise<{ index: IndexResult | null; search: SearchIndex | null; library: Library }> {
 		const now = Date.now();
-		if (now - this.lastChecked < 200 && this.lastChecked > 0) {
+		if (!force && now - this.lastChecked < 200 && this.lastChecked > 0) {
 			return { index: this.index, search: this.search, library: this.library };
 		}
 		this.lastChecked = now;
@@ -89,7 +125,7 @@ class ArtifactState {
 			}
 		}
 
-		if (changed || (this.index === null && this.library.docs.length === 0)) {
+		if (changed || force || (this.index === null && this.library.docs.length === 0)) {
 			try {
 				this.index = await readIndexArtifact(this.root).catch(() => null);
 			} catch {
@@ -119,18 +155,48 @@ export async function serve(options: ServeOptions): Promise<RunningServer> {
 	const artifactState = new ArtifactState(root);
 	const initial = await artifactState.refresh();
 
+	const sseClients = new Set<ServerResponse>();
+	let watchTimer: NodeJS.Timeout | null = null;
+	let heartbeatTimer: NodeJS.Timeout | null = null;
+
+	const broadcastReload = () => {
+		for (const client of sseClients) {
+			try {
+				client.write("event: reload\ndata: {\"type\":\"reload\"}\n\n");
+			} catch {}
+		}
+	};
+
 	const server = createServer((req, res) => {
+		const rawUrl = req.url ?? "/";
+		const pathname = rawUrl.split("?")[0];
+
+		if (pathname === "/api/events" || pathname === "/events") {
+			res.writeHead(200, {
+				"content-type": "text/event-stream; charset=utf-8",
+				"cache-control": "no-cache, no-transform",
+				"connection": "keep-alive",
+				"access-control-allow-origin": "*",
+				"x-accel-buffering": "no",
+			});
+			res.write("event: connected\ndata: {\"type\":\"connected\"}\n\n");
+			sseClients.add(res);
+			req.on("close", () => sseClients.delete(res));
+			return;
+		}
+
 		artifactState
 			.refresh()
-			.then((current) => handle(req.url ?? "/", { root, ...current }))
+			.then((current) => handle(rawUrl, { root, ...current }))
 			.then((response) => {
 				res.writeHead(response.status, {
 					"content-type": response.type,
-					// The pages are self-contained; forbid everything else outright. The
-					// graph and search pages get a policy that permits their inline scripts.
-					"content-security-policy": response.graph || response.script
-						? "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'self'"
-						: "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; form-action 'self'",
+					// The pages are self-contained; forbid everything else outright.
+					// Every page carries inline scripts (theme boot + toggle; the
+					// graph and search pages carry more), so inline scripts are
+					// permitted but no script source is: nothing may be fetched.
+					"content-security-policy":
+						"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'self'",
 					"x-content-type-options": "nosniff",
 					"referrer-policy": "no-referrer",
 				});
@@ -150,12 +216,47 @@ export async function serve(options: ServeOptions): Promise<RunningServer> {
 		});
 	});
 
+	// Polling watch loop for SSE clients (#UX-1511 – #UX-1520)
+	watchTimer = setInterval(async () => {
+		if (sseClients.size === 0) return;
+		try {
+			const changed = await artifactState.check();
+			if (changed) {
+				broadcastReload();
+			}
+		} catch {}
+	}, 250);
+	watchTimer.unref();
+
+	heartbeatTimer = setInterval(() => {
+		for (const client of sseClients) {
+			try {
+				client.write(": ping\n\n");
+			} catch {}
+		}
+	}, 15000);
+	heartbeatTimer.unref();
+
 	const actual = (server.address() as { port: number }).port;
 	return {
 		url: `http://${host}:${actual}`,
 		port: actual,
 		summary: summarise(initial.library, initial.index?.symbolCount ?? 0),
-		close: () => closeServer(server),
+		notifyReload: broadcastReload,
+		get clientCount() {
+			return sseClients.size;
+		},
+		close: async () => {
+			if (watchTimer) clearInterval(watchTimer);
+			if (heartbeatTimer) clearInterval(heartbeatTimer);
+			for (const client of sseClients) {
+				try {
+					client.end();
+				} catch {}
+			}
+			sseClients.clear();
+			await closeServer(server);
+		},
 	};
 }
 
@@ -232,6 +333,14 @@ export async function handle(rawUrl: string, ctx: Context): Promise<Response> {
 	}
 
 	if (path === "/files") return html(filesPage(site, url.searchParams.get("lang") ?? ""));
+
+	if (path === "/api/events" || path === "/events") {
+		return {
+			status: 200,
+			type: "text/event-stream; charset=utf-8",
+			body: "event: connected\ndata: {\"type\":\"connected\"}\n\n",
+		};
+	}
 
 	if (path === "/search" || path === "/api/search") {
 		const query = url.searchParams.get("q") ?? "";
