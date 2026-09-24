@@ -23,6 +23,18 @@ import {
 	estimateTokens,
 	type SpendEstimate as TokenSpendEstimate,
 } from "../../../../kaioken/modelport/src/spend.ts";
+import { renderProgressCard, type ProgressState, renderProgressBar } from "./progress.ts";
+import { renderDiffBlock, parseUnifiedDiff, type ParsedDiff } from "./diff.ts";
+import { renderCodeSnippet, osc52Copy, copySnippetAction } from "./clipboard.ts";
+import { AutoScrollController, type ScrollState } from "./autoscroll.ts";
+import { renderBreadcrumbs, MilestoneTrail, type Milestone } from "./breadcrumbs.ts";
+
+export * from "./progress.ts";
+export * from "./diff.ts";
+export * from "./clipboard.ts";
+export * from "./autoscroll.ts";
+export * from "./breadcrumbs.ts";
+
 import { proposeModulePlan, validatePlan, writeModulePlan, type ModulePlan } from "../../../../kaioken/plan/src/index.ts";
 import { generateCards, readCards, readModulePlan, writeCard } from "../../../../kaioken/plan/src/index.ts";
 import {
@@ -131,22 +143,51 @@ export interface LiveLogUI {
  */
 export interface KaiokenProgressData {
 	scope: string;
-	kind: "start" | "progress" | "task" | "done" | "error";
-	message: string;
+	kind: "start" | "progress" | "task" | "done" | "error" | "card" | "diff" | "snippet" | "breadcrumbs";
+	message?: string;
 	detail?: string;
 	timestamp?: number;
+	progressState?: ProgressState;
+	diffText?: string;
+	diffCollapsed?: boolean;
+	code?: string;
+	language?: string;
+	milestones?: Milestone[];
 }
 
 /**
- * Register custom transcript entry renderer with Pi so live logs appear
- * directly in the main chat/text output container.
+ * Register custom transcript entry renderers with Pi so live logs, progress cards,
+ * diff blocks, code snippets, and milestone trails appear directly in the main chat/text output container.
  */
 export function registerProgressRenderer(pi: ExtensionAPI): void {
 	if (typeof (pi as any)?.registerEntryRenderer !== "function") return;
 
+	// 1. kaioken-progress: Primary stream renderer for logs and progress cards
 	pi.registerEntryRenderer<KaiokenProgressData>("kaioken-progress", (entry, options, theme) => {
 		const data = entry.data;
-		if (!data || !data.message) return undefined;
+		if (!data) return undefined;
+
+		// Interactive Progress Card (UX-0101 - UX-0110)
+		if (data.progressState) {
+			return renderProgressCard(data.progressState, options, theme);
+		}
+
+		// Embedded Diff Block (UX-0111 - UX-0120)
+		if (data.diffText) {
+			return renderDiffBlock(data.diffText, { ...options, collapsed: data.diffCollapsed }, theme);
+		}
+
+		// Embedded Code Snippet (UX-0121 - UX-0130)
+		if (data.code) {
+			return renderCodeSnippet(data.code, data.language, { showLineNumbers: options.expanded }, theme);
+		}
+
+		// Milestone Breadcrumbs (UX-0141 - UX-0150)
+		if (data.milestones) {
+			return renderBreadcrumbs(data.milestones, { compact: !options.expanded }, theme);
+		}
+
+		if (!data.message) return undefined;
 
 		const fg = (color: string, text: string) =>
 			theme?.fg ? (theme.fg as any)(color, text) : text;
@@ -193,6 +234,24 @@ export function registerProgressRenderer(pi: ExtensionAPI): void {
 		}
 		return box;
 	});
+
+	// 2. kaioken-diff: Syntax-highlighted unified diffs with folding (UX-0111 - UX-0120)
+	pi.registerEntryRenderer<{ diffText: string; collapsed?: boolean }>("kaioken-diff", (entry, options, theme) => {
+		if (!entry.data?.diffText) return undefined;
+		return renderDiffBlock(entry.data.diffText, { ...options, collapsed: entry.data.collapsed }, theme);
+	});
+
+	// 3. kaioken-snippet: One-click copy code snippet with OSC 52 (UX-0121 - UX-0130)
+	pi.registerEntryRenderer<{ code: string; language?: string }>("kaioken-snippet", (entry, options, theme) => {
+		if (!entry.data?.code) return undefined;
+		return renderCodeSnippet(entry.data.code, entry.data.language, { showLineNumbers: options.expanded }, theme);
+	});
+
+	// 4. kaioken-breadcrumbs: Interactive milestone pipeline breadcrumbs (UX-0141 - UX-0150)
+	pi.registerEntryRenderer<{ milestones: Milestone[] }>("kaioken-breadcrumbs", (entry, options, theme) => {
+		if (!entry.data?.milestones) return undefined;
+		return renderBreadcrumbs(entry.data.milestones, { compact: !options.expanded }, theme);
+	});
 }
 
 /**
@@ -236,6 +295,67 @@ export class LiveLog {
 	progress(statusText: string, detail?: string): void {
 		this.emitStatus(statusText);
 		this.emitTranscript("progress", statusText, detail);
+	}
+
+	/** In-place live-updating progress card (UX-0101 - UX-0110). */
+	progressCard(state: ProgressState): void {
+		this.emitStatus(`${state.title} (${state.phase})`);
+		if (this.append) {
+			try {
+				this.append("kaioken-progress", {
+					scope: this.scope,
+					kind: "card",
+					message: state.title,
+					detail: state.subphase,
+					timestamp: Date.now(),
+					progressState: state,
+				});
+			} catch {
+				// Best effort
+			}
+		}
+	}
+
+	/** Syntax-highlighted unified diff block with collapsible fold (UX-0111 - UX-0120). */
+	diff(diffText: string, options?: { collapsed?: boolean }): void {
+		if (this.append) {
+			try {
+				this.append("kaioken-diff", {
+					diffText,
+					collapsed: options?.collapsed ?? true,
+				});
+			} catch {
+				// Best effort
+			}
+		}
+	}
+
+	/** One-click copy code snippet with OSC 52 action (UX-0121 - UX-0130). */
+	snippet(code: string, language = "text"): void {
+		if (this.append) {
+			try {
+				this.append("kaioken-snippet", {
+					code,
+					language,
+				});
+			} catch {
+				// Best effort
+			}
+		}
+	}
+
+	/** Interactive milestone breadcrumb trail (UX-0141 - UX-0150). */
+	breadcrumbs(trail: Milestone[] | MilestoneTrail): void {
+		const milestones = trail instanceof MilestoneTrail ? [...trail.getMilestones()] : trail;
+		if (this.append) {
+			try {
+				this.append("kaioken-breadcrumbs", {
+					milestones,
+				});
+			} catch {
+				// Best effort
+			}
+		}
 	}
 
 	/** A unit of work started: names it in transcript, spinner and widget. */
@@ -283,13 +403,13 @@ export class LiveLog {
 		this.ui?.setWorkingMessage?.(text);
 	}
 
-	private emitTranscript(kind: KaiokenProgressData["kind"], message: string, detail?: string): void {
+	private emitTranscript(kind: KaiokenProgressData["kind"], message?: string, detail?: string): void {
 		if (!this.append) return;
 		try {
 			this.append("kaioken-progress", {
 				scope: this.scope,
 				kind,
-				message,
+				message: message ?? "",
 				detail,
 				timestamp: Date.now(),
 			});
@@ -304,6 +424,7 @@ export class LiveLog {
 		this.ui?.setWidget?.("kaioken", lines.slice(0, 10));
 	}
 }
+
 
 let activeServer: RunningServer | null = null;
 

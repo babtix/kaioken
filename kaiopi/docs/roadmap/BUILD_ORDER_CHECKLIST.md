@@ -182,22 +182,23 @@
 ### Step 17: Category 02 — Chat Transcript & Interactive Output Stream
 *Rank: #17 Transcript Ergonomics | Package: `.pi/extensions/kaioken/commands` | Features: `#UX-0101` – `#UX-0200`*  
 📄 **Plan Reference**: [`02-chat-transcript-interactive-output-stream.md`](categories/02-chat-transcript-interactive-output-stream.md)
-- [ ] **17.1** Implement in-place live-updating progress cards with sub-phase spinners (`UX-0101`–`UX-0110`)
-- [ ] **17.2** Build syntax-highlighted unified diff blocks with collapsible folds (`UX-0111`–`UX-0120`)
-- [ ] **17.3** Add one-click copy-to-clipboard code snippet action (`UX-0121`–`UX-0130`)
-- [ ] **17.4** Implement auto-scrolling lock-to-bottom toggle with wheel pause (`UX-0131`–`UX-0140`)
-- [ ] **17.5** Build interactive milestone breadcrumb trails (`UX-0141`–`UX-0150`)
+- [x] **17.1** Implement in-place live-updating progress cards with sub-phase spinners (`UX-0101`–`UX-0110`)
+- [x] **17.2** Build syntax-highlighted unified diff blocks with collapsible folds (`UX-0111`–`UX-0120`)
+- [x] **17.3** Add one-click copy-to-clipboard code snippet action (`UX-0121`–`UX-0130`)
+- [x] **17.4** Implement auto-scrolling lock-to-bottom toggle with wheel pause (`UX-0131`–`UX-0140`)
+- [x] **17.5** Build interactive milestone breadcrumb trails (`UX-0141`–`UX-0150`)
 
 ---
 
 ### Step 18: Category 01 — Terminal UI (TUI) & Visual Aesthetics
 *Rank: #18 Visual Presentation | Package: `.pi/extensions/kaioken/ui` | Features: `#UX-0001` – `#UX-0100`*  
 📄 **Plan Reference**: [`01-terminal-ui-tui-visual-aesthetics.md`](categories/01-terminal-ui-tui-visual-aesthetics.md)
-- [ ] **18.1** Deploy adaptive 24-bit TrueColor gradient header treatment (`UX-0001`–`UX-0010`)
-- [ ] **18.2** Build dynamic Unicode glyph fallback system for basic terminals (`UX-0011`–`UX-0020`)
-- [ ] **18.3** Implement anti-flicker double-buffering terminal render pass (`UX-0021`–`UX-0030`)
-- [ ] **18.4** Add terminal window resize auto-reflow and buffer recycling (`UX-0031`–`UX-0040`)
-- [ ] **18.5** Implement high-contrast WCAG AAA theme and retro CRT amber mode (`UX-0041`–`UX-0050`)
+- [x] **18.1** Deploy adaptive 24-bit TrueColor gradient header treatment (`UX-0001`–`UX-0010`)
+- [x] **18.2** Build dynamic Unicode glyph fallback system for basic terminals (`UX-0011`–`UX-0020`)
+- [x] **18.3** Implement anti-flicker double-buffering terminal render pass (`UX-0021`–`UX-0030`)
+- [x] **18.4** Add terminal window resize auto-reflow and buffer recycling (`UX-0031`–`UX-0040`)
+- [x] **18.5** Implement high-contrast WCAG AAA theme and retro CRT amber mode (`UX-0041`–`UX-0050`)
+
 
 ---
 

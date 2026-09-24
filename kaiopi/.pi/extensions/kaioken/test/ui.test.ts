@@ -16,7 +16,39 @@ import {
 	visibleWidth,
 } from "../ui/logo.ts";
 import { TIMING, chargeOffset, easeOut, phase, powerMeter, revealedRows, sweepRule } from "../ui/motion.ts";
-import { ROLE_TOKEN, colorFromEnv, type PaintTheme, type Painter } from "../ui/theme.ts";
+import {
+	ROLE_TOKEN,
+	colorFromEnv,
+	type PaintTheme,
+	type Painter,
+	WCAG_AAA_THEME,
+	CRT_AMBER_THEME,
+	resolveTheme,
+} from "../ui/theme.ts";
+import {
+	GLYPH_MAP,
+	resolveGlyph,
+	getSpinnerFrame,
+	filterGlyphs,
+	supportsUnicode,
+} from "../ui/glyphs.ts";
+import {
+	KAIO_GRADIENT_STOPS,
+	hexToRgb,
+	interpolateRgb,
+	generateGradient,
+	supportsTrueColor,
+	rgbToAnsi256,
+	renderAdaptiveGradient,
+} from "../ui/gradient.ts";
+import { DoubleBufferRenderer } from "../ui/buffer.ts";
+import {
+	BufferPool,
+	truncateAnsi,
+	wrapAnsiLine,
+	reflowLines,
+} from "../ui/reflow.ts";
+
 
 /**
  * A theme that returns its input unchanged.
@@ -407,3 +439,200 @@ describe("kaioken ui: colour", () => {
 		expect(colorFromEnv({})).toBe(true);
 	});
 });
+
+describe("Step 18: Terminal UI (TUI) & Visual Aesthetics (UX-0001 - UX-0100)", () => {
+	describe("18.1: Adaptive 24-bit TrueColor gradient header treatment (UX-0001 - UX-0010)", () => {
+		it("converts hex to RGB accurately", () => {
+			expect(hexToRgb("#ffaf00")).toEqual({ r: 255, g: 175, b: 0 });
+			expect(hexToRgb("#00d787")).toEqual({ r: 0, g: 215, b: 135 });
+			expect(hexToRgb("#fff")).toEqual({ r: 255, g: 255, b: 255 });
+		});
+
+		it("interpolates RGB stops across multi-step gradient", () => {
+			const a = { r: 0, g: 0, b: 0 };
+			const b = { r: 100, g: 200, b: 50 };
+			expect(interpolateRgb(a, b, 0)).toEqual(a);
+			expect(interpolateRgb(a, b, 1)).toEqual(b);
+			expect(interpolateRgb(a, b, 0.5)).toEqual({ r: 50, g: 100, b: 25 });
+
+			const stops = [a, b];
+			const steps = generateGradient(stops, 5);
+			expect(steps).toHaveLength(5);
+			expect(steps[0]).toEqual(a);
+			expect(steps[4]).toEqual(b);
+		});
+
+		it("detects TrueColor support from environment variables", () => {
+			expect(supportsTrueColor({ COLORTERM: "truecolor" })).toBe(true);
+			expect(supportsTrueColor({ COLORTERM: "24bit" })).toBe(true);
+			expect(supportsTrueColor({ WT_SESSION: "guid-123" })).toBe(true);
+			expect(supportsTrueColor({ TERM_PROGRAM: "vscode" })).toBe(true);
+			expect(supportsTrueColor({ NO_COLOR: "1", COLORTERM: "truecolor" })).toBe(false);
+			expect(supportsTrueColor({ TERM: "dumb", COLORTERM: "truecolor" })).toBe(false);
+		});
+
+		it("converts RGB to closest 256-color palette index when falling back", () => {
+			const gray = rgbToAnsi256({ r: 128, g: 128, b: 128 });
+			expect(gray).toBeGreaterThanOrEqual(232);
+			expect(gray).toBeLessThanOrEqual(255);
+
+			const black = rgbToAnsi256({ r: 0, g: 0, b: 0 });
+			expect(black).toBe(16);
+
+			const orange = rgbToAnsi256({ r: 255, g: 135, b: 0 });
+			expect(orange).toBeGreaterThanOrEqual(16);
+		});
+
+		it("renders adaptive gradient with 24-bit escapes or 256-color fallback", () => {
+			const text = "KAIOKEN";
+			const trueColorOut = renderAdaptiveGradient(text, KAIO_GRADIENT_STOPS, { COLORTERM: "truecolor" });
+			expect(trueColorOut).toContain("\x1b[38;2;");
+
+			const fallbackOut = renderAdaptiveGradient(text, KAIO_GRADIENT_STOPS, { TERM: "xterm" });
+			expect(fallbackOut).toContain("\x1b[38;5;");
+
+			const plainOut = renderAdaptiveGradient(text, KAIO_GRADIENT_STOPS, { NO_COLOR: "1" });
+			expect(plainOut).toBe("KAIOKEN");
+		});
+	});
+
+	describe("18.2: Dynamic Unicode glyph fallback system (UX-0011 - UX-0020)", () => {
+		it("detects Unicode capability from environment", () => {
+			expect(supportsUnicode({ NO_UNICODE: "1" })).toBe(false);
+			expect(supportsUnicode({ TERM: "dumb" })).toBe(false);
+			expect(supportsUnicode({ LANG: "en_US.UTF-8" })).toBe(true);
+			expect(supportsUnicode({ WT_SESSION: "some-id" })).toBe(true);
+		});
+
+		it("resolves glyphs to Unicode or ASCII representations", () => {
+			expect(resolveGlyph("ok", true)).toBe("✓");
+			expect(resolveGlyph("ok", false)).toBe("[OK]");
+			expect(resolveGlyph("fail", true)).toBe("✗");
+			expect(resolveGlyph("fail", false)).toBe("[X]");
+			expect(resolveGlyph("arrowRight", true)).toBe("→");
+			expect(resolveGlyph("arrowRight", false)).toBe("->");
+			expect(resolveGlyph("barFull", true)).toBe("█");
+			expect(resolveGlyph("barFull", false)).toBe("#");
+		});
+
+		it("returns spinner frames cyclically in both modes", () => {
+			const u0 = getSpinnerFrame(0, true);
+			const u1 = getSpinnerFrame(1, true);
+			expect(u0).not.toBe(u1);
+			expect(getSpinnerFrame(10, true)).toBe(u0);
+
+			const a0 = getSpinnerFrame(0, false);
+			const a1 = getSpinnerFrame(1, false);
+			expect(["|", "/", "-", "\\"]).toContain(a0);
+			expect(getSpinnerFrame(4, false)).toBe(a0);
+		});
+
+		it("filters Unicode glyphs across arbitrary text in non-Unicode mode", () => {
+			const input = "Status: ✓ Done, ✗ Failed, → Next, [█░]";
+			const filtered = filterGlyphs(input, false);
+			expect(filtered).toBe("Status: [OK] Done, [X] Failed, -> Next, [#-]");
+			expect(filterGlyphs(input, true)).toBe(input);
+		});
+	});
+
+	describe("18.3: Anti-flicker double-buffering terminal render pass (UX-0021 - UX-0030)", () => {
+		it("calculates minimal line deltas without redrawing unchanged lines", () => {
+			const renderer = new DoubleBufferRenderer(80, 5, false);
+
+			// First frame: all 3 lines are new
+			const frame1 = renderer.render(["line 1", "line 2", "line 3"]);
+			expect(frame1.changedLines).toBe(3);
+			expect(frame1.deltaAnsi).toContain("\x1b[1;1H\x1b[2Kline 1");
+			expect(frame1.deltaAnsi).toContain("\x1b[2;1H\x1b[2Kline 2");
+			expect(frame1.deltaAnsi).toContain("\x1b[3;1H\x1b[2Kline 3");
+
+			// Second frame: only line 2 changes
+			const frame2 = renderer.render(["line 1", "line 2 - updated", "line 3"]);
+			expect(frame2.changedLines).toBe(1);
+			expect(frame2.deltaAnsi).toContain("line 2 - updated");
+			expect(frame2.deltaAnsi).not.toContain("line 1");
+			expect(frame2.deltaAnsi).not.toContain("line 3");
+
+			// Third frame: identical, zero changed lines and empty delta
+			const frame3 = renderer.render(["line 1", "line 2 - updated", "line 3"]);
+			expect(frame3.changedLines).toBe(0);
+			expect(frame3.deltaAnsi).toBe("");
+		});
+
+		it("wraps deltas in DEC Mode 2026 synchronized output escapes when enabled", () => {
+			const renderer = new DoubleBufferRenderer(80, 5, true);
+			const frame = renderer.render(["hello world"]);
+			expect(frame.deltaAnsi.startsWith("\x1b[?2026h")).toBe(true);
+			expect(frame.deltaAnsi.endsWith("\x1b[?2026l")).toBe(true);
+		});
+
+		it("resets buffers cleanly on resize", () => {
+			const renderer = new DoubleBufferRenderer(80, 5);
+			renderer.render(["line 1", "line 2"]);
+			renderer.resize(100, 10);
+			expect(renderer.getFrontBuffer()).toHaveLength(0);
+		});
+	});
+
+	describe("18.4: Terminal window resize auto-reflow and buffer recycling (UX-0031 - UX-0040)", () => {
+		it("truncates ANSI lines preserving escapes and trailing ellipsis", () => {
+			const line = "\x1b[38;5;208mKAIOKEN WORDMARK ENGINE\x1b[0m";
+			const truncated = truncateAnsi(line, 10, "…");
+			expect(truncated).toContain("…");
+			expect(truncated).toContain("\x1b[0m");
+		});
+
+		it("wraps lines at word boundaries while respecting width limits", () => {
+			const sentence = "The quick brown fox jumps over the lazy dog";
+			const wrapped = wrapAnsiLine(sentence, 15);
+			expect(wrapped.length).toBeGreaterThan(1);
+			for (const w of wrapped) {
+				expect(w.length).toBeLessThanOrEqual(15);
+			}
+		});
+
+		it("reflows and clamps multi-line frames to height and width bounds", () => {
+			const lines = ["First line", "Second line with extra text that wraps", "Third line", "Fourth line"];
+			const reflowed = reflowLines(lines, 20, 3);
+			expect(reflowed.length).toBeLessThanOrEqual(3);
+		});
+
+		it("BufferPool acquires and releases object instances without memory leaks", () => {
+			const pool = new BufferPool<string>(4);
+			expect(pool.available).toBe(0);
+
+			const b1 = pool.acquire();
+			b1.push("test");
+			pool.release(b1);
+			expect(pool.available).toBe(1);
+
+			const b2 = pool.acquire();
+			expect(b2).toHaveLength(0); // released buffer was cleared
+			pool.release(b2);
+		});
+	});
+
+	describe("18.5: High-contrast WCAG AAA theme and retro CRT amber mode (UX-0041 - UX-0050)", () => {
+		it("provides WCAG AAA high-contrast theme meeting >= 7:1 ratio requirements", () => {
+			expect(WCAG_AAA_THEME.fg("accent", "ACCENT")).toContain("\x1b[38;5;220m"); // Gold
+			expect(WCAG_AAA_THEME.fg("warning", "WARN")).toContain("\x1b[38;5;226m"); // Bright Yellow
+			expect(WCAG_AAA_THEME.fg("error", "ERR")).toContain("\x1b[38;5;196m"); // Vivid Red
+			expect(WCAG_AAA_THEME.fg("success", "OK")).toContain("\x1b[38;5;48m"); // Bright Mint
+			expect(WCAG_AAA_THEME.fg("text", "TEXT")).toContain("\x1b[38;5;231m"); // Pure White
+		});
+
+		it("provides Retro CRT Amber monochrome phosphor theme", () => {
+			expect(CRT_AMBER_THEME.fg("accent", "ACCENT")).toContain("\x1b[38;5;214m"); // Amber
+			expect(CRT_AMBER_THEME.fg("border", "BORDER")).toContain("\x1b[38;5;94m"); // Dim amber
+			expect(CRT_AMBER_THEME.fg("text", "TEXT")).toContain("\x1b[38;5;214m");
+		});
+
+		it("resolves theme based on ThemeMode requested", () => {
+			expect(resolveTheme("wcag-aaa")).toBe(WCAG_AAA_THEME);
+			expect(resolveTheme("crt-amber")).toBe(CRT_AMBER_THEME);
+			const fallbackTheme: PaintTheme = { fg: (_, t) => t, bold: (t) => t };
+			expect(resolveTheme("default", fallbackTheme)).toBe(fallbackTheme);
+		});
+	});
+});
+

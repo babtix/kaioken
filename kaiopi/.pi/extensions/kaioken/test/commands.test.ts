@@ -3,8 +3,28 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import bridgeInit from "../index.ts";
-import { DefaultSpendGate, LiveLog, parseMult, registerCommands, type SpendGate } from "../commands/index.ts";
+import {
+	DefaultSpendGate,
+	LiveLog,
+	parseMult,
+	registerCommands,
+	registerProgressRenderer,
+	type SpendGate,
+	renderProgressBar,
+	renderProgressCard,
+	type ProgressState,
+	parseUnifiedDiff,
+	renderDiffBlock,
+	osc52Copy,
+	copySnippetAction,
+	renderCodeSnippet,
+	AutoScrollController,
+	MilestoneTrail,
+	formatBreadcrumbsText,
+	renderBreadcrumbs,
+} from "../commands/index.ts";
 import { fakePi as createFakePi } from "./fake-pi.ts";
+
 
 function recordingUi() {
 	const notifications: Array<{ message: string; type?: string }> = [];
@@ -423,4 +443,292 @@ describe("LiveLog: transcript + widget progress for long commands", () => {
 		}
 	});
 });
+
+describe("Step 17: Chat Transcript & Interactive Output Stream (UX-0101 - UX-0200)", () => {
+	describe("17.1: In-place live-updating progress cards with sub-phase spinners (UX-0101 - UX-0110)", () => {
+		it("renders progress bars with percentage and fraction accurately", () => {
+			const bar0 = renderProgressBar(0, 10, 10, true);
+			expect(bar0).toContain("0%");
+			expect(bar0).toContain("(0/10)");
+			expect(bar0).toContain("░░░░░░░░░░");
+
+			const bar50 = renderProgressBar(5, 10, 10, true);
+			expect(bar50).toContain("50%");
+			expect(bar50).toContain("(5/10)");
+			expect(bar50).toContain("█████░░░░░");
+
+			const barAscii = renderProgressBar(5, 10, 10, false);
+			expect(barAscii).toContain("#####-----");
+
+			const barClamp = renderProgressBar(20, 10, 10, true);
+			expect(barClamp).toContain("100%");
+			expect(barClamp).toContain("(10/10)");
+		});
+
+		it("renders progress card across running, done, error and paused states", () => {
+			const state: ProgressState = {
+				scope: "plan",
+				title: "Module Architecture Plan",
+				phase: "Decomposing modules",
+				subphase: "Heuristic clustering",
+				current: 3,
+				total: 10,
+				status: "running",
+				subtasks: [
+					{ name: "Scan files", status: "done" },
+					{ name: "Build symbol index", status: "running" },
+					{ name: "Validate YAML checkpoint", status: "pending" },
+				],
+				elapsedMs: 2500,
+			};
+
+			const cardRunning = renderProgressCard(state, { expanded: true, frame: 1, unicode: true });
+			expect(cardRunning).toBeDefined();
+
+			const cardDone = renderProgressCard({ ...state, status: "done" }, { expanded: false });
+			expect(cardDone).toBeDefined();
+
+			const cardError = renderProgressCard({ ...state, status: "error" }, { expanded: true });
+			expect(cardError).toBeDefined();
+
+			const cardPaused = renderProgressCard({ ...state, status: "paused" }, { expanded: false });
+			expect(cardPaused).toBeDefined();
+		});
+
+		it("LiveLog.progressCard emits custom entry with progressState payload", () => {
+			const rec = recordingUi();
+			const log = new LiveLog(rec.ui, "plan", rec.appendEntry);
+
+			const state: ProgressState = {
+				scope: "plan",
+				title: "Planning Modules",
+				phase: "Clustering",
+				status: "running",
+			};
+			log.progressCard(state);
+
+			expect(rec.entries.length).toBe(1);
+			expect(rec.entries[0]?.customType).toBe("kaioken-progress");
+			expect((rec.entries[0]?.data as any)?.kind).toBe("card");
+			expect((rec.entries[0]?.data as any)?.progressState).toEqual(state);
+		});
+	});
+
+	describe("17.2: Syntax-highlighted unified diff blocks with collapsible folds (UX-0111 - UX-0120)", () => {
+		const sampleDiff = `diff --git a/src/math.ts b/src/math.ts
+--- a/src/math.ts
++++ b/src/math.ts
+@@ -1,4 +1,5 @@
+-export function add(a: number, b: number) { return a - b; }
++export function add(a: number, b: number) { return a + b; }
++export function sub(a: number, b: number) { return a - b; }
+ context line
+`;
+
+		it("parses unified diff hunks, additions and deletions", () => {
+			const parsed = parseUnifiedDiff(sampleDiff);
+			expect(parsed.files).toHaveLength(1);
+			expect(parsed.files[0]?.from).toBe("src/math.ts");
+			expect(parsed.files[0]?.to).toBe("src/math.ts");
+			expect(parsed.totalAdded).toBe(2);
+			expect(parsed.totalDeleted).toBe(1);
+		});
+
+		it("renders collapsed summary pill vs expanded full diff block", () => {
+			const collapsedBox = renderDiffBlock(sampleDiff, { collapsed: true });
+			expect(collapsedBox).toBeDefined();
+
+			const expandedBox = renderDiffBlock(sampleDiff, { expanded: true, collapsed: false });
+			expect(expandedBox).toBeDefined();
+		});
+
+		it("LiveLog.diff emits kaioken-diff entry", () => {
+			const rec = recordingUi();
+			const log = new LiveLog(rec.ui, "gitops", rec.appendEntry);
+			log.diff(sampleDiff, { collapsed: false });
+
+			expect(rec.entries.length).toBe(1);
+			expect(rec.entries[0]?.customType).toBe("kaioken-diff");
+			expect((rec.entries[0]?.data as any)?.diffText).toBe(sampleDiff);
+			expect((rec.entries[0]?.data as any)?.collapsed).toBe(false);
+		});
+	});
+
+	describe("17.3: One-click copy-to-clipboard code snippet action (UX-0121 - UX-0130)", () => {
+		it("generates valid ANSI OSC 52 sequence without escape codes", () => {
+			const code = "console.log('hello');";
+			const osc = osc52Copy(code);
+			expect(osc.startsWith("\x1b]52;c;")).toBe(true);
+			expect(osc.endsWith("\x07")).toBe(true);
+
+			const base64 = osc.slice(7, -1);
+			expect(Buffer.from(base64, "base64").toString("utf-8")).toBe(code);
+		});
+
+		it("copySnippetAction cleans text and prepares copy payloads", () => {
+			const ansiText = "\x1b[31mconst x = 42;\x1b[0m";
+			const action = copySnippetAction(ansiText);
+			expect(action.clean).toBe("const x = 42;");
+			expect(action.osc52).toContain(Buffer.from("const x = 42;").toString("base64"));
+		});
+
+		it("renders formatted code snippet box with language and copy hint", () => {
+			const code = "function greet() {\n  return 'hello';\n}";
+			const box = renderCodeSnippet(code, "typescript", { showLineNumbers: true, showCopyAction: true });
+			expect(box).toBeDefined();
+		});
+
+		it("LiveLog.snippet emits kaioken-snippet entry", () => {
+			const rec = recordingUi();
+			const log = new LiveLog(rec.ui, "symbols", rec.appendEntry);
+			log.snippet("export const pi = 3.14;", "typescript");
+
+			expect(rec.entries.length).toBe(1);
+			expect(rec.entries[0]?.customType).toBe("kaioken-snippet");
+			expect((rec.entries[0]?.data as any)?.code).toBe("export const pi = 3.14;");
+			expect((rec.entries[0]?.data as any)?.language).toBe("typescript");
+		});
+	});
+
+	describe("17.4: Auto-scrolling lock-to-bottom toggle with wheel pause (UX-0131 - UX-0140)", () => {
+		it("initializes locked to bottom and pauses upon wheel up", () => {
+			const controller = new AutoScrollController(true);
+			controller.updateBounds(100, 100);
+			expect(controller.getState().isLocked).toBe(true);
+			expect(controller.getState().pausedByWheel).toBe(false);
+
+			// User scrolls up with mouse wheel (negative delta)
+			controller.onWheel(-10);
+			expect(controller.getState().isLocked).toBe(false);
+			expect(controller.getState().pausedByWheel).toBe(true);
+			expect(controller.renderStatus()).toContain("paused");
+		});
+
+		it("resumes follow when user scrolls back to bottom or calls resume", () => {
+			const controller = new AutoScrollController(true);
+			controller.updateBounds(100, 100);
+			controller.onWheel(-20);
+			expect(controller.getState().isLocked).toBe(false);
+
+			// Scroll down back to maximum
+			controller.onWheel(+20);
+			expect(controller.getState().isLocked).toBe(true);
+			expect(controller.getState().pausedByWheel).toBe(false);
+			expect(controller.renderStatus()).toContain("active");
+
+			// Test explicit pause & resume
+			controller.onUserScrollUp();
+			expect(controller.getState().isLocked).toBe(false);
+			controller.resume();
+			expect(controller.getState().isLocked).toBe(true);
+		});
+
+		it("toggles lock state and renders widget", () => {
+			const controller = new AutoScrollController(true);
+			const state1 = controller.toggleLock();
+			expect(state1).toBe(false);
+			const state2 = controller.toggleLock();
+			expect(state2).toBe(true);
+
+			const widget = controller.renderWidget();
+			expect(widget).toBeDefined();
+		});
+	});
+
+	describe("17.5: Interactive milestone breadcrumb trails (UX-0141 - UX-0150)", () => {
+		it("initializes default pipeline stages and advances through completion", () => {
+			const trail = new MilestoneTrail();
+			const milestones = trail.getMilestones();
+			expect(milestones).toHaveLength(6);
+			expect(milestones[0]?.status).toBe("active");
+			expect(milestones[1]?.status).toBe("pending");
+
+			trail.advance("scan");
+			expect(milestones[0]?.status).toBe("completed");
+			expect(milestones[1]?.status).toBe("active");
+
+			trail.fail("symbols", "Typecheck failed");
+			expect(milestones[1]?.status).toBe("failed");
+			expect(milestones[1]?.detail).toBe("Typecheck failed");
+		});
+
+		it("formats breadcrumbs text with icons and connective arrows", () => {
+			const trail = new MilestoneTrail();
+			trail.advance("scan");
+			const textUnicode = formatBreadcrumbsText(trail.getMilestones(), { unicode: true });
+			expect(textUnicode).toContain("✓");
+			expect(textUnicode).toContain("●");
+			expect(textUnicode).toContain("○");
+			expect(textUnicode).toContain("➜");
+
+			const textAscii = formatBreadcrumbsText(trail.getMilestones(), { unicode: false });
+			expect(textAscii).toContain("[OK]");
+			expect(textAscii).toContain("->");
+		});
+
+		it("renders TUI Box for breadcrumbs and LiveLog.breadcrumbs emits entry", () => {
+			const trail = new MilestoneTrail();
+			const box = renderBreadcrumbs(trail.getMilestones());
+			expect(box).toBeDefined();
+
+			const rec = recordingUi();
+			const log = new LiveLog(rec.ui, "pipeline", rec.appendEntry);
+			log.breadcrumbs(trail);
+
+			expect(rec.entries.length).toBe(1);
+			expect(rec.entries[0]?.customType).toBe("kaioken-breadcrumbs");
+			expect((rec.entries[0]?.data as any)?.milestones).toHaveLength(6);
+		});
+	});
+
+	describe("Pi Custom Entry Renderers for Step 17", () => {
+		it("registers and executes all custom entry renderers via fake Pi harness", () => {
+			const fake = createFakePi();
+			registerProgressRenderer(fake.pi);
+
+			expect(fake.entryRenderers.has("kaioken-progress")).toBe(true);
+			expect(fake.entryRenderers.has("kaioken-diff")).toBe(true);
+			expect(fake.entryRenderers.has("kaioken-snippet")).toBe(true);
+			expect(fake.entryRenderers.has("kaioken-breadcrumbs")).toBe(true);
+
+			const progressRenderer = fake.entryRenderers.get("kaioken-progress");
+			const diffRenderer = fake.entryRenderers.get("kaioken-diff");
+			const snippetRenderer = fake.entryRenderers.get("kaioken-snippet");
+			const breadcrumbsRenderer = fake.entryRenderers.get("kaioken-breadcrumbs");
+
+			// Test kaioken-progress with progressState
+			const r1 = progressRenderer(
+				{ data: { progressState: { scope: "test", title: "Test", phase: "P1", status: "running" } } },
+				{ expanded: true },
+				undefined,
+			);
+			expect(r1).toBeDefined();
+
+			// Test kaioken-diff
+			const r2 = diffRenderer(
+				{ data: { diffText: "diff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1 +1 @@\n-a\n+b\n" } },
+				{ expanded: true },
+				undefined,
+			);
+			expect(r2).toBeDefined();
+
+			// Test kaioken-snippet
+			const r3 = snippetRenderer(
+				{ data: { code: "const x = 1;", language: "typescript" } },
+				{ expanded: false },
+				undefined,
+			);
+			expect(r3).toBeDefined();
+
+			// Test kaioken-breadcrumbs
+			const r4 = breadcrumbsRenderer(
+				{ data: { milestones: [{ id: "m1", label: "M1", status: "active" }] } },
+				{ expanded: false },
+				undefined,
+			);
+			expect(r4).toBeDefined();
+		});
+	});
+});
+
 
