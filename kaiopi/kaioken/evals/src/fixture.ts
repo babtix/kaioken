@@ -113,6 +113,21 @@ const SOURCE_RS = [
 	"",
 ].join("\n");
 
+const SOURCE_JAVA = [
+	"package service;",
+	"",
+	"public interface WorkerService {",
+	"    String process(String job);",
+	"}",
+	"",
+	"public class PipelineService implements WorkerService {",
+	"    public String process(String job) {",
+	"        return job;",
+	"    }",
+	"}",
+	"",
+].join("\n");
+
 /**
  * Build the fixture on disk, then index it.
  *
@@ -128,6 +143,7 @@ export async function createFixture(): Promise<Fixture> {
 	await writeFile(join(root, "src", "main.py"), SOURCE_PY, "utf8");
 	await writeFile(join(root, "src", "service.go"), SOURCE_GO, "utf8");
 	await writeFile(join(root, "src", "lib.rs"), SOURCE_RS, "utf8");
+	await writeFile(join(root, "src", "Main.java"), SOURCE_JAVA, "utf8");
 	await writeFile(
 		join(root, "package.json"),
 		JSON.stringify({ name: "kaioken-eval-fixture", version: "1.0.0", type: "module" }, null, 2),
@@ -147,6 +163,7 @@ export async function createFixture(): Promise<Fixture> {
 			"src/main.py": SOURCE_PY,
 			"src/service.go": SOURCE_GO,
 			"src/lib.rs": SOURCE_RS,
+			"src/Main.java": SOURCE_JAVA,
 		},
 		knownFiles: new Set(scanResult.files.filter((f) => !f.binary).map((f) => f.path)),
 		dispose: () => rm(root, { recursive: true, force: true }),

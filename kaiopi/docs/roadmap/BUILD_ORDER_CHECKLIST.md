@@ -149,11 +149,11 @@
 ### Step 14: Category 20 — Root CLI Parity, CI Automation & Evals Suite
 *Rank: #14 Headless Toolchain & CI | Package: `kaioken/bin.ts` / `evals` | Features: `#UX-1901` – `#UX-2000`*  
 📄 **Plan Reference**: [`20-root-cli-parity-ci-automation-evals-suite.md`](categories/20-root-cli-parity-ci-automation-evals-suite.md)
-- [ ] **14.1** Ensure full 16-subcommand CLI parity matching all Pi slash commands (`UX-1901`–`UX-1910`)
-- [ ] **14.2** Add shell auto-completion scripts for Bash, Zsh, and Fish (`UX-1911`–`UX-1920`)
-- [ ] **14.3** Deploy multi-language fixture probe suites (TS, Py, Go, Rust, Java) (`UX-1921`–`UX-1930`)
-- [ ] **14.4** Build CI offline-integrity and barrel export verification scripts (`UX-1931`–`UX-1940`)
-- [ ] **14.5** Implement automated eval regression scorecards and confidence ratings (`UX-1941`–`UX-1950`)
+- [x] **14.1** Ensure full 16-subcommand CLI parity matching all Pi slash commands (`UX-1901`–`UX-1910`)
+- [x] **14.2** Add shell auto-completion scripts for Bash, Zsh, and Fish (`UX-1911`–`UX-1920`)
+- [x] **14.3** Deploy multi-language fixture probe suites (TS, Py, Go, Rust, Java) (`UX-1921`–`UX-1930`)
+- [x] **14.4** Build CI offline-integrity and barrel export verification scripts (`UX-1931`–`UX-1940`)
+- [x] **14.5** Implement automated eval regression scorecards and confidence ratings (`UX-1941`–`UX-1950`)
 
 ---
 

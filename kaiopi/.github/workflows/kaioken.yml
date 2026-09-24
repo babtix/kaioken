@@ -61,9 +61,9 @@ jobs:
                    -w kaioken/provenance -w kaioken/impact -w kaioken/graph \
                    -w kaioken/gitops -w kaioken/verify -w kaioken/verifycore \
                    -w kaioken/skills -w kaioken/serve -w kaioken/modelport \
-                   -w kaioken/plan -w kaioken/wiki -w kaioken/research \
-                   -w kaioken/skillgen -w kaioken/evals \
-                   -w .pi/extensions/kaioken
+                    -w kaioken/plan -w kaioken/wiki -w kaioken/research \
+                    -w kaioken/skillgen -w kaioken/evals -w kaioken/completion \
+                    -w .pi/extensions/kaioken
 
       # The gate exits non-zero when a grounding metric misses its threshold.
       # It runs after the unit tests because a probe failure is more useful

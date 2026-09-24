@@ -23,7 +23,7 @@
 		"check": "biome check --write --error-on-warnings . && npm run check:pinned-deps && npm run check:runtime-deps && npm run check:ts-imports && npm run check:entry-graphs && npm run check:shrinkwrap && npm run check:install-lock:coding-agent && tsgo --noEmit && npm run check:kaioken && npm run check:browser-smoke",
 		"check:kaioken": "tsc -p tsconfig.kaioken.json && node scripts/check-kaioken-offline.mjs && node scripts/check-kaioken-barrels.mjs",
 		"check:kaioken:fresh": "tsx scripts/check-kaioken-fresh.mjs",
-		"build:kaioken": "tsc --build kaioken/index kaioken/modelport kaioken/plan kaioken/wiki kaioken/research kaioken/skillgen kaioken/evals kaioken/gitops kaioken/graph kaioken/impact kaioken/provenance kaioken/scan kaioken/search kaioken/serve kaioken/skills kaioken/verify kaioken/verifycore",
+		"build:kaioken": "tsc --build kaioken/index kaioken/modelport kaioken/plan kaioken/wiki kaioken/research kaioken/skillgen kaioken/evals kaioken/completion kaioken/gitops kaioken/graph kaioken/impact kaioken/provenance kaioken/scan kaioken/search kaioken/serve kaioken/skills kaioken/verify kaioken/verifycore",
 		"pack:kaioken": "npm run build:kaioken && node scripts/build-kaioken-pi.mjs && node scripts/check-kaioken-pi-package.mjs",
 		"check:browser-smoke": "node scripts/check-browser-smoke.mjs",
 		"check:pinned-deps": "node scripts/check-pinned-deps.mjs",

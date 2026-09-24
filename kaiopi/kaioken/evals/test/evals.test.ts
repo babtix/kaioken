@@ -14,7 +14,19 @@ import {
 	runProbes,
 } from "../src/probes.ts";
 import { evaluate, formatReport, type EvalMetrics } from "../src/types.ts";
+import {
+	confidenceFor,
+	diffScorecards,
+	formatNdjson,
+	formatScorecard,
+	readScorecard,
+	toScorecard,
+	writeScorecard,
+} from "../src/scorecard.ts";
 import { runEval } from "../src/run.ts";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 function metrics(overrides: Partial<EvalMetrics> = {}): EvalMetrics {
 	return {
@@ -138,10 +150,22 @@ describe("evals: probes pass on a correct pipeline", () => {
 		}
 	});
 
-	it("probe 10: multi-language AST symbols (Python, Go, Rust, TS) ground cleanly", async () => {
+	it("probe 10: multi-language AST symbols (Python, Go, Rust, Java, TS) ground cleanly", async () => {
 		const fixture = await createFixture();
 		try {
 			expect((await probe10MultiLanguageGrounding(fixture)).passed).toBe(true);
+		} finally {
+			await fixture.dispose();
+		}
+	});
+
+	it("indexes Java declarations in the fixture", async () => {
+		const fixture = await createFixture();
+		try {
+			expect(fixture.index.files.map((f) => f.path)).toContain("src/Main.java");
+			const symbols = fixture.index.files.flatMap((f) => f.symbols.map((s) => s.name));
+			expect(symbols).toContain("PipelineService");
+			expect(symbols).toContain("WorkerService");
 		} finally {
 			await fixture.dispose();
 		}
@@ -328,6 +352,88 @@ describe("evals: the full run", () => {
 			expect(report.metrics.hallucinatedSymbols).toBe(0);
 		} finally {
 			await fixture.dispose();
+		}
+	});
+});
+
+describe("evals: scorecards and confidence", () => {
+	it("rates a clean run at full confidence", () => {
+		const report = evaluate("clean", metrics(), [
+			{ id: "probe-a", description: "a", passed: true },
+			{ id: "probe-b", description: "b", passed: true },
+		]);
+		expect(confidenceFor(report)).toBe(100);
+		expect(toScorecard(report).passed).toBe(true);
+	});
+
+	it("caps confidence below 70 on a grounding violation", () => {
+		const report = evaluate("dirty", metrics({ hallucinatedSymbols: 2 }), [
+			{ id: "probe-a", description: "a", passed: true },
+			{ id: "probe-b", description: "b", passed: true },
+		]);
+		expect(report.passed).toBe(false);
+		expect(confidenceFor(report)).toBeLessThan(70);
+	});
+
+	it("rates an empty probe list at zero, not confident", () => {
+		expect(confidenceFor(evaluate("empty", metrics(), []))).toBe(0);
+	});
+
+	it("names regressed and recovered probes against a baseline", () => {
+		const baseline = toScorecard(
+			evaluate("x", metrics(), [
+				{ id: "probe-a", description: "a", passed: false, detail: "broke" },
+				{ id: "probe-b", description: "b", passed: true },
+			]),
+		);
+		const current = toScorecard(
+			evaluate("x", metrics(), [
+				{ id: "probe-a", description: "a", passed: true },
+				{ id: "probe-b", description: "b", passed: false, detail: "broke" },
+			]),
+		);
+		const diff = diffScorecards(current, baseline);
+		expect(diff.clean).toBe(false);
+		expect(diff.regressed).toContain("probe:probe-b");
+		expect(diff.improved).toContain("probe:probe-a");
+	});
+
+	it("renders a scorecard with a confidence rating line", () => {
+		const text = formatScorecard(toScorecard(evaluate("demo", metrics(), [])));
+		expect(text).toContain("scorecard: demo — PASS");
+		expect(text).toContain("confidence 0/100 LOW");
+	});
+
+	it("streams one JSON object per line for CI pipelines", () => {
+		const card = toScorecard(
+			evaluate("demo", metrics(), [{ id: "probe-a", description: "a", passed: true }]),
+		);
+		const lines = formatNdjson(card).trim().split("\n");
+		expect(lines.length).toBe(2);
+		for (const line of lines) expect(() => JSON.parse(line)).not.toThrow();
+		expect(JSON.parse(lines[1] as string).type).toBe("summary");
+	});
+
+	it("persists and reads back the scorecard artifact", async () => {
+		const root = await mkdtemp(join(tmpdir(), "kaioken-scorecard-"));
+		try {
+			const card = toScorecard(await runEval({ multiplier: 1 }));
+			const path = await writeScorecard(root, card);
+			expect(path).toContain("scorecard.json");
+			const back = await readScorecard(root);
+			expect(back?.name).toBe(card.name);
+			expect(back?.confidence).toBe(100);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("returns null when no scorecard was written yet", async () => {
+		const root = await mkdtemp(join(tmpdir(), "kaioken-scorecard-empty-"));
+		try {
+			expect(await readScorecard(root)).toBeNull();
+		} finally {
+			await rm(root, { recursive: true, force: true });
 		}
 	});
 });

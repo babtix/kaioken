@@ -3,10 +3,16 @@
  * Assert that the offline core never reaches the network.
  *
  * Invariant 2 says `scan`, `index`, `search`, `provenance`, `impact`, `graph`,
- * `verify`, `verifycore` and `skills` use zero network and zero keys. That is
+ * `verify`, `verifycore`, `skills`, `plan`, `wiki`, `skillgen`, `modelport`,
+ * `evals` and `completion` use zero network and zero keys. That is
  * the load-bearing claim of the whole architecture — it is what makes the truth
  * layer deterministic and the suite runnable without a credential — so it is
  * checked mechanically rather than asserted in prose.
+ *
+ * `research` is deliberately *not* in the list, though it also imports no
+ * transport: it is the one core package whose job is the web, and it stays
+ * offline-testable by receiving network access as injected ports from the Pi
+ * bridge (`WebSearchPort`/`WebFetchPort`) rather than importing it.
  *
  * `serve` is handled separately, because it is a genuine exception rather than
  * a loophole: it must *listen* on loopback so a human can preview the wiki, and
@@ -31,6 +37,12 @@ const PURE_OFFLINE = [
 	"kaioken/verify",
 	"kaioken/verifycore",
 	"kaioken/skills",
+	"kaioken/plan",
+	"kaioken/wiki",
+	"kaioken/skillgen",
+	"kaioken/modelport",
+	"kaioken/evals",
+	"kaioken/completion",
 ];
 
 /** Node builtins that constitute reaching the network. */

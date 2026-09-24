@@ -2,7 +2,17 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { parseArgs } from "node:util";
-import { formatReport, runEval } from "./evals/src/index.ts";
+import { generateCompletion } from "./completion/src/index.ts";
+import {
+	diffScorecards,
+	formatNdjson,
+	formatReport,
+	formatScorecard,
+	readScorecard,
+	runEval,
+	toScorecard,
+	writeScorecard,
+} from "./evals/src/index.ts";
 import {
 	detectConflicts,
 	formatDelegationRecipe,
@@ -19,7 +29,7 @@ import {
 	safeMerge,
 	worktreeStatus,
 } from "./gitops/src/index.ts";
-import { buildGraph, graphStats, renderGraphJson, renderGraphMarkdown, renderGraphMermaid, writeGraph } from "./graph/src/index.ts";
+import { buildGraph, graphStats, readWikiTree, renderGraphJson, renderGraphMarkdown, renderGraphMermaid, writeExportTree, writeGraph, type ExportManifest } from "./graph/src/index.ts";
 import { predictImpactForSymbol, renderImpact } from "./impact/src/index.ts";
 import { buildIndex, readIndexArtifact, SymbolOracle, writeIndexArtifact } from "./index/src/index.ts";
 import {
@@ -104,10 +114,15 @@ Commands:
   research    Read grounded research documents from .kaioken/research
   skills      Load and inspect procedures in .kaioken/skills
   skillgen    Discover repo commands and inspect procedure opportunities
-  graph       Build and render knowledge dependency graph
-  gitops      Git hooks, diffs, and worktree operations
-  evals       Run 10-probe groundedness evaluation suite
-  spend       Spend transparency, token estimates, pricing cards, and budget tracking
+   graph       Build and render knowledge dependency graph
+   gitops      Git hooks, diffs, and worktree operations
+   evals       Run 10-probe groundedness evaluation suite
+   spend       Spend transparency, token estimates, pricing cards, and budget tracking
+   export      Export static standalone documentation bundle (parity with /kaio-export)
+   update      Report stale documents from provenance diff (parity with /kaio-update --dry)
+   delegate    Isolate a task in a git worktree (parity with /kaio-delegate)
+   merge       Verify a worktree then fast-forward merge (parity with /kaio-merge)
+   completion  Print shell auto-completion script (bash, zsh, fish)
 
 Global Options:
   --root <path>       Target repository root (default: current working directory)
@@ -151,8 +166,13 @@ Command Options:
             --host <str>         Host to bind server to (default: 127.0.0.1)
   graph:    --format <fmt>       Output format: mermaid | markdown | json | summary
             --write              Write graph to .kaioken/graph.json
-  gitops:   --action <act>       Action: status | list | delegate | merge | prune | conflict | diff | install-hook | remove-hook | hook-log
-  evals:    --repo <path>        Target repository for evaluations
+   gitops:   --action <act>       Action: status | list | delegate | merge | prune | conflict | diff | install-hook | remove-hook | hook-log
+   evals:    --repo <path>        Target repository for evaluations
+             --multiplier <n>     Depth multiplier for planning (default: 3)
+             --scorecard          Write .kaioken/evals/scorecard.json and print regression vs baseline
+             --ndjson             Stream one JSON object per line for CI pipelines
+   update:   --dry                List stale documents without regenerating (default behavior)
+   completion: --shell <sh>       Shell dialect: bash | zsh | fish (default: bash)
 `);
 }
 
@@ -185,6 +205,10 @@ async function main(): Promise<void> {
 			format: { type: "string" },
 			action: { type: "string" },
 			repo: { type: "string" },
+			shell: { type: "string" },
+			scorecard: { type: "boolean" },
+			ndjson: { type: "boolean" },
+			dry: { type: "boolean" },
 			write: { type: "boolean" },
 			tree: { type: "boolean" },
 			coverage: { type: "boolean" },
@@ -905,7 +929,30 @@ async function main(): Promise<void> {
 		case "evals": {
 			const repo = values.repo ? String(values.repo) : undefined;
 			const multiplier = values.multiplier ? parseInt(String(values.multiplier), 10) : 3;
+			const wantScorecard = Boolean(values.scorecard);
+			const wantNdjson = Boolean(values.ndjson);
+			const scoreRoot = repo ?? root;
 			const report = await runEval({ multiplier, ...(repo ? { repo } : {}) });
+			const card = toScorecard(report);
+			if (wantNdjson) {
+				console.log(formatNdjson(card));
+				process.exit(report.passed ? 0 : 1);
+			}
+			if (wantScorecard) {
+				const previous = await readScorecard(scoreRoot);
+				const scorecardPath = await writeScorecard(scoreRoot, card);
+				const diff = previous ? diffScorecards(card, previous) : undefined;
+				if (isJson) {
+					console.log(JSON.stringify({ card, scorecardPath, diff: diff ?? null }, null, 2));
+				} else {
+					console.log(formatScorecard(card, diff));
+					console.log(`Saved scorecard to ${scorecardPath}`);
+					if (previous && diff && !diff.clean) {
+						console.log(`Regression vs baseline: ${diff.regressed.join(", ")}`);
+					}
+				}
+				process.exit(report.passed ? 0 : 1);
+			}
 			if (isJson) {
 				console.log(JSON.stringify(report, null, 2));
 			} else {
@@ -973,6 +1020,92 @@ async function main(): Promise<void> {
 						console.log(`\nBudget Status: projected spend $${(spend.usd ?? 0).toFixed(4)} USD is within hard ceiling of $${budgetLimit.toFixed(4)} USD.`);
 					}
 				}
+			}
+			break;
+		}
+
+		case "export": {
+			const wikiFiles = await readWikiTree(join(root, ".kaioken", "wiki")).catch(() => []);
+			const cards = await readCards(root).catch(() => []);
+			const skills = await loadSkills(root).catch(() => ({ skills: [], problems: [] }));
+			const manifest: ExportManifest = {
+				version: 1,
+				generatedAt: new Date().toISOString(),
+				repository: root,
+				counts: {
+					cards: cards.length,
+					wikiDocuments: wikiFiles.length,
+					skills: skills.skills.length,
+				},
+			};
+			const bundleDir = join(root, ".kaioken", "export");
+			const written = await writeExportTree(bundleDir, wikiFiles, manifest);
+			if (isJson) {
+				console.log(JSON.stringify({ bundleDir, manifest, written }, null, 2));
+			} else {
+				console.log(
+					`Exported ${written.length} asset(s) to .kaioken/export/ (${manifest.counts.wikiDocuments} wiki document(s), ${manifest.counts.cards} card(s), ${manifest.counts.skills} skill(s)).`,
+				);
+			}
+			break;
+		}
+
+		case "update": {
+			const report = await checkDrift(root);
+			const staleDocs = report.stale.map((d) => d.document).sort();
+			if (isJson) {
+				console.log(
+					JSON.stringify(
+						{
+							freshness: report.freshness,
+							stale: staleDocs,
+							undocumentedFiles: report.undocumentedFiles,
+							note: "Regeneration needs a model; run /kaio-update in Pi to regenerate.",
+						},
+						null,
+						2,
+					),
+				);
+			} else if (staleDocs.length === 0) {
+				console.log("Nothing is stale. No spend, no regeneration.");
+			} else {
+				console.log(`Stale document(s) (${staleDocs.length}): ${staleDocs.slice(0, 8).join(", ")}`);
+				console.log("Regeneration needs a model; run /kaio-update in Pi to regenerate.");
+			}
+			process.exit(staleDocs.length === 0 ? 0 : 1);
+			break;
+		}
+
+		case "delegate": {
+			const taskName = args[0] || "scratch-task";
+			const recipe = await generateDelegationRecipe(root, taskName);
+			if (isJson) {
+				console.log(JSON.stringify(recipe, null, 2));
+			} else {
+				console.log(formatDelegationRecipe(recipe));
+			}
+			break;
+		}
+
+		case "merge": {
+			const taskName = args[0] || "scratch-task";
+			const res = await safeMerge(root, taskName);
+			if (isJson) {
+				console.log(JSON.stringify(res, null, 2));
+			} else {
+				console.log(res.message);
+			}
+			if (!res.success) process.exit(1);
+			break;
+		}
+
+		case "completion": {
+			const shell = values.shell ? String(values.shell) : "bash";
+			try {
+				console.log(generateCompletion(shell));
+			} catch (err) {
+				console.error((err as Error).message);
+				process.exit(2);
 			}
 			break;
 		}

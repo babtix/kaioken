@@ -545,20 +545,22 @@ export async function probe9PaddingRejection(fixture: ProbeFixture): Promise<Pro
 /**
  * Probe 10: multi-language and inheritance AST grounding.
  *
- * Verifies that declarations in Python, Go, Rust, and TS class inheritance/interface
- * are indexed into the structural oracle and verify cleanly when cited.
+ * Verifies that declarations in Python, Go, Rust, Java, and TS class
+ * inheritance/interface are indexed into the structural oracle and verify
+ * cleanly when cited.
  */
 export async function probe10MultiLanguageGrounding(fixture: ProbeFixture): Promise<ProbeOutcome> {
 	const id = "probe-10-multilanguage-grounding";
 	const hasPolyglot =
 		fixture.knownFiles.has("src/main.py") &&
 		fixture.knownFiles.has("src/service.go") &&
-		fixture.knownFiles.has("src/lib.rs");
+		fixture.knownFiles.has("src/lib.rs") &&
+		fixture.knownFiles.has("src/Main.java");
 
 	if (!hasPolyglot) {
 		return {
 			id,
-			description: "cross-language AST symbols (Python, Go, Rust, TS) are indexed and verifiable",
+			description: "cross-language AST symbols (Python, Go, Rust, Java, TS) are indexed and verifiable",
 			passed: true,
 			detail: "skipped on repository without polyglot fixture files",
 		};
@@ -573,6 +575,8 @@ export async function probe10MultiLanguageGrounding(fixture: ProbeFixture): Prom
 		{ name: "NewWorker", lang: "go" },
 		{ name: "Storage", lang: "rust" },
 		{ name: "create_storage", lang: "rust" },
+		{ name: "PipelineService", lang: "java" },
+		{ name: "WorkerService", lang: "java" },
 		{ name: "EngineService", lang: "typescript" },
 		{ name: "BaseService", lang: "typescript" },
 	];
@@ -581,7 +585,7 @@ export async function probe10MultiLanguageGrounding(fixture: ProbeFixture): Prom
 		if (!oracle.has(req.name)) {
 			return {
 				id,
-				description: "cross-language AST symbols (Python, Go, Rust, TS) are indexed and verifiable",
+				description: "cross-language AST symbols (Python, Go, Rust, Java, TS) are indexed and verifiable",
 				passed: false,
 				detail: `symbol "${req.name}" (${req.lang}) was not indexed by the structural parser`,
 			};
@@ -594,6 +598,7 @@ export async function probe10MultiLanguageGrounding(fixture: ProbeFixture): Prom
 		"The `run_pipeline` function executes python tasks in `src/main.py`.",
 		"The `Worker` interface defines background work in `src/service.go`.",
 		"The `Storage` trait manages persistence in `src/lib.rs`.",
+		"The `PipelineService` class implements `WorkerService` in `src/Main.java`.",
 		"The `EngineService` class implements `BaseService` in `src/a.ts`.",
 	].join("\n");
 
@@ -609,7 +614,7 @@ export async function probe10MultiLanguageGrounding(fixture: ProbeFixture): Prom
 	if (defects.length > 0) {
 		return {
 			id,
-			description: "cross-language AST symbols (Python, Go, Rust, TS) are indexed and verifiable",
+			description: "cross-language AST symbols (Python, Go, Rust, Java, TS) are indexed and verifiable",
 			passed: false,
 			detail: `polyglot document produced unexpected grounding defect(s): ${JSON.stringify(defects)}`,
 		};
@@ -617,7 +622,7 @@ export async function probe10MultiLanguageGrounding(fixture: ProbeFixture): Prom
 
 	return {
 		id,
-		description: "cross-language AST symbols (Python, Go, Rust, TS) are indexed and verifiable",
+		description: "cross-language AST symbols (Python, Go, Rust, Java, TS) are indexed and verifiable",
 		passed: true,
 	};
 }
