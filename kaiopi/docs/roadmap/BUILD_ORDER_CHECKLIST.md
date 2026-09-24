@@ -94,11 +94,11 @@
 ### Step 9: Category 05 — Spend Transparency, Token Budgeting & Cost Control
 *Rank: #9 Financial Governance | Package: `kaioken/modelport` | Features: `#UX-0401` – `#UX-0500`*  
 📄 **Plan Reference**: [`05-spend-transparency-token-budgeting-cost-control.md`](categories/05-spend-transparency-token-budgeting-cost-control.md)
-- [ ] **9.1** Implement pre-flight token estimation calculation before model dispatches (`UX-0401`–`UX-0410`)
-- [ ] **9.2** Deploy interactive spend multiplier dial (×1 to ×10) on confirmation prompt (`UX-0411`–`UX-0420`)
-- [ ] **9.3** Build transparent per-model pricing breakdown cards with prompt/completion rates (`UX-0421`–`UX-0430`)
-- [ ] **9.4** Implement session hard budget ceiling preventing runaway prompt loops (`UX-0431`–`UX-0440`)
-- [ ] **9.5** Add zero-cost offline mode badge when inference is entirely bypassed (`UX-0441`–`UX-0450`)
+- [x] **9.1** Implement pre-flight token estimation calculation before model dispatches (`UX-0401`–`UX-0410`)
+- [x] **9.2** Deploy interactive spend multiplier dial (×1 to ×10) on confirmation prompt (`UX-0411`–`UX-0420`)
+- [x] **9.3** Build transparent per-model pricing breakdown cards with prompt/completion rates (`UX-0421`–`UX-0430`)
+- [x] **9.4** Implement session hard budget ceiling preventing runaway prompt loops (`UX-0431`–`UX-0440`)
+- [x] **9.5** Add zero-cost offline mode badge when inference is entirely bypassed (`UX-0441`–`UX-0450`)
 
 ---
 

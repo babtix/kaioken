@@ -22,6 +22,17 @@ import {
 import { buildGraph, graphStats, renderGraphJson, renderGraphMarkdown, renderGraphMermaid, writeGraph } from "./graph/src/index.ts";
 import { predictImpactForSymbol, renderImpact } from "./impact/src/index.ts";
 import { buildIndex, readIndexArtifact, SymbolOracle, writeIndexArtifact } from "./index/src/index.ts";
+import {
+	BudgetCeilingManager,
+	estimatePreflightTokens,
+	estimateSpend,
+	formatModelComparisonMatrix,
+	formatMultiplierDial,
+	formatOfflineModeBadge,
+	formatPricingCard,
+	formatSpendAuditReport,
+	STANDARD_MODEL_CATALOG,
+} from "./modelport/src/index.ts";
 import { proposeModulePlan, readCards, writeModulePlan } from "./plan/src/index.ts";
 import { checkDrift, gatherProvenance } from "./provenance/src/index.ts";
 import { readResearchDocuments } from "./research/src/index.ts";
@@ -63,6 +74,7 @@ Commands:
   graph       Build and render knowledge dependency graph
   gitops      Git hooks, diffs, and worktree operations
   evals       Run 10-probe groundedness evaluation suite
+  spend       Spend transparency, token estimates, pricing cards, and budget tracking
 
 Global Options:
   --root <path>       Target repository root (default: current working directory)
@@ -79,6 +91,14 @@ Command Options:
             --explain            Reciprocal Rank Fusion (RRF) & BM25 score visualizer
             --boost <path:mul>   Custom directory boost multipliers (e.g. "src:1.5,api:2.0")
   plan:     --multiplier <n>     Depth multiplier for planning (default: 1)
+            --budget <usd>       Enforce session budget limit before proposing plan
+  spend:    --multiplier <n>     Depth multiplier (1–10, default: 1)
+            --budget <usd>       Session hard budget ceiling in USD
+            --model <name>       Target model ID for pricing calculations
+            --matrix             Show multi-provider pricing comparison matrix
+            --audit              Show chronological session spend audit ledger
+            --dial               Render interactive multiplier dial with depth metrics
+            --offline            Show zero-cost offline mode badge & avoided spend
   serve:    --port <n>           Port for preview server (default: 4173)
             --host <str>         Host to bind server to (default: 127.0.0.1)
   graph:    --format <fmt>       Output format: mermaid | markdown | json | summary
@@ -106,6 +126,12 @@ async function main(): Promise<void> {
 			explain: { type: "boolean" },
 			boost: { type: "string" },
 			multiplier: { type: "string" },
+			budget: { type: "string" },
+			model: { type: "string" },
+			matrix: { type: "boolean" },
+			audit: { type: "boolean" },
+			dial: { type: "boolean" },
+			offline: { type: "boolean" },
 			port: { type: "string" },
 			host: { type: "string" },
 			format: { type: "string" },
@@ -308,6 +334,17 @@ async function main(): Promise<void> {
 
 		case "plan": {
 			const multiplier = values.multiplier ? parseInt(String(values.multiplier), 10) : 1;
+			if (values.budget) {
+				const budgetLimit = parseFloat(String(values.budget));
+				const estTokens = estimatePreflightTokens("plan", multiplier);
+				const estSpend = estimateSpend(STANDARD_MODEL_CATALOG["gemini-2.5-flash"], estTokens);
+				const mgr = new BudgetCeilingManager({ hardCeilingUsd: budgetLimit });
+				const check = mgr.checkBudget(estSpend.usd ?? 0, "plan");
+				if (!check.allowed) {
+					console.error(`ERROR: Session budget ceiling of $${budgetLimit.toFixed(4)} USD exceeded: projected spend is $${(estSpend.usd ?? 0).toFixed(4)} USD.`);
+					process.exit(1);
+				}
+			}
 			const scanResult = await scan(root);
 			const index = await readIndexArtifact(root);
 			const proposeResult = await proposeModulePlan(scanResult, index, null, { multiplier });
@@ -321,6 +358,9 @@ async function main(): Promise<void> {
 					),
 				);
 			} else {
+				if (proposeResult.source !== "model") {
+					console.log(formatOfflineModeBadge({ stage: "plan", reason: `deterministic local heuristics (${proposeResult.source})` }));
+				}
 				console.log(`Module plan (${proposeResult.source}) written to ${planPath}`);
 				console.log(`Decomposed into ${proposeResult.plan.modules.length} module(s):`);
 				for (const m of proposeResult.plan.modules) {
@@ -561,6 +601,68 @@ async function main(): Promise<void> {
 				console.log(formatReport(report));
 			}
 			process.exit(report.passed ? 0 : 1);
+			break;
+		}
+
+		case "spend": {
+			const action = args[0] || "plan";
+			const multiplier = values.multiplier ? parseInt(String(values.multiplier), 10) : 1;
+			const modelLabel = values.model ? String(values.model) : "gemini-2.5-flash";
+			const budgetLimit = values.budget ? parseFloat(String(values.budget)) : null;
+			const cost = STANDARD_MODEL_CATALOG[modelLabel];
+
+			const tokens = estimatePreflightTokens(action, multiplier);
+			const spend = estimateSpend(cost, tokens);
+
+			if (values.matrix) {
+				console.log(formatModelComparisonMatrix(tokens, STANDARD_MODEL_CATALOG));
+				break;
+			}
+
+			if (values.audit) {
+				const mgr = new BudgetCeilingManager({ hardCeilingUsd: budgetLimit });
+				const ledgerFile = join(root, KAIOKEN_DIR, "spend.json");
+				await mgr.loadLedger(ledgerFile);
+				console.log(formatSpendAuditReport(mgr.records, budgetLimit ?? mgr.hardCeilingUsd));
+				break;
+			}
+
+			if (values.dial) {
+				console.log(formatMultiplierDial(multiplier, { estimate: spend }));
+				break;
+			}
+
+			if (values.offline) {
+				console.log(formatOfflineModeBadge({ stage: action, bypassedTokens: tokens, benchmarkCost: cost }));
+				break;
+			}
+
+			if (isJson) {
+				console.log(
+					JSON.stringify(
+						{
+							action,
+							multiplier,
+							model: modelLabel,
+							tokens,
+							spend,
+							budgetLimit,
+						},
+						null,
+						2,
+					),
+				);
+			} else {
+				console.log(formatPricingCard(modelLabel, cost, tokens));
+				if (budgetLimit !== null) {
+					const check = new BudgetCeilingManager({ hardCeilingUsd: budgetLimit }).checkBudget(spend.usd ?? 0, action);
+					if (!check.allowed) {
+						console.log(`\n⚠️  BUDGET CEILING ALERT: ${check.reason}`);
+					} else {
+						console.log(`\nBudget Status: projected spend $${(spend.usd ?? 0).toFixed(4)} USD is within hard ceiling of $${budgetLimit.toFixed(4)} USD.`);
+					}
+				}
+			}
 			break;
 		}
 

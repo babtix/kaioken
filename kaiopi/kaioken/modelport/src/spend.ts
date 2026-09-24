@@ -86,6 +86,78 @@ export function estimateStageTokens(
 	return estimateTokens(multiplier, contextTokensFor(action), itemCount);
 }
 
+export interface PreflightOptions {
+	itemCount?: number;
+	/** Optional explicit context tokens (e.g. from exact AST or file char count). */
+	explicitContextTokens?: number;
+	/** Approximate character count to convert to tokens (~4 chars per token). */
+	characterCount?: number;
+}
+
+/**
+ * Real-time pre-flight token estimation calculation before model dispatches.
+ *
+ * Implements features UX-0401 through UX-0410.
+ */
+export function estimatePreflightTokens(
+	action: string,
+	multiplier: number,
+	options: PreflightOptions = {},
+): TokenEstimate {
+	let contextSize = contextTokensFor(action);
+	if (typeof options.explicitContextTokens === "number" && options.explicitContextTokens > 0) {
+		contextSize = options.explicitContextTokens;
+	} else if (typeof options.characterCount === "number" && options.characterCount > 0) {
+		// Heuristic ~4 characters per token
+		contextSize = Math.max(100, Math.round(options.characterCount / 4));
+	}
+	return estimateTokens(multiplier, contextSize, options.itemCount ?? 1);
+}
+
+export interface PipelineStageSpec {
+	stage: string;
+	itemCount?: number;
+	explicitContextTokens?: number;
+}
+
+export interface PipelineTokenEstimate {
+	stages: Record<string, TokenEstimate>;
+	total: TokenEstimate;
+}
+
+/**
+ * Summarize full pipeline token consumption across multiple stages.
+ */
+export function estimatePipelineTokens(
+	stages: PipelineStageSpec[],
+	multiplier: number,
+): PipelineTokenEstimate {
+	const resultStages: Record<string, TokenEstimate> = {};
+	let totalInput = 0;
+	let totalOutput = 0;
+	let totalPasses = 0;
+
+	for (const spec of stages) {
+		const est = estimatePreflightTokens(spec.stage, multiplier, {
+			itemCount: spec.itemCount,
+			explicitContextTokens: spec.explicitContextTokens,
+		});
+		resultStages[spec.stage] = est;
+		totalInput += est.input;
+		totalOutput += est.output;
+		totalPasses += est.passes;
+	}
+
+	return {
+		stages: resultStages,
+		total: {
+			input: totalInput,
+			output: totalOutput,
+			passes: totalPasses,
+		},
+	};
+}
+
 /**
  * Pick the rate card that applies to a request.
  *
@@ -111,9 +183,9 @@ export function resolveRates(cost: ModelCost, inputTokens: number): ModelCostRat
 /**
  * Price a token estimate against a model's cost registry.
  *
- * `cacheRead` and `cacheWrite` are intentionally not modelled: the gate exists
- * to bound worst-case spend, and cache behaviour only ever makes a request
- * cheaper. Ignoring it keeps the estimate an upper bound rather than a guess.
+ * `cacheRead` and `cacheWrite` are intentionally not modelled in the base usd cost:
+ * the gate exists to bound worst-case spend, and cache behaviour only ever makes a
+ * request cheaper. Ignoring it keeps the estimate an upper bound rather than a guess.
  */
 export function estimateSpend(cost: ModelCost | undefined, tokens: TokenEstimate): SpendEstimate {
 	if (!cost) {

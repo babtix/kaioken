@@ -4,6 +4,8 @@ import {
 	DEFAULT_CONTEXT_TOKENS,
 	contextTokensFor,
 	describeSpend,
+	estimatePipelineTokens,
+	estimatePreflightTokens,
 	estimateSpend,
 	estimateTokens,
 	resolveRates,
@@ -130,3 +132,40 @@ describe("spend: dialog text", () => {
 		expect(describeSpend("wiki", 3, est, "m")).toContain("not a quote");
 	});
 });
+
+describe("spend: preflight and pipeline estimation", () => {
+	it("estimates preflight tokens using explicit context tokens", () => {
+		const est = estimatePreflightTokens("plan", 2, { explicitContextTokens: 50_000 });
+		expect(est.input).toBeGreaterThan(50_000);
+		expect(est.passes).toBe(2);
+	});
+
+	it("estimates preflight tokens from character count heuristic", () => {
+		const est = estimatePreflightTokens("cards", 1, { characterCount: 40_000 });
+		// 40_000 chars / 4 = 10_000 tokens * 2 passes (initial + 1 repair)
+		expect(est.input).toBe(20_000);
+		expect(est.passes).toBe(2);
+	});
+
+	it("estimates multi-stage pipeline tokens", () => {
+		const pipe = estimatePipelineTokens(
+			[
+				{ stage: "plan", itemCount: 1 },
+				{ stage: "cards", itemCount: 5 },
+				{ stage: "wiki", itemCount: 3 },
+			],
+			3,
+		);
+
+		expect(pipe.stages.plan).toBeDefined();
+		expect(pipe.stages.cards).toBeDefined();
+		expect(pipe.stages.wiki).toBeDefined();
+		expect(pipe.total.input).toBe(
+			pipe.stages.plan.input + pipe.stages.cards.input + pipe.stages.wiki.input,
+		);
+		expect(pipe.total.passes).toBe(
+			pipe.stages.plan.passes + pipe.stages.cards.passes + pipe.stages.wiki.passes,
+		);
+	});
+});
+
