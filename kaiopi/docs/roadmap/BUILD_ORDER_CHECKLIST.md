@@ -105,11 +105,11 @@
 ### Step 10: Category 13 — Module Planning & Architecture Decomposition
 *Rank: #10 System Structure Planning | Package: `kaioken/plan` | Features: `#UX-1201` – `#UX-1300`*  
 📄 **Plan Reference**: [`13-module-planning-architecture-decomposition.md`](categories/13-module-planning-architecture-decomposition.md)
-- [ ] **10.1** Deploy deterministic heuristic directory clustering fallback (`UX-1201`–`UX-1210`)
-- [ ] **10.2** Implement self-repair JSON parser recovering from malformed replies (`UX-1211`–`UX-1220`)
-- [ ] **10.3** Build human-editable YAML module checkpoint validator (`UX-1221`–`UX-1230`)
-- [ ] **10.4** Add unassigned file coverage indicator tracking omitted repository files (`UX-1231`–`UX-1240`)
-- [ ] **10.5** Build interactive terminal card-sorting UI for reorganizing module boundaries (`UX-1241`–`UX-1250`)
+- [x] **10.1** Deploy deterministic heuristic directory clustering fallback (`UX-1201`–`UX-1210`)
+- [x] **10.2** Implement self-repair JSON parser recovering from malformed replies (`UX-1211`–`UX-1220`)
+- [x] **10.3** Build human-editable YAML module checkpoint validator (`UX-1221`–`UX-1230`)
+- [x] **10.4** Add unassigned file coverage indicator tracking omitted repository files (`UX-1231`–`UX-1240`)
+- [x] **10.5** Build interactive terminal card-sorting UI for reorganizing module boundaries (`UX-1241`–`UX-1250`)
 
 ---
 

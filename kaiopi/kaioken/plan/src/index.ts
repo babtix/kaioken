@@ -6,12 +6,43 @@ export {
 	normalisePlan,
 	readCards,
 	readModulePlan,
+	readModulePlanRaw,
 	safeFileName,
 	writeCard,
 	writeModulePlan,
 } from "./artifact.ts";
 export { buildCardPrompt, generateCard, generateCards, verifyCard } from "./cards.ts";
 export type { CardResult } from "./cards.ts";
+export {
+	CardSortingSession,
+	createModule,
+	mergeModules,
+	moveFile,
+	removeModule,
+	renderCardSortingGrid,
+	renderModuleTree,
+	splitModule,
+} from "./cardsort.ts";
+export type { CardSortRenderOptions, MergeOptions, SplitOptions } from "./cardsort.ts";
+export {
+	formatCheckpointReport,
+	lintModulePurposes,
+	repairYamlCheckpoint,
+	validateYamlCheckpoint,
+} from "./checkpoint.ts";
+export type { CheckpointDiagnostic, CheckpointReport, PurposeLintFinding } from "./checkpoint.ts";
+export {
+	ARCHITECTURAL_DOMAINS,
+	clusterDirectories,
+	detectArchitecturalDomain,
+} from "./cluster.ts";
+export type { ArchitecturalDomain, ClusteringOptions, DomainMeta } from "./cluster.ts";
+export {
+	computeCoverageIndicator,
+	formatCoverageGauge,
+	suggestModuleForFile,
+} from "./coverage.ts";
+export type { CoverageReport, UnassignedFile, UnassignedFileRisk } from "./coverage.ts";
 export { gatherEvidence, gatherModuleEvidence } from "./evidence.ts";
 export type {
 	DirectoryEvidence,
@@ -21,6 +52,12 @@ export type {
 } from "./evidence.ts";
 export { buildPrompt, proposeHeuristicModules, proposeModulePlan } from "./propose.ts";
 export type { ProposeResult } from "./propose.ts";
+export {
+	extractRepairJson,
+	parseSelfRepairJson,
+	repairJson,
+} from "./repair.ts";
+export type { RepairResult, SelfRepairParseResult } from "./repair.ts";
 export type {
 	Card,
 	CardEntryPoint,

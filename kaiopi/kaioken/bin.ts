@@ -33,7 +33,22 @@ import {
 	formatSpendAuditReport,
 	STANDARD_MODEL_CATALOG,
 } from "./modelport/src/index.ts";
-import { proposeModulePlan, readCards, writeModulePlan } from "./plan/src/index.ts";
+import {
+	computeCoverageIndicator,
+	formatCheckpointReport,
+	formatCoverageGauge,
+	mergeModules,
+	moveFile,
+	proposeModulePlan,
+	readCards,
+	readModulePlan,
+	readModulePlanRaw,
+	renderCardSortingGrid,
+	renderModuleTree,
+	splitModule,
+	validateYamlCheckpoint,
+	writeModulePlan,
+} from "./plan/src/index.ts";
 import { checkDrift, gatherProvenance } from "./provenance/src/index.ts";
 import { readResearchDocuments } from "./research/src/index.ts";
 import {
@@ -92,6 +107,13 @@ Command Options:
             --boost <path:mul>   Custom directory boost multipliers (e.g. "src:1.5,api:2.0")
   plan:     --multiplier <n>     Depth multiplier for planning (default: 1)
             --budget <usd>       Enforce session budget limit before proposing plan
+            --tree               Display hierarchical module tree explorer
+            --coverage           Display file coverage indicator gauge and unassigned breakdown
+            --lint               Validate YAML checkpoint and lint module purpose statements
+            --cardsort           Render visual terminal card-sorting board
+            --split <modId>      Split an oversized module into submodules
+            --merge <src:target> Merge two modules together
+            --move <file:modId>  Reassign file to a target module
   spend:    --multiplier <n>     Depth multiplier (1–10, default: 1)
             --budget <usd>       Session hard budget ceiling in USD
             --model <name>       Target model ID for pricing calculations
@@ -138,6 +160,13 @@ async function main(): Promise<void> {
 			action: { type: "string" },
 			repo: { type: "string" },
 			write: { type: "boolean" },
+			tree: { type: "boolean" },
+			coverage: { type: "boolean" },
+			lint: { type: "boolean" },
+			split: { type: "string" },
+			merge: { type: "string" },
+			move: { type: "string" },
+			cardsort: { type: "boolean" },
 		},
 	});
 
@@ -345,34 +374,140 @@ async function main(): Promise<void> {
 					process.exit(1);
 				}
 			}
+
 			const scanResult = await scan(root);
-			const index = await readIndexArtifact(root);
-			const proposeResult = await proposeModulePlan(scanResult, index, null, { multiplier });
-			const planPath = await writeModulePlan(root, proposeResult.plan);
-			if (isJson) {
-				console.log(
-					JSON.stringify(
-						{ plan: proposeResult.plan, validation: proposeResult.validation, planPath },
-						null,
-						2,
-					),
-				);
-			} else {
-				if (proposeResult.source !== "model") {
-					console.log(formatOfflineModeBadge({ stage: "plan", reason: `deterministic local heuristics (${proposeResult.source})` }));
+			let plan = await readModulePlan(root);
+
+			// Handle checkpoint validation / linting
+			if (values.lint) {
+				const rawYaml = (await readModulePlanRaw(root)) ?? "";
+				const report = validateYamlCheckpoint(rawYaml, scanResult);
+				if (isJson) {
+					console.log(JSON.stringify(report, null, 2));
+				} else {
+					console.log(formatCheckpointReport(report));
 				}
-				console.log(`Module plan (${proposeResult.source}) written to ${planPath}`);
-				console.log(`Decomposed into ${proposeResult.plan.modules.length} module(s):`);
-				for (const m of proposeResult.plan.modules) {
-					console.log(`  - ${m.id} (${m.files.length} file(s)): ${m.name}`);
-				}
-				if (proposeResult.validation.defects.length > 0) {
-					console.log(`Validation defects (${proposeResult.validation.defects.length}):`);
-					for (const d of proposeResult.validation.defects) {
-						console.log(`  [${d.severity}] ${d.message}`);
+				process.exit(report.valid ? 0 : 1);
+			}
+
+			// If plan doesn't exist yet or proposing fresh plan
+			if (!plan || (!values.tree && !values.coverage && !values.cardsort && !values.split && !values.merge && !values.move)) {
+				const index = await readIndexArtifact(root);
+				const proposeResult = await proposeModulePlan(scanResult, index, null, { multiplier });
+				plan = proposeResult.plan;
+				const planPath = await writeModulePlan(root, plan);
+
+				if (!values.tree && !values.coverage && !values.cardsort && !values.split && !values.merge && !values.move) {
+					if (isJson) {
+						console.log(
+							JSON.stringify(
+								{ plan, validation: proposeResult.validation, planPath },
+								null,
+								2,
+							),
+						);
+					} else {
+						if (proposeResult.source !== "model") {
+							console.log(formatOfflineModeBadge({ stage: "plan", reason: `deterministic local heuristics (${proposeResult.source})` }));
+						}
+						console.log(`Module plan (${proposeResult.source}) written to ${planPath}`);
+						console.log(`Decomposed into ${plan.modules.length} module(s):`);
+						for (const m of plan.modules) {
+							console.log(`  - ${m.id} (${m.files.length} file(s)): ${m.name}`);
+						}
+						if (proposeResult.validation.defects.length > 0) {
+							console.log(`Validation defects (${proposeResult.validation.defects.length}):`);
+							for (const d of proposeResult.validation.defects) {
+								console.log(`  [${d.severity}] ${d.message}`);
+							}
+						}
 					}
+					break;
 				}
 			}
+
+			// Handle split module
+			if (values.split) {
+				const targetId = String(values.split).trim();
+				plan = splitModule(plan, targetId);
+				const planPath = await writeModulePlan(root, plan);
+				if (isJson) {
+					console.log(JSON.stringify({ action: "split", targetId, plan, planPath }, null, 2));
+				} else {
+					console.log(`Split module "${targetId}" into submodules. Updated ${planPath}`);
+					console.log(renderModuleTree(plan, { showFiles: false }));
+				}
+				break;
+			}
+
+			// Handle merge modules
+			if (values.merge) {
+				const parts = String(values.merge).split(/[:;,]/).map((s) => s.trim());
+				if (parts.length < 2) {
+					console.error("ERROR: --merge requires source and target module IDs format: --merge <source:target>");
+					process.exit(1);
+				}
+				const [sourceId, targetId] = parts as [string, string];
+				plan = mergeModules(plan, sourceId, targetId);
+				const planPath = await writeModulePlan(root, plan);
+				if (isJson) {
+					console.log(JSON.stringify({ action: "merge", sourceId, targetId, plan, planPath }, null, 2));
+				} else {
+					console.log(`Merged module "${sourceId}" into "${targetId}". Updated ${planPath}`);
+					console.log(renderModuleTree(plan, { showFiles: false }));
+				}
+				break;
+			}
+
+			// Handle move file
+			if (values.move) {
+				const parts = String(values.move).split(/[:;]/).map((s) => s.trim());
+				if (parts.length < 2) {
+					console.error("ERROR: --move requires filePath and targetModuleId format: --move <filePath:targetModuleId>");
+					process.exit(1);
+				}
+				const [file, toModuleId] = parts as [string, string];
+				plan = moveFile(plan, file, toModuleId);
+				const planPath = await writeModulePlan(root, plan);
+				if (isJson) {
+					console.log(JSON.stringify({ action: "move", file, toModuleId, plan, planPath }, null, 2));
+				} else {
+					console.log(`Moved "${file}" into module "${toModuleId}". Updated ${planPath}`);
+				}
+				break;
+			}
+
+			// Handle coverage gauge
+			if (values.coverage) {
+				const coverageReport = computeCoverageIndicator(plan, scanResult);
+				if (isJson) {
+					console.log(JSON.stringify(coverageReport, null, 2));
+				} else {
+					console.log(formatCoverageGauge(coverageReport, { showBreakdown: true }));
+				}
+				break;
+			}
+
+			// Handle tree view
+			if (values.tree) {
+				if (isJson) {
+					console.log(JSON.stringify(plan.modules, null, 2));
+				} else {
+					console.log(renderModuleTree(plan, { showFiles: true }));
+				}
+				break;
+			}
+
+			// Handle cardsort visual board
+			if (values.cardsort) {
+				if (isJson) {
+					console.log(JSON.stringify(plan.modules, null, 2));
+				} else {
+					console.log(renderCardSortingGrid(plan));
+				}
+				break;
+			}
+
 			break;
 		}
 

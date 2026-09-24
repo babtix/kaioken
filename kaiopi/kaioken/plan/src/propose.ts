@@ -5,6 +5,9 @@ import { gatherEvidence, type RepositoryEvidence } from "./evidence.ts";
 import type { Module, ModulePlan, PlanValidation } from "./types.ts";
 import { expandDirectories, validatePlan } from "./validate.ts";
 
+import { clusterDirectories, type ClusteringOptions } from "./cluster.ts";
+import { parseSelfRepairJson } from "./repair.ts";
+
 const SYSTEM = `You decompose a repository into modules for a documentation pipeline.
 
 A module is a coherent unit of purpose, not a directory listing. Group by what
@@ -63,7 +66,8 @@ export async function proposeModulePlan(
 				prompt: buildPrompt(evidence, depth),
 				maxOutputTokens: depth.maxOutputTokens,
 			});
-			const parsed = extractJson<{ modules?: unknown }>(reply);
+			const parseResult = parseSelfRepairJson<{ modules?: unknown }>(reply);
+			const parsed = parseResult.data ?? extractJson<{ modules?: unknown }>(reply);
 			modules = Array.isArray(parsed.modules) ? parsed.modules.map(coerceModule) : [];
 		} catch {
 			source = "heuristic";
@@ -88,55 +92,15 @@ export async function proposeModulePlan(
 
 /**
  * Deterministic structural clustering fallback when no model is available or model completion fails.
- * Groups files by package boundaries (e.g. packages/foo, kaioken/plan) or top-level directories.
+ * Groups files by package boundaries (e.g. packages/foo, kaioken/plan) or top-level directories,
+ * enriched with functional architectural domain detection (UX-1201–UX-1210).
  */
-export function proposeHeuristicModules(scan: ScanResult, _evidence?: RepositoryEvidence): Module[] {
-	const eligibleFiles = scan.files.filter(
-		(f) => !f.binary && !f.risk.includes("generated") && !f.risk.includes("lockfile"),
-	);
-	if (eligibleFiles.length === 0) {
-		return [];
-	}
-
-	const groups = new Map<string, string[]>();
-	const monorepoPrefixes = new Set(["packages", "crates", "modules", "libs", "services", "apps", "kaioken"]);
-
-	for (const file of eligibleFiles) {
-		const normalized = file.path.split("\\").join("/");
-		const parts = normalized.split("/");
-		let groupKey: string;
-		if (parts.length === 1) {
-			groupKey = "root";
-		} else if (parts.length > 2 && monorepoPrefixes.has(parts[0]!.toLowerCase())) {
-			groupKey = `${parts[0]}/${parts[1]}`;
-		} else {
-			groupKey = parts[0]!;
-		}
-
-		let list = groups.get(groupKey);
-		if (!list) {
-			list = [];
-			groups.set(groupKey, list);
-		}
-		list.push(normalized);
-	}
-
-	const modules: Module[] = [];
-	for (const [groupKey, files] of groups.entries()) {
-		const id = groupKey.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
-		const name = groupKey
-			.split(/[/_-]+/)
-			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-			.join(" ");
-		modules.push({
-			id: id || "module",
-			name: name || groupKey,
-			purpose: `Structural module for ${groupKey}`,
-			files: files.sort(),
-		});
-	}
-
-	return modules;
+export function proposeHeuristicModules(
+	scan: ScanResult,
+	_evidence?: RepositoryEvidence,
+	options?: ClusteringOptions,
+): Module[] {
+	return clusterDirectories(scan, options);
 }
 
 export function buildPrompt(evidence: RepositoryEvidence, depth: Depth): string {

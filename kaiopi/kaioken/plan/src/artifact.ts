@@ -41,6 +41,14 @@ export async function writeModulePlan(root: string, plan: ModulePlan): Promise<s
 	return path;
 }
 
+export async function readModulePlanRaw(root: string): Promise<string | null> {
+	try {
+		return await readFile(modulePlanPath(root), "utf8");
+	} catch {
+		return null;
+	}
+}
+
 export async function readModulePlan(root: string): Promise<ModulePlan | null> {
 	let text: string;
 	try {
