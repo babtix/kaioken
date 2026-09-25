@@ -25,3 +25,4 @@ export * from "./command-palette.ts";
 export * from "./shortcuts.ts";
 export * from "./quick-action-menu.ts";
 export * from "./cheatsheet.ts";
+export * from "./aesthetics.ts";

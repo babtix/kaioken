@@ -10,9 +10,9 @@
 
 - **Total Roadmap Specifications**: 2,000 Features (`#UX-0001` – `#UX-2000`)
 - **Phase 1 Built (Steps 1–20)**: 955 Features (47.75% Complete)
-- **Phase 2 Built (Steps 21–36)**: 845 Features (42.25% Complete)
-- **Total Built (Steps 1–36)**: **1,800 Features** (90.00% Complete)
-- **Phase 2 Remaining (Steps 37–40)**: **200 Features** (10.00% To Build)
+- **Phase 2 Built (Steps 21–38)**: 945 Features (47.25% Complete)
+- **Total Built (Steps 1–38)**: **1,900 Features** (95.00% Complete)
+- **Phase 2 Remaining (Steps 39–40)**: **100 Features** (5.00% To Build)
 
 | Step | Category Name | Package / Subsystem | Remaining Features | Unbuilt ID Ranges |
 | :--: | :--- | :--- | :--: | :--- |
@@ -32,11 +32,11 @@
 | **Step 34** | **Cat 20**: Root CLI Parity, CI Automation & Evals Suite | `kaioken/bin.ts / evals` | **0** (Complete: 50/50) | None (`UX-1951–UX-2000` Built) |
 | **Step 35** | **Cat 17**: Grounded Web Research & Intelligence Gatherer | `kaioken/research` | **0** (Complete: 50/50) | None (`UX-1651–UX-1700` Built) |
 | **Step 36** | **Cat 16**: Serve Preview, Web UI & Interactive Knowledge Graph | `kaioken/serve` | **0** (Complete: 50/50) | None (`UX-1551–UX-1600` Built) |
-| **Step 37** | **Cat 02**: Chat Transcript & Interactive Output Stream | `.pi/extensions/kaioken/commands` | **50** | `UX-0151–UX-0200` |
-| **Step 38** | **Cat 01**: Terminal UI (TUI) & Visual Aesthetics | `.pi/extensions/kaioken/ui` | **50** | `UX-0051–UX-0100` |
+| **Step 37** | **Cat 02**: Chat Transcript & Interactive Output Stream | `.pi/extensions/kaioken/commands` | **0** (Complete: 50/50) | None (`UX-0151–UX-0200` Built) |
+| **Step 38** | **Cat 01**: Terminal UI (TUI) & Visual Aesthetics | `.pi/extensions/kaioken/ui` | **0** (Complete: 50/50) | None (`UX-0051–UX-0100` Built) |
 | **Step 39** | **Cat 03**: HUD, Status Bar & Dynamic Widgets | `.pi/extensions/kaioken/ui/header.ts` | **50** | `UX-0251–UX-0300` |
 | **Step 40** | **Cat 04**: Keyboard Navigation, Shortcuts & Command Palette | `packages/tui` | **50** | `UX-0351–UX-0400` |
-| **TOTAL** | **All 20 Architectural Categories** | | **200** | |
+| **TOTAL** | **All 20 Architectural Categories** | | **100** | |
 
 ---
 
@@ -1827,213 +1827,213 @@
 ---
 
 ### Step 37: Category 02 — Chat Transcript & Interactive Output Stream
-*Rank: #17 Transcript Ergonomics | Package: `.pi/extensions/kaioken/commands` | Remaining: 50 Features | Ranges: `UX-0151–UX-0200`*
+*Rank: #17 Transcript Ergonomics | Package: `.pi/extensions/kaioken/commands` | Status: Complete (50/50 Built) | Ranges: `UX-0151–UX-0200`*
 
-- [ ] **[UX-0151]** One-click copy-to-clipboard code snippet button for repo scan risk reports  
+- [x] **[UX-0151]** One-click copy-to-clipboard code snippet button for repo scan risk reports  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0152]** One-click copy-to-clipboard code snippet button for dependency graph text outlines  
+- [x] **[UX-0152]** One-click copy-to-clipboard code snippet button for dependency graph text outlines  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0153]** One-click copy-to-clipboard code snippet button for spend confirmation breakdowns  
+- [x] **[UX-0153]** One-click copy-to-clipboard code snippet button for spend confirmation breakdowns  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0154]** One-click copy-to-clipboard code snippet button for error diagnostic backtraces  
+- [x] **[UX-0154]** One-click copy-to-clipboard code snippet button for error diagnostic backtraces  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0155]** One-click copy-to-clipboard code snippet button for background hook logs  
+- [x] **[UX-0155]** One-click copy-to-clipboard code snippet button for background hook logs  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0156]** One-click copy-to-clipboard code snippet button for token budgeting summaries  
+- [x] **[UX-0156]** One-click copy-to-clipboard code snippet button for token budgeting summaries  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0157]** One-click copy-to-clipboard code snippet button for multi-language parse warnings  
+- [x] **[UX-0157]** One-click copy-to-clipboard code snippet button for multi-language parse warnings  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0158]** One-click copy-to-clipboard code snippet button for cross-chapter link audits  
+- [x] **[UX-0158]** One-click copy-to-clipboard code snippet button for cross-chapter link audits  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0159]** One-click copy-to-clipboard code snippet button for file secret detection summaries  
+- [x] **[UX-0159]** One-click copy-to-clipboard code snippet button for file secret detection summaries  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0160]** One-click copy-to-clipboard code snippet button for interactive prompt dialogue  
+- [x] **[UX-0160]** One-click copy-to-clipboard code snippet button for interactive prompt dialogue  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0161]** Syntax-highlighted inline unified diff view for module planning output  
+- [x] **[UX-0161]** Syntax-highlighted inline unified diff view for module planning output  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0162]** Syntax-highlighted inline unified diff view for knowledge card generation logs  
+- [x] **[UX-0162]** Syntax-highlighted inline unified diff view for knowledge card generation logs  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0163]** Syntax-highlighted inline unified diff view for wiki chapter streaming text  
+- [x] **[UX-0163]** Syntax-highlighted inline unified diff view for wiki chapter streaming text  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0164]** Syntax-highlighted inline unified diff view for search hit listings  
+- [x] **[UX-0164]** Syntax-highlighted inline unified diff view for search hit listings  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0165]** Syntax-highlighted inline unified diff view for git worktree merge reports  
+- [x] **[UX-0165]** Syntax-highlighted inline unified diff view for git worktree merge reports  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0166]** Syntax-highlighted inline unified diff view for native verification test outputs  
+- [x] **[UX-0166]** Syntax-highlighted inline unified diff view for native verification test outputs  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0167]** Syntax-highlighted inline unified diff view for web research source citations  
+- [x] **[UX-0167]** Syntax-highlighted inline unified diff view for web research source citations  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0168]** Syntax-highlighted inline unified diff view for agent skill compilation logs  
+- [x] **[UX-0168]** Syntax-highlighted inline unified diff view for agent skill compilation logs  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0169]** Syntax-highlighted inline unified diff view for staleness drift audits  
+- [x] **[UX-0169]** Syntax-highlighted inline unified diff view for staleness drift audits  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0170]** Syntax-highlighted inline unified diff view for AST symbol query hits  
+- [x] **[UX-0170]** Syntax-highlighted inline unified diff view for AST symbol query hits  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0171]** Syntax-highlighted inline unified diff view for repo scan risk reports  
+- [x] **[UX-0171]** Syntax-highlighted inline unified diff view for repo scan risk reports  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0172]** Syntax-highlighted inline unified diff view for dependency graph text outlines  
+- [x] **[UX-0172]** Syntax-highlighted inline unified diff view for dependency graph text outlines  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0173]** Syntax-highlighted inline unified diff view for spend confirmation breakdowns  
+- [x] **[UX-0173]** Syntax-highlighted inline unified diff view for spend confirmation breakdowns  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0174]** Syntax-highlighted inline unified diff view for error diagnostic backtraces  
+- [x] **[UX-0174]** Syntax-highlighted inline unified diff view for error diagnostic backtraces  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0175]** Syntax-highlighted inline unified diff view for background hook logs  
+- [x] **[UX-0175]** Syntax-highlighted inline unified diff view for background hook logs  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0176]** Syntax-highlighted inline unified diff view for token budgeting summaries  
+- [x] **[UX-0176]** Syntax-highlighted inline unified diff view for token budgeting summaries  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0177]** Syntax-highlighted inline unified diff view for multi-language parse warnings  
+- [x] **[UX-0177]** Syntax-highlighted inline unified diff view for multi-language parse warnings  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0178]** Syntax-highlighted inline unified diff view for cross-chapter link audits  
+- [x] **[UX-0178]** Syntax-highlighted inline unified diff view for cross-chapter link audits  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0179]** Syntax-highlighted inline unified diff view for file secret detection summaries  
+- [x] **[UX-0179]** Syntax-highlighted inline unified diff view for file secret detection summaries  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0180]** Syntax-highlighted inline unified diff view for interactive prompt dialogue  
+- [x] **[UX-0180]** Syntax-highlighted inline unified diff view for interactive prompt dialogue  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0181]** Interactive breadcrumb trail indicating active phase in module planning output  
+- [x] **[UX-0181]** Interactive breadcrumb trail indicating active phase in module planning output  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0182]** Interactive breadcrumb trail indicating active phase in knowledge card generation logs  
+- [x] **[UX-0182]** Interactive breadcrumb trail indicating active phase in knowledge card generation logs  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0183]** Interactive breadcrumb trail indicating active phase in wiki chapter streaming text  
+- [x] **[UX-0183]** Interactive breadcrumb trail indicating active phase in wiki chapter streaming text  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0184]** Interactive breadcrumb trail indicating active phase in search hit listings  
+- [x] **[UX-0184]** Interactive breadcrumb trail indicating active phase in search hit listings  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0185]** Interactive breadcrumb trail indicating active phase in git worktree merge reports  
+- [x] **[UX-0185]** Interactive breadcrumb trail indicating active phase in git worktree merge reports  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0186]** Interactive breadcrumb trail indicating active phase in native verification test outputs  
+- [x] **[UX-0186]** Interactive breadcrumb trail indicating active phase in native verification test outputs  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0187]** Interactive breadcrumb trail indicating active phase in web research source citations  
+- [x] **[UX-0187]** Interactive breadcrumb trail indicating active phase in web research source citations  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0188]** Interactive breadcrumb trail indicating active phase in agent skill compilation logs  
+- [x] **[UX-0188]** Interactive breadcrumb trail indicating active phase in agent skill compilation logs  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0189]** Interactive breadcrumb trail indicating active phase in staleness drift audits  
+- [x] **[UX-0189]** Interactive breadcrumb trail indicating active phase in staleness drift audits  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0190]** Interactive breadcrumb trail indicating active phase in AST symbol query hits  
+- [x] **[UX-0190]** Interactive breadcrumb trail indicating active phase in AST symbol query hits  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0191]** Interactive breadcrumb trail indicating active phase in repo scan risk reports  
+- [x] **[UX-0191]** Interactive breadcrumb trail indicating active phase in repo scan risk reports  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0192]** Interactive breadcrumb trail indicating active phase in dependency graph text outlines  
+- [x] **[UX-0192]** Interactive breadcrumb trail indicating active phase in dependency graph text outlines  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0193]** Interactive breadcrumb trail indicating active phase in spend confirmation breakdowns  
+- [x] **[UX-0193]** Interactive breadcrumb trail indicating active phase in spend confirmation breakdowns  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0194]** Interactive breadcrumb trail indicating active phase in error diagnostic backtraces  
+- [x] **[UX-0194]** Interactive breadcrumb trail indicating active phase in error diagnostic backtraces  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0195]** Interactive breadcrumb trail indicating active phase in background hook logs  
+- [x] **[UX-0195]** Interactive breadcrumb trail indicating active phase in background hook logs  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0196]** Interactive breadcrumb trail indicating active phase in token budgeting summaries  
+- [x] **[UX-0196]** Interactive breadcrumb trail indicating active phase in token budgeting summaries  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0197]** Interactive breadcrumb trail indicating active phase in multi-language parse warnings  
+- [x] **[UX-0197]** Interactive breadcrumb trail indicating active phase in multi-language parse warnings  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0198]** Interactive breadcrumb trail indicating active phase in cross-chapter link audits  
+- [x] **[UX-0198]** Interactive breadcrumb trail indicating active phase in cross-chapter link audits  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0199]** Interactive breadcrumb trail indicating active phase in file secret detection summaries  
+- [x] **[UX-0199]** Interactive breadcrumb trail indicating active phase in file secret detection summaries  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0200]** Interactive breadcrumb trail indicating active phase in interactive prompt dialogue  
+- [x] **[UX-0200]** Interactive breadcrumb trail indicating active phase in interactive prompt dialogue  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
 
 ---
 
 ### Step 38: Category 01 — Terminal UI (TUI) & Visual Aesthetics
-*Rank: #18 Visual Presentation | Package: `.pi/extensions/kaioken/ui` | Remaining: 50 Features | Ranges: `UX-0051–UX-0100`*
+*Rank: #18 Visual Presentation | Package: `.pi/extensions/kaioken/ui` | Status: Complete (50/50 Built) | Ranges: `UX-0051–UX-0100`*
 
-- [ ] **[UX-0051]** Dynamic glyph fallback system when terminal lacks Unicode for AST symbol declaration tree  
+- [x] **[UX-0051]** Dynamic glyph fallback system when terminal lacks Unicode for AST symbol declaration tree  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0052]** Dynamic glyph fallback system when terminal lacks Unicode for git branch indicators  
+- [x] **[UX-0052]** Dynamic glyph fallback system when terminal lacks Unicode for git branch indicators  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0053]** Dynamic glyph fallback system when terminal lacks Unicode for staleness warning badges  
+- [x] **[UX-0053]** Dynamic glyph fallback system when terminal lacks Unicode for staleness warning badges  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0054]** Dynamic glyph fallback system when terminal lacks Unicode for citation grounding chips  
+- [x] **[UX-0054]** Dynamic glyph fallback system when terminal lacks Unicode for citation grounding chips  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0055]** Dynamic glyph fallback system when terminal lacks Unicode for search result hit counters  
+- [x] **[UX-0055]** Dynamic glyph fallback system when terminal lacks Unicode for search result hit counters  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0056]** Dynamic glyph fallback system when terminal lacks Unicode for blast radius heatmaps  
+- [x] **[UX-0056]** Dynamic glyph fallback system when terminal lacks Unicode for blast radius heatmaps  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0057]** Dynamic glyph fallback system when terminal lacks Unicode for test execution progress rings  
+- [x] **[UX-0057]** Dynamic glyph fallback system when terminal lacks Unicode for test execution progress rings  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0058]** Dynamic glyph fallback system when terminal lacks Unicode for interactive diff blocks  
+- [x] **[UX-0058]** Dynamic glyph fallback system when terminal lacks Unicode for interactive diff blocks  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0059]** Dynamic glyph fallback system when terminal lacks Unicode for code syntax highlight frames  
+- [x] **[UX-0059]** Dynamic glyph fallback system when terminal lacks Unicode for code syntax highlight frames  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0060]** Dynamic glyph fallback system when terminal lacks Unicode for task queue spinners  
+- [x] **[UX-0060]** Dynamic glyph fallback system when terminal lacks Unicode for task queue spinners  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0061]** Smooth micro-animation frame interpolator for Kaioken banner masthead  
+- [x] **[UX-0061]** Smooth micro-animation frame interpolator for Kaioken banner masthead  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0062]** Smooth micro-animation frame interpolator for logo sparkline  
+- [x] **[UX-0062]** Smooth micro-animation frame interpolator for logo sparkline  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0063]** Smooth micro-animation frame interpolator for active model badge  
+- [x] **[UX-0063]** Smooth micro-animation frame interpolator for active model badge  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0064]** Smooth micro-animation frame interpolator for power-off shutdown animation  
+- [x] **[UX-0064]** Smooth micro-animation frame interpolator for power-off shutdown animation  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0065]** Smooth micro-animation frame interpolator for status bar pills  
+- [x] **[UX-0065]** Smooth micro-animation frame interpolator for status bar pills  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0066]** Smooth micro-animation frame interpolator for split-pane containers  
+- [x] **[UX-0066]** Smooth micro-animation frame interpolator for split-pane containers  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0067]** Smooth micro-animation frame interpolator for dialog modal frames  
+- [x] **[UX-0067]** Smooth micro-animation frame interpolator for dialog modal frames  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0068]** Smooth micro-animation frame interpolator for spend estimate cards  
+- [x] **[UX-0068]** Smooth micro-animation frame interpolator for spend estimate cards  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0069]** Smooth micro-animation frame interpolator for wiki table of contents tree  
+- [x] **[UX-0069]** Smooth micro-animation frame interpolator for wiki table of contents tree  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0070]** Smooth micro-animation frame interpolator for knowledge card previews  
+- [x] **[UX-0070]** Smooth micro-animation frame interpolator for knowledge card previews  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0071]** Smooth micro-animation frame interpolator for AST symbol declaration tree  
+- [x] **[UX-0071]** Smooth micro-animation frame interpolator for AST symbol declaration tree  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0072]** Smooth micro-animation frame interpolator for git branch indicators  
+- [x] **[UX-0072]** Smooth micro-animation frame interpolator for git branch indicators  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0073]** Smooth micro-animation frame interpolator for staleness warning badges  
+- [x] **[UX-0073]** Smooth micro-animation frame interpolator for staleness warning badges  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0074]** Smooth micro-animation frame interpolator for citation grounding chips  
+- [x] **[UX-0074]** Smooth micro-animation frame interpolator for citation grounding chips  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0075]** Smooth micro-animation frame interpolator for search result hit counters  
+- [x] **[UX-0075]** Smooth micro-animation frame interpolator for search result hit counters  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0076]** Smooth micro-animation frame interpolator for blast radius heatmaps  
+- [x] **[UX-0076]** Smooth micro-animation frame interpolator for blast radius heatmaps  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0077]** Smooth micro-animation frame interpolator for test execution progress rings  
+- [x] **[UX-0077]** Smooth micro-animation frame interpolator for test execution progress rings  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0078]** Smooth micro-animation frame interpolator for interactive diff blocks  
+- [x] **[UX-0078]** Smooth micro-animation frame interpolator for interactive diff blocks  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0079]** Smooth micro-animation frame interpolator for code syntax highlight frames  
+- [x] **[UX-0079]** Smooth micro-animation frame interpolator for code syntax highlight frames  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0080]** Smooth micro-animation frame interpolator for task queue spinners  
+- [x] **[UX-0080]** Smooth micro-animation frame interpolator for task queue spinners  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0081]** Configurable color saturation dial for Kaioken banner masthead  
+- [x] **[UX-0081]** Configurable color saturation dial for Kaioken banner masthead  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0082]** Configurable color saturation dial for logo sparkline  
+- [x] **[UX-0082]** Configurable color saturation dial for logo sparkline  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0083]** Configurable color saturation dial for active model badge  
+- [x] **[UX-0083]** Configurable color saturation dial for active model badge  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0084]** Configurable color saturation dial for power-off shutdown animation  
+- [x] **[UX-0084]** Configurable color saturation dial for power-off shutdown animation  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0085]** Configurable color saturation dial for status bar pills  
+- [x] **[UX-0085]** Configurable color saturation dial for status bar pills  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0086]** Configurable color saturation dial for split-pane containers  
+- [x] **[UX-0086]** Configurable color saturation dial for split-pane containers  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0087]** Configurable color saturation dial for dialog modal frames  
+- [x] **[UX-0087]** Configurable color saturation dial for dialog modal frames  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0088]** Configurable color saturation dial for spend estimate cards  
+- [x] **[UX-0088]** Configurable color saturation dial for spend estimate cards  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0089]** Configurable color saturation dial for wiki table of contents tree  
+- [x] **[UX-0089]** Configurable color saturation dial for wiki table of contents tree  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0090]** Configurable color saturation dial for knowledge card previews  
+- [x] **[UX-0090]** Configurable color saturation dial for knowledge card previews  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0091]** Configurable color saturation dial for AST symbol declaration tree  
+- [x] **[UX-0091]** Configurable color saturation dial for AST symbol declaration tree  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0092]** Configurable color saturation dial for git branch indicators  
+- [x] **[UX-0092]** Configurable color saturation dial for git branch indicators  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0093]** Configurable color saturation dial for staleness warning badges  
+- [x] **[UX-0093]** Configurable color saturation dial for staleness warning badges  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0094]** Configurable color saturation dial for citation grounding chips  
+- [x] **[UX-0094]** Configurable color saturation dial for citation grounding chips  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0095]** Configurable color saturation dial for search result hit counters  
+- [x] **[UX-0095]** Configurable color saturation dial for search result hit counters  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0096]** Configurable color saturation dial for blast radius heatmaps  
+- [x] **[UX-0096]** Configurable color saturation dial for blast radius heatmaps  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0097]** Configurable color saturation dial for test execution progress rings  
+- [x] **[UX-0097]** Configurable color saturation dial for test execution progress rings  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0098]** Configurable color saturation dial for interactive diff blocks  
+- [x] **[UX-0098]** Configurable color saturation dial for interactive diff blocks  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0099]** Configurable color saturation dial for code syntax highlight frames  
+- [x] **[UX-0099]** Configurable color saturation dial for code syntax highlight frames  
   *Subsystem*: `.pi/extensions/kaioken/ui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0100]** Configurable color saturation dial for task queue spinners  
+- [x] **[UX-0100]** Configurable color saturation dial for task queue spinners  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
 
 ---

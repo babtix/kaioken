@@ -34,6 +34,7 @@ export * from "./diff.ts";
 export * from "./clipboard.ts";
 export * from "./autoscroll.ts";
 export * from "./breadcrumbs.ts";
+export * from "./transcript_stream.ts";
 import { KeyboardCheatSheet } from "../ui/cheatsheet.ts";
 import { CommandPalette } from "../ui/command-palette.ts";
 
