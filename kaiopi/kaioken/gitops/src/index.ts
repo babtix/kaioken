@@ -34,8 +34,12 @@ export {
 } from "./stash.ts";
 export {
 	detectConflicts,
+	getConflictPlaybook,
 	getThreeWayDiff,
 	renderConflictCard,
+	renderMarkdownConflictCard,
+	renderPlainConflictCard,
+	type ConflictPlaybook,
 	type ConflictedFileSummary,
 	type MergeConflictInfo,
 	type ThreeWayDiffFile,
@@ -45,15 +49,34 @@ export {
 	formatDelegationRecipe,
 	generateDelegationRecipe,
 	listWorktrees,
+	renderMarkdownRecipeCard,
 	type DelegationRecipe,
 	type DelegationRecipeOptions,
 	type DelegationTaskType,
 	type WorktreeEntry,
 } from "./recipe.ts";
 export {
+	interactiveWorktreeCleanupWizard,
 	pruneWorktrees,
 	readHookLog,
+	renderCleanupWizardReport,
+	type CleanupWizardEntry,
+	type CleanupWizardOptions,
+	type CleanupWizardReport,
 	type PruneOptions,
 	type PruneReport,
 	type PrunedWorktreeDetail,
 } from "./cleanup.ts";
+export {
+	atomicWorktreeSwitch,
+	releaseWorktreeLock,
+	type AtomicSwitchOptions,
+	type AtomicSwitchResult,
+	type LockHandle,
+} from "./lock_switch.ts";
+export {
+	assertCleanWorkingTreeGuard,
+	renderGuardWarningCard,
+	type GuardOptions,
+	type GuardReport,
+} from "./guard.ts";

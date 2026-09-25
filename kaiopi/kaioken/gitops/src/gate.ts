@@ -4,9 +4,11 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { detectConflicts, renderConflictCard } from "./conflict.ts";
 import { currentBranch } from "./diff.ts";
+import { assertCleanWorkingTreeGuard, renderGuardWarningCard } from "./guard.ts";
 import { git } from "./run.ts";
 import { withAutoStash } from "./stash.ts";
 import { removeWorktree, slug, worktreePath, worktreeStatus } from "./worktree.ts";
+import type { DelegationTaskType } from "./recipe.ts";
 
 const exec = promisify(execFile);
 
@@ -31,6 +33,10 @@ export interface SafeMergeOptions {
 	removeWorktree?: boolean;
 	/** Delete branch after successful merge (default: true). */
 	deleteBranch?: boolean;
+	/** Worktree task archetype for risk diagnosis and recovery playbooks. */
+	taskType?: DelegationTaskType | string;
+	/** Enforce dirty working tree guard (default: true). */
+	guardDirty?: boolean;
 }
 
 export interface SafeMergeResult {
@@ -40,6 +46,7 @@ export interface SafeMergeResult {
 	diverged?: boolean;
 	conflicts?: string[];
 	verificationSummary?: string;
+	dirtyGuarded?: boolean;
 }
 
 /**
@@ -91,6 +98,7 @@ export async function safeMerge(
 	const shouldAutoStash = options.autoStash ?? false;
 	const shouldRemoveWt = options.removeWorktree ?? true;
 	const shouldDeleteBranch = options.deleteBranch ?? true;
+	const taskType = options.taskType;
 
 	const taskSlug = slug(name);
 	const branch = `kaioken/${taskSlug}`;
@@ -128,7 +136,7 @@ export async function safeMerge(
 	const runMerge = async (): Promise<SafeMergeResult> => {
 		const before = await worktreeStatus(root);
 		if (before.conflicted.length > 0) {
-			const conflictInfo = await detectConflicts(root, options.baseBranch, branch);
+			const conflictInfo = await detectConflicts(root, options.baseBranch, branch, taskType);
 			return {
 				success: false,
 				diverged: true,
@@ -138,18 +146,20 @@ export async function safeMerge(
 		}
 
 		if (before.dirty.length > 0 && !shouldAutoStash) {
+			const guardReport = await assertCleanWorkingTreeGuard(root, {
+				taskType: taskType ?? name,
+			});
 			return {
 				success: false,
-				message:
-					`Cannot fast-forward: working tree has uncommitted changes in: ${before.dirty.slice(0, 5).join(", ")}. ` +
-					`Recovery: commit changes, enable autoStash, or run: git stash push -m "kaioken".`,
+				dirtyGuarded: true,
+				message: `Cannot fast-forward: working tree has uncommitted changes in: ${before.dirty.slice(0, 5).join(", ")}. Recovery: commit changes or enable autoStash.\n${renderGuardWarningCard(guardReport)}`,
 			};
 		}
 
 		const mergeRes = await git(root, "merge", "--ff-only", branch);
 		if (!mergeRes.ok) {
 			const curBranch = await currentBranch(root);
-			const conflictInfo = await detectConflicts(root, curBranch || "main", branch);
+			const conflictInfo = await detectConflicts(root, curBranch || "main", branch, taskType);
 			return {
 				success: false,
 				diverged: true,
