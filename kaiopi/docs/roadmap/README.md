@@ -4,7 +4,9 @@
 
 Each category is available as a dedicated document with its own **Global Implementation Plan**, 3-phase execution milestones, architectural invariants, testing checklists, and 100 concrete features.
 
-A unified master document containing all 2,000 features is also available:
+Master roadmap catalogs and execution checklists:
+- **[Phase 1 Build Order Checklist (Steps 1–20)](BUILD_ORDER_CHECKLIST.md)** (955 Foundation Features, Completed)
+- **[Phase 2 Remaining Build Checklist (Steps 21–40)](REMAINING_BUILD_CHECKLIST.md)** (1,045 Unbuilt Features, Actionable Checklist)
 - **[Unified Master Catalog (2,000 Features)](features-2000-ux-quality-roadmap.md)** (12,199 lines, 1.81 MB)
 
 ---
