@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ArrowRight, ChevronDown, Terminal } from "lucide-react"
+import { ArrowRight, ChevronDown, Construction, Terminal } from "lucide-react"
 import BackToTop from "@/components/BackToTop"
 import Icon from "@/components/Icon"
 import DesktopBodyBackground from "@/components/DesktopBodyBackground"
@@ -149,6 +149,16 @@ export default function Desktop() {
                 className="h-auto w-full max-w-[1040px] sm:max-w-[1120px] lg:max-w-[1220px] object-contain"
                 loading="eager"
               />
+            </div>
+
+            {/* Still Under Reconstruction Status Notice */}
+            <div className="mt-4 flex items-center justify-center">
+              <div className="inline-flex items-center gap-2 rounded-sm border border-kai-amber/40 bg-kai-amber/10 px-3.5 py-1.5 font-mono text-[11px] sm:text-[12px] tracking-[0.16em] text-kai-amber uppercase backdrop-blur-sm shadow-sm">
+                <Construction className="size-4 shrink-0 text-kai-amber animate-pulse" />
+                <span className="font-semibold">Still under re-construction</span>
+                <span className="hidden sm:inline text-kai-amber/60">▎</span>
+                <span className="hidden sm:inline font-normal text-kai-amber/80 text-[10.5px]">v2.0 Active Rewrite</span>
+              </div>
             </div>
 
             <p className="mx-auto mt-6 max-w-xl font-sans text-[15px] font-medium leading-relaxed text-balance text-foreground/90 sm:text-[16px]">
