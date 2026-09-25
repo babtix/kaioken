@@ -83,9 +83,9 @@ export function registerTools(pi: ExtensionAPI, root: () => string) {
 Runner: scripted model doubles (v2 pattern) + fake ExtensionAPI (Phase 8 harness) — offline only.
 
 ## Verification
-- [ ] All 7 tools registered
-- [ ] Probes 1–5 pass
-- [ ] Negative-guarantee text appears verbatim on miss
+- [x] All 7 tools registered
+- [x] Probes 1–5 pass
+- [x] Negative-guarantee text appears verbatim on miss
 
 ## Pitfalls
 - Tool descriptions are prompt real-estate: keep ≤ 2 sentences each.

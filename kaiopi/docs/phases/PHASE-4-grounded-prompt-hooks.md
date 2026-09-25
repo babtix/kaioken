@@ -63,10 +63,10 @@ export default function (pi: ExtensionAPI) {
 (Keep a module-level `lastCtx` captured from `session_start`; clear `dirty` + badge `verified ✓` inside `kaioken_verify` wrapper on PASS.)
 
 ## Verification
-- [ ] Live session system prompt contains rules + drift line
-- [ ] Edit → badge `UNVERIFIED CHANGES`
-- [ ] verify PASS → badge `verified ✓`
-- [ ] `rm -rf /tmp/x` blocked with reason
+- [x] Live session system prompt contains rules + drift line
+- [x] Edit → badge `UNVERIFIED CHANGES`
+- [x] verify PASS → badge `verified ✓`
+- [x] `rm -rf /tmp/x` blocked with reason
 
 ## Pitfalls
 - `before_agent_start` chains across extensions: append, never replace blindly.

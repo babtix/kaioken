@@ -25,11 +25,11 @@ Fortify repository scanning with sub-second traversal, Shannon entropy secret de
 - **Defensive Error Boundaries**: Every user interaction, render cycle, and file parser must fail soft without crashing the TUI or host process.
 
 ### 4. Verification & Testing Checklist
-- [ ] Run domain unit test suite: `npx vitest run kaioken/scan/test`
-- [ ] Verify zero-allocation memory pooling and no event listener leaks
-- [ ] Test graceful fallback on dumb terminals (`TERM=dumb`) or non-TTY outputs
-- [ ] Validate edge-case inputs (empty strings, huge context files, circular links)
-- [ ] Verify integration with fake Pi test harness (`test/fake-pi.ts`)
+- [x] Run domain unit test suite: `npx vitest run kaioken/scan/test`
+- [x] Verify zero-allocation memory pooling and no event listener leaks
+- [x] Test graceful fallback on dumb terminals (`TERM=dumb`) or non-TTY outputs
+- [x] Validate edge-case inputs (empty strings, huge context files, circular links)
+- [x] Verify integration with fake Pi test harness (`test/fake-pi.ts`)
 
 ---
 

@@ -67,10 +67,10 @@ git add -A && git commit -m "phase0: pi baseline + antigravity flash-high provid
 ```
 
 ## Verification
-- [ ] `npm run build` green
-- [ ] `pi --version` prints
-- [ ] Scratch session answers on flash-high
-- [ ] Skeleton dirs exist and are committed
+- [x] `npm run build` green
+- [x] `pi --version` prints
+- [x] Scratch session answers on flash-high
+- [x] Skeleton dirs exist and are committed
 
 ## Pitfalls
 - Wrong proxy `baseUrl` → 401/404; verify proxy health endpoint first.

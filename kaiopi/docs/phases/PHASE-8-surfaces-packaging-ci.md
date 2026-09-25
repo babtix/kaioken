@@ -45,9 +45,9 @@ jobs:
 New root README (vision + phase index); port DESIGN.md CRT tokens to a Pi theme JSON (16-color parity).
 
 ## Verification
-- [ ] CI green with zero secrets
-- [ ] `npm pack` → install in clean repo → stock Pi session grounded
-- [ ] Skills visible natively + via tool
+- [x] CI green with zero secrets
+- [x] `npm pack` → install in clean repo → stock Pi session grounded
+- [x] Skills visible natively + via tool
 
 ## Pitfalls
 - Package must not pin Pi core versions tightly; depend on extensions API only.

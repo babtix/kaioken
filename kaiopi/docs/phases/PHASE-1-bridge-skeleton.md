@@ -30,10 +30,10 @@ export default function (pi: ExtensionAPI) {
 4. Later phases rely on auto-discovery: files in `.pi/extensions/` load without `-e`.
 
 ## Verification
-- [ ] Tool appears in tool list
-- [ ] Execute returns text
-- [ ] Footer badge shows `bridge v0.1`
-- [ ] `/reload` picks up edits
+- [x] Tool appears in tool list
+- [x] Execute returns text
+- [x] Footer badge shows `bridge v0.1`
+- [x] `/reload` picks up edits
 
 ## Pitfalls
 - `typebox` import path is bare `"typebox"` (Pi's dep), not `@sinclair/typebox`.

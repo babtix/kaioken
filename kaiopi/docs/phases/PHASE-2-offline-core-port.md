@@ -47,10 +47,10 @@ ls /tmp/scratch/.kaioken/index.json /tmp/scratch/.kaioken/risk.json
 ```
 
 ## Verification
-- [ ] All ported suites pass with network disabled
-- [ ] `scan` writes `index.json` + `risk.json`
-- [ ] `symbols`, `search`, `status`, `verify` work from bin
-- [ ] No import of any model/provider package inside `kaioken/`
+- [x] All ported suites pass with network disabled
+- [x] `scan` writes `index.json` + `risk.json`
+- [x] `symbols`, `search`, `status`, `verify` work from bin
+- [x] No import of any model/provider package inside `kaioken/`
 
 ## Pitfalls
 - Tree-sitter native bindings: keep same versions as v2 to avoid grammar ABI drift.

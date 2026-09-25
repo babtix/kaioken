@@ -59,10 +59,10 @@ Mechanical verifier (symbol/anchor/padding/coverage) → CORRECTION+CRITIQUE pas
 - Skills as few-shot procedures; rules numbered; skeletons-first returns.
 
 ## Verification
-- [ ] Confirm dialog shows real $ before every model stage
-- [ ] Checkpoints stop exactly at YAML files
-- [ ] Repair loop rejects non-improving revisions
-- [ ] Whole cycle logged in session JSONL, reproducible
+- [x] Confirm dialog shows real $ before every model stage
+- [x] Checkpoints stop exactly at YAML files
+- [x] Repair loop rejects non-improving revisions
+- [x] Whole cycle logged in session JSONL, reproducible
 
 ## Pitfalls
 - Never hardcode prices; read `model.cost` (single source).

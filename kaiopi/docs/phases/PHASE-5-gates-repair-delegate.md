@@ -55,9 +55,9 @@ pi.registerCommand("kaioken-merge", {
 v2 (later): Pi SDK programmatic sub-session inside the worktree.
 
 ## Verification
-- [ ] Breaking edit → verify FAIL → repair loop → PASS
-- [ ] Repo without tests → `unverifiable`, task not claimable as done
-- [ ] delegate → work in wt → merge clean; main tree never dirty
+- [x] Breaking edit → verify FAIL → repair loop → PASS
+- [x] Repo without tests → `unverifiable`, task not claimable as done
+- [x] delegate → work in wt → merge clean; main tree never dirty
 
 ## Pitfalls
 - Timeout mandatory (subprocess hang = agent hang).

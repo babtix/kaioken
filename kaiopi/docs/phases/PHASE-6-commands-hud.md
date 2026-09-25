@@ -51,9 +51,9 @@ export function registerCommands(pi: ExtensionAPI, root: () => string, spend: Sp
 - `setWidget("kaioken", lines)`: plan outline preview / verify tail / drift list
 
 ## Verification
-- [ ] Disable network → 8 offline commands still work
-- [ ] Every model command prompts cost confirm before spend
-- [ ] Widget shows plan outline after /kaioken-plan
+- [x] Disable network → 8 offline commands still work
+- [x] Every model command prompts cost confirm before spend
+- [x] Widget shows plan outline after /kaioken-plan
 
 ## Pitfalls
 - Commands must never block the TUI: long ops → notify progress via setStatus.
