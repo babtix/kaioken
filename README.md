@@ -11,7 +11,7 @@
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%3E%3D22-green.svg" alt="Node.js"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
   <a href="#repository--monorepo-structure"><img src="https://img.shields.io/badge/Architecture-Pi%20Monorepo%20%7C%20Offline--First-orange.svg" alt="Architecture"></a>
-  <a href="#the-2000-features-milestone"><img src="https://img.shields.io/badge/Roadmap-2%2C000%20%2F%202%2C000%20Complete%20(100%25)-brightgreen.svg" alt="Roadmap"></a>
+  <a href="kaiopi/docs/roadmap/README.md"><img src="https://img.shields.io/badge/Roadmap-2%2C000%20Features%20Complete-brightgreen.svg" alt="Roadmap"></a>
   <a href="#testing--quality-assurance"><img src="https://img.shields.io/badge/Tests-2%2C078%2B%20Offline%20Passing-brightgreen.svg" alt="Tests"></a>
   <a href="https://github.com/babtix/kaioken"><img src="https://img.shields.io/badge/Docs%20%26%20Showcase-Live-purple.svg" alt="Website"></a>
   <a href="#license--authors"><img src="https://img.shields.io/badge/License-License%20Zero-yellow.svg" alt="License"></a>
@@ -23,7 +23,6 @@
 
 - [Executive Overview](#executive-overview)
 - [The Problem Kaioken Solves](#the-problem-kaioken-solves)
-- [The 2,000 Features Milestone (100% Complete)](#the-2000-features-milestone-100-complete)
 - [Architectural Pipeline](#architectural-pipeline)
 - [Core Architectural Invariants](#core-architectural-invariants)
 - [Repository & Monorepo Structure](#repository--monorepo-structure)
@@ -70,43 +69,8 @@ Large software codebases suffer from two compounding failures when paired with A
 Kaioken replaces ungrounded generation with **mechanical AST verification**, **cryptographic staleness gates**, and **tool-grounded agent workflows**:
 
 <p align="center">
-  <img src="assets/kaioken-pipeline.svg" alt="Kaioken Knowledge Engine Architecture" width="100%" />
+  <img src="assets/kaioken-pipeline.svg" alt="Kaioken Knowledge Engine Architecture: Offline Ingestion, Grounded Generation, Provenance Gates, and Agent Seams" width="100%" />
 </p>
-
----
-
-## The 2,000 Features Milestone (100% Complete)
-
-Kaioken has achieved full completion of its landmark **2,000 UX & Quality Improvements Roadmap** (`#UX-0001` to `#UX-2000`), spanning all 20 architectural categories across 40 execution steps:
-
-- **Phase 1 (Steps 1–20)**: 955 Foundation Features — **Complete (100%)**
-- **Phase 2 (Steps 21–40)**: 1,045 Advanced Features — **Complete (100%)**
-- **Total Specifications Built**: **2,000 / 2,000 Features (100% Verified)**
-
-| # | Category Domain | Subsystems / Packages | Feature Range | Status |
-| :-: | :--- | :--- | :-: | :---: |
-| **01** | **Terminal UI (TUI) & Visual Aesthetics** | `.pi/extensions/kaioken/ui`, `packages/tui` | `#UX-0001` – `#UX-0100` | **100/100 Complete** |
-| **02** | **Chat Transcript & Interactive Output Stream** | `.pi/extensions/kaioken/commands`, `packages/coding-agent` | `#UX-0101` – `#UX-0200` | **100/100 Complete** |
-| **03** | **HUD, Status Bar & Dynamic Widgets** | `.pi/extensions/kaioken/ui/header.ts`, `commands` | `#UX-0201` – `#UX-0300` | **100/100 Complete** |
-| **04** | **Keyboard Navigation & Command Palette** | `packages/tui`, `packages/coding-agent` | `#UX-0301` – `#UX-0400` | **100/100 Complete** |
-| **05** | **Spend Transparency & Token Budgeting** | `@kaioken/modelport`, `commands` | `#UX-0401` – `#UX-0500` | **100/100 Complete** |
-| **06** | **Repo Scan, Discovery & Risk Shield** | `@kaioken/scan` | `#UX-0501` – `#UX-0600` | **100/100 Complete** |
-| **07** | **AST Symbol Indexing & Code Oracle** | `@kaioken/index` | `#UX-0601` – `#UX-0700` | **100/100 Complete** |
-| **08** | **Search, Lexical Indexing & BM25 Retrieval** | `@kaioken/search` | `#UX-0701` – `#UX-0800` | **100/100 Complete** |
-| **09** | **Provenance, Staleness & Truth Drift** | `@kaioken/provenance` | `#UX-0801` – `#UX-0900` | **100/100 Complete** |
-| **10** | **Impact Analysis & Blast Radius Prediction** | `@kaioken/impact` | `#UX-0901` – `#UX-1000` | **100/100 Complete** |
-| **11** | **Verification Gates & Test Runners** | `@kaioken/verify` | `#UX-1001` – `#UX-1100` | **100/100 Complete** |
-| **12** | **VerifyCore & Anti-Hallucination Shield** | `@kaioken/verifycore` | `#UX-1101` – `#UX-1200` | **100/100 Complete** |
-| **13** | **Module Planning & Decomposition** | `@kaioken/plan` | `#UX-1201` – `#UX-1300` | **100/100 Complete** |
-| **14** | **Knowledge Cards & Atomic Fact Base** | `@kaioken/plan` (`cards.ts`) | `#UX-1301` – `#UX-1400` | **100/100 Complete** |
-| **15** | **Wiki Cascade & Documentation Web** | `@kaioken/wiki` | `#UX-1401` – `#UX-1500` | **100/100 Complete** |
-| **16** | **Serve Preview & Interactive Graph** | `@kaioken/serve` | `#UX-1501` – `#UX-1600` | **100/100 Complete** |
-| **17** | **Grounded Web Research & Intelligence** | `@kaioken/research` | `#UX-1601` – `#UX-1700` | **100/100 Complete** |
-| **18** | **Agent Skills & SkillGen Procedures** | `@kaioken/skills`, `@kaioken/skillgen` | `#UX-1701` – `#UX-1800` | **100/100 Complete** |
-| **19** | **GitOps, Worktrees & Safe Merges** | `@kaioken/gitops` | `#UX-1801` – `#UX-1900` | **100/100 Complete** |
-| **20** | **Root CLI Parity & Evals Suite** | `kaioken/bin.ts`, `@kaioken/evals` | `#UX-1901` – `#UX-2000` | **100/100 Complete** |
-
-*For complete implementation specs and verification matrices, see [`kaiopi/docs/roadmap/`](kaiopi/docs/roadmap/README.md).*
 
 ---
 
