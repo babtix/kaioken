@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import SectionHeading from './SectionHeading.tsx';
-import { Maximize2, Minimize2, Terminal, ShieldCheck, Cpu, GitBranch, Layers } from 'lucide-react';
+import { ExternalLink, Terminal, ShieldCheck, Cpu, GitBranch, Layers, Maximize2 } from 'lucide-react';
 
 interface StageSummary {
   step: string;
@@ -49,11 +49,9 @@ const PIPELINE_STAGES: StageSummary[] = [
 ];
 
 export const ArchitecturePipeline: React.FC = () => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
   return (
     <section id="architecture" className="section border-t border-[var(--rule)] py-20 sm:py-28">
-      <div className="wrap">
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <SectionHeading
           index="02"
           eyebrow="system architecture"
@@ -65,7 +63,7 @@ export const ArchitecturePipeline: React.FC = () => {
           description="Every stage operates offline with cryptographic verification. Tree-Sitter syntax indexing feeds the definitive Symbol Oracle, permanently eliminating generative hallucination before reaching the Pi Agent harness."
         />
 
-        {/* Architecture Pipeline Canvas Frame */}
+        {/* Architecture Pipeline Canvas Frame — Always Full View */}
         <div className="mt-12 overflow-hidden rounded-lg border border-[var(--rule-strong)] bg-[var(--surface-1)]">
           {/* Header Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] bg-[var(--bg-raise)] px-4 py-3 sm:px-6">
@@ -78,46 +76,38 @@ export const ArchitecturePipeline: React.FC = () => {
               <span className="font-mono text-[12px] font-bold tracking-wider text-[var(--fg)] uppercase">
                 kaioken_pipeline.svg
               </span>
-              <span className="hidden rounded bg-[var(--surface-2)] px-2 py-0.5 font-mono text-[10.5px] text-[var(--accent)] sm:inline-block">
-                OFFLINE-FIRST ARCHITECTURE
+              <span className="rounded bg-[var(--surface-2)] px-2 py-0.5 font-mono text-[10.5px] text-[var(--accent)]">
+                FULL ARCHITECTURE VIEW
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 font-mono text-[11px] text-[var(--fg-mute)]">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>ZERO DRIFT // 0 TOKENS</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsFullscreen(!isFullscreen)}
+              <a
+                href="/assets/kaioken-pipeline.svg"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-1.5 rounded border border-[var(--rule)] bg-[var(--surface-base)] px-2.5 py-1 font-mono text-[11px] text-[var(--fg-1)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                title={isFullscreen ? "Exit Fullscreen" : "Inspect Fullscreen"}
+                title="Open raw vector in new tab"
               >
-                {isFullscreen ? (
-                  <>
-                    <Minimize2 className="size-3" />
-                    <span>Collapse</span>
-                  </>
-                ) : (
-                  <>
-                    <Maximize2 className="size-3" />
-                    <span>Full View</span>
-                  </>
-                )}
-              </button>
+                <ExternalLink className="size-3" />
+                <span>Raw Vector</span>
+              </a>
             </div>
           </div>
 
-          {/* Diagram Canvas */}
-          <div className="relative overflow-x-auto bg-[#08080a] p-3 sm:p-6">
-            <div className={`mx-auto transition-all duration-300 ${isFullscreen ? 'max-w-none' : 'max-w-5xl'}`}>
+          {/* Diagram Canvas — Always Full Width */}
+          <div className="relative overflow-x-auto bg-[#08080a] p-3 sm:p-6 lg:p-8">
+            <div className="w-full">
               <a
                 href="/assets/kaioken-pipeline.svg"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Click to open raw high-definition SVG in new tab"
-                className="group relative block"
+                className="group relative block w-full"
               >
                 <img
                   src="/assets/kaioken-pipeline.svg"
