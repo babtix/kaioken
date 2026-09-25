@@ -18,7 +18,7 @@ export const Install: React.FC = () => {
     <section id="install" className="section border-t border-[var(--rule)] py-20 sm:py-28">
       <div className="wrap">
         <SectionHeading
-          index="04"
+          index="05"
           eyebrow="get started"
           title={
             <>

@@ -114,7 +114,7 @@ export const BuiltBy: React.FC = () => {
     <section id="builder" className="section border-t border-[var(--rule)] py-20 sm:py-28">
       <div className="wrap">
         <SectionHeading
-          index="03"
+          index="04"
           eyebrow="built by"
           title={
             <>

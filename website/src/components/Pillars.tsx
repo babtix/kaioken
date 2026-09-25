@@ -43,7 +43,7 @@ export const Pillars: React.FC = () => {
     <section id="pillars" className="section border-t border-[var(--rule)] py-20 sm:py-28">
       <div className="wrap">
         <SectionHeading
-          index="02"
+          index="03"
           eyebrow="architectural pillars"
           title={
             <>

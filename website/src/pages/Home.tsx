@@ -3,6 +3,7 @@ import { HomeBackground } from '@/components/HomeBackground.tsx';
 import { Header } from '@/components/Header.tsx';
 import { Hero } from '@/components/Hero.tsx';
 import { WhyBuilt } from '@/components/WhyBuilt.tsx';
+import { ArchitecturePipeline } from '@/components/ArchitecturePipeline.tsx';
 import { Pillars } from '@/components/Pillars.tsx';
 import { BuiltBy } from '@/components/BuiltBy.tsx';
 import { Install } from '@/components/Install.tsx';
@@ -24,6 +25,7 @@ export const Home: React.FC = () => {
       <main className="relative z-10">
         <Hero />
         <WhyBuilt />
+        <ArchitecturePipeline />
         <Pillars />
         <BuiltBy />
         <Install />

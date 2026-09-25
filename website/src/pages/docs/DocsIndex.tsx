@@ -20,6 +20,43 @@ export default function DocsIndex() {
         </p>
       </header>
 
+      {/* System Architecture Blueprint */}
+      <section className="pt-8">
+        <div className="flex items-center justify-between pb-3">
+          <h2 className="font-mono text-[11px] tracking-[0.25em] text-kai-amber uppercase">
+            system architecture blueprint
+          </h2>
+          <a
+            href="/assets/kaioken-pipeline.svg"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 font-mono text-[11px] text-kai-orange hover:underline"
+          >
+            <span>Raw Vector</span>
+            <ArrowRight className="size-3" />
+          </a>
+        </div>
+        <div className="overflow-hidden rounded-sm border border-border bg-[#08080a] p-2 sm:p-4">
+          <a
+            href="/assets/kaioken-pipeline.svg"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Click to view full-size vector architecture"
+          >
+            <img
+              src="/assets/kaioken-pipeline.svg"
+              alt="Kaioken Knowledge Engine Architecture: Ingestion, Grounding, Provenance, and Agent Seam"
+              className="h-auto w-full border border-[#232327] transition-all hover:border-kai-orange/60"
+              loading="lazy"
+            />
+          </a>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#232327] pt-2.5 font-mono text-[11px] text-kai-dim">
+            <span>OFFLINE-FIRST AST PARSING &amp; ZERO-TOKEN PROVENANCE</span>
+            <span className="text-kai-orange">7 TOOLS · 18 SLASH COMMANDS · 5 SURFACES</span>
+          </div>
+        </div>
+      </section>
+
       {DOCS_NAV.map((section) => (
         <section key={section.heading} className="pt-10">
           <h2 className="font-mono text-[11px] tracking-[0.25em] text-kai-amber uppercase">
