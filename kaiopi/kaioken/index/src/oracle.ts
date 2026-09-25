@@ -4,6 +4,18 @@ import {
 	type ReExportResolution,
 } from "./reexport.ts";
 import type { FileMap, IndexResult, SymbolRecord } from "./types.ts";
+import {
+	type LinkerOptions,
+	type SymbolDependencyGraph,
+	type SymbolGraphNode,
+	linkSymbolDependencyGraph,
+} from "./graph_linker.ts";
+import {
+	type VisibilityFilterOptions,
+	type VisibilityStats,
+	filterLocationsByVisibility,
+	getVisibilityStats,
+} from "./visibility.ts";
 
 /**
  * The index's second job. Phase 4's verifier asks "does this symbol exist?" and
@@ -20,11 +32,13 @@ export interface SymbolLocation {
 }
 
 export class SymbolOracle {
+	private readonly rawIndex: IndexResult;
 	private readonly byName = new Map<string, SymbolLocation[]>();
 	private readonly byPath = new Map<string, FileMap>();
 	private readonly reexportEngine: ReExportEngine;
 
 	constructor(index: IndexResult) {
+		this.rawIndex = index;
 		this.reexportEngine = new ReExportEngine(index.files);
 
 		for (const file of index.files) {
@@ -186,4 +200,80 @@ export class SymbolOracle {
 		for (const file of this.byPath.values()) total += file.symbols.length;
 		return total;
 	}
+
+	private depGraph?: SymbolDependencyGraph;
+
+	/**
+	 * Retrieve or initialize the structural symbol dependency graph (UX-0691 to UX-0700).
+	 */
+	getDependencyGraph(options?: LinkerOptions): SymbolDependencyGraph {
+		if (!this.depGraph) {
+			this.depGraph = linkSymbolDependencyGraph(this.rawIndex, options);
+		}
+		return this.depGraph;
+	}
+
+	getDependencies(symbolName: string, path?: string): SymbolGraphNode[] {
+		return this.getDependencyGraph().getDependencies(symbolName, path);
+	}
+
+	getDependents(symbolName: string, path?: string): SymbolGraphNode[] {
+		return this.getDependencyGraph().getDependents(symbolName, path);
+	}
+
+	getTypeHierarchy(symbolName: string): { parents: SymbolGraphNode[]; children: SymbolGraphNode[] } {
+		return this.getDependencyGraph().getTypeHierarchy(symbolName);
+	}
+
+	/**
+	 * Query symbols using visibility and language filters (UX-0671 to UX-0680).
+	 */
+	querySymbols(options: VisibilityFilterOptions = {}): SymbolLocation[] {
+		const allLocs: SymbolLocation[] = [];
+		for (const [path, file] of this.byPath.entries()) {
+			for (const symbol of file.symbols) {
+				allLocs.push({ path, symbol });
+			}
+		}
+
+		return filterLocationsByVisibility(
+			allLocs,
+			options,
+			(p) => this.byPath.get(p)?.language,
+		);
+	}
+
+	getInternalSymbols(path?: string, language?: string): SymbolLocation[] {
+		return this.querySymbols({
+			mode: "internal",
+			path,
+			languages: language ? [language] : undefined,
+		});
+	}
+
+	getExportedSymbols(path?: string, language?: string): SymbolLocation[] {
+		return this.querySymbols({
+			mode: "exported",
+			path,
+			languages: language ? [language] : undefined,
+		});
+	}
+
+	getVisibilitySummary(): VisibilityStats {
+		const allLocs: SymbolLocation[] = [];
+		for (const [path, file] of this.byPath.entries()) {
+			for (const symbol of file.symbols) {
+				allLocs.push({ path, symbol });
+			}
+		}
+
+		return getVisibilityStats(
+			allLocs,
+			(item) => {
+				const loc = item as SymbolLocation;
+				return this.byPath.get(loc.path)?.language;
+			},
+		);
+	}
 }
+

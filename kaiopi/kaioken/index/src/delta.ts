@@ -1,4 +1,5 @@
 import { extractFile } from "./extract.ts";
+import { extractFallbackDeclarations } from "./fallback.ts";
 import type { BuildStats } from "./build.ts";
 import type { FileMap, IndexResult, SymbolRecord } from "./types.ts";
 
@@ -221,12 +222,33 @@ export async function applyIndexDelta(
 				continue;
 			}
 
-			const extracted = await extractFile({
+			let extracted = await extractFile({
 				path: update.path,
 				language: update.language,
 				hash,
 				source: update.source,
 			});
+
+			// If tree-sitter grammar was absent, fall back to regex declaration extractor
+			if (extracted.unparsed && update.source) {
+				const fb = extractFallbackDeclarations({
+					path: update.path,
+					language: update.language,
+					hash,
+					source: update.source,
+				});
+				if (fb.symbols.length > 0 || fb.reexports.length > 0) {
+					extracted = {
+						path: update.path,
+						language: update.language,
+						hash,
+						lineCount: extracted.lineCount,
+						unparsed: false,
+						symbols: fb.symbols,
+						reexports: fb.reexports,
+					};
+				}
+			}
 
 			if (fileMap.has(update.path)) {
 				reusedCount--;
@@ -267,3 +289,117 @@ export async function applyIndexDelta(
 
 	return { index: newIndex, delta, stats };
 }
+
+export interface LanguageDeltaSummary {
+	language: string;
+	filesAdded: number;
+	filesModified: number;
+	filesDeleted: number;
+	symbolsAdded: number;
+	symbolsRemoved: number;
+	symbolsModified: number;
+	symbolsUnchanged: number;
+}
+
+/**
+ * Breakdown an IndexDelta by programming language (UX-0681 to UX-0690).
+ */
+export function getLanguageIndexDelta(
+	delta: IndexDelta,
+	index: IndexResult,
+): Record<string, LanguageDeltaSummary> {
+	const fileLang = new Map<string, string>();
+	for (const f of index.files) {
+		fileLang.set(f.path, f.language);
+	}
+
+	const result: Record<string, LanguageDeltaSummary> = {};
+
+	const getSummary = (lang: string): LanguageDeltaSummary => {
+		if (!result[lang]) {
+			result[lang] = {
+				language: lang,
+				filesAdded: 0,
+				filesModified: 0,
+				filesDeleted: 0,
+				symbolsAdded: 0,
+				symbolsRemoved: 0,
+				symbolsModified: 0,
+				symbolsUnchanged: 0,
+			};
+		}
+		return result[lang]!;
+	};
+
+	for (const path of delta.files.added) {
+		const lang = fileLang.get(path) ?? "unknown";
+		getSummary(lang).filesAdded++;
+	}
+	for (const path of delta.files.modified) {
+		const lang = fileLang.get(path) ?? "unknown";
+		getSummary(lang).filesModified++;
+	}
+	for (const path of delta.files.deleted) {
+		const lang = fileLang.get(path) ?? "unknown";
+		getSummary(lang).filesDeleted++;
+	}
+
+	for (const [path, symDelta] of Object.entries(delta.symbols)) {
+		const lang = fileLang.get(path) ?? "unknown";
+		const s = getSummary(lang);
+		s.symbolsAdded += symDelta.added.length;
+		s.symbolsRemoved += symDelta.removed.length;
+		s.symbolsModified += symDelta.modified.length;
+	}
+
+	return result;
+}
+
+/**
+ * Filter an IndexDelta down to a specific programming language.
+ */
+export function filterDeltaByLanguage(
+	delta: IndexDelta,
+	index: IndexResult,
+	language: string,
+): IndexDelta {
+	const norm = language.toLowerCase();
+	const fileLang = new Map<string, string>();
+	for (const f of index.files) {
+		fileLang.set(f.path, f.language.toLowerCase());
+	}
+
+	const match = (p: string) => (fileLang.get(p) ?? "") === norm;
+
+	const added = delta.files.added.filter(match);
+	const modified = delta.files.modified.filter(match);
+	const deleted = delta.files.deleted.filter(match);
+	const unchanged = delta.files.unchanged.filter(match);
+
+	const symbols: Record<string, SymbolDelta> = {};
+	let totalAdded = 0;
+	let totalRemoved = 0;
+	let totalModified = 0;
+
+	for (const [path, sDelta] of Object.entries(delta.symbols)) {
+		if (match(path)) {
+			symbols[path] = sDelta;
+			totalAdded += sDelta.added.length;
+			totalRemoved += sDelta.removed.length;
+			totalModified += sDelta.modified.length;
+		}
+	}
+
+	return {
+		files: { added, modified, deleted, unchanged },
+		symbols,
+		summary: {
+			totalAdded,
+			totalRemoved,
+			totalModified,
+			totalUnchanged: 0,
+		},
+		hasChanges: added.length > 0 || modified.length > 0 || deleted.length > 0 || totalAdded > 0 || totalRemoved > 0 || totalModified > 0,
+	};
+}
+

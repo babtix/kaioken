@@ -15,6 +15,8 @@ export {
 	loadGrammar,
 	supportedLanguages,
 	registerGrammar,
+	GrammarRegistry,
+	getGrammarRegistry,
 	LanguageParserPool,
 	getParserPool,
 	withParser,
@@ -22,6 +24,7 @@ export {
 	getAllPoolStats,
 	pruneAllIdleParsers,
 } from "./grammars.ts";
+export type { GrammarInfo, GrammarSpec, GrammarTier } from "./grammars.ts";
 export type { ParserPoolOptions, PoolStats } from "./pool.ts";
 export { SymbolOracle } from "./oracle.ts";
 export type { SymbolLocation } from "./oracle.ts";
@@ -50,12 +53,15 @@ export {
 	computeIndexDelta,
 	diffFileMaps,
 	diffSymbolRecords,
+	getLanguageIndexDelta,
+	filterDeltaByLanguage,
 } from "./delta.ts";
 export type {
 	FileDelta,
 	FileUpdateSpec,
 	IndexDelta,
 	IndexDeltaSummary,
+	LanguageDeltaSummary,
 	ModifiedSymbolDiff,
 	SymbolDelta,
 	SymbolDiffKind,
@@ -67,7 +73,9 @@ export type {
 	ReExportResolution,
 } from "./reexport.ts";
 export {
+	buildSymbolCardFromCode,
 	buildSymbolPreviewCard,
+	renderMarkdownPreviewCard,
 	renderPlainPreviewCard,
 	renderSymbolPreviewCard,
 } from "./preview.ts";
@@ -78,3 +86,24 @@ export type {
 	SymbolPreviewCard,
 } from "./preview.ts";
 export type { FallbackExtractResult } from "./fallback.ts";
+export {
+	isSymbolExported,
+	filterSymbolsByVisibility,
+	filterLocationsByVisibility,
+	getVisibilityStats,
+} from "./visibility.ts";
+export type {
+	VisibilityMode,
+	VisibilityFilterOptions,
+	VisibilityStats,
+} from "./visibility.ts";
+export {
+	SymbolDependencyGraph,
+	linkSymbolDependencyGraph,
+} from "./graph_linker.ts";
+export type {
+	SymbolEdgeKind,
+	SymbolGraphNode,
+	SymbolGraphEdge,
+	LinkerOptions,
+} from "./graph_linker.ts";

@@ -10,9 +10,9 @@
 
 - **Total Roadmap Specifications**: 2,000 Features (`#UX-0001` – `#UX-2000`)
 - **Phase 1 Built (Steps 1–20)**: 955 Features (47.75% Complete)
-- **Phase 2 Built (Steps 21–24)**: 215 Features (10.75% Complete)
-- **Total Built (Steps 1–24)**: **1,170 Features** (58.50% Complete)
-- **Phase 2 Remaining (Steps 25–40)**: **830 Features** (41.50% To Build)
+- **Phase 2 Built (Steps 21–25)**: 275 Features (13.75% Complete)
+- **Total Built (Steps 1–25)**: **1,230 Features** (61.50% Complete)
+- **Phase 2 Remaining (Steps 26–40)**: **770 Features** (38.50% To Build)
 
 | Step | Category Name | Package / Subsystem | Remaining Features | Unbuilt ID Ranges |
 | :--: | :--- | :--- | :--: | :--- |
@@ -20,7 +20,7 @@
 | **Step 22** | **Cat 09**: Provenance, Staleness & Truth Drift Detection | `kaioken/provenance` | **0** (Complete: 50/50) | None (`UX-0851–UX-0900` Built) |
 | **Step 23** | **Cat 11**: Verification Gates, Native Test Runners & Diagnostics | `kaioken/verify` | **0** (Complete: 40/40) | None (`UX-1061–UX-1100` Built) |
 | **Step 24** | **Cat 10**: Impact Analysis & Blast Radius Prediction | `kaioken/impact` | **0** (Complete: 50/50) | None (`UX-0951–UX-1000` Built) |
-| **Step 25** | **Cat 07**: AST Symbol Indexing & Code Oracle | `kaioken/index` | **60** | `UX-0641–UX-0700` |
+| **Step 25** | **Cat 07**: AST Symbol Indexing & Code Oracle | `kaioken/index` | **0** (Complete: 60/60) | None (`UX-0641–UX-0700` Built) |
 | **Step 26** | **Cat 19**: GitOps, Worktree Delegation & Safe Merges | `kaioken/gitops` | **50** | `UX-1851–UX-1900` |
 | **Step 27** | **Cat 08**: Search, Lexical Indexing & BM25 Retrieval | `kaioken/search` | **60** | `UX-0741–UX-0800` |
 | **Step 28** | **Cat 06**: Repo Scan, File Discovery & Risk Shield | `kaioken/scan` | **60** | `UX-0541–UX-0600` |
@@ -36,7 +36,7 @@
 | **Step 38** | **Cat 01**: Terminal UI (TUI) & Visual Aesthetics | `.pi/extensions/kaioken/ui` | **50** | `UX-0051–UX-0100` |
 | **Step 39** | **Cat 03**: HUD, Status Bar & Dynamic Widgets | `.pi/extensions/kaioken/ui/header.ts` | **50** | `UX-0251–UX-0300` |
 | **Step 40** | **Cat 04**: Keyboard Navigation, Shortcuts & Command Palette | `packages/tui` | **50** | `UX-0351–UX-0400` |
-| **TOTAL** | **All 20 Architectural Categories** | | **830** | |
+| **TOTAL** | **All 20 Architectural Categories** | | **770** | |
 
 ---
 
@@ -495,127 +495,127 @@
 ---
 
 ### Step 25: Category 07 — AST Symbol Indexing & Code Oracle
-*Rank: #5 Code Intelligence Core | Package: `kaioken/index` | Remaining: 60 Features | Ranges: `UX-0641–UX-0700`*
+*Rank: #5 Code Intelligence Core | Package: `kaioken/index` | Status: Complete (60/60 Built) | Ranges: `UX-0641–UX-0700`*
 
-- [ ] **[UX-0641]** Interactive symbol definition card rendering source snippet of TypeScript / TSX class and interface declarations  
+- [x] **[UX-0641]** Interactive symbol definition card rendering source snippet of TypeScript / TSX class and interface declarations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0642]** Interactive symbol definition card rendering source snippet of JavaScript / JSX function and constant exports  
+- [x] **[UX-0642]** Interactive symbol definition card rendering source snippet of JavaScript / JSX function and constant exports  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0643]** Interactive symbol definition card rendering source snippet of Python classes, methods, and decorated functions  
+- [x] **[UX-0643]** Interactive symbol definition card rendering source snippet of Python classes, methods, and decorated functions  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0644]** Interactive symbol definition card rendering source snippet of Go struct, interface, and package functions  
+- [x] **[UX-0644]** Interactive symbol definition card rendering source snippet of Go struct, interface, and package functions  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0645]** Interactive symbol definition card rendering source snippet of Rust structs, traits, enums, and impl blocks  
+- [x] **[UX-0645]** Interactive symbol definition card rendering source snippet of Rust structs, traits, enums, and impl blocks  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0646]** Interactive symbol definition card rendering source snippet of Java classes, records, and spring annotations  
+- [x] **[UX-0646]** Interactive symbol definition card rendering source snippet of Java classes, records, and spring annotations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0647]** Interactive symbol definition card rendering source snippet of C/C++ structs, namespaces, and template functions  
+- [x] **[UX-0647]** Interactive symbol definition card rendering source snippet of C/C++ structs, namespaces, and template functions  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0648]** Interactive symbol definition card rendering source snippet of C# classes, interfaces, and record types  
+- [x] **[UX-0648]** Interactive symbol definition card rendering source snippet of C# classes, interfaces, and record types  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0649]** Interactive symbol definition card rendering source snippet of Ruby module definitions and method symbols  
+- [x] **[UX-0649]** Interactive symbol definition card rendering source snippet of Ruby module definitions and method symbols  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0650]** Interactive symbol definition card rendering source snippet of SQL schema tables, procedures, and view definitions  
+- [x] **[UX-0650]** Interactive symbol definition card rendering source snippet of SQL schema tables, procedures, and view definitions  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0651]** Extensible grammar registry enabling AST parsing for TypeScript / TSX class and interface declarations  
+- [x] **[UX-0651]** Extensible grammar registry enabling AST parsing for TypeScript / TSX class and interface declarations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0652]** Extensible grammar registry enabling AST parsing for JavaScript / JSX function and constant exports  
+- [x] **[UX-0652]** Extensible grammar registry enabling AST parsing for JavaScript / JSX function and constant exports  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0653]** Extensible grammar registry enabling AST parsing for Python classes, methods, and decorated functions  
+- [x] **[UX-0653]** Extensible grammar registry enabling AST parsing for Python classes, methods, and decorated functions  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0654]** Extensible grammar registry enabling AST parsing for Go struct, interface, and package functions  
+- [x] **[UX-0654]** Extensible grammar registry enabling AST parsing for Go struct, interface, and package functions  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0655]** Extensible grammar registry enabling AST parsing for Rust structs, traits, enums, and impl blocks  
+- [x] **[UX-0655]** Extensible grammar registry enabling AST parsing for Rust structs, traits, enums, and impl blocks  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0656]** Extensible grammar registry enabling AST parsing for Java classes, records, and spring annotations  
+- [x] **[UX-0656]** Extensible grammar registry enabling AST parsing for Java classes, records, and spring annotations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0657]** Extensible grammar registry enabling AST parsing for C/C++ structs, namespaces, and template functions  
+- [x] **[UX-0657]** Extensible grammar registry enabling AST parsing for C/C++ structs, namespaces, and template functions  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0658]** Extensible grammar registry enabling AST parsing for C# classes, interfaces, and record types  
+- [x] **[UX-0658]** Extensible grammar registry enabling AST parsing for C# classes, interfaces, and record types  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0659]** Extensible grammar registry enabling AST parsing for Ruby module definitions and method symbols  
+- [x] **[UX-0659]** Extensible grammar registry enabling AST parsing for Ruby module definitions and method symbols  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0660]** Extensible grammar registry enabling AST parsing for SQL schema tables, procedures, and view definitions  
+- [x] **[UX-0660]** Extensible grammar registry enabling AST parsing for SQL schema tables, procedures, and view definitions  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0661]** Regex fallback declaration extractor indexing symbols for TypeScript / TSX class and interface declarations  
+- [x] **[UX-0661]** Regex fallback declaration extractor indexing symbols for TypeScript / TSX class and interface declarations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0662]** Regex fallback declaration extractor indexing symbols for JavaScript / JSX function and constant exports  
+- [x] **[UX-0662]** Regex fallback declaration extractor indexing symbols for JavaScript / JSX function and constant exports  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0663]** Regex fallback declaration extractor indexing symbols for Python classes, methods, and decorated functions  
+- [x] **[UX-0663]** Regex fallback declaration extractor indexing symbols for Python classes, methods, and decorated functions  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0664]** Regex fallback declaration extractor indexing symbols for Go struct, interface, and package functions  
+- [x] **[UX-0664]** Regex fallback declaration extractor indexing symbols for Go struct, interface, and package functions  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0665]** Regex fallback declaration extractor indexing symbols for Rust structs, traits, enums, and impl blocks  
+- [x] **[UX-0665]** Regex fallback declaration extractor indexing symbols for Rust structs, traits, enums, and impl blocks  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0666]** Regex fallback declaration extractor indexing symbols for Java classes, records, and spring annotations  
+- [x] **[UX-0666]** Regex fallback declaration extractor indexing symbols for Java classes, records, and spring annotations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0667]** Regex fallback declaration extractor indexing symbols for C/C++ structs, namespaces, and template functions  
+- [x] **[UX-0667]** Regex fallback declaration extractor indexing symbols for C/C++ structs, namespaces, and template functions  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0668]** Regex fallback declaration extractor indexing symbols for C# classes, interfaces, and record types  
+- [x] **[UX-0668]** Regex fallback declaration extractor indexing symbols for C# classes, interfaces, and record types  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0669]** Regex fallback declaration extractor indexing symbols for Ruby module definitions and method symbols  
+- [x] **[UX-0669]** Regex fallback declaration extractor indexing symbols for Ruby module definitions and method symbols  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0670]** Regex fallback declaration extractor indexing symbols for SQL schema tables, procedures, and view definitions  
+- [x] **[UX-0670]** Regex fallback declaration extractor indexing symbols for SQL schema tables, procedures, and view definitions  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0671]** Exported vs internal visibility filter toggling display of TypeScript / TSX class and interface declarations  
+- [x] **[UX-0671]** Exported vs internal visibility filter toggling display of TypeScript / TSX class and interface declarations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0672]** Exported vs internal visibility filter toggling display of JavaScript / JSX function and constant exports  
+- [x] **[UX-0672]** Exported vs internal visibility filter toggling display of JavaScript / JSX function and constant exports  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0673]** Exported vs internal visibility filter toggling display of Python classes, methods, and decorated functions  
+- [x] **[UX-0673]** Exported vs internal visibility filter toggling display of Python classes, methods, and decorated functions  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0674]** Exported vs internal visibility filter toggling display of Go struct, interface, and package functions  
+- [x] **[UX-0674]** Exported vs internal visibility filter toggling display of Go struct, interface, and package functions  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0675]** Exported vs internal visibility filter toggling display of Rust structs, traits, enums, and impl blocks  
+- [x] **[UX-0675]** Exported vs internal visibility filter toggling display of Rust structs, traits, enums, and impl blocks  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0676]** Exported vs internal visibility filter toggling display of Java classes, records, and spring annotations  
+- [x] **[UX-0676]** Exported vs internal visibility filter toggling display of Java classes, records, and spring annotations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0677]** Exported vs internal visibility filter toggling display of C/C++ structs, namespaces, and template functions  
+- [x] **[UX-0677]** Exported vs internal visibility filter toggling display of C/C++ structs, namespaces, and template functions  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0678]** Exported vs internal visibility filter toggling display of C# classes, interfaces, and record types  
+- [x] **[UX-0678]** Exported vs internal visibility filter toggling display of C# classes, interfaces, and record types  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0679]** Exported vs internal visibility filter toggling display of Ruby module definitions and method symbols  
+- [x] **[UX-0679]** Exported vs internal visibility filter toggling display of Ruby module definitions and method symbols  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0680]** Exported vs internal visibility filter toggling display of SQL schema tables, procedures, and view definitions  
+- [x] **[UX-0680]** Exported vs internal visibility filter toggling display of SQL schema tables, procedures, and view definitions  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0681]** Incremental AST delta indexing updating only changed files for TypeScript / TSX class and interface declarations  
+- [x] **[UX-0681]** Incremental AST delta indexing updating only changed files for TypeScript / TSX class and interface declarations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0682]** Incremental AST delta indexing updating only changed files for JavaScript / JSX function and constant exports  
+- [x] **[UX-0682]** Incremental AST delta indexing updating only changed files for JavaScript / JSX function and constant exports  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0683]** Incremental AST delta indexing updating only changed files for Python classes, methods, and decorated functions  
+- [x] **[UX-0683]** Incremental AST delta indexing updating only changed files for Python classes, methods, and decorated functions  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0684]** Incremental AST delta indexing updating only changed files for Go struct, interface, and package functions  
+- [x] **[UX-0684]** Incremental AST delta indexing updating only changed files for Go struct, interface, and package functions  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0685]** Incremental AST delta indexing updating only changed files for Rust structs, traits, enums, and impl blocks  
+- [x] **[UX-0685]** Incremental AST delta indexing updating only changed files for Rust structs, traits, enums, and impl blocks  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0686]** Incremental AST delta indexing updating only changed files for Java classes, records, and spring annotations  
+- [x] **[UX-0686]** Incremental AST delta indexing updating only changed files for Java classes, records, and spring annotations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0687]** Incremental AST delta indexing updating only changed files for C/C++ structs, namespaces, and template functions  
+- [x] **[UX-0687]** Incremental AST delta indexing updating only changed files for C/C++ structs, namespaces, and template functions  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0688]** Incremental AST delta indexing updating only changed files for C# classes, interfaces, and record types  
+- [x] **[UX-0688]** Incremental AST delta indexing updating only changed files for C# classes, interfaces, and record types  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0689]** Incremental AST delta indexing updating only changed files for Ruby module definitions and method symbols  
+- [x] **[UX-0689]** Incremental AST delta indexing updating only changed files for Ruby module definitions and method symbols  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0690]** Incremental AST delta indexing updating only changed files for SQL schema tables, procedures, and view definitions  
+- [x] **[UX-0690]** Incremental AST delta indexing updating only changed files for SQL schema tables, procedures, and view definitions  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0691]** Structural symbol dependency graph linker connecting TypeScript / TSX class and interface declarations  
+- [x] **[UX-0691]** Structural symbol dependency graph linker connecting TypeScript / TSX class and interface declarations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0692]** Structural symbol dependency graph linker connecting JavaScript / JSX function and constant exports  
+- [x] **[UX-0692]** Structural symbol dependency graph linker connecting JavaScript / JSX function and constant exports  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0693]** Structural symbol dependency graph linker connecting Python classes, methods, and decorated functions  
+- [x] **[UX-0693]** Structural symbol dependency graph linker connecting Python classes, methods, and decorated functions  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0694]** Structural symbol dependency graph linker connecting Go struct, interface, and package functions  
+- [x] **[UX-0694]** Structural symbol dependency graph linker connecting Go struct, interface, and package functions  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0695]** Structural symbol dependency graph linker connecting Rust structs, traits, enums, and impl blocks  
+- [x] **[UX-0695]** Structural symbol dependency graph linker connecting Rust structs, traits, enums, and impl blocks  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0696]** Structural symbol dependency graph linker connecting Java classes, records, and spring annotations  
+- [x] **[UX-0696]** Structural symbol dependency graph linker connecting Java classes, records, and spring annotations  
   *Subsystem*: `kaioken/index` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0697]** Structural symbol dependency graph linker connecting C/C++ structs, namespaces, and template functions  
+- [x] **[UX-0697]** Structural symbol dependency graph linker connecting C/C++ structs, namespaces, and template functions  
   *Subsystem*: `kaioken/index` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0698]** Structural symbol dependency graph linker connecting C# classes, interfaces, and record types  
+- [x] **[UX-0698]** Structural symbol dependency graph linker connecting C# classes, interfaces, and record types  
   *Subsystem*: `kaioken/index` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0699]** Structural symbol dependency graph linker connecting Ruby module definitions and method symbols  
+- [x] **[UX-0699]** Structural symbol dependency graph linker connecting Ruby module definitions and method symbols  
   *Subsystem*: `kaioken/index` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0700]** Structural symbol dependency graph linker connecting SQL schema tables, procedures, and view definitions  
+- [x] **[UX-0700]** Structural symbol dependency graph linker connecting SQL schema tables, procedures, and view definitions  
   *Subsystem*: `kaioken/index` | *Tier*: Developer Ergonomics
 
 ---

@@ -32,6 +32,9 @@ export interface SymbolRecord {
 	doc: string;
 	/** Enclosing declaration name, for methods and nested types. */
 	parent?: string;
+	/** Preceding decorators (Python, TypeScript) or annotations/attributes (Java, C#). */
+	decorators?: string[];
+	annotations?: string[];
 }
 
 /** A captured re-export or alias statement. */

@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { availableParallelism } from "node:os";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,11 +13,22 @@ const require = createRequire(import.meta.url);
  * the package should need to change — that constraint is the whole reason the
  * extraction is query-driven rather than hand-written per grammar.
  */
-interface GrammarSpec {
+export interface GrammarSpec {
 	/** Module-relative path to the prebuilt grammar, resolved through node. */
 	wasm: string;
 	/** Query file basename in ./queries. */
 	query: string;
+}
+
+export type GrammarTier = "tree-sitter" | "fallback" | "unsupported";
+
+export interface GrammarInfo {
+	language: string;
+	wasm?: string;
+	query?: string;
+	tier: GrammarTier;
+	isRegistered: boolean;
+	hasQueryFile: boolean;
 }
 
 const GRAMMARS: Record<string, GrammarSpec> = {
@@ -47,13 +59,116 @@ const GRAMMARS: Record<string, GrammarSpec> = {
 	ruby: { wasm: "tree-sitter-ruby/tree-sitter-ruby.wasm", query: "ruby.scm" },
 };
 
+/**
+ * Known fallback languages supported via regex declaration extractor
+ * when Tree-sitter WASM grammars are absent.
+ */
+const KNOWN_FALLBACK_LANGUAGES = new Set([
+	"typescript",
+	"tsx",
+	"javascript",
+	"jsx",
+	"python",
+	"go",
+	"rust",
+	"java",
+	"c",
+	"cpp",
+	"c_sharp",
+	"csharp",
+	"ruby",
+	"sql",
+]);
+
+export class GrammarRegistry {
+	private readonly grammars = new Map<string, GrammarSpec>();
+
+	constructor() {
+		for (const [lang, spec] of Object.entries(GRAMMARS)) {
+			this.grammars.set(lang, spec);
+		}
+	}
+
+	register(language: string, spec: GrammarSpec): void {
+		const norm = language.toLowerCase();
+		this.grammars.set(norm, spec);
+		GRAMMARS[norm] = spec;
+		cache.delete(norm);
+	}
+
+	unregister(language: string): void {
+		const norm = language.toLowerCase();
+		this.grammars.delete(norm);
+		delete GRAMMARS[norm];
+		cache.delete(norm);
+	}
+
+	get(language: string): GrammarSpec | undefined {
+		return this.grammars.get(language.toLowerCase());
+	}
+
+	has(language: string): boolean {
+		return this.grammars.has(language.toLowerCase());
+	}
+
+	canParseAst(language: string): boolean {
+		return isSupportedLanguage(language);
+	}
+
+	getLanguageTier(language: string): GrammarTier {
+		const norm = language.toLowerCase();
+		if (this.canParseAst(norm)) {
+			return "tree-sitter";
+		}
+		if (KNOWN_FALLBACK_LANGUAGES.has(norm)) {
+			return "fallback";
+		}
+		return "unsupported";
+	}
+
+	listLanguages(): GrammarInfo[] {
+		const all = new Set([...this.grammars.keys(), ...KNOWN_FALLBACK_LANGUAGES]);
+		const list: GrammarInfo[] = [];
+
+		for (const lang of Array.from(all).sort()) {
+			const spec = this.grammars.get(lang);
+			const hasQ = spec ? existsSync(queryPath(spec.query)) : false;
+			list.push({
+				language: lang,
+				wasm: spec?.wasm,
+				query: spec?.query,
+				tier: this.getLanguageTier(lang),
+				isRegistered: spec !== undefined,
+				hasQueryFile: hasQ,
+			});
+		}
+		return list;
+	}
+
+	listSupportedLanguages(): string[] {
+		return supportedLanguages();
+	}
+
+	getQueryPath(basename: string): string {
+		return queryPath(basename);
+	}
+}
+
+let defaultRegistry: GrammarRegistry | null = null;
+
+export function getGrammarRegistry(): GrammarRegistry {
+	if (!defaultRegistry) {
+		defaultRegistry = new GrammarRegistry();
+	}
+	return defaultRegistry;
+}
+
 export function registerGrammar(language: string, spec: GrammarSpec): void {
-	GRAMMARS[language] = spec;
-	cache.delete(language);
+	getGrammarRegistry().register(language, spec);
 }
 
 export function isSupportedLanguage(language: string): boolean {
-	const spec = GRAMMARS[language];
+	const spec = GRAMMARS[language.toLowerCase()];
 	if (!spec) return false;
 	try {
 		require.resolve(spec.wasm);
@@ -82,10 +197,11 @@ export function initParser(): Promise<void> {
 }
 
 export async function loadGrammar(language: string): Promise<LoadedGrammar | null> {
-	const spec = GRAMMARS[language];
+	const norm = language.toLowerCase();
+	const spec = GRAMMARS[norm];
 	if (!spec) return null;
 
-	const existing = cache.get(language);
+	const existing = cache.get(norm);
 	if (existing) return existing;
 
 	const loading = (async () => {
@@ -100,7 +216,7 @@ export async function loadGrammar(language: string): Promise<LoadedGrammar | nul
 		}
 	})();
 
-	cache.set(language, loading);
+	cache.set(norm, loading);
 	return loading;
 }
 
