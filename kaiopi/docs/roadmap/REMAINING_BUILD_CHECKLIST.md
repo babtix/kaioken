@@ -10,9 +10,9 @@
 
 - **Total Roadmap Specifications**: 2,000 Features (`#UX-0001` – `#UX-2000`)
 - **Phase 1 Built (Steps 1–20)**: 955 Features (47.75% Complete)
-- **Phase 2 Built (Steps 21–27)**: 385 Features (19.25% Complete)
-- **Total Built (Steps 1–27)**: **1,340 Features** (67.00% Complete)
-- **Phase 2 Remaining (Steps 28–40)**: **660 Features** (33.00% To Build)
+- **Phase 2 Built (Steps 21–28)**: 445 Features (22.25% Complete)
+- **Total Built (Steps 1–28)**: **1,400 Features** (70.00% Complete)
+- **Phase 2 Remaining (Steps 29–40)**: **600 Features** (30.00% To Build)
 
 | Step | Category Name | Package / Subsystem | Remaining Features | Unbuilt ID Ranges |
 | :--: | :--- | :--- | :--: | :--- |
@@ -23,7 +23,7 @@
 | **Step 25** | **Cat 07**: AST Symbol Indexing & Code Oracle | `kaioken/index` | **0** (Complete: 60/60) | None (`UX-0641–UX-0700` Built) |
 | **Step 26** | **Cat 19**: GitOps, Worktree Delegation & Safe Merges | `kaioken/gitops` | **0** (Complete: 50/50) | None (`UX-1851–UX-1900` Built) |
 | **Step 27** | **Cat 08**: Search, Lexical Indexing & BM25 Retrieval | `kaioken/search` | **0** (Complete: 60/60) | None (`UX-0741–UX-0800` Built) |
-| **Step 28** | **Cat 06**: Repo Scan, File Discovery & Risk Shield | `kaioken/scan` | **60** | `UX-0541–UX-0600` |
+| **Step 28** | **Cat 06**: Repo Scan, File Discovery & Risk Shield | `kaioken/scan` | **0** (Complete: 60/60) | None (`UX-0541–UX-0600` Built) |
 | **Step 29** | **Cat 05**: Spend Transparency, Token Budgeting & Cost Control | `kaioken/modelport` | **50** | `UX-0451–UX-0500` |
 | **Step 30** | **Cat 13**: Module Planning & Architecture Decomposition | `kaioken/plan` | **50** | `UX-1251–UX-1300` |
 | **Step 31** | **Cat 14**: Knowledge Cards & Atomic Fact Base | `kaioken/plan/src/cards.ts` | **50** | `UX-1351–UX-1400` |
@@ -36,7 +36,7 @@
 | **Step 38** | **Cat 01**: Terminal UI (TUI) & Visual Aesthetics | `.pi/extensions/kaioken/ui` | **50** | `UX-0051–UX-0100` |
 | **Step 39** | **Cat 03**: HUD, Status Bar & Dynamic Widgets | `.pi/extensions/kaioken/ui/header.ts` | **50** | `UX-0251–UX-0300` |
 | **Step 40** | **Cat 04**: Keyboard Navigation, Shortcuts & Command Palette | `packages/tui` | **50** | `UX-0351–UX-0400` |
-| **TOTAL** | **All 20 Architectural Categories** | | **660** | |
+| **TOTAL** | **All 20 Architectural Categories** | | **600** | |
 
 ---
 
@@ -853,127 +853,127 @@
 ---
 
 ### Step 28: Category 06 — Repo Scan, File Discovery & Risk Shield
-*Rank: #8 Security & Source Hygiene | Package: `kaioken/scan` | Remaining: 60 Features | Ranges: `UX-0541–UX-0600`*
+*Rank: #8 Security & Source Hygiene | Package: `kaioken/scan` | Status: Complete (60/60 Built) | Ranges: `UX-0541–UX-0600`*
 
-- [ ] **[UX-0541]** Automated .gitignore rule suggestion generator for OpenAI project and admin API keys  
+- [x] **[UX-0541]** Automated .gitignore rule suggestion generator for OpenAI project and admin API keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0542]** Automated .gitignore rule suggestion generator for GitHub fine-grained personal access tokens  
+- [x] **[UX-0542]** Automated .gitignore rule suggestion generator for GitHub fine-grained personal access tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0543]** Automated .gitignore rule suggestion generator for AWS temporary and root credentials  
+- [x] **[UX-0543]** Automated .gitignore rule suggestion generator for AWS temporary and root credentials  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0544]** Automated .gitignore rule suggestion generator for HuggingFace and PyPI deployment tokens  
+- [x] **[UX-0544]** Automated .gitignore rule suggestion generator for HuggingFace and PyPI deployment tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0545]** Automated .gitignore rule suggestion generator for Azure connection strings and SAS query tokens  
+- [x] **[UX-0545]** Automated .gitignore rule suggestion generator for Azure connection strings and SAS query tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0546]** Automated .gitignore rule suggestion generator for Slack, Google, and Stripe service keys  
+- [x] **[UX-0546]** Automated .gitignore rule suggestion generator for Slack, Google, and Stripe service keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0547]** Automated .gitignore rule suggestion generator for embedded RSA/PGP private certificates  
+- [x] **[UX-0547]** Automated .gitignore rule suggestion generator for embedded RSA/PGP private certificates  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0548]** Automated .gitignore rule suggestion generator for large binary assets exceeding size budgets  
+- [x] **[UX-0548]** Automated .gitignore rule suggestion generator for large binary assets exceeding size budgets  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0549]** Automated .gitignore rule suggestion generator for deeply nested node_modules and vendor directories  
+- [x] **[UX-0549]** Automated .gitignore rule suggestion generator for deeply nested node_modules and vendor directories  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0550]** Automated .gitignore rule suggestion generator for symlink loops and circular junction paths  
+- [x] **[UX-0550]** Automated .gitignore rule suggestion generator for symlink loops and circular junction paths  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0551]** Sliding-window chunk analyzer eliminating boundary splits for OpenAI project and admin API keys  
+- [x] **[UX-0551]** Sliding-window chunk analyzer eliminating boundary splits for OpenAI project and admin API keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0552]** Sliding-window chunk analyzer eliminating boundary splits for GitHub fine-grained personal access tokens  
+- [x] **[UX-0552]** Sliding-window chunk analyzer eliminating boundary splits for GitHub fine-grained personal access tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0553]** Sliding-window chunk analyzer eliminating boundary splits for AWS temporary and root credentials  
+- [x] **[UX-0553]** Sliding-window chunk analyzer eliminating boundary splits for AWS temporary and root credentials  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0554]** Sliding-window chunk analyzer eliminating boundary splits for HuggingFace and PyPI deployment tokens  
+- [x] **[UX-0554]** Sliding-window chunk analyzer eliminating boundary splits for HuggingFace and PyPI deployment tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0555]** Sliding-window chunk analyzer eliminating boundary splits for Azure connection strings and SAS query tokens  
+- [x] **[UX-0555]** Sliding-window chunk analyzer eliminating boundary splits for Azure connection strings and SAS query tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0556]** Sliding-window chunk analyzer eliminating boundary splits for Slack, Google, and Stripe service keys  
+- [x] **[UX-0556]** Sliding-window chunk analyzer eliminating boundary splits for Slack, Google, and Stripe service keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0557]** Sliding-window chunk analyzer eliminating boundary splits for embedded RSA/PGP private certificates  
+- [x] **[UX-0557]** Sliding-window chunk analyzer eliminating boundary splits for embedded RSA/PGP private certificates  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0558]** Sliding-window chunk analyzer eliminating boundary splits for large binary assets exceeding size budgets  
+- [x] **[UX-0558]** Sliding-window chunk analyzer eliminating boundary splits for large binary assets exceeding size budgets  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0559]** Sliding-window chunk analyzer eliminating boundary splits for deeply nested node_modules and vendor directories  
+- [x] **[UX-0559]** Sliding-window chunk analyzer eliminating boundary splits for deeply nested node_modules and vendor directories  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0560]** Sliding-window chunk analyzer eliminating boundary splits for symlink loops and circular junction paths  
+- [x] **[UX-0560]** Sliding-window chunk analyzer eliminating boundary splits for symlink loops and circular junction paths  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0561]** False-positive whitelist pattern manager for OpenAI project and admin API keys  
+- [x] **[UX-0561]** False-positive whitelist pattern manager for OpenAI project and admin API keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0562]** False-positive whitelist pattern manager for GitHub fine-grained personal access tokens  
+- [x] **[UX-0562]** False-positive whitelist pattern manager for GitHub fine-grained personal access tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0563]** False-positive whitelist pattern manager for AWS temporary and root credentials  
+- [x] **[UX-0563]** False-positive whitelist pattern manager for AWS temporary and root credentials  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0564]** False-positive whitelist pattern manager for HuggingFace and PyPI deployment tokens  
+- [x] **[UX-0564]** False-positive whitelist pattern manager for HuggingFace and PyPI deployment tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0565]** False-positive whitelist pattern manager for Azure connection strings and SAS query tokens  
+- [x] **[UX-0565]** False-positive whitelist pattern manager for Azure connection strings and SAS query tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0566]** False-positive whitelist pattern manager for Slack, Google, and Stripe service keys  
+- [x] **[UX-0566]** False-positive whitelist pattern manager for Slack, Google, and Stripe service keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0567]** False-positive whitelist pattern manager for embedded RSA/PGP private certificates  
+- [x] **[UX-0567]** False-positive whitelist pattern manager for embedded RSA/PGP private certificates  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0568]** False-positive whitelist pattern manager for large binary assets exceeding size budgets  
+- [x] **[UX-0568]** False-positive whitelist pattern manager for large binary assets exceeding size budgets  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0569]** False-positive whitelist pattern manager for deeply nested node_modules and vendor directories  
+- [x] **[UX-0569]** False-positive whitelist pattern manager for deeply nested node_modules and vendor directories  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0570]** False-positive whitelist pattern manager for symlink loops and circular junction paths  
+- [x] **[UX-0570]** False-positive whitelist pattern manager for symlink loops and circular junction paths  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0571]** High-entropy string detector with Shannon entropy visualization for OpenAI project and admin API keys  
+- [x] **[UX-0571]** High-entropy string detector with Shannon entropy visualization for OpenAI project and admin API keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0572]** High-entropy string detector with Shannon entropy visualization for GitHub fine-grained personal access tokens  
+- [x] **[UX-0572]** High-entropy string detector with Shannon entropy visualization for GitHub fine-grained personal access tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0573]** High-entropy string detector with Shannon entropy visualization for AWS temporary and root credentials  
+- [x] **[UX-0573]** High-entropy string detector with Shannon entropy visualization for AWS temporary and root credentials  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0574]** High-entropy string detector with Shannon entropy visualization for HuggingFace and PyPI deployment tokens  
+- [x] **[UX-0574]** High-entropy string detector with Shannon entropy visualization for HuggingFace and PyPI deployment tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0575]** High-entropy string detector with Shannon entropy visualization for Azure connection strings and SAS query tokens  
+- [x] **[UX-0575]** High-entropy string detector with Shannon entropy visualization for Azure connection strings and SAS query tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0576]** High-entropy string detector with Shannon entropy visualization for Slack, Google, and Stripe service keys  
+- [x] **[UX-0576]** High-entropy string detector with Shannon entropy visualization for Slack, Google, and Stripe service keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0577]** High-entropy string detector with Shannon entropy visualization for embedded RSA/PGP private certificates  
+- [x] **[UX-0577]** High-entropy string detector with Shannon entropy visualization for embedded RSA/PGP private certificates  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0578]** High-entropy string detector with Shannon entropy visualization for large binary assets exceeding size budgets  
+- [x] **[UX-0578]** High-entropy string detector with Shannon entropy visualization for large binary assets exceeding size budgets  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0579]** High-entropy string detector with Shannon entropy visualization for deeply nested node_modules and vendor directories  
+- [x] **[UX-0579]** High-entropy string detector with Shannon entropy visualization for deeply nested node_modules and vendor directories  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0580]** High-entropy string detector with Shannon entropy visualization for symlink loops and circular junction paths  
+- [x] **[UX-0580]** High-entropy string detector with Shannon entropy visualization for symlink loops and circular junction paths  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0581]** MIME-type sniffing fallback when extension is absent for OpenAI project and admin API keys  
+- [x] **[UX-0581]** MIME-type sniffing fallback when extension is absent for OpenAI project and admin API keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0582]** MIME-type sniffing fallback when extension is absent for GitHub fine-grained personal access tokens  
+- [x] **[UX-0582]** MIME-type sniffing fallback when extension is absent for GitHub fine-grained personal access tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0583]** MIME-type sniffing fallback when extension is absent for AWS temporary and root credentials  
+- [x] **[UX-0583]** MIME-type sniffing fallback when extension is absent for AWS temporary and root credentials  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0584]** MIME-type sniffing fallback when extension is absent for HuggingFace and PyPI deployment tokens  
+- [x] **[UX-0584]** MIME-type sniffing fallback when extension is absent for HuggingFace and PyPI deployment tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0585]** MIME-type sniffing fallback when extension is absent for Azure connection strings and SAS query tokens  
+- [x] **[UX-0585]** MIME-type sniffing fallback when extension is absent for Azure connection strings and SAS query tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0586]** MIME-type sniffing fallback when extension is absent for Slack, Google, and Stripe service keys  
+- [x] **[UX-0586]** MIME-type sniffing fallback when extension is absent for Slack, Google, and Stripe service keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0587]** MIME-type sniffing fallback when extension is absent for embedded RSA/PGP private certificates  
+- [x] **[UX-0587]** MIME-type sniffing fallback when extension is absent for embedded RSA/PGP private certificates  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0588]** MIME-type sniffing fallback when extension is absent for large binary assets exceeding size budgets  
+- [x] **[UX-0588]** MIME-type sniffing fallback when extension is absent for large binary assets exceeding size budgets  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0589]** MIME-type sniffing fallback when extension is absent for deeply nested node_modules and vendor directories  
+- [x] **[UX-0589]** MIME-type sniffing fallback when extension is absent for deeply nested node_modules and vendor directories  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0590]** MIME-type sniffing fallback when extension is absent for symlink loops and circular junction paths  
+- [x] **[UX-0590]** MIME-type sniffing fallback when extension is absent for symlink loops and circular junction paths  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0591]** Case-sensitive platform path normalization diagnostic for OpenAI project and admin API keys  
+- [x] **[UX-0591]** Case-sensitive platform path normalization diagnostic for OpenAI project and admin API keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0592]** Case-sensitive platform path normalization diagnostic for GitHub fine-grained personal access tokens  
+- [x] **[UX-0592]** Case-sensitive platform path normalization diagnostic for GitHub fine-grained personal access tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0593]** Case-sensitive platform path normalization diagnostic for AWS temporary and root credentials  
+- [x] **[UX-0593]** Case-sensitive platform path normalization diagnostic for AWS temporary and root credentials  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0594]** Case-sensitive platform path normalization diagnostic for HuggingFace and PyPI deployment tokens  
+- [x] **[UX-0594]** Case-sensitive platform path normalization diagnostic for HuggingFace and PyPI deployment tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0595]** Case-sensitive platform path normalization diagnostic for Azure connection strings and SAS query tokens  
+- [x] **[UX-0595]** Case-sensitive platform path normalization diagnostic for Azure connection strings and SAS query tokens  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0596]** Case-sensitive platform path normalization diagnostic for Slack, Google, and Stripe service keys  
+- [x] **[UX-0596]** Case-sensitive platform path normalization diagnostic for Slack, Google, and Stripe service keys  
   *Subsystem*: `kaioken/scan` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0597]** Case-sensitive platform path normalization diagnostic for embedded RSA/PGP private certificates  
+- [x] **[UX-0597]** Case-sensitive platform path normalization diagnostic for embedded RSA/PGP private certificates  
   *Subsystem*: `kaioken/scan` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0598]** Case-sensitive platform path normalization diagnostic for large binary assets exceeding size budgets  
+- [x] **[UX-0598]** Case-sensitive platform path normalization diagnostic for large binary assets exceeding size budgets  
   *Subsystem*: `kaioken/scan` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0599]** Case-sensitive platform path normalization diagnostic for deeply nested node_modules and vendor directories  
+- [x] **[UX-0599]** Case-sensitive platform path normalization diagnostic for deeply nested node_modules and vendor directories  
   *Subsystem*: `kaioken/scan` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0600]** Case-sensitive platform path normalization diagnostic for symlink loops and circular junction paths  
+- [x] **[UX-0600]** Case-sensitive platform path normalization diagnostic for symlink loops and circular junction paths  
   *Subsystem*: `kaioken/scan` | *Tier*: Developer Ergonomics
 
 ---
