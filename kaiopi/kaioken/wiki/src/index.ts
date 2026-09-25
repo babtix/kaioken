@@ -73,3 +73,38 @@ export type {
 export { coverageOf, groundingDefects, summariseDefects, verifyDocument } from "./verify.ts";
 export type { VerifyInput } from "./verify.ts";
 
+// Step 32 additions (UX-1451 to UX-1500)
+export {
+	ALL_WIKI_CHAPTER_KINDS,
+	calculateChapterReadingMetrics,
+	calculateWikiCoverageHeatmap,
+	compareModelChapterGenerations,
+	compileWikiIndex,
+	formatDiagramBlock,
+	formatModelGenerationComparison,
+	inferWikiChapterKind,
+	isWikiChapterKind,
+	renderComplexityPill,
+	renderDarkModeMarkdown,
+	renderWikiCoverageHeatmap,
+	renderWikiIndexMarkdown,
+	WIKI_CHAPTER_METADATA,
+	type CandidateEvaluation,
+	type ChapterCoverageStat,
+	type ChapterDigest,
+	type ChapterReadingMetrics,
+	type ComplexityLevel,
+	type CoverageHeatmapOptions,
+	type DarkModeRenderOptions,
+	type IndexCompileOptions,
+	type ModelComparisonResult,
+	type ModelGenerationCandidate,
+	type PillRenderOptions,
+	type WikiChapterKind,
+	type WikiChapterMeta,
+	type WikiCoverageHeatmapResult,
+	type WikiIndexResult,
+	type WikiReadingPath,
+} from "./wiki_cascade.ts";
+
+
