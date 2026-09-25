@@ -3,15 +3,16 @@
 </p>
 
 <p align="center">
-  <b>A Repository Knowledge Engine &amp; Agentic Development Ecosystem</b><br>
-  <i>Deterministic code indexing, verifiable documentation, and grounded AI agents that eliminate documentation rot and LLM hallucinations.</i>
+  <b>The Repository Knowledge Engine &amp; Grounded Agentic Ecosystem</b><br>
+  <i>Deterministic AST code indexing, cryptographic zero-token provenance, and grounded AI agents that eliminate documentation rot and LLM hallucinations.</i>
 </p>
 
 <p align="center">
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%3E%3D22-green.svg" alt="Node.js"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
-  <a href="#core-pillars--design-principles"><img src="https://img.shields.io/badge/Architecture-Offline--First%20%7C%20Monorepo-orange.svg" alt="Architecture"></a>
-  <a href="#testing--quality-assurance"><img src="https://img.shields.io/badge/Tests-1%2C050%2B%20Offline%20Passing-brightgreen.svg" alt="Tests"></a>
+  <a href="#repository--monorepo-structure"><img src="https://img.shields.io/badge/Architecture-Pi%20Monorepo%20%7C%20Offline--First-orange.svg" alt="Architecture"></a>
+  <a href="#the-2000-features-milestone"><img src="https://img.shields.io/badge/Roadmap-2%2C000%20%2F%202%2C000%20Complete%20(100%25)-brightgreen.svg" alt="Roadmap"></a>
+  <a href="#testing--quality-assurance"><img src="https://img.shields.io/badge/Tests-2%2C078%2B%20Offline%20Passing-brightgreen.svg" alt="Tests"></a>
   <a href="https://github.com/babtix/kaioken"><img src="https://img.shields.io/badge/Docs%20%26%20Showcase-Live-purple.svg" alt="Website"></a>
   <a href="#license--authors"><img src="https://img.shields.io/badge/License-License%20Zero-yellow.svg" alt="License"></a>
 </p>
@@ -20,51 +21,49 @@
 
 ## Table of Contents
 
-- [Overview](#overview)
+- [Executive Overview](#executive-overview)
 - [The Problem Kaioken Solves](#the-problem-kaioken-solves)
+- [The 2,000 Features Milestone (100% Complete)](#the-2000-features-milestone-100-complete)
 - [Architectural Pipeline](#architectural-pipeline)
-- [Core Pillars & Design Principles](#core-pillars--design-principles)
+- [Core Architectural Invariants](#core-architectural-invariants)
 - [Repository & Monorepo Structure](#repository--monorepo-structure)
-- [Monorepo Packages & Apps Reference](#monorepo-packages--apps-reference)
+- [The 18 Core Packages Reference (`kaiopi/kaioken/`)](#the-18-core-packages-reference-kaiopikaioken)
+- [Pi Agent Bridge Extension (`.pi/extensions/kaioken`)](#pi-agent-bridge-extension-piextensionskaioken)
+- [CLI Surface Reference (22 Commands in `bin.ts`)](#cli-surface-reference-22-commands-in-bints)
 - [Quick Start](#quick-start)
-- [Complete Command Surface (27 Commands)](#complete-command-surface-27-commands)
 - [The Kaioken Multiplier ($\times 1$ to $\times 10$)](#the-kaioken-multiplier-times-1-to-times-10)
 - [Artifact Layout (`.kaioken/`)](#artifact-layout-kaioken)
 - [Supported Languages](#supported-languages)
 - [Testing & Quality Assurance](#testing--quality-assurance)
-- [Design System & UI Surfaces](#design-system--ui-surfaces)
+- [Developer Surfaces & Design System](#developer-surfaces--design-system)
 - [Contributing](#contributing)
 - [License & Authors](#license--authors)
 
 ---
 
-## Overview
+## Executive Overview
 
-**Kaioken** is a repository knowledge engine and grounded agent runtime. It indexes codebases through concrete syntax tree (AST) parsing, computes cryptographic content-hash provenance across every file, and coordinates autonomous AI agents to generate, verify, and maintain deeply grounded documentation artifacts:
+**Kaioken** is an enterprise-grade repository knowledge engine and grounded AI agent runtime. It indexes codebases through concrete syntax tree (AST) parsing, computes cryptographic content-hash provenance across every file, and coordinates autonomous AI agents to generate, verify, and maintain deeply grounded documentation artifacts with mathematical certainty:
 
-- **Deterministic AST Indexing**: Concrete syntax tree parsing via Tree-Sitter across TypeScript/JavaScript, Python, Go, and Rust. Extracts declarations, signatures, spans, and structural skeletons.
-- **Definitive Grounding Oracle**: The `SymbolOracle` provides mechanical positive and negative guarantees (`has(name)`). Quoted code excerpts and line anchors are validated against real source files via `resolveExcerpt`, refusing hallucinations and fuzzy paraphrases.
+- **Deterministic AST Indexing**: Concrete syntax tree parsing via Tree-Sitter across TypeScript/JavaScript, Python, Go, and Rust. Extracts exact declarations, exports, parameter signatures, and source spans.
+- **Definitive Grounding Oracle**: The `SymbolOracle` provides mechanical positive and negative guarantees (`has(name)`). Quoted code excerpts and line anchors are validated against real source files via `resolveExcerpt`, permanently refusing hallucinations and fuzzy paraphrases.
 - **Deep Technical Wikis**: Multi-pass hierarchical cascade (outline $\to$ section plans $\to$ full chapters) where every claimed symbol, file path, and code excerpt is verified against the structural index.
 - **Uniform Knowledge Cards**: Compact, structured 5-part technical summaries per module (`summary`, `keyPoints`, `entryPoints`, `sources`, and mechanical `verification` report).
-- **Cryptographic Provenance (Zero Tokens)**: Document dependencies are pinned to source SHA-256 hashes. Running `kaioken status --check` detects code drift in milliseconds offline with zero network calls and zero model tokens.
-- **Grounded Agent Runtime**: Full-featured Terminal UI (`kaioken-tui`) and CLI agent (`kaioken chat`) querying deterministic repository tools (`symbol_lookup`, `wiki_search`, `read_file`, `impact`, `prism`, `skill_load`) instead of operating on noisy, unvetted context dumps.
-- **Hard Native Test Gate**: Discovers and runs the repository's native build and test suites (`npm test`, `go test`, `cargo test`, `Makefile`). If broken, the agent auto-repairs code before completing tasks.
-- **Subagent Worktree Isolation**: Autonomous coding tasks execute on isolated Git worktrees (`packages/gitops`), preventing dirty working directories and file merge collisions.
-- **Impact Blast-Radius Analysis**: Predicts the exact declarations, dependent files, cards, wiki documents, and skills that will be invalidated by a proposed code change.
-- **Semantic RAG with Prism**: Module-scoped document ingestion, parent-child chunking, vector embeddings, and grounded question answering (`kaioken prism`).
-- **Sandboxed Community Extensions**: Secure extension runner (`packages/ext`) supporting declarative guides, WASM tools, and Model Context Protocol (MCP) servers with cryptographic version-trust locks.
-- **Continuous Skill Distillation**: Distills successful problem-solving workflows into reusable, executable task guides under `.kaioken/skills/` (`kaioken learn`).
-- **Autonomous Cited Web Research**: Multi-turn research agent that plans subquestions, searches, fetches, sanitizes pages, and verifies every citation (`[N]`) against content hashes.
-- **HTTP/SSE Background Daemon**: Loopback HTTP and Server-Sent Events daemon (`kaioken daemon`) powering desktop GUIs (Kaioken Studio) and external IDE integrations.
+- **Cryptographic Provenance (Zero Tokens)**: Document dependencies are pinned to source SHA-256 hashes. Running `kaioken status` detects code drift in milliseconds offline with zero network calls and zero model tokens.
+- **Grounded Pi Agent Extension**: Deeply integrated with the **Pi** agentic coding harness (`kaiopi/.pi/extensions/kaioken`), equipping AI agents with 7 definitive grounding tools and 18 interactive slash commands.
+- **Hard Native Test Gate**: Discovers and runs the repository's native build and test suites (`npm test`, `pytest`, `cargo test`, `go test`, `Makefile`). An agent cannot claim a task as done unless native verification passes cleanly.
+- **Subagent Worktree Isolation**: Autonomous coding tasks execute on isolated Git worktrees (`@kaioken/gitops`), preventing dirty working directories and file merge collisions.
+- **Impact Blast-Radius Analysis**: Predicts the exact declarations, dependent files, cards, wiki documents, and skills that will be invalidated by any proposed code change.
+- **Autonomous Cited Web Research**: Multi-turn research agent (`@kaioken/research`) that plans subquestions, searches, fetches, sanitizes pages, and verifies every citation (`[N]`) against content hashes.
 
 ---
 
 ## The Problem Kaioken Solves
 
-Large codebases suffer from two compounding failures when paired with LLMs:
+Large software codebases suffer from two compounding failures when paired with AI systems:
 
 1. **Documentation Rot**: Code moves faster than documentation. Engineering teams abandon wikis because manual maintenance is untenable, and nobody knows which chapters have become dangerously obsolete.
-2. **LLM Hallucination & Context Bloat**: Language models invent nonexistent functions, hallucinate imports, paraphrase signatures incorrectly, pad prose, or miss critical conventions when blindly given arbitrary byte slices of a repository.
+2. **LLM Hallucination & Context Bloat**: Language models invent nonexistent functions, hallucinate imports, paraphrase signatures incorrectly, pad prose with boilerplate fluff, or miss critical conventions when blindly given arbitrary byte slices of a repository.
 
 ### The Kaioken Solution
 
@@ -73,6 +72,41 @@ Kaioken replaces ungrounded generation with **mechanical AST verification**, **c
 <p align="center">
   <img src="assets/kaioken-pipeline.svg" alt="Kaioken Knowledge Engine Architecture" width="100%" />
 </p>
+
+---
+
+## The 2,000 Features Milestone (100% Complete)
+
+Kaioken has achieved full completion of its landmark **2,000 UX & Quality Improvements Roadmap** (`#UX-0001` to `#UX-2000`), spanning all 20 architectural categories across 40 execution steps:
+
+- **Phase 1 (Steps 1–20)**: 955 Foundation Features — **Complete (100%)**
+- **Phase 2 (Steps 21–40)**: 1,045 Advanced Features — **Complete (100%)**
+- **Total Specifications Built**: **2,000 / 2,000 Features (100% Verified)**
+
+| # | Category Domain | Subsystems / Packages | Feature Range | Status |
+| :-: | :--- | :--- | :-: | :---: |
+| **01** | **Terminal UI (TUI) & Visual Aesthetics** | `.pi/extensions/kaioken/ui`, `packages/tui` | `#UX-0001` – `#UX-0100` | **100/100 Complete** |
+| **02** | **Chat Transcript & Interactive Output Stream** | `.pi/extensions/kaioken/commands`, `packages/coding-agent` | `#UX-0101` – `#UX-0200` | **100/100 Complete** |
+| **03** | **HUD, Status Bar & Dynamic Widgets** | `.pi/extensions/kaioken/ui/header.ts`, `commands` | `#UX-0201` – `#UX-0300` | **100/100 Complete** |
+| **04** | **Keyboard Navigation & Command Palette** | `packages/tui`, `packages/coding-agent` | `#UX-0301` – `#UX-0400` | **100/100 Complete** |
+| **05** | **Spend Transparency & Token Budgeting** | `@kaioken/modelport`, `commands` | `#UX-0401` – `#UX-0500` | **100/100 Complete** |
+| **06** | **Repo Scan, Discovery & Risk Shield** | `@kaioken/scan` | `#UX-0501` – `#UX-0600` | **100/100 Complete** |
+| **07** | **AST Symbol Indexing & Code Oracle** | `@kaioken/index` | `#UX-0601` – `#UX-0700` | **100/100 Complete** |
+| **08** | **Search, Lexical Indexing & BM25 Retrieval** | `@kaioken/search` | `#UX-0701` – `#UX-0800` | **100/100 Complete** |
+| **09** | **Provenance, Staleness & Truth Drift** | `@kaioken/provenance` | `#UX-0801` – `#UX-0900` | **100/100 Complete** |
+| **10** | **Impact Analysis & Blast Radius Prediction** | `@kaioken/impact` | `#UX-0901` – `#UX-1000` | **100/100 Complete** |
+| **11** | **Verification Gates & Test Runners** | `@kaioken/verify` | `#UX-1001` – `#UX-1100` | **100/100 Complete** |
+| **12** | **VerifyCore & Anti-Hallucination Shield** | `@kaioken/verifycore` | `#UX-1101` – `#UX-1200` | **100/100 Complete** |
+| **13** | **Module Planning & Decomposition** | `@kaioken/plan` | `#UX-1201` – `#UX-1300` | **100/100 Complete** |
+| **14** | **Knowledge Cards & Atomic Fact Base** | `@kaioken/plan` (`cards.ts`) | `#UX-1301` – `#UX-1400` | **100/100 Complete** |
+| **15** | **Wiki Cascade & Documentation Web** | `@kaioken/wiki` | `#UX-1401` – `#UX-1500` | **100/100 Complete** |
+| **16** | **Serve Preview & Interactive Graph** | `@kaioken/serve` | `#UX-1501` – `#UX-1600` | **100/100 Complete** |
+| **17** | **Grounded Web Research & Intelligence** | `@kaioken/research` | `#UX-1601` – `#UX-1700` | **100/100 Complete** |
+| **18** | **Agent Skills & SkillGen Procedures** | `@kaioken/skills`, `@kaioken/skillgen` | `#UX-1701` – `#UX-1800` | **100/100 Complete** |
+| **19** | **GitOps, Worktrees & Safe Merges** | `@kaioken/gitops` | `#UX-1801` – `#UX-1900` | **100/100 Complete** |
+| **20** | **Root CLI Parity & Evals Suite** | `kaioken/bin.ts`, `@kaioken/evals` | `#UX-1901` – `#UX-2000` | **100/100 Complete** |
+
+*For complete implementation specs and verification matrices, see [`kaiopi/docs/roadmap/`](kaiopi/docs/roadmap/README.md).*
 
 ---
 
@@ -85,40 +119,37 @@ flowchart TD
     %% ─────────────────────────────────────────────────────────────
     subgraph STAGE1 ["1. STRUCTURAL CODE INGESTION (100% OFFLINE)"]
         direction TB
-        REPO["Target Repository<br/><code>Source Files (TS, JS, Py, Go, Rust)</code>"] --> SCAN["packages/scan<br/><i>Ignore rules · Lang detection · Risk flags</i>"]
-        SCAN --> PARSER["packages/index (Tree-Sitter)<br/><i>AST parsing · Symbol declarations &amp; skeletons</i>"]
+        REPO["Target Repository<br/><code>Source Files (TS, JS, Py, Go, Rust)</code>"] --> SCAN["@kaioken/scan<br/><i>Ignore rules · Language detection · Risk flags</i>"]
+        SCAN --> PARSER["@kaioken/index (Tree-Sitter)<br/><i>AST parsing · Symbol declarations &amp; spans</i>"]
         PARSER --> INDEX_STORE[(".kaioken/index.json<br/><code>Declarations · Exports · Spans</code>")]
         PARSER --> ORACLE["SymbolOracle &amp; Anchor Resolver<br/><i>Definitive existence &amp; exact line excerpts</i>"]
-        SCAN --> PROV_ENGINE["packages/provenance<br/><i>Cryptographic SHA-256 source hashing</i>"]
-        PARSER --> BM25["packages/search<br/><i>BM25 lexical index &amp; RRF ranking</i>"]
+        SCAN --> PROV_ENGINE["@kaioken/provenance<br/><i>Cryptographic SHA-256 source hashing</i>"]
+        PARSER --> BM25["@kaioken/search<br/><i>BM25 lexical index &amp; RRF ranking</i>"]
     end
 
     %% ─────────────────────────────────────────────────────────────
-    %% STAGE 2: GROUNDED MULTI-PASS GENERATION & RAG
+    %% STAGE 2: GROUNDED MULTI-PASS GENERATION
     %% ─────────────────────────────────────────────────────────────
-    subgraph STAGE2 ["2. GROUNDED GENERATION &amp; RAG (Model Port)"]
+    subgraph STAGE2 ["2. GROUNDED GENERATION (Model Port)"]
         direction TB
-        ORACLE --> INIT["kaioken init (apps/cli)<br/><i>Scan · Index · Record model · AGENTS.md</i>"]
-        INIT --> PLAN["kaioken plan (packages/plan)<br/><i>Discovers module boundaries ➔ module-plan.yaml</i>"]
-        PLAN --> CARDS["kaioken cards (packages/plan)<br/><i>Uniform 5-part cards ➔ .kaioken/cards/*.json</i>"]
-        PLAN --> WIKI["kaioken wiki (packages/wiki)<br/><i>Outline ➔ Chapters ➔ Sections</i>"]
-        ORACLE --> PRISM["kaioken prism (packages/prism)<br/><i>Parent-child chunking &amp; vector RAG</i>"]
-        ORACLE --> RESEARCH["kaioken research (packages/research)<br/><i>Autonomous web research with citations [N]</i>"]
+        ORACLE --> PLAN["kaioken plan (@kaioken/plan)<br/><i>Discovers module boundaries ➔ module-plan.yaml</i>"]
+        PLAN --> CARDS["kaioken cards (@kaioken/plan)<br/><i>Uniform 5-part cards ➔ .kaioken/cards/*.json</i>"]
+        PLAN --> WIKI["kaioken wiki (@kaioken/wiki)<br/><i>Outline ➔ Briefs ➔ Full Chapters</i>"]
+        ORACLE --> RESEARCH["kaioken research (@kaioken/research)<br/><i>Autonomous web research with citations [N]</i>"]
     end
 
     %% ─────────────────────────────────────────────────────────────
-    %% STAGE 3: MECHANICAL VERIFICATION & ADVERSARIAL REPAIR
+    %% STAGE 3: MECHANICAL VERIFICATION & REPAIR
     %% ─────────────────────────────────────────────────────────────
-    subgraph STAGE3 ["3. MECHANICAL VERIFICATION &amp; ADVERSARIAL REPAIR"]
+    subgraph STAGE3 ["3. MECHANICAL VERIFICATION &amp; REPAIR (@kaioken/verifycore)"]
         direction TB
         WIKI --> VERIFY_ENGINE{"Mechanical Verifier<br/><i>AST symbols · anchors · file paths</i>"}
         CARDS --> VERIFY_ENGINE
         RESEARCH --> VERIFY_ENGINE
-        PRISM --> VERIFY_ENGINE
         
         ORACLE -. "AST symbol &amp; anchor checks" .-> VERIFY_ENGINE
         
-        VERIFY_ENGINE -- "Defects detected<br/>(unverified symbols / padding / low coverage)" --> REPAIR_LOOP["Adversarial Repair<br/><i>CORRECTION &amp; CRITIQUE passes</i>"]
+        VERIFY_ENGINE -- "Defects detected<br/>(unverified symbols / fluff)" --> REPAIR_LOOP["Adversarial Repair<br/><i>CORRECTION &amp; CRITIQUE passes</i>"]
         REPAIR_LOOP -- "Strict re-scoring" --> VERIFY_ENGINE
         
         VERIFY_ENGINE -- "100% Verified Claims" --> ARTIFACTS[(".kaioken/ Verified Store<br/><code>wiki/ · cards/ · research/ · graph/</code>")]
@@ -131,48 +162,45 @@ flowchart TD
         direction TB
         PROV_ENGINE --> PROV_MAP["Provenance Tracking<br/><code>Embedded SHA-256 File Dependencies</code>"]
         ARTIFACTS --> PROV_MAP
-        PROV_MAP --> STATUS_CHECK["kaioken status --check<br/><i>0 tokens · 0 network · Instant drift diff</i>"]
+        PROV_MAP --> STATUS_CHECK["kaioken status<br/><i>0 tokens · 0 network · Instant drift diff</i>"]
         STATUS_CHECK -- "Drift detected" --> UPDATE_CMD["kaioken update<br/><i>Selective refresh of invalidated docs only</i>"]
         UPDATE_CMD --> WIKI
     end
 
     %% ─────────────────────────────────────────────────────────────
-    %% STAGE 5: GROUNDED AGENT WORKFLOW & HARD TEST GATE
+    %% STAGE 5: GROUNDED PI AGENT & HARD TEST GATE
     %% ─────────────────────────────────────────────────────────────
-    subgraph STAGE5 ["5. GROUNDED AGENT WORKFLOW &amp; HARD TEST GATE"]
+    subgraph STAGE5 ["5. GROUNDED PI AGENT &amp; HARD TEST GATE"]
         direction TB
-        ARTIFACTS --> AGENT_HOST["Agent Runtime (apps/cli &amp; packages/agent)<br/><i>TUI, CLI &amp; HTTP/SSE daemon</i>"]
-        ORACLE --> AGENT_TOOLS["Grounding Knowledge Tools<br/><code>symbol_lookup · wiki_search · read_file · impact · prism</code>"]
-        AGENT_TOOLS --> AGENT_HOST
+        ARTIFACTS --> PI_BRIDGE["Pi Bridge Extension (.pi/extensions/kaioken)<br/><i>7 Grounding Tools · 18 Commands · HUD</i>"]
+        ORACLE --> PI_BRIDGE
         
-        AGENT_HOST --> DELEGATE["Sub-Agent Worktrees (packages/gitops)<br/><i>Isolated git worktrees (delegate)</i>"]
-        DELEGATE --> CODING_TOOLS["Coding Tools<br/><code>bash · edit · write · grep · find · ls</code>"]
+        PI_BRIDGE --> DELEGATE["Sub-Agent Worktrees (@kaioken/gitops)<br/><i>Isolated git worktrees (delegate)</i>"]
+        DELEGATE --> CODING_TOOLS["Coding Execution<br/><i>bash · edit · write · read</i>"]
         
-        CODING_TOOLS --> TEST_GATE{"Hard Verification Gate<br/><i>packages/agent/src/gate.ts</i>"}
+        CODING_TOOLS --> TEST_GATE{"Hard Verification Gate<br/><i>@kaioken/verify</i>"}
         TEST_GATE -- "Native tests fail" --> AGENT_FIX["Auto-Repair Loop<br/><i>Iterative test-driven code fix</i>"]
         AGENT_FIX --> TEST_GATE
-        TEST_GATE -- "Tests pass (0 errors)" --> VERIFIED_CODE["Verified Code Changes<br/><i>Clean git worktree commit &amp; merge</i>"]
+        TEST_GATE -- "Tests pass (0 errors)" --> VERIFIED_CODE["Verified Code Changes<br/><i>Clean git worktree fast-forward merge</i>"]
 
-        AGENT_HOST --> LEARN["Continuous Learning (packages/skillgen)<br/><i>Distill session into .kaioken/skills/</i>"]
+        PI_BRIDGE --> LEARN["Continuous Learning (@kaioken/skillgen)<br/><i>Distill session into .kaioken/skills/</i>"]
     end
 
     %% ─────────────────────────────────────────────────────────────
-    %% STAGE 6: CONSUMPTION SURFACES & DAEMON
+    %% STAGE 6: CONSUMPTION SURFACES
     %% ─────────────────────────────────────────────────────────────
-    subgraph STAGE6 ["6. CONSUMPTION SURFACES &amp; RUNTIMES"]
+    subgraph STAGE6 ["6. DEVELOPER CONSUMPTION SURFACES"]
         direction LR
-        SURF_TUI["Terminal TUI<br/><code>kaioken-tui (CRT HUD)</code>"]
-        SURF_SERVE["Local Web Server<br/><code>kaioken serve (127.0.0.1)</code>"]
-        SURF_DAEMON["HTTP / SSE Daemon<br/><code>kaioken daemon (API loopback)</code>"]
-        SURF_STUDIO["Desktop Studio<br/><code>desktop/ (Electron + Vite)</code>"]
+        SURF_TUI["Pi Terminal TUI<br/><code>kaiopi (CRT HUD &amp; Widgets)</code>"]
+        SURF_SERVE["Local Web Server<br/><code>kaioken serve (127.0.0.1:4173)</code>"]
+        SURF_STUDIO["Kaioken Studio<br/><code>desktop/ (Electron + Vite)</code>"]
         SURF_WEB["Modern Web Portal<br/><code>website/ (React 19 + Vite)</code>"]
         SURF_REG["Extension Registry<br/><code>registry-web/ (Community Hub)</code>"]
     end
 
     ARTIFACTS --> SURF_TUI
     ARTIFACTS --> SURF_SERVE
-    ARTIFACTS --> SURF_DAEMON
-    SURF_DAEMON --> SURF_STUDIO
+    ARTIFACTS --> SURF_STUDIO
     ARTIFACTS --> SURF_WEB
     ARTIFACTS --> SURF_REG
 
@@ -183,207 +211,185 @@ flowchart TD
     style STAGE4 fill:#0d1117,stroke:#a371f7,stroke-width:1.5px,color:#fff
     style STAGE5 fill:#0d1117,stroke:#3fb950,stroke-width:1.5px,color:#fff
     style STAGE6 fill:#0f1523,stroke:#58a6ff,stroke-width:1.5px,color:#fff
-    
-    style ARTIFACTS fill:#162a1e,stroke:#3fb950,stroke-width:2px,color:#7ee787
-    style VERIFIED_CODE fill:#162a1e,stroke:#3fb950,stroke-width:2px,color:#7ee787
-    style REPO fill:#161f33,stroke:#388bfd,color:#fff
-    style SCAN fill:#161f33,stroke:#388bfd,color:#fff
-    style PARSER fill:#161f33,stroke:#388bfd,color:#fff
-    style INDEX_STORE fill:#161f33,stroke:#58a6ff,color:#fff
-    style ORACLE fill:#2a1810,stroke:#f0883e,color:#fff
-    style PROV_ENGINE fill:#241432,stroke:#a371f7,color:#fff
-    style BM25 fill:#161f33,stroke:#58a6ff,color:#fff
-    
-    style INIT fill:#2a1810,stroke:#f0883e,color:#fff
-    style PLAN fill:#2a1810,stroke:#f0883e,color:#fff
-    style CARDS fill:#2a1810,stroke:#ff8700,color:#fff
-    style WIKI fill:#2a1810,stroke:#ff8700,color:#fff
-    style PRISM fill:#2a1810,stroke:#ff8700,color:#fff
-    style RESEARCH fill:#2a1810,stroke:#ff8700,color:#fff
-    
-    style VERIFY_ENGINE fill:#1c1214,stroke:#f85149,color:#ff7b72
-    style REPAIR_LOOP fill:#1c1214,stroke:#f85149,color:#ff7b72
-    
-    style PROV_MAP fill:#241432,stroke:#a371f7,color:#fff
-    style STATUS_CHECK fill:#241432,stroke:#a371f7,color:#fff
-    style UPDATE_CMD fill:#241432,stroke:#a371f7,color:#fff
-    
-    style AGENT_HOST fill:#162a1e,stroke:#3fb950,color:#fff
-    style AGENT_TOOLS fill:#2a1810,stroke:#f0883e,color:#fff
-    style DELEGATE fill:#162a1e,stroke:#3fb950,color:#fff
-    style CODING_TOOLS fill:#162a1e,stroke:#3fb950,color:#fff
-    style TEST_GATE fill:#1c1214,stroke:#f85149,color:#ff7b72
-    style AGENT_FIX fill:#1c1214,stroke:#f85149,color:#ff7b72
-    style LEARN fill:#162a1e,stroke:#3fb950,color:#fff
-    
-    style SURF_TUI fill:#0f1523,stroke:#58a6ff,color:#fff
-    style SURF_SERVE fill:#0f1523,stroke:#58a6ff,color:#fff
-    style SURF_DAEMON fill:#0f1523,stroke:#58a6ff,color:#fff
-    style SURF_STUDIO fill:#0f1523,stroke:#58a6ff,color:#fff
-    style SURF_WEB fill:#0f1523,stroke:#58a6ff,color:#fff
-    style SURF_REG fill:#0f1523,stroke:#58a6ff,color:#fff
 ```
-
-### Pipeline Breakdown: Stage 1 → Stage 6
-
-Each stage has a strict contract: what it reads, what it writes, and what it is forbidden from doing.
-
-#### Stage 1: Structural Code Ingestion & AST Indexing (100% Offline)
-
-*Invariant: zero network calls, zero API credentials, deterministic syntax-tree extraction.*
-
-- **Repository traversal & hygiene (`packages/scan`):** high-speed directory walk honoring `.gitignore` / `.kaiokenignore`; filters binaries, minified bundles, and build artifacts; detects language topology and flags risks (hardcoded secrets, high-entropy tokens, oversized files) into `.kaioken/scan.json`.
-- **CST parsing (`packages/index` via Tree-Sitter):** grammars declared in `packages/index/src/grammars.ts` with `.scm` queries under `packages/index/src/queries/`; extracts top-level declarations, classes, interfaces, methods, exported signatures, and exact source spans (byte offsets, line/column) into `.kaioken/index.json`.
-- **Grounding oracle (`packages/index/src/oracle.ts` — `SymbolOracle`):** definitive lookup layer. `has(name)` / `hasFile(path)` give binary positive/negative guarantees — a generated claim that an identifier exists is rejected if `has(name)` is false, killing hallucinated APIs before they ship.
-- **Exact anchor resolver (`packages/index/src/anchors.ts` — `resolveExcerpt`):** pure-function line resolver; matches must be verbatim. Fuzzy matching is forbidden, so paraphrased or invented code blocks cannot masquerade as real excerpts.
-- **Content hashing (`packages/provenance`):** deterministic SHA-256 per source file during scan; establishes the cryptographic baseline for drift detection.
-- **Lexical index (`packages/search`):** in-memory BM25 with Reciprocal Rank Fusion (RRF) for sub-millisecond symbol/file discovery.
-
-#### Stage 2: Grounded Multi-Pass Generation & Modular Planning
-
-*Invariant: abstracted model transport; human checkpoints before compute is spent.*
-
-- **Bootstrap (`kaioken init`, `apps/cli`):** scans + indexes the repo, records the active provider in `.kaioken/model.json`, synthesizes/refreshes root `AGENTS.md`.
-- **Module planning (`kaioken plan`, `packages/plan`):** discovers cohesive module boundaries via directory clustering + dependency topology; writes `.kaioken/module-plan.yaml` and **halts** for maintainer review (rename/split/merge before generation).
-- **Knowledge cards (`packages/plan/src/cards.ts`):** uniform 5-part JSON per module (`.kaioken/cards/<module>.json`): `summary`, `keyPoints`, `entryPoints`, `sources` (paths + SHA-256), and mechanical `verification` report.
-- **Deep wiki cascade (`packages/wiki`: `plan.ts` → `brief.ts` → `generate.ts`):** Pass 1 outline (`.kaioken/wiki-plan.yaml`) → Pass 2 section briefs (symbols + target files) → Pass 3 full chapters with diagrams + verified anchors.
-- **Vector RAG (`packages/prism`):** hierarchical parent-child chunking + embeddings for module-scoped Q&A.
-- **Cited web research (`packages/research`):** decomposes queries into subquestions, searches/fetches/sanitizes pages, validates every `[N]` citation against immutable page snapshots + content hashes.
-- **Model port (`packages/model`):** transport-free `ModelClient` interface; provider specifics (OpenRouter, Anthropic, OpenAI, Groq, Ollama) live only in `apps/cli` wiring.
-
-#### Stage 3: Mechanical Verification & Adversarial Repair
-
-*Invariant: unverified prose cannot ship; critique loops enforce coverage.*
-
-- **Claim extraction (`packages/wiki/src/claims.ts`, `packages/wiki/src/verify.ts`):** parses generated markdown/cards to extract declared symbols, quoted code blocks, line anchors, and file paths.
-- **Defect detection via `SymbolOracle`:** every identifier → `oracle.has(symbol)`; every file link → `oracle.hasFile(path)`; every excerpt → `resolveExcerpt` against current sources. Misses = hallucinated-symbol / broken-excerpt / orphan-path defects.
-- **Adversarial repair loop (the ×1 → ×10 multiplier):** on defects, `CORRECTION` + `CRITIQUE` passes re-score prose conciseness, technical depth, and grounding accuracy. Only 100%-verified documents are committed to `.kaioken/wiki/` and `.kaioken/cards/`.
-
-#### Stage 4: Content-Hash Provenance & Zero-Token Staleness Gate
-
-*Invariant: sub-millisecond drift detection in CI with zero tokens and zero network.*
-
-- **Provenance panning (`packages/provenance`, `packages/provenance/src/staleness.ts`):** every card/chapter embeds file dependencies with exact SHA-256 hashes at generation time.
-- **Freshness check (`kaioken status --check`):** re-scans sources offline, compares current hashes vs. recorded hashes; classifies each document as `current` / `stale` (modified) / `orphaned` (deleted/renamed) / `undocumented` (new files, no card).
-- **Selective invalidation (`kaioken update`):** refreshes only cards/chapters tied to changed files instead of regenerating the whole wiki.
-
-#### Stage 5: Grounded Agent Runtime & Hard Native Test Gate
-
-*Invariant: agent self-declarations are not evidence; native repo suites decide pass/fail.*
-
-- **Agent loop (`packages/agent`, `apps/cli`, `apps/tui`):** tools `symbol_lookup`, `wiki_search`, `read_file`, `impact`, `prism`, `skill_load` — the agent inspects AST symbols + verified chapters instead of guessing from byte windows.
-- **Worktree isolation (`packages/gitops`):** autonomous execution in detached Git worktrees (`delegate`), preventing workspace pollution and overwrites.
-- **Blast-radius prediction (`packages/impact`):** given a change/diff, walks AST dependencies to predict broken declarations, modules, tests, and docs.
-- **Hard verification gate (`packages/agent/src/gate.ts`):** discovers native commands (`npm test`, `go test`, `cargo test`, `Makefile`) and runs them; if nothing is discoverable the verdict is `unverifiable`, never a false `passed`; on failure the agent auto-repairs until exit code `0`.
-- **Skill distillation (`packages/skillgen`, `kaioken learn`):** extracts successful multi-turn workflows into reusable guides under `.kaioken/skills/`.
-
-#### Stage 6: Universal Developer Consumption Surfaces & Daemon
-
-*Invariant: one headless engine, many interfaces.*
-
-- **Terminal UI (`apps/tui`, `kaioken-tui`):** full-screen CRT-accented HUD, token streaming, slash commands (`/wiki`, `/research`, `/diff`, `/undo`), JSONL conversation-tree branching (`packages/session`).
-- **Local server (`packages/serve`, `kaioken serve`):** zero-dependency HTTP host at `127.0.0.1:7777` with search, dependency-graph view, and freshness badges.
-- **Daemon (`apps/cli/src/daemon.ts`, `kaioken daemon`):** loopback HTTP/SSE background process streaming JSON events + agent status.
-- **Desktop (`desktop/` — Electron + Vite app, Studio blueprint):** orchestrates local workflows over the daemon loopback.
-- **Web surfaces (`website/` + `registry-web/`):** React 19 / Vite / Tailwind v4 portal (architecture, docs) and community extension registry.
 
 ---
 
-## Core Pillars & Design Principles
+## Core Architectural Invariants
 
-### 1. Offline-First & Zero Secrets in Core
-The core engine stages work fully offline without internet or API credentials:
-- `scan`, `symbols`, `search`, `serve`, `status`, `verify`, `graph`, `export`, `impact`, and `hook` require **zero network calls and no API keys**.
-- The generative stages talk through a clean, transport-free `ModelClient` port (`packages/model`). Provider specifics are strictly isolated.
+### 1. Invariant 1: Public Pi Extension Seams
+Zero core forks or monkey-patching of `@earendil-works/pi-*`. All agent capabilities, status badges, telemetry widgets, prompt hooks, and tools enter cleanly through the official Pi Extension API.
 
-### 2. Human-in-the-Loop Checkpoints
-Expensive model calls should never run on blind assumptions. Kaioken enforces strategic human checkpoints:
-- `kaioken plan` writes `.kaioken/module-plan.yaml` and stops. Maintainers review and refine module boundaries before generating cards.
-- `kaioken wiki --plan` proposes a global outline (`.kaioken/wiki-plan.yaml`) before writing hundreds of pages of documentation.
+### 2. Invariant 10: 100% Offline-Testable Core
+Zero hard network dependencies or API key requirements in core packages. Every scanner, parser, grounding oracle, search indexer, provenance tracker, and test runner is verifiable offline.
 
-### 3. Radical Compute & Cost Transparency
-AI operations consume real compute, tokens, and money. The **Kaioken Multiplier** ($\times 1$ to $\times 10$) controls depth, search breadth, and adversarial verification passes. Estimated token counts and costs are presented up front.
+### 3. Definitive Symbol Oracle Guarantees
+The `SymbolOracle` never guesses. If an identifier does not exist in the AST symbol index, `has(name)` returns false and emits a negative guarantee. Quoted code blocks must match source byte-for-byte; fuzzy matching is forbidden.
 
-### 4. Hard Self-Verification Gate
-An agent's declaration of success is merely a claim. Kaioken discovers the repository's native verification tools (e.g., `npm test`, `go test`, `cargo test`, `Makefile`) and executes them natively as a hard verification gate. If a repo cannot be tested, the gate reports `unverifiable` rather than falsely passing.
+### 4. Zero-Token Cryptographic Staleness Gates
+Documentation freshness is calculated by comparing SHA-256 source file hashes against embedded dependency records. Drift is detected in under 50 milliseconds with 0 tokens spent.
+
+### 5. Hard Native Test Gates (`unverifiable` $\neq$ `passed`)
+An agent cannot declare a task complete on its own authority. Native repository test suites (`npm test`, `pytest`, `cargo test`, `go test`) must execute and pass with exit code `0`. If a repository has no test suite, the gate returns `unverifiable`.
 
 ---
 
 ## Repository & Monorepo Structure
 
-The workspace is organized as a multi-project repository:
-
-> **Path note:** the TypeScript engine lives in `.kaioken_v2/` in this checkout (dot-prefixed).
-> In the public `github.com/babtix/kaioken` history and older docs the same directory appears as
-> `kaioken_v2/`. Treat the two names as aliases. Likewise the desktop app lives in `desktop/`
-> (see root `package.json` scripts `desktop:dev` / `desktop:build`); older docs calling it
-> `kaioken_main_STUDIO/` refer to the same Studio blueprint.
+The workspace is organized as a multi-tier monorepo centered on `kaiopi/`:
 
 ```
 .
-├── .kaioken_v2/             # Canonical Kaioken TypeScript engine (npm workspaces monorepo)
-│   ├── apps/
-│   │   ├── cli/            # Main CLI binary (kaioken) and HTTP/SSE daemon
-│   │   └── tui/            # Full-screen interactive Terminal UI (kaioken-tui)
-│   └── packages/
-│       ├── agent/          # Agent core: tools, prompt builder, hard verification gate
-│       ├── agentsmd/       # AGENTS.md instruction collector and knowledge injector
-│       ├── ext/            # Extensions: declarative, WASM sandbox, MCP tool runner
-│       ├── gitops/         # Git diff snapshots, subagent worktree isolation, post-commit hooks
-│       ├── graph/          # Knowledge graph builder, coverage stats, bundle export
-│       ├── impact/         # AST blast-radius prediction for proposed changes
-│       ├── index/          # Tree-Sitter AST parser, symbol extraction, anchor resolver
-│       ├── model/          # Transport-free ModelClient port (provider-agnostic)
-│       ├── plan/           # Module planning and uniform 5-part knowledge cards
-│       ├── prism/          # Document chunking, vector embeddings, grounded RAG Q&A
-│       ├── provenance/     # Source content-hash records, staleness & invalidation engine
-│       ├── research/       # Autonomous web research pipeline, page sanitizer, citation verifier
-│       ├── scan/           # Repository traversal, ignore rules, language detection, risk flags
-│       ├── search/         # In-memory BM25 lexical search & Reciprocal Rank Fusion
-│       ├── serve/          # Zero-dependency local documentation web server
-│       ├── session/        # Multi-turn session persistence, tree branching, undo journal
-│       ├── skillgen/       # Procedural skill generation & distillation from sessions
-│       ├── templates/      # Parameterized prompt templates (/t:<name>)
-│       └── wiki/           # Multi-pass wiki cascade, claim extraction, verification
+├── kaiopi/                     # Primary Unified Monorepo (Pi + Kaioken)
+│   ├── kaioken/                # 18 Modular TypeScript packages (@kaioken/*) & CLI
+│   │   ├── bin.ts              # Root CLI binary (kaioken) providing full command parity
+│   │   ├── scan/               # @kaioken/scan: fast traversal, ignore rules, risk shield
+│   │   ├── index/              # @kaioken/index: Tree-Sitter AST parser & SymbolOracle
+│   │   ├── search/             # @kaioken/search: BM25 lexical search & RRF ranking
+│   │   ├── provenance/         # @kaioken/provenance: SHA-256 source hashing & drift detection
+│   │   ├── verifycore/         # @kaioken/verifycore: anti-hallucination shield & anchor matcher
+│   │   ├── verify/             # @kaioken/verify: native test runners & diagnostic repair
+│   │   ├── impact/             # @kaioken/impact: AST blast-radius prediction
+│   │   ├── plan/               # @kaioken/plan: module planning & 5-part knowledge cards
+│   │   ├── wiki/               # @kaioken/wiki: multi-pass streaming wiki cascade
+│   │   ├── serve/              # @kaioken/serve: zero-dependency HTTP server & preview
+│   │   ├── research/           # @kaioken/research: grounded web research & citation verifier
+│   │   ├── skills/             # @kaioken/skills: executable task procedures
+│   │   ├── skillgen/           # @kaioken/skillgen: autonomous procedure synthesis
+│   │   ├── gitops/             # @kaioken/gitops: worktree isolation & safe fast-forward merges
+│   │   ├── graph/              # @kaioken/graph: knowledge graph & bundle exporter
+│   │   ├── modelport/          # @kaioken/modelport: token budgeting, spend dial, pricing cards
+│   │   ├── completion/         # @kaioken/completion: shell auto-completions (bash, zsh, fish)
+│   │   └── evals/              # @kaioken/evals: 10-probe groundedness evaluation suite
+│   │
+│   ├── .pi/extensions/kaioken/ # Pi Agent Bridge Extension
+│   │   ├── tools/              # 7 definitive grounding tools for Pi agents
+│   │   ├── commands/           # 18 interactive slash commands (/kaio-*)
+│   │   ├── hooks/              # Prompt hooks, verify-before-done, destructive command block
+│   │   ├── ui/                 # HUD telemetry widgets, CRT/WCAG themes, keyboard suite
+│   │   └── prompts/            # Grounded system prompt rules & drift line injection
+│   │
+│   ├── packages/               # Upstream Pi Agentic Harness (@earendil-works/pi-*)
+│   │   ├── coding-agent/       # Core agent loop, session manager, extension runner
+│   │   ├── tui/                # Terminal UI framework, double-buffering, widgets
+│   │   ├── agent/              # Base agent abstractions and tool interfaces
+│   │   └── ai/                 # Multi-provider LLM transport & streaming client
+│   │
+│   └── docs/                   # Architectural blueprints & roadmap checklists
+│       ├── roadmap/            # 2,000 features quality roadmap & 20 category plans
+│       └── phases/             # Architecture phase specifications (Phases 0–9)
 │
-├── website/                # Modern showcase & documentation web app (React 19, Vite, Tailwind 4)
-├── registry-web/           # Community extension registry portal (browse, search, submit wizard)
-├── web-news/               # Serverless publishing feed for project news and release notes
-├── assets/                 # Brand assets, architecture diagrams, and wallpapers
-├── DESIGN.md               # Master Kaioken Design System v2 specification (TUI, GUI, Web, Mobile)
-├── desktop/                # Kaioken Studio desktop app (Electron + Vite; see `desktop/` README)
-└── .kaioken_v1/            # Archive of the original v1 Go prototype
+├── desktop/                    # Kaioken Studio Desktop App (Electron + Vite + React 19)
+├── website/                    # Modern Showcase Web Portal (React 19, Vite, Tailwind v4)
+├── registry-web/               # Community Extension Registry Portal (React 19 + Vite)
+├── web-news/                   # Serverless Release Notes & Publishing Feed
+├── assets/                     # Brand logos, architectural diagrams, wallpapers
+├── DESIGN.md                   # Master Kaioken Design System v2 Specification
+└── package.json                # Root workspace configuration
 ```
 
 ---
 
-## Monorepo Packages & Apps Reference
+## The 18 Core Packages Reference (`kaiopi/kaioken/`)
 
-All packages in `.kaioken_v2/packages/` are modular composite TypeScript projects with isolated responsibilities:
+All 18 packages in `kaiopi/kaioken/` are composite, modular TypeScript libraries with strict boundary enforcement:
 
-| Package / App | Responsibility | Offline? |
-|---|---|:---:|
-| `apps/cli` | Main CLI executable (`kaioken`), command dispatch, provider model wiring, HTTP/SSE daemon (`daemon.ts`). | Partial |
-| `apps/tui` | Full-screen interactive Terminal UI (`kaioken-tui`), CRT HUD, streaming prose, session trees. | Partial |
-| `packages/scan` | High-speed directory traversal, ignore rule filtering, binary detection, risk classification. | Yes |
-| `packages/index` | Tree-Sitter AST symbol extraction, grounding oracle (`SymbolOracle`), line anchor verification. | Yes |
-| `packages/search` | In-memory BM25 lexical ranking and Reciprocal Rank Fusion (RRF). | Yes |
-| `packages/provenance` | Cryptographic SHA-256 content-hash tracking, zero-token drift detection, invalidation engine. | Yes |
-| `packages/graph` | Derived relationship graph linking docs, cards, skills, and source files; bundle export. | Yes |
-| `packages/agent` | Agent tool definitions (`symbol_lookup`, `wiki_search`, `read_file`), prompt builder, hard verification gate. | Yes |
-| `packages/agentsmd` | Discovers, parses, and injects hierarchical `AGENTS.md` instructions and context files into model prompts. | Yes |
-| `packages/gitops` | Git status diffs, subagent git worktree isolation (`delegate`), and automated post-commit hook management. | Yes |
-| `packages/impact` | AST-level blast-radius analysis predicting affected declarations, dependents, and stale docs for any change. | Yes |
-| `packages/session` | Multi-turn conversation persistence (JSONL), tree branching, compaction, auto-titling, and undo journal. | Yes |
-| `packages/ext` | Safe sandboxed extension manager: declarative guides, WASM tools, and MCP servers with version trust. | Yes |
-| `packages/prism` | Document ingestion, parent-child chunking, vector embeddings, and grounded RAG Q&A per module. | Mixed |
-| `packages/skillgen` | Procedural skill generation and continuous distillation from successful agent execution sessions. | Mixed |
-| `packages/templates` | Parameterized prompt templates with schema validation (`/t:<name>`). | Yes |
-| `packages/serve` | Zero-dependency HTTP server hosting documentation locally with search and freshness badges. | Yes |
-| `packages/model` | Transport-free ModelClient port (abstract interface isolating provider dependencies). | Yes |
-| `packages/plan` | Discovers module boundaries (`module-plan.yaml`) and generates structured 5-file module cards. | Via port |
-| `packages/wiki` | Multi-pass wiki cascade (outline $\to$ section plans $\to$ full chapters), claim extraction, and verification. | Via port |
-| `packages/research` | Autonomous multi-agent web research with strict citation verification (`[N]`) pinned to content hashes. | External |
+| Package | Export Name | Purpose | Offline? |
+|---|---|---|:---:|
+| `scan` | `@kaioken/scan` | Directory traversal, `.gitignore` / `.kaiokenignore` filtering, Shannon entropy secret scanning. | Yes |
+| `index` | `@kaioken/index` | Tree-Sitter AST symbol extraction, `SymbolOracle`, exact anchor line resolution (`resolveExcerpt`). | Yes |
+| `search` | `@kaioken/search` | In-memory BM25 lexical ranking, Reciprocal Rank Fusion (RRF), directory boost scoring. | Yes |
+| `provenance` | `@kaioken/provenance` | SHA-256 cryptographic source hashing, zero-token drift detection, freshness dial calculation. | Yes |
+| `verifycore` | `@kaioken/verifycore` | O(1) basename verification, quote anchor matching, boilerplate rejection, hallucination shield. | Yes |
+| `verify` | `@kaioken/verify` | Native test runner auto-detection (Vitest, Pytest, Go, Cargo), failure extraction, repair loops. | Yes |
+| `impact` | `@kaioken/impact` | Transitive AST dependency graph traversal, blast-radius risk scoring (0–100), safe-rename simulation. | Yes |
+| `plan` | `@kaioken/plan` | Directory clustering, `.kaioken/module-plan.yaml` checkpoints, uniform 5-part knowledge cards. | Model Port |
+| `wiki` | `@kaioken/wiki` | Multi-pass streaming wiki cascade (outline $\to$ section plans $\to$ full chapters), claim auditing. | Model Port |
+| `serve` | `@kaioken/serve` | Zero-dependency HTTP server (`127.0.0.1:4173`), SSE live-reload, interactive graph previews. | Yes |
+| `research` | `@kaioken/research` | Autonomous web research agent, page sanitization, hash-anchored citation validation (`[N]`). | External Web |
+| `skills` | `@kaioken/skills` | Procedural task guides catalog under `.kaioken/skills/`, step-through procedure debugger. | Yes |
+| `skillgen` | `@kaioken/skillgen` | Automated procedure synthesis from repository commands (`package.json`, `Makefile`, etc.). | Model Port |
+| `gitops` | `@kaioken/gitops` | Subagent isolated Git worktrees (`delegate`), post-commit hook management, safe fast-forward merges. | Yes |
+| `graph` | `@kaioken/graph` | Knowledge dependency graph (Mermaid, Markdown, JSON), standalone static bundle exporter. | Yes |
+| `modelport` | `@kaioken/modelport` | Provider-agnostic model client interface, pre-flight token estimation, spend dial ($\times 1$–$\times 10$). | Yes |
+| `completion` | `@kaioken/completion` | Full CLI parity auto-completion script generators for Bash, Zsh, and Fish shells. | Yes |
+| `evals` | `@kaioken/evals` | 10-probe groundedness evaluation suite, multi-language fixture testing, benchmark scorecards. | Yes |
+
+---
+
+## Pi Agent Bridge Extension (`.pi/extensions/kaioken`)
+
+The bridge extension seamlessly embeds Kaioken's truth layer into any **Pi** coding agent session without patching or forking core runtime code.
+
+### 1. The 7 Grounding Tools
+Agents automatically query these deterministic tools instead of guessing:
+
+| Tool Name | Label | Description & Invariant |
+|---|---|---|
+| `kaio_symbol_lookup` | Symbol Oracle | Definitive AST lookup. Returns exact file, line, and signature, or a strict negative guarantee: `"NEGATIVE GUARANTEE: no symbol matching ... is declared. Do not invent it."` |
+| `kaio_read_file` | Grounded Read | Reads exact line ranges with verified anchors. Preferred over raw reads for code quoting. |
+| `kaio_wiki_search` | Wiki/Card Search | BM25 + Reciprocal Rank Fusion search across wiki chapters, knowledge cards, and skills. |
+| `kaio_impact` | Blast Radius | Predicts transitive files and modules broken by changing a symbol before making edits. |
+| `kaio_skill_load` | Load Procedure | Loads distilled task execution procedures from `.kaioken/skills/`. |
+| `kaio_status` | Drift Check | 0-token staleness diff comparing docs against current source code before updating docs. |
+| `kaio_verify` | Hard Test Gate | Runs native repo build and test suites. Task cannot be marked complete without `VERIFY: PASS`. |
+
+### 2. The 18 Slash Commands
+Interactive terminal commands available inside Pi agent sessions:
+
+- `/kaio-scan`: Run repo inventory, AST symbol index, and risk flags.
+- `/kaio-symbols`: Query the AST Symbol Oracle for declaration details.
+- `/kaio-search`: Run BM25 lexical and structural search across the codebase.
+- `/kaio-status`: Check 0-token documentation staleness and source drift report.
+- `/kaio-verify`: Trigger the hard verification gate (native build & test runners).
+- `/kaio-graph`: Build and render the knowledge dependency graph (Mermaid / JSON).
+- `/kaio-serve`: Start the offline documentation preview web server (`127.0.0.1:4173`).
+- `/kaio-export`: Export static standalone documentation bundle.
+- `/kaio-delegate`: Spin up an isolated Git worktree for safe subagent task execution.
+- `/kaio-merge`: Verify a worktree and fast-forward merge it back to main.
+- `/kaio-plan`: Propose and review the module decomposition plan (`module-plan.yaml`).
+- `/kaio-cards`: Generate and inspect verified 5-part module knowledge cards.
+- `/kaio-wiki`: Run multi-pass wiki cascade with claim verification.
+- `/kaio-update`: Incrementally refresh only the documents invalidated by recent commits.
+- `/kaio-research`: Run autonomous grounded web research with hash-anchored citations.
+- `/kaio-skills`: Load and inspect distilled task procedures.
+- `/kaio-keys`: Display visual keyboard shortcut cheat-sheet overlay.
+- `/kaio-palette`: Open the interactive fuzzy command palette.
+
+---
+
+## CLI Surface Reference (22 Commands in `bin.ts`)
+
+The root `kaioken` executable (`kaiopi/kaioken/bin.ts`) provides full CLI command parity:
+
+```bash
+kaioken <command> [options] [arguments]
+```
+
+| Command | Purpose | Key Flags | Offline? |
+|---|---|---|:---:|
+| `scan` | Traverses repo, indexes AST symbols, scans secrets. | `--progress`, `--table`, `--entropy`, `--quarantine` | Yes |
+| `symbols` | Queries the AST Symbol Oracle for declarations. | `--root <path>` | Yes |
+| `status` | Checks 0-token documentation freshness vs source. | `--root <path>`, `--json` | Yes |
+| `search` | BM25 search across symbols, wiki, and cards. | `--preview`, `--explain`, `--boost <path:mul>`, `--limit <n>` | Yes |
+| `impact` | Predicts blast-radius for a proposed change. | `--root <path>`, `<symbol>` | Yes |
+| `verify` | Discovers & runs native repo test suites. | `--root <path>` | Yes |
+| `plan` | Decomposes codebase into cohesive modules. | `--multiplier <n>`, `--tree`, `--coverage`, `--lint`, `--split`, `--merge` | Model |
+| `cards` | Generates & inspects 5-part knowledge cards. | `--3d`, `--flip`, `--badge`, `--dedupe`, `--export <dir>` | Model |
+| `wiki` | Multi-pass streaming documentation generator. | `--heatmap`, `--validate-links`, `--budget <tokens>` | Model |
+| `serve` | Starts local offline HTTP documentation server. | `--port <n>`, `--host <str>` | Yes |
+| `research` | Conducts grounded multi-turn web research. | `--root <path>` | External |
+| `skills` | Inspects procedural task execution guides. | `--root <path>` | Yes |
+| `skillgen` | Synthesizes procedures from repo build commands. | `--root <path>` | Model |
+| `graph` | Renders knowledge dependency graph. | `--format <mermaid\|markdown\|json>`, `--write` | Yes |
+| `gitops` | Manages worktrees, diffs, and hooks. | `--action <status\|delegate\|merge\|prune\|diff\|install-hook>` | Yes |
+| `evals` | Runs 10-probe groundedness evaluation suite. | `--repo <path>`, `--json` | Yes |
+| `spend` | Spend transparency, token budgeting, pricing. | `--multiplier <n>`, `--budget <usd>`, `--matrix`, `--audit`, `--dial` | Yes |
+| `export` | Exports standalone portable documentation tree. | `--root <path>` | Yes |
+| `update` | Incrementally refreshes invalidated docs. | `--dry-run`, `--root <path>` | Model |
+| `delegate` | Spawns isolated task branch in Git worktree. | `--root <path>`, `<task-name>` | Yes |
+| `merge` | Verifies and fast-forward merges a worktree. | `--root <path>`, `<task-name>` | Yes |
+| `completion`| Emits shell auto-completion script. | `<bash\|zsh\|fish>` | Yes |
 
 ---
 
@@ -395,193 +401,84 @@ All packages in `.kaioken_v2/packages/` are modular composite TypeScript project
 - **npm**: `>= 10.0.0`
 - **Git**: Installed and available on `PATH`
 
-### 1. Clone & Build the Engine
+### 1. Build Kaioken Core Packages
 
 ```bash
-# Clone the repository
-git clone https://github.com/babtix/kaioken.git
-cd kaioken/.kaioken_v2
+# Navigate to the primary monorepo
+cd kaiopi
 
-# Install dependencies and build all packages
+# Install dependencies
 npm install
-npm run build
+
+# Build all 18 Kaioken packages
+npm run build:kaioken
+
+# Verify typecheck and offline compliance (0 errors)
+npm run check:kaioken
 ```
 
-> **Note**: `npm run build` runs `tsc --build` across all composite project references and copies Tree-Sitter `.scm` queries into `packages/index/dist/queries/`.
-
-### 2. Link Globally (Optional)
-
-To invoke `kaioken` and `kaioken-tui` from anywhere on your machine:
+### 2. Run the 22-Command Standalone CLI
 
 ```bash
-npm link --workspace=apps/cli
-npm link --workspace=apps/tui
+# Run scan on any target repository
+node kaioken/bin.ts scan --table --entropy --root /path/to/repo
+
+# Query the Symbol Oracle
+node kaioken/bin.ts symbols MyFunction --root /path/to/repo
+
+# Check 0-token documentation freshness
+node kaioken/bin.ts status --root /path/to/repo
+
+# Start the local documentation server (127.0.0.1:4173)
+node kaioken/bin.ts serve --root /path/to/repo
 ```
 
-*(Alternatively, run via `node apps/cli/dist/bin.js` and `node apps/tui/dist/bin.js`)*
-
-### 3. Bootstrap Any Repository with `kaioken init`
-
-Point Kaioken at your target codebase:
+### 3. Launch Pi with the Grounded Kaioken Extension
 
 ```bash
-# 1-step bootstrap: scans repo, indexes AST symbols, sets model, and writes/refreshes AGENTS.md
-kaioken init --model openrouter/anthropic/claude-sonnet-4.5 --root /path/to/repo
+# Launch interactive Pi session with full Kaioken grounding
+npx pi --extension .pi/extensions/kaioken
 ```
 
-### 4. Run Core Offline Commands
-
-Explore your repository with zero model calls and zero network requests:
-
-```bash
-# Scan repository (inventory, risk report)
-kaioken scan --root /path/to/repo
-
-# Look up declarations using the structural Tree-Sitter AST index
-kaioken symbols myFunction --root /path/to/repo
-kaioken symbols src/index.ts --root /path/to/repo
-
-# Fast in-memory BM25 lexical search
-kaioken search "authentication token" --root /path/to/repo
-
-# Predict blast-radius of a proposed change
-kaioken impact "replace bcrypt with argon2" --root /path/to/repo
-
-# Check documentation freshness against current source code (0 tokens)
-kaioken status --check --root /path/to/repo
-
-# Run native repository verification gate (tests & builds)
-kaioken verify --root /path/to/repo
-
-# Serve generated documentation on local HTTP server (127.0.0.1:7777)
-kaioken serve --root /path/to/repo
-```
-
-### 5. Generate Grounded Knowledge (Model Enabled)
-
-Configure your API key (e.g., OpenRouter, Anthropic, OpenAI, Groq, or local Ollama):
-
-```bash
-export OPENROUTER_API_KEY="sk-or-..."
-
-# Step 1: Propose module boundaries (checkpoints to .kaioken/module-plan.yaml)
-kaioken plan x3 --root /path/to/repo
-
-# Step 2: Generate verified 5-part knowledge cards for each module
-kaioken cards x3 --root /path/to/repo
-
-# Step 3: Generate the deep technical wiki
-kaioken wiki x3 --root /path/to/repo
-
-# After modifying code: incrementally refresh only what changed
-kaioken update --dry-run --root /path/to/repo
-kaioken update x1 --root /path/to/repo
-```
-
-### 6. Launch the Interactive Terminal UI (TUI)
-
-```bash
-kaioken-tui --root /path/to/repo
-```
-
-The TUI provides a complete CRT HUD interface, token-by-token streaming, slash commands (`/wiki`, `/research`, `/diff`, `/undo`, `/yolo`), and conversation tree branching.
-
-### 7. Launch the HTTP/SSE Daemon (Studio & IDEs)
-
-```bash
-kaioken daemon --port 7778 --root /path/to/repo
-```
-
-Starts the loopback HTTP and Server-Sent Events daemon used by **Kaioken Studio** (Tauri v2 desktop GUI) and IDE extensions.
-
----
-
-## Complete Command Surface (27 Commands)
-
-The Kaioken CLI provides 27 commands grouped by function:
-
-### Core & Ingestion (100% Offline)
-
-| Command | Purpose | Model / Network? |
-|---|---|:---:|
-| `init` | First-run setup: scans, builds AST index, records model, and generates `AGENTS.md`. | Offline (unless generating prompt) |
-| `scan` | High-speed repo traversal, ignore rules, risk classification (`.kaioken/scan.json`). | Offline |
-| `symbols` | Look up declarations for a file or query symbol existence via `SymbolOracle`. | Offline |
-| `search` | BM25 lexical ranking and Reciprocal Rank Fusion across symbols, wiki, and cards. | Offline |
-| `serve` | Zero-dependency local documentation server on `127.0.0.1:7777`. | Offline |
-| `status` | Reports documentation drift against source code without spending tokens (`--check` for CI). | Offline (0 tokens) |
-| `verify` | Automatically detects and runs native repo build and test suites as a hard quality gate. | Offline |
-| `graph` | Derives relationship graph connecting documents to source files (`.kaioken/graph.json`). | Offline |
-| `export` | Packages knowledge into a standalone portable bundle readable without Kaioken installed. | Offline |
-| `impact` | AST-level blast-radius analysis predicting declarations and docs affected by a proposed change. | Offline |
-| `onboard` | Assembles `ONBOARDING.md` at repo root from wiki, cards, skills, and scan results. | Offline |
-| `draft` | Drafts commit message and PR description matching repository commit style. | Offline / Advisory |
-| `hook` | Installs or removes Git post-commit hook for automatic background documentation updates. | Offline |
-
-### Grounded Knowledge Generation
-
-| Command | Purpose | Model / Network? |
-|---|---|:---:|
-| `plan` | Discovers module boundaries and writes `.kaioken/module-plan.yaml` for human review. | Model |
-| `cards` | Generates uniform 5-part knowledge cards (`.kaioken/cards/<module>.json`) with verification. | Model |
-| `wiki` | Multi-pass wiki cascade (outline $\to$ section plans $\to$ full chapters) with claim checking. | Model |
-| `update` | Incrementally regenerates only the documents invalidated by recent commits. | Model |
-| `research` | Deep multi-agent web research with strict citation verification (`[N]`) pinned to page hashes. | Web + Model |
-| `prism` | Modular vector RAG: parent-child document chunking, embeddings, and grounded Q&A. | Mixed (Model/Embed) |
-
-### Grounded Agent & Execution
-
-| Command | Purpose | Model / Network? |
-|---|---|:---:|
-| `chat` | Grounded agent conversation equipped with AST inspection tools (`--write` enables safe edits). | Model |
-| `agent-serve` | Long-lived JSON-over-stdio process for editor plugins and embedders. | Model |
-| `daemon` | Background HTTP/SSE server (Contract v4) powering Kaioken Studio and desktop integrations. | Mixed |
-| `learn` | Evaluates conversation sessions and distills problem-solving workflows into `.kaioken/skills/`. | Model |
-| `handoff` | Distills a conversation into a structured continuation briefing (`.kaioken/handoffs/`). | Model |
-| `skills` | Discovers and writes procedural task guides under `.kaioken/skills/` (`list` to view). | Model |
-| `ext` | Community extension manager: list, install, trust, enable, disable, and run MCP/WASM tools. | Mixed |
-| `fetcher` | Manages page readers for research (`auto`, `api`, or `http` via Firecrawl / direct). | External |
+Inside the interactive session, the Kaioken CRT HUD displays real-time telemetry, and all 18 slash commands (`/kaio-*`) and 7 grounding tools are active.
 
 ---
 
 ## The Kaioken Multiplier ($\times 1$ to $\times 10$)
 
-The multiplier is a conscious dial balancing speed, compute cost, and verification depth:
+The Kaioken multiplier provides a conscious dial balancing generation depth, compute budget, and adversarial verification passes:
 
 ```
-[×1] ───► Public surface, main flow, and high-level section summaries.
+[×1] ───► Public surface, main flow, and high-level module summaries.
 [×2] ───► Adds detailed subsection documents and architectural flow diagrams.
 [×3] ───► Exhaustive coverage of all declarations and exported symbols (Default).
-[×4..9] ─► Critique-and-revise loops: scores drafts against rubrics, eliminates padding.
-[×10] ──► Adversarial grounding repair: detects and fixes every grounding failure.
+[×4..9] ─► Critique-and-revise loops: scores drafts against rubrics, eliminates boilerplate.
+[×10] ──► Adversarial grounding repair: detects and fixes every grounding defect.
 ```
 
 ---
 
 ## Artifact Layout (`.kaioken/`)
 
-All Kaioken-generated knowledge is written into `.kaioken/` inside the target repository:
+All generated knowledge artifacts are written deterministically into `.kaioken/` inside the target repository:
 
 ```
 .kaioken/
-├── model.json           # Active model configuration (provider and model ID)
 ├── scan.json            # Repository file inventory, content hashes, and risk report
 ├── index.json           # Tree-Sitter AST parsed symbols, declarations, spans, skeletons
-├── module-plan.yaml     # Maintainer-approved module tree checkpoint
-├── wiki-plan.yaml       # Proposed wiki outline and chapter breakdown
+├── provenance.json      # Cryptographic SHA-256 source dependency mappings
+├── verification.json    # Mechanical verification audit report & grounding defect scores
+├── module-plan.yaml     # Human-reviewed module tree checkpoint
+├── wiki-plan.yaml       # Multi-pass wiki outline and chapter plan
 ├── graph.json           # Knowledge graph linking documents to source files
-├── wiki/                # Generated deep markdown wiki chapters
-│   ├── Architecture/
-│   ├── Pipelines/
-│   └── CHANGELOG.md
 ├── cards/               # Verified 5-part module knowledge cards (JSON)
 │   ├── core.json
 │   └── api.json
+├── wiki/                # Generated deep markdown wiki chapters
+│   ├── Architecture.md
+│   └── DataFlow.md
 ├── skills/              # Handwritten and distilled agent task procedures
-├── research/            # Cited research reports from /research
-├── prism/               # Custom vector / semantic document stores
-├── handoffs/            # Session continuation briefings
-└── extensions/          # Installed sandboxed community extensions
+└── research/            # Cited research reports from /kaio-research
 ```
 
 ---
@@ -596,70 +493,56 @@ Kaioken uses **Tree-Sitter** for concrete syntax tree parsing and symbol extract
 - **Go**
 - **Rust**
 
-Adding a new language is strictly declarative: add a grammar definition in `packages/index/src/grammars.ts` and provide a Tree-Sitter `.scm` query file in `packages/index/src/queries/`.
+Adding a new language grammar is strictly declarative: add the parser mapping in `kaiopi/kaioken/index/src/grammars.ts` and provide Tree-Sitter `.scm` queries under `kaiopi/kaioken/index/src/queries/`.
 
 ---
 
 ## Testing & Quality Assurance
 
-Kaioken enforces a strict testing discipline: **"If a stage needs an API key or network connection to be tested, it is designed wrong."**
+Kaioken enforces a strict engineering discipline: **"If a core stage needs an API key or network connection to be tested, it is architecturally broken."**
 
 ```bash
-# Run all tests across the monorepo (100% offline)
-cd .kaioken_v2
-npm test
+# Run Kaioken verification check (typecheck, offline compliance, barrel check)
+cd kaiopi
+npm run check:kaioken
+
+# Run complete Vitest suite across Kaioken packages and Pi extension
+npx vitest run .pi/extensions/kaioken kaioken
 ```
 
-- **1,050+ Offline Tests**: Over 1,050 tests across 71 test suites pass with zero network access, using deterministic model doubles that validate prompts and contracts.
-- **Evidence Contracts**: Verifiers cross-check quoted code against real source files via AST positions.
-- **SSRF Prevention & Security**: Built-in sanitization for research URLs, safe archive extraction (`packages/ext`), and isolated subprocess timeouts.
+- **2,078+ Passing Offline Tests**: Over 2,078 tests pass completely offline with zero external network dependencies.
+- **Offline Network Isolation Guard**: `scripts/check-kaioken-offline.mjs` verifies that no core package imports network libraries.
+- **Barrel Completeness Gate**: `scripts/check-kaioken-barrels.mjs` validates 100% reachable export symbols across all 18 packages.
 
 ---
 
-## Design System & UI Surfaces
+## Developer Surfaces & Design System
 
-Kaioken spans multiple developer surfaces bound by a unified design philosophy:
+Kaioken delivers a unified developer experience across five dedicated surfaces governed by the master specification in [DESIGN.md](DESIGN.md):
 
-- **Terminal UI (`apps/tui`)**: Built with CRT scanline accents, state-driven HUD borders, and 16-color ANSI terminal parity.
-- **Kaioken Studio (`desktop/`)**: Electron + Vite desktop app pairing high-velocity code editing with background agent orchestration over the `kaioken daemon` HTTP/SSE stream.
-- **Web Portal (`website/`)**: React 19, Vite, Tailwind CSS v4, Base UI, WebGL ambient shader backdrops, and interactive Mermaid diagrams.
-- **Extension Registry (`registry-web/`)**: Community hub for discovering and submitting extensions with live manifest linting.
-- **News Feed (`web-news/`)**: Serverless publishing feed for project announcements and release logs ([kaioken-news.vercel.app](https://kaioken-news.vercel.app)).
-
-For the complete architectural design specification, see [DESIGN.md](DESIGN.md).
-
-### Architecture Deep Links
-
-| Concern | Canonical source |
-|---|---|
-| Grounding oracle (`SymbolOracle.has` / `hasFile`) | [`.kaioken_v2/packages/index/src/oracle.ts`](.kaioken_v2/packages/index/src/oracle.ts) |
-| Exact excerpt anchors (`resolveExcerpt`, no fuzzy matches) | [`.kaioken_v2/packages/index/src/anchors.ts`](.kaioken_v2/packages/index/src/anchors.ts) |
-| Grammar + query contract for new languages | [`packages/index/src/grammars.ts`](.kaioken_v2/packages/index/src/grammars.ts) + [`packages/index/src/queries/`](.kaioken_v2/packages/index/src/queries/) |
-| Zero-token staleness / freshness verdicts | [`.kaioken_v2/packages/provenance/src/staleness.ts`](.kaioken_v2/packages/provenance/src/staleness.ts) |
-| Hard native test gate (`unverifiable` ≠ `passed`) | [`.kaioken_v2/packages/agent/src/gate.ts`](.kaioken_v2/packages/agent/src/gate.ts) |
-| 5-part knowledge cards | [`.kaioken_v2/packages/plan/src/cards.ts`](.kaioken_v2/packages/plan/src/cards.ts) |
-| Wiki claim extraction + verification | [`.kaioken_v2/packages/wiki/src/claims.ts`](.kaioken_v2/packages/wiki/src/claims.ts), [`verify.ts`](.kaioken_v2/packages/wiki/src/verify.ts) |
+1. **Terminal TUI (`kaiopi/.pi/extensions/kaioken/ui`)**: Full-screen CRT HUD, 24-bit TrueColor gradient headers, telemetry sparklines, and WCAG AAA / Amber CRT themes.
+2. **Local Preview Server (`@kaioken/serve`)**: Zero-dependency offline web server (`127.0.0.1:4173`) with SSE live-reload and interactive Cytoscape graph visualization.
+3. **Kaioken Studio (`desktop/`)**: Native desktop IDE built with Electron, Vite, React 19, and Tailwind CSS.
+4. **Showcase Web Portal (`website/`)**: Modern web portal built with React 19, Vite, Tailwind CSS v4, Base UI, and interactive Mermaid diagrams.
+5. **Community Registry (`registry-web/`)**: Community hub for browsing, searching, and submitting extensions with live manifest linting.
 
 ---
 
 ## Contributing
 
-PRs are welcome under the [License Zero Noncommercial Public License 2.0.1](LICENSE) — please read
-[CONTRIBUTING.md](CONTRIBUTING.md) first (offline-first testing, grounding contract, AI-disclosure rule).
-Be kind per the [Code of Conduct](CODE_OF_CONDUCT.md), and report vulnerabilities privately per
-[SECURITY.md](SECURITY.md).
+Pull requests are warmly welcomed under the [License Zero Noncommercial Public License 2.0.1](LICENSE). Please review [CONTRIBUTING.md](CONTRIBUTING.md) for offline-first guidelines and grounding invariants before submitting changes.
 
 ---
 
 ## License & Authors
 
 - **Author & Architect**: [Babtix / Babtich El Habib](https://github.com/babtix)
-- **News & Updates**: [kaioken-news.vercel.app](https://kaioken-news.vercel.app)
-- **Repository**: [github.com/babtix/kaioken](https://github.com/babtix/kaioken)
+- **Repository**: [https://github.com/babtix/kaioken](https://github.com/babtix/kaioken)
+- **News & Announcements**: [https://kaioken-news.vercel.app](https://kaioken-news.vercel.app)
 - **License**: Licensed under the [License Zero Noncommercial Public License 2.0.1](LICENSE) (Commercial licenses available; subcomponents under MIT where indicated).
 
 ---
 
 <p align="center">
-  <b>Built for developers who value verifiable truth over generative illusion.</b>
+  <b>Built for developers who demand verifiable truth over generative illusion.</b>
 </p>
