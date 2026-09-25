@@ -22,3 +22,10 @@ export type { RenameSimulation, CallsiteEntry } from "./rename.ts";
 export { exportMermaid } from "./mermaid.ts";
 export type { MermaidOptions } from "./mermaid.ts";
 
+// Step 24: Category 10 — Impact Analysis & Blast Radius Prediction (UX-0951–UX-1000)
+export * from "./types.ts";
+export * from "./breaking_card.ts";
+export * from "./rename_simulation.ts";
+export * from "./chapter_mapper.ts";
+export * from "./mermaid_export.ts";
+export * from "./api_policy_gate.ts";
