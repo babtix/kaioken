@@ -10,9 +10,9 @@
 
 - **Total Roadmap Specifications**: 2,000 Features (`#UX-0001` – `#UX-2000`)
 - **Phase 1 Built (Steps 1–20)**: 955 Features (47.75% Complete)
-- **Phase 2 Built (Steps 21–38)**: 945 Features (47.25% Complete)
-- **Total Built (Steps 1–38)**: **1,900 Features** (95.00% Complete)
-- **Phase 2 Remaining (Steps 39–40)**: **100 Features** (5.00% To Build)
+- **Phase 2 Built (Steps 21–40)**: 1,045 Features (52.25% Complete)
+- **Total Built (Steps 1–40)**: **2,000 Features** (100.00% Complete - FULL ROADMAP COMPLETE!)
+- **Phase 2 Remaining**: **0 Features** (0.00% Remaining)
 
 | Step | Category Name | Package / Subsystem | Remaining Features | Unbuilt ID Ranges |
 | :--: | :--- | :--- | :--: | :--- |
@@ -34,9 +34,9 @@
 | **Step 36** | **Cat 16**: Serve Preview, Web UI & Interactive Knowledge Graph | `kaioken/serve` | **0** (Complete: 50/50) | None (`UX-1551–UX-1600` Built) |
 | **Step 37** | **Cat 02**: Chat Transcript & Interactive Output Stream | `.pi/extensions/kaioken/commands` | **0** (Complete: 50/50) | None (`UX-0151–UX-0200` Built) |
 | **Step 38** | **Cat 01**: Terminal UI (TUI) & Visual Aesthetics | `.pi/extensions/kaioken/ui` | **0** (Complete: 50/50) | None (`UX-0051–UX-0100` Built) |
-| **Step 39** | **Cat 03**: HUD, Status Bar & Dynamic Widgets | `.pi/extensions/kaioken/ui/header.ts` | **50** | `UX-0251–UX-0300` |
-| **Step 40** | **Cat 04**: Keyboard Navigation, Shortcuts & Command Palette | `packages/tui` | **50** | `UX-0351–UX-0400` |
-| **TOTAL** | **All 20 Architectural Categories** | | **100** | |
+| **Step 39** | **Cat 03**: HUD, Status Bar & Dynamic Widgets | `.pi/extensions/kaioken/ui/header.ts` | **0** (Complete: 50/50) | None (`UX-0251–UX-0300` Built) |
+| **Step 40** | **Cat 04**: Keyboard Navigation, Shortcuts & Command Palette | `packages/tui` | **0** (Complete: 50/50) | None (`UX-0351–UX-0400` Built) |
+| **TOTAL** | **All 20 Architectural Categories** | | **0** (100% Complete) | All 2,000 Features Built |
 
 ---
 
@@ -2039,213 +2039,213 @@
 ---
 
 ### Step 39: Category 03 — HUD, Status Bar & Dynamic Widgets
-*Rank: #19 Passive Telemetry Readouts | Package: `.pi/extensions/kaioken/ui/header.ts` | Remaining: 50 Features | Ranges: `UX-0251–UX-0300`*
+*Rank: #19 Passive Telemetry Readouts | Package: `.pi/extensions/kaioken/ui/header.ts` | Status: Complete (50/50 Built) | Ranges: `UX-0251–UX-0300`*
 
-- [ ] **[UX-0251]** Interactive status bar click/hover trigger for system memory RSS overhead  
+- [x] **[UX-0251]** Interactive status bar click/hover trigger for system memory RSS overhead  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0252]** Interactive status bar click/hover trigger for model request round-trip latency (ms)  
+- [x] **[UX-0252]** Interactive status bar click/hover trigger for model request round-trip latency (ms)  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0253]** Interactive status bar click/hover trigger for detected test framework name and version  
+- [x] **[UX-0253]** Interactive status bar click/hover trigger for detected test framework name and version  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0254]** Interactive status bar click/hover trigger for active git hooks execution state  
+- [x] **[UX-0254]** Interactive status bar click/hover trigger for active git hooks execution state  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0255]** Interactive status bar click/hover trigger for number of discovered agent skills  
+- [x] **[UX-0255]** Interactive status bar click/hover trigger for number of discovered agent skills  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0256]** Interactive status bar click/hover trigger for number of generated wiki chapters  
+- [x] **[UX-0256]** Interactive status bar click/hover trigger for number of generated wiki chapters  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0257]** Interactive status bar click/hover trigger for number of indexed knowledge cards  
+- [x] **[UX-0257]** Interactive status bar click/hover trigger for number of indexed knowledge cards  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0258]** Interactive status bar click/hover trigger for secret scanner risk alert counter  
+- [x] **[UX-0258]** Interactive status bar click/hover trigger for secret scanner risk alert counter  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0259]** Interactive status bar click/hover trigger for web research quota and rate limits  
+- [x] **[UX-0259]** Interactive status bar click/hover trigger for web research quota and rate limits  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0260]** Interactive status bar click/hover trigger for live SSE connected client count  
+- [x] **[UX-0260]** Interactive status bar click/hover trigger for live SSE connected client count  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0261]** Persistent background progress indicator tracking active model context window utilization  
+- [x] **[UX-0261]** Persistent background progress indicator tracking active model context window utilization  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0262]** Persistent background progress indicator tracking real-time token spend velocity (tokens/sec)  
+- [x] **[UX-0262]** Persistent background progress indicator tracking real-time token spend velocity (tokens/sec)  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0263]** Persistent background progress indicator tracking repository file count freshness ratio  
+- [x] **[UX-0263]** Persistent background progress indicator tracking repository file count freshness ratio  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0264]** Persistent background progress indicator tracking unverified git working tree dirty status  
+- [x] **[UX-0264]** Persistent background progress indicator tracking unverified git working tree dirty status  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0265]** Persistent background progress indicator tracking in-flight background task count  
+- [x] **[UX-0265]** Persistent background progress indicator tracking in-flight background task count  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0266]** Persistent background progress indicator tracking active HTTP preview server port and health  
+- [x] **[UX-0266]** Persistent background progress indicator tracking active HTTP preview server port and health  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0267]** Persistent background progress indicator tracking staleness index percentage  
+- [x] **[UX-0267]** Persistent background progress indicator tracking staleness index percentage  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0268]** Persistent background progress indicator tracking grounded vs ungrounded claim ratio  
+- [x] **[UX-0268]** Persistent background progress indicator tracking grounded vs ungrounded claim ratio  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0269]** Persistent background progress indicator tracking active worktree task branch name  
+- [x] **[UX-0269]** Persistent background progress indicator tracking active worktree task branch name  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0270]** Persistent background progress indicator tracking AST symbol index cache hit rate  
+- [x] **[UX-0270]** Persistent background progress indicator tracking AST symbol index cache hit rate  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0271]** Persistent background progress indicator tracking system memory RSS overhead  
+- [x] **[UX-0271]** Persistent background progress indicator tracking system memory RSS overhead  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0272]** Persistent background progress indicator tracking model request round-trip latency (ms)  
+- [x] **[UX-0272]** Persistent background progress indicator tracking model request round-trip latency (ms)  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0273]** Persistent background progress indicator tracking detected test framework name and version  
+- [x] **[UX-0273]** Persistent background progress indicator tracking detected test framework name and version  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0274]** Persistent background progress indicator tracking active git hooks execution state  
+- [x] **[UX-0274]** Persistent background progress indicator tracking active git hooks execution state  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0275]** Persistent background progress indicator tracking number of discovered agent skills  
+- [x] **[UX-0275]** Persistent background progress indicator tracking number of discovered agent skills  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0276]** Persistent background progress indicator tracking number of generated wiki chapters  
+- [x] **[UX-0276]** Persistent background progress indicator tracking number of generated wiki chapters  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0277]** Persistent background progress indicator tracking number of indexed knowledge cards  
+- [x] **[UX-0277]** Persistent background progress indicator tracking number of indexed knowledge cards  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0278]** Persistent background progress indicator tracking secret scanner risk alert counter  
+- [x] **[UX-0278]** Persistent background progress indicator tracking secret scanner risk alert counter  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0279]** Persistent background progress indicator tracking web research quota and rate limits  
+- [x] **[UX-0279]** Persistent background progress indicator tracking web research quota and rate limits  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0280]** Persistent background progress indicator tracking live SSE connected client count  
+- [x] **[UX-0280]** Persistent background progress indicator tracking live SSE connected client count  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0281]** Color-shifting warning badge indicating critical threshold in active model context window utilization  
+- [x] **[UX-0281]** Color-shifting warning badge indicating critical threshold in active model context window utilization  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0282]** Color-shifting warning badge indicating critical threshold in real-time token spend velocity (tokens/sec)  
+- [x] **[UX-0282]** Color-shifting warning badge indicating critical threshold in real-time token spend velocity (tokens/sec)  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0283]** Color-shifting warning badge indicating critical threshold in repository file count freshness ratio  
+- [x] **[UX-0283]** Color-shifting warning badge indicating critical threshold in repository file count freshness ratio  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0284]** Color-shifting warning badge indicating critical threshold in unverified git working tree dirty status  
+- [x] **[UX-0284]** Color-shifting warning badge indicating critical threshold in unverified git working tree dirty status  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0285]** Color-shifting warning badge indicating critical threshold in in-flight background task count  
+- [x] **[UX-0285]** Color-shifting warning badge indicating critical threshold in in-flight background task count  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0286]** Color-shifting warning badge indicating critical threshold in active HTTP preview server port and health  
+- [x] **[UX-0286]** Color-shifting warning badge indicating critical threshold in active HTTP preview server port and health  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0287]** Color-shifting warning badge indicating critical threshold in staleness index percentage  
+- [x] **[UX-0287]** Color-shifting warning badge indicating critical threshold in staleness index percentage  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0288]** Color-shifting warning badge indicating critical threshold in grounded vs ungrounded claim ratio  
+- [x] **[UX-0288]** Color-shifting warning badge indicating critical threshold in grounded vs ungrounded claim ratio  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0289]** Color-shifting warning badge indicating critical threshold in active worktree task branch name  
+- [x] **[UX-0289]** Color-shifting warning badge indicating critical threshold in active worktree task branch name  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0290]** Color-shifting warning badge indicating critical threshold in AST symbol index cache hit rate  
+- [x] **[UX-0290]** Color-shifting warning badge indicating critical threshold in AST symbol index cache hit rate  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0291]** Color-shifting warning badge indicating critical threshold in system memory RSS overhead  
+- [x] **[UX-0291]** Color-shifting warning badge indicating critical threshold in system memory RSS overhead  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0292]** Color-shifting warning badge indicating critical threshold in model request round-trip latency (ms)  
+- [x] **[UX-0292]** Color-shifting warning badge indicating critical threshold in model request round-trip latency (ms)  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0293]** Color-shifting warning badge indicating critical threshold in detected test framework name and version  
+- [x] **[UX-0293]** Color-shifting warning badge indicating critical threshold in detected test framework name and version  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0294]** Color-shifting warning badge indicating critical threshold in active git hooks execution state  
+- [x] **[UX-0294]** Color-shifting warning badge indicating critical threshold in active git hooks execution state  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0295]** Color-shifting warning badge indicating critical threshold in number of discovered agent skills  
+- [x] **[UX-0295]** Color-shifting warning badge indicating critical threshold in number of discovered agent skills  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0296]** Color-shifting warning badge indicating critical threshold in number of generated wiki chapters  
+- [x] **[UX-0296]** Color-shifting warning badge indicating critical threshold in number of generated wiki chapters  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0297]** Color-shifting warning badge indicating critical threshold in number of indexed knowledge cards  
+- [x] **[UX-0297]** Color-shifting warning badge indicating critical threshold in number of indexed knowledge cards  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0298]** Color-shifting warning badge indicating critical threshold in secret scanner risk alert counter  
+- [x] **[UX-0298]** Color-shifting warning badge indicating critical threshold in secret scanner risk alert counter  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0299]** Color-shifting warning badge indicating critical threshold in web research quota and rate limits  
+- [x] **[UX-0299]** Color-shifting warning badge indicating critical threshold in web research quota and rate limits  
   *Subsystem*: `.pi/extensions/kaioken/ui/header.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0300]** Color-shifting warning badge indicating critical threshold in live SSE connected client count  
+- [x] **[UX-0300]** Color-shifting warning badge indicating critical threshold in live SSE connected client count  
   *Subsystem*: `.pi/extensions/kaioken/commands` | *Tier*: Developer Ergonomics
 
 ---
 
 ### Step 40: Category 04 — Keyboard Navigation, Shortcuts & Command Palette
-*Rank: #20 Keyboard Efficiency | Package: `packages/tui` | Remaining: 50 Features | Ranges: `UX-0351–UX-0400`*
+*Rank: #20 Keyboard Efficiency | Package: `packages/tui` | Status: Complete (50/50 Built) | Ranges: `UX-0351–UX-0400`*
 
-- [ ] **[UX-0351]** Dedicated global hotkey shortcut to immediately toggle test failure stack trace viewer  
+- [x] **[UX-0351]** Dedicated global hotkey shortcut to immediately toggle test failure stack trace viewer  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0352]** Dedicated global hotkey shortcut to immediately toggle web research source picker  
+- [x] **[UX-0352]** Dedicated global hotkey shortcut to immediately toggle web research source picker  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0353]** Dedicated global hotkey shortcut to immediately toggle skill catalog explorer  
+- [x] **[UX-0353]** Dedicated global hotkey shortcut to immediately toggle skill catalog explorer  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0354]** Dedicated global hotkey shortcut to immediately toggle dependency graph node inspector  
+- [x] **[UX-0354]** Dedicated global hotkey shortcut to immediately toggle dependency graph node inspector  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0355]** Dedicated global hotkey shortcut to immediately toggle header telemetry HUD  
+- [x] **[UX-0355]** Dedicated global hotkey shortcut to immediately toggle header telemetry HUD  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0356]** Dedicated global hotkey shortcut to immediately toggle interactive diff patch chunk selector  
+- [x] **[UX-0356]** Dedicated global hotkey shortcut to immediately toggle interactive diff patch chunk selector  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0357]** Dedicated global hotkey shortcut to immediately toggle file risk flag review modal  
+- [x] **[UX-0357]** Dedicated global hotkey shortcut to immediately toggle file risk flag review modal  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0358]** Dedicated global hotkey shortcut to immediately toggle theme color picker  
+- [x] **[UX-0358]** Dedicated global hotkey shortcut to immediately toggle theme color picker  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0359]** Dedicated global hotkey shortcut to immediately toggle live web preview control panel  
+- [x] **[UX-0359]** Dedicated global hotkey shortcut to immediately toggle live web preview control panel  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0360]** Dedicated global hotkey shortcut to immediately toggle help documentation browser  
+- [x] **[UX-0360]** Dedicated global hotkey shortcut to immediately toggle help documentation browser  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0361]** Multi-level undo/redo keyboard stack for slash command palette  
+- [x] **[UX-0361]** Multi-level undo/redo keyboard stack for slash command palette  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0362]** Multi-level undo/redo keyboard stack for chat transcript message list  
+- [x] **[UX-0362]** Multi-level undo/redo keyboard stack for chat transcript message list  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0363]** Multi-level undo/redo keyboard stack for wiki document table of contents  
+- [x] **[UX-0363]** Multi-level undo/redo keyboard stack for wiki document table of contents  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0364]** Multi-level undo/redo keyboard stack for knowledge card browser  
+- [x] **[UX-0364]** Multi-level undo/redo keyboard stack for knowledge card browser  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0365]** Multi-level undo/redo keyboard stack for AST symbol declaration search  
+- [x] **[UX-0365]** Multi-level undo/redo keyboard stack for AST symbol declaration search  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0366]** Multi-level undo/redo keyboard stack for drift report file selector  
+- [x] **[UX-0366]** Multi-level undo/redo keyboard stack for drift report file selector  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0367]** Multi-level undo/redo keyboard stack for search results ranking list  
+- [x] **[UX-0367]** Multi-level undo/redo keyboard stack for search results ranking list  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0368]** Multi-level undo/redo keyboard stack for worktree task switcher  
+- [x] **[UX-0368]** Multi-level undo/redo keyboard stack for worktree task switcher  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0369]** Multi-level undo/redo keyboard stack for module planning editor  
+- [x] **[UX-0369]** Multi-level undo/redo keyboard stack for module planning editor  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0370]** Multi-level undo/redo keyboard stack for spend confirmation prompt  
+- [x] **[UX-0370]** Multi-level undo/redo keyboard stack for spend confirmation prompt  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0371]** Multi-level undo/redo keyboard stack for test failure stack trace viewer  
+- [x] **[UX-0371]** Multi-level undo/redo keyboard stack for test failure stack trace viewer  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0372]** Multi-level undo/redo keyboard stack for web research source picker  
+- [x] **[UX-0372]** Multi-level undo/redo keyboard stack for web research source picker  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0373]** Multi-level undo/redo keyboard stack for skill catalog explorer  
+- [x] **[UX-0373]** Multi-level undo/redo keyboard stack for skill catalog explorer  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0374]** Multi-level undo/redo keyboard stack for dependency graph node inspector  
+- [x] **[UX-0374]** Multi-level undo/redo keyboard stack for dependency graph node inspector  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0375]** Multi-level undo/redo keyboard stack for header telemetry HUD  
+- [x] **[UX-0375]** Multi-level undo/redo keyboard stack for header telemetry HUD  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0376]** Multi-level undo/redo keyboard stack for interactive diff patch chunk selector  
+- [x] **[UX-0376]** Multi-level undo/redo keyboard stack for interactive diff patch chunk selector  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0377]** Multi-level undo/redo keyboard stack for file risk flag review modal  
+- [x] **[UX-0377]** Multi-level undo/redo keyboard stack for file risk flag review modal  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0378]** Multi-level undo/redo keyboard stack for theme color picker  
+- [x] **[UX-0378]** Multi-level undo/redo keyboard stack for theme color picker  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0379]** Multi-level undo/redo keyboard stack for live web preview control panel  
+- [x] **[UX-0379]** Multi-level undo/redo keyboard stack for live web preview control panel  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0380]** Multi-level undo/redo keyboard stack for help documentation browser  
+- [x] **[UX-0380]** Multi-level undo/redo keyboard stack for help documentation browser  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0381]** Interactive tab-completion cycling across slash command palette  
+- [x] **[UX-0381]** Interactive tab-completion cycling across slash command palette  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0382]** Interactive tab-completion cycling across chat transcript message list  
+- [x] **[UX-0382]** Interactive tab-completion cycling across chat transcript message list  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0383]** Interactive tab-completion cycling across wiki document table of contents  
+- [x] **[UX-0383]** Interactive tab-completion cycling across wiki document table of contents  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0384]** Interactive tab-completion cycling across knowledge card browser  
+- [x] **[UX-0384]** Interactive tab-completion cycling across knowledge card browser  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0385]** Interactive tab-completion cycling across AST symbol declaration search  
+- [x] **[UX-0385]** Interactive tab-completion cycling across AST symbol declaration search  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0386]** Interactive tab-completion cycling across drift report file selector  
+- [x] **[UX-0386]** Interactive tab-completion cycling across drift report file selector  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0387]** Interactive tab-completion cycling across search results ranking list  
+- [x] **[UX-0387]** Interactive tab-completion cycling across search results ranking list  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0388]** Interactive tab-completion cycling across worktree task switcher  
+- [x] **[UX-0388]** Interactive tab-completion cycling across worktree task switcher  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0389]** Interactive tab-completion cycling across module planning editor  
+- [x] **[UX-0389]** Interactive tab-completion cycling across module planning editor  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0390]** Interactive tab-completion cycling across spend confirmation prompt  
+- [x] **[UX-0390]** Interactive tab-completion cycling across spend confirmation prompt  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0391]** Interactive tab-completion cycling across test failure stack trace viewer  
+- [x] **[UX-0391]** Interactive tab-completion cycling across test failure stack trace viewer  
   *Subsystem*: `packages/tui` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0392]** Interactive tab-completion cycling across web research source picker  
+- [x] **[UX-0392]** Interactive tab-completion cycling across web research source picker  
   *Subsystem*: `packages/coding-agent` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0393]** Interactive tab-completion cycling across skill catalog explorer  
+- [x] **[UX-0393]** Interactive tab-completion cycling across skill catalog explorer  
   *Subsystem*: `packages/tui` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0394]** Interactive tab-completion cycling across dependency graph node inspector  
+- [x] **[UX-0394]** Interactive tab-completion cycling across dependency graph node inspector  
   *Subsystem*: `packages/coding-agent` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0395]** Interactive tab-completion cycling across header telemetry HUD  
+- [x] **[UX-0395]** Interactive tab-completion cycling across header telemetry HUD  
   *Subsystem*: `packages/tui` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0396]** Interactive tab-completion cycling across interactive diff patch chunk selector  
+- [x] **[UX-0396]** Interactive tab-completion cycling across interactive diff patch chunk selector  
   *Subsystem*: `packages/coding-agent` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0397]** Interactive tab-completion cycling across file risk flag review modal  
+- [x] **[UX-0397]** Interactive tab-completion cycling across file risk flag review modal  
   *Subsystem*: `packages/tui` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0398]** Interactive tab-completion cycling across theme color picker  
+- [x] **[UX-0398]** Interactive tab-completion cycling across theme color picker  
   *Subsystem*: `packages/coding-agent` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0399]** Interactive tab-completion cycling across live web preview control panel  
+- [x] **[UX-0399]** Interactive tab-completion cycling across live web preview control panel  
   *Subsystem*: `packages/tui` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0400]** Interactive tab-completion cycling across help documentation browser  
+- [x] **[UX-0400]** Interactive tab-completion cycling across help documentation browser  
   *Subsystem*: `packages/coding-agent` | *Tier*: Developer Ergonomics
 
 ---

@@ -26,3 +26,5 @@ export * from "./shortcuts.ts";
 export * from "./quick-action-menu.ts";
 export * from "./cheatsheet.ts";
 export * from "./aesthetics.ts";
+export * from "./telemetry_widgets.ts";
+export * from "./keyboard_suite.ts";
