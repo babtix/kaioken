@@ -1,3 +1,15 @@
+export type DomainCategory =
+	| "file_path"
+	| "symbol_signature"
+	| "api_param"
+	| "arch_boundary"
+	| "command_example"
+	| "perf_metric"
+	| "config_key"
+	| "dependency_claim"
+	| "commit_quote"
+	| "db_citation";
+
 export type ClaimKind =
 	| "file"
 	| "symbol"
@@ -5,7 +17,13 @@ export type ClaimKind =
 	| "excerpt"
 	| "api_param"
 	| "command_example"
-	| "arch_boundary";
+	| "arch_boundary"
+	| "perf_metric"
+	| "config_key"
+	| "dependency_claim"
+	| "commit_quote"
+	| "db_citation"
+	| "link";
 
 export interface Claim {
 	kind: ClaimKind;
@@ -15,6 +33,8 @@ export interface Claim {
 	startLine?: number;
 	endLine?: number;
 	category?: string;
+	domain?: DomainCategory;
+	target?: string;
 }
 
 export type DefectKind =
@@ -27,7 +47,13 @@ export type DefectKind =
 	| "padding"
 	| "broken_link"
 	| "fabricated_parent"
-	| "fuzzy_out_of_scope";
+	| "fuzzy_out_of_scope"
+	| "ungrounded_perf_metric"
+	| "ungrounded_config_key"
+	| "ungrounded_dependency"
+	| "ungrounded_commit"
+	| "ungrounded_db_citation"
+	| "unknown_parameter";
 
 export interface Defect {
 	kind: DefectKind;
@@ -37,6 +63,15 @@ export interface Defect {
 	severity?: "critical" | "warning" | "info";
 	suggestions?: string[];
 	suggestedReplacement?: string;
+	domain?: DomainCategory;
+}
+
+export interface CategoryScoreDetail {
+	claims: number;
+	grounded: number;
+	defects: number;
+	confidence: number;
+	status: "grounded" | "suspect" | "hallucinated";
 }
 
 export interface GroundingScore {
@@ -49,6 +84,7 @@ export interface GroundingScore {
 	paddingCount: number;
 	coverage: number;
 	categoryScores: Record<string, number>;
+	categoryBreakdown?: Record<string, CategoryScoreDetail>;
 }
 
 export interface VerificationReport {
@@ -60,4 +96,6 @@ export interface VerificationReport {
 	score: GroundingScore;
 	repairPrompt?: string;
 	annotatedBody?: string;
+	auditView?: string;
 }
+

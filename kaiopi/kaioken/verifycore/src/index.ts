@@ -6,3 +6,5 @@ export * from "./fuzzy.ts";
 export * from "./scoring.ts";
 export * from "./repair.ts";
 export * from "./shield.ts";
+export * from "./audit.ts";
+export * from "./links.ts";

@@ -1,4 +1,4 @@
-import type { Claim, Defect, VerificationReport } from "./types.ts";
+import type { Claim, Defect, DomainCategory, VerificationReport } from "./types.ts";
 
 export type ShieldEnforcement = "strict" | "warn" | "permissive";
 
@@ -28,24 +28,32 @@ export class AntiHallucinationShield {
 	}
 
 	classifyClaim(claim: Claim): Claim {
-		let category: string;
-		if (claim.kind === "file") {
-			category = "file_path";
-		} else if (claim.kind === "symbol") {
-			category = "symbol_signature";
-		} else if (claim.kind === "anchor" || claim.kind === "excerpt") {
-			category = "symbol_signature";
+		let domain: DomainCategory;
+		if (claim.kind === "file" || claim.kind === "link") {
+			domain = "file_path";
+		} else if (claim.kind === "symbol" || claim.kind === "anchor" || claim.kind === "excerpt") {
+			domain = "symbol_signature";
 		} else if (claim.kind === "api_param") {
-			category = "api_param";
+			domain = "api_param";
 		} else if (claim.kind === "arch_boundary") {
-			category = "arch_boundary";
+			domain = "arch_boundary";
 		} else if (claim.kind === "command_example") {
-			category = "command_example";
+			domain = "command_example";
+		} else if (claim.kind === "perf_metric") {
+			domain = "perf_metric";
+		} else if (claim.kind === "config_key") {
+			domain = "config_key";
+		} else if (claim.kind === "dependency_claim") {
+			domain = "dependency_claim";
+		} else if (claim.kind === "commit_quote") {
+			domain = "commit_quote";
+		} else if (claim.kind === "db_citation") {
+			domain = "db_citation";
 		} else {
-			category = "general";
+			domain = "file_path";
 		}
 
-		return { ...claim, category };
+		return { ...claim, domain, category: domain };
 	}
 
 	annotateDocument(body: string, defects: readonly Defect[]): string {
@@ -75,7 +83,8 @@ export class AntiHallucinationShield {
 			if (lineDefects) {
 				for (const d of lineDefects) {
 					const fixHint = d.suggestedReplacement ? ` -> Suggestion: "${d.suggestedReplacement}"` : "";
-					annotatedLines.push(`<!-- [UNGROUNDED: ${d.kind} "${d.claim}"${fixHint}] -->`);
+					const domainTag = d.domain ? ` [${d.domain}]` : "";
+					annotatedLines.push(`<!-- [UNGROUNDED${domainTag}: ${d.kind} "${d.claim}"${fixHint}] -->`);
 				}
 			}
 			annotatedLines.push(lines[i] as string);
@@ -85,7 +94,8 @@ export class AntiHallucinationShield {
 			annotatedLines.push("");
 			annotatedLines.push("<!-- [UNGROUNDED CLAIMS AUDIT]");
 			for (const u of unlocated) {
-				annotatedLines.push(`- ${u.kind}: "${u.claim}" (${u.detail})`);
+				const dom = u.domain ? ` [${u.domain}]` : "";
+				annotatedLines.push(`- ${u.kind}${dom}: "${u.claim}" (${u.detail})`);
 			}
 			annotatedLines.push("-->");
 		}
@@ -109,12 +119,21 @@ export class AntiHallucinationShield {
 			`- Source Coverage: ${Math.round(report.coverage * 100)}%`,
 		];
 
+		if (report.score.categoryBreakdown) {
+			lines.push("");
+			lines.push("#### Domain Breakdown:");
+			for (const [dom, detail] of Object.entries(report.score.categoryBreakdown)) {
+				lines.push(`- **${dom}**: ${detail.confidence}% [${detail.grounded}/${detail.claims} grounded, ${detail.defects} defects]`);
+			}
+		}
+
 		if (report.defects.length > 0) {
 			lines.push("");
 			lines.push("#### Defect Breakdown:");
 			for (const defect of report.defects) {
 				const rep = defect.suggestedReplacement ? ` (suggested: \`${defect.suggestedReplacement}\`)` : "";
-				lines.push(`- **${defect.kind}** [${defect.severity ?? "warning"}]: \`${defect.claim}\`${rep}`);
+				const dom = defect.domain ? ` [${defect.domain}]` : "";
+				lines.push(`- **${defect.kind}**${dom} [${defect.severity ?? "warning"}]: \`${defect.claim}\`${rep}`);
 			}
 		}
 

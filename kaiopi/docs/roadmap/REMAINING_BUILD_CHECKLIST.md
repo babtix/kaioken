@@ -10,11 +10,13 @@
 
 - **Total Roadmap Specifications**: 2,000 Features (`#UX-0001` – `#UX-2000`)
 - **Phase 1 Built (Steps 1–20)**: 955 Features (47.75% Complete)
-- **Phase 2 Remaining (Steps 21–40)**: **1,045 Features** (52.25% To Build)
+- **Phase 2 Built (Step 21)**: 75 Features (3.75% Complete)
+- **Total Built (Steps 1–21)**: **1,030 Features** (51.50% Complete)
+- **Phase 2 Remaining (Steps 22–40)**: **970 Features** (48.50% To Build)
 
 | Step | Category Name | Package / Subsystem | Remaining Features | Unbuilt ID Ranges |
 | :--: | :--- | :--- | :--: | :--- |
-| **Step 21** | **Cat 12**: VerifyCore, Grounding & Anti-Hallucination Shield | `kaioken/verifycore` | **75** | `UX-1106–UX-1110`, `UX-1131–UX-1200` |
+| **Step 21** | **Cat 12**: VerifyCore, Grounding & Anti-Hallucination Shield | `kaioken/verifycore` | **0** (Complete: 75/75) | None (`UX-1106–UX-1110`, `UX-1131–UX-1200` Built) |
 | **Step 22** | **Cat 09**: Provenance, Staleness & Truth Drift Detection | `kaioken/provenance` | **50** | `UX-0851–UX-0900` |
 | **Step 23** | **Cat 11**: Verification Gates, Native Test Runners & Diagnostics | `kaioken/verify` | **40** | `UX-1061–UX-1100` |
 | **Step 24** | **Cat 10**: Impact Analysis & Blast Radius Prediction | `kaioken/impact` | **50** | `UX-0951–UX-1000` |
@@ -39,157 +41,157 @@
 ---
 
 ### Step 21: Category 12 — VerifyCore, Grounding & Anti-Hallucination Shield
-*Rank: #1 Critical Foundation | Package: `kaioken/verifycore` | Remaining: 75 Features | Ranges: `UX-1106–UX-1110`, `UX-1131–UX-1200`*
+*Rank: #1 Critical Foundation | Package: `kaioken/verifycore` | Status: Complete (75/75 Built) | Ranges: `UX-1106–UX-1110`, `UX-1131–UX-1200`*
 
-- [ ] **[UX-1106]** O(1) pre-indexed basename lookup map verifying mentions of performance metric assertions  
+- [x] **[UX-1106]** O(1) pre-indexed basename lookup map verifying mentions of performance metric assertions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1107]** O(1) pre-indexed basename lookup map verifying mentions of configuration key citations  
+- [x] **[UX-1107]** O(1) pre-indexed basename lookup map verifying mentions of configuration key citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1108]** O(1) pre-indexed basename lookup map verifying mentions of third-party dependency claims  
+- [x] **[UX-1108]** O(1) pre-indexed basename lookup map verifying mentions of third-party dependency claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1109]** O(1) pre-indexed basename lookup map verifying mentions of historical commit attribution quotes  
+- [x] **[UX-1109]** O(1) pre-indexed basename lookup map verifying mentions of historical commit attribution quotes  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1110]** O(1) pre-indexed basename lookup map verifying mentions of database column and index citations  
+- [x] **[UX-1110]** O(1) pre-indexed basename lookup map verifying mentions of database column and index citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1131]** Padding and generic boilerplate detector rejecting fluff in code file path references in wiki chapters  
+- [x] **[UX-1131]** Padding and generic boilerplate detector rejecting fluff in code file path references in wiki chapters  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1132]** Padding and generic boilerplate detector rejecting fluff in symbol signature quotes in knowledge cards  
+- [x] **[UX-1132]** Padding and generic boilerplate detector rejecting fluff in symbol signature quotes in knowledge cards  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1133]** Padding and generic boilerplate detector rejecting fluff in API parameter documentation claims  
+- [x] **[UX-1133]** Padding and generic boilerplate detector rejecting fluff in API parameter documentation claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1134]** Padding and generic boilerplate detector rejecting fluff in architectural boundary descriptions  
+- [x] **[UX-1134]** Padding and generic boilerplate detector rejecting fluff in architectural boundary descriptions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1135]** Padding and generic boilerplate detector rejecting fluff in procedural command examples in skills  
+- [x] **[UX-1135]** Padding and generic boilerplate detector rejecting fluff in procedural command examples in skills  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1136]** Padding and generic boilerplate detector rejecting fluff in performance metric assertions  
+- [x] **[UX-1136]** Padding and generic boilerplate detector rejecting fluff in performance metric assertions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1137]** Padding and generic boilerplate detector rejecting fluff in configuration key citations  
+- [x] **[UX-1137]** Padding and generic boilerplate detector rejecting fluff in configuration key citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1138]** Padding and generic boilerplate detector rejecting fluff in third-party dependency claims  
+- [x] **[UX-1138]** Padding and generic boilerplate detector rejecting fluff in third-party dependency claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1139]** Padding and generic boilerplate detector rejecting fluff in historical commit attribution quotes  
+- [x] **[UX-1139]** Padding and generic boilerplate detector rejecting fluff in historical commit attribution quotes  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1140]** Padding and generic boilerplate detector rejecting fluff in database column and index citations  
+- [x] **[UX-1140]** Padding and generic boilerplate detector rejecting fluff in database column and index citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1141]** Interactive claim verification audit view highlighting verified citations in code file path references in wiki chapters  
+- [x] **[UX-1141]** Interactive claim verification audit view highlighting verified citations in code file path references in wiki chapters  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1142]** Interactive claim verification audit view highlighting verified citations in symbol signature quotes in knowledge cards  
+- [x] **[UX-1142]** Interactive claim verification audit view highlighting verified citations in symbol signature quotes in knowledge cards  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1143]** Interactive claim verification audit view highlighting verified citations in API parameter documentation claims  
+- [x] **[UX-1143]** Interactive claim verification audit view highlighting verified citations in API parameter documentation claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1144]** Interactive claim verification audit view highlighting verified citations in architectural boundary descriptions  
+- [x] **[UX-1144]** Interactive claim verification audit view highlighting verified citations in architectural boundary descriptions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1145]** Interactive claim verification audit view highlighting verified citations in procedural command examples in skills  
+- [x] **[UX-1145]** Interactive claim verification audit view highlighting verified citations in procedural command examples in skills  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1146]** Interactive claim verification audit view highlighting verified citations in performance metric assertions  
+- [x] **[UX-1146]** Interactive claim verification audit view highlighting verified citations in performance metric assertions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1147]** Interactive claim verification audit view highlighting verified citations in configuration key citations  
+- [x] **[UX-1147]** Interactive claim verification audit view highlighting verified citations in configuration key citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1148]** Interactive claim verification audit view highlighting verified citations in third-party dependency claims  
+- [x] **[UX-1148]** Interactive claim verification audit view highlighting verified citations in third-party dependency claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1149]** Interactive claim verification audit view highlighting verified citations in historical commit attribution quotes  
+- [x] **[UX-1149]** Interactive claim verification audit view highlighting verified citations in historical commit attribution quotes  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1150]** Interactive claim verification audit view highlighting verified citations in database column and index citations  
+- [x] **[UX-1150]** Interactive claim verification audit view highlighting verified citations in database column and index citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1151]** Strict directory path verifier preventing fabricated parent paths for code file path references in wiki chapters  
+- [x] **[UX-1151]** Strict directory path verifier preventing fabricated parent paths for code file path references in wiki chapters  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1152]** Strict directory path verifier preventing fabricated parent paths for symbol signature quotes in knowledge cards  
+- [x] **[UX-1152]** Strict directory path verifier preventing fabricated parent paths for symbol signature quotes in knowledge cards  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1153]** Strict directory path verifier preventing fabricated parent paths for API parameter documentation claims  
+- [x] **[UX-1153]** Strict directory path verifier preventing fabricated parent paths for API parameter documentation claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1154]** Strict directory path verifier preventing fabricated parent paths for architectural boundary descriptions  
+- [x] **[UX-1154]** Strict directory path verifier preventing fabricated parent paths for architectural boundary descriptions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1155]** Strict directory path verifier preventing fabricated parent paths for procedural command examples in skills  
+- [x] **[UX-1155]** Strict directory path verifier preventing fabricated parent paths for procedural command examples in skills  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1156]** Strict directory path verifier preventing fabricated parent paths for performance metric assertions  
+- [x] **[UX-1156]** Strict directory path verifier preventing fabricated parent paths for performance metric assertions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1157]** Strict directory path verifier preventing fabricated parent paths for configuration key citations  
+- [x] **[UX-1157]** Strict directory path verifier preventing fabricated parent paths for configuration key citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1158]** Strict directory path verifier preventing fabricated parent paths for third-party dependency claims  
+- [x] **[UX-1158]** Strict directory path verifier preventing fabricated parent paths for third-party dependency claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1159]** Strict directory path verifier preventing fabricated parent paths for historical commit attribution quotes  
+- [x] **[UX-1159]** Strict directory path verifier preventing fabricated parent paths for historical commit attribution quotes  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1160]** Strict directory path verifier preventing fabricated parent paths for database column and index citations  
+- [x] **[UX-1160]** Strict directory path verifier preventing fabricated parent paths for database column and index citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1161]** Defect scoring algorithm calculating grounding confidence percentage for code file path references in wiki chapters  
+- [x] **[UX-1161]** Defect scoring algorithm calculating grounding confidence percentage for code file path references in wiki chapters  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1162]** Defect scoring algorithm calculating grounding confidence percentage for symbol signature quotes in knowledge cards  
+- [x] **[UX-1162]** Defect scoring algorithm calculating grounding confidence percentage for symbol signature quotes in knowledge cards  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1163]** Defect scoring algorithm calculating grounding confidence percentage for API parameter documentation claims  
+- [x] **[UX-1163]** Defect scoring algorithm calculating grounding confidence percentage for API parameter documentation claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1164]** Defect scoring algorithm calculating grounding confidence percentage for architectural boundary descriptions  
+- [x] **[UX-1164]** Defect scoring algorithm calculating grounding confidence percentage for architectural boundary descriptions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1165]** Defect scoring algorithm calculating grounding confidence percentage for procedural command examples in skills  
+- [x] **[UX-1165]** Defect scoring algorithm calculating grounding confidence percentage for procedural command examples in skills  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1166]** Defect scoring algorithm calculating grounding confidence percentage for performance metric assertions  
+- [x] **[UX-1166]** Defect scoring algorithm calculating grounding confidence percentage for performance metric assertions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1167]** Defect scoring algorithm calculating grounding confidence percentage for configuration key citations  
+- [x] **[UX-1167]** Defect scoring algorithm calculating grounding confidence percentage for configuration key citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1168]** Defect scoring algorithm calculating grounding confidence percentage for third-party dependency claims  
+- [x] **[UX-1168]** Defect scoring algorithm calculating grounding confidence percentage for third-party dependency claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1169]** Defect scoring algorithm calculating grounding confidence percentage for historical commit attribution quotes  
+- [x] **[UX-1169]** Defect scoring algorithm calculating grounding confidence percentage for historical commit attribution quotes  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1170]** Defect scoring algorithm calculating grounding confidence percentage for database column and index citations  
+- [x] **[UX-1170]** Defect scoring algorithm calculating grounding confidence percentage for database column and index citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1171]** Symbol existence verifier checking declarations in index for code file path references in wiki chapters  
+- [x] **[UX-1171]** Symbol existence verifier checking declarations in index for code file path references in wiki chapters  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1172]** Symbol existence verifier checking declarations in index for symbol signature quotes in knowledge cards  
+- [x] **[UX-1172]** Symbol existence verifier checking declarations in index for symbol signature quotes in knowledge cards  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1173]** Symbol existence verifier checking declarations in index for API parameter documentation claims  
+- [x] **[UX-1173]** Symbol existence verifier checking declarations in index for API parameter documentation claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1174]** Symbol existence verifier checking declarations in index for architectural boundary descriptions  
+- [x] **[UX-1174]** Symbol existence verifier checking declarations in index for architectural boundary descriptions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1175]** Symbol existence verifier checking declarations in index for procedural command examples in skills  
+- [x] **[UX-1175]** Symbol existence verifier checking declarations in index for procedural command examples in skills  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1176]** Symbol existence verifier checking declarations in index for performance metric assertions  
+- [x] **[UX-1176]** Symbol existence verifier checking declarations in index for performance metric assertions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1177]** Symbol existence verifier checking declarations in index for configuration key citations  
+- [x] **[UX-1177]** Symbol existence verifier checking declarations in index for configuration key citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1178]** Symbol existence verifier checking declarations in index for third-party dependency claims  
+- [x] **[UX-1178]** Symbol existence verifier checking declarations in index for third-party dependency claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1179]** Symbol existence verifier checking declarations in index for historical commit attribution quotes  
+- [x] **[UX-1179]** Symbol existence verifier checking declarations in index for historical commit attribution quotes  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1180]** Symbol existence verifier checking declarations in index for database column and index citations  
+- [x] **[UX-1180]** Symbol existence verifier checking declarations in index for database column and index citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1181]** Citation link cross-validator ensuring referenced files exist for code file path references in wiki chapters  
+- [x] **[UX-1181]** Citation link cross-validator ensuring referenced files exist for code file path references in wiki chapters  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1182]** Citation link cross-validator ensuring referenced files exist for symbol signature quotes in knowledge cards  
+- [x] **[UX-1182]** Citation link cross-validator ensuring referenced files exist for symbol signature quotes in knowledge cards  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1183]** Citation link cross-validator ensuring referenced files exist for API parameter documentation claims  
+- [x] **[UX-1183]** Citation link cross-validator ensuring referenced files exist for API parameter documentation claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1184]** Citation link cross-validator ensuring referenced files exist for architectural boundary descriptions  
+- [x] **[UX-1184]** Citation link cross-validator ensuring referenced files exist for architectural boundary descriptions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1185]** Citation link cross-validator ensuring referenced files exist for procedural command examples in skills  
+- [x] **[UX-1185]** Citation link cross-validator ensuring referenced files exist for procedural command examples in skills  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1186]** Citation link cross-validator ensuring referenced files exist for performance metric assertions  
+- [x] **[UX-1186]** Citation link cross-validator ensuring referenced files exist for performance metric assertions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1187]** Citation link cross-validator ensuring referenced files exist for configuration key citations  
+- [x] **[UX-1187]** Citation link cross-validator ensuring referenced files exist for configuration key citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1188]** Citation link cross-validator ensuring referenced files exist for third-party dependency claims  
+- [x] **[UX-1188]** Citation link cross-validator ensuring referenced files exist for third-party dependency claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1189]** Citation link cross-validator ensuring referenced files exist for historical commit attribution quotes  
+- [x] **[UX-1189]** Citation link cross-validator ensuring referenced files exist for historical commit attribution quotes  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1190]** Citation link cross-validator ensuring referenced files exist for database column and index citations  
+- [x] **[UX-1190]** Citation link cross-validator ensuring referenced files exist for database column and index citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1191]** Mechanistic repair guidance prompt suggesting real replacements for code file path references in wiki chapters  
+- [x] **[UX-1191]** Mechanistic repair guidance prompt suggesting real replacements for code file path references in wiki chapters  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1192]** Mechanistic repair guidance prompt suggesting real replacements for symbol signature quotes in knowledge cards  
+- [x] **[UX-1192]** Mechanistic repair guidance prompt suggesting real replacements for symbol signature quotes in knowledge cards  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1193]** Mechanistic repair guidance prompt suggesting real replacements for API parameter documentation claims  
+- [x] **[UX-1193]** Mechanistic repair guidance prompt suggesting real replacements for API parameter documentation claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1194]** Mechanistic repair guidance prompt suggesting real replacements for architectural boundary descriptions  
+- [x] **[UX-1194]** Mechanistic repair guidance prompt suggesting real replacements for architectural boundary descriptions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1195]** Mechanistic repair guidance prompt suggesting real replacements for procedural command examples in skills  
+- [x] **[UX-1195]** Mechanistic repair guidance prompt suggesting real replacements for procedural command examples in skills  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1196]** Mechanistic repair guidance prompt suggesting real replacements for performance metric assertions  
+- [x] **[UX-1196]** Mechanistic repair guidance prompt suggesting real replacements for performance metric assertions  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1197]** Mechanistic repair guidance prompt suggesting real replacements for configuration key citations  
+- [x] **[UX-1197]** Mechanistic repair guidance prompt suggesting real replacements for configuration key citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1198]** Mechanistic repair guidance prompt suggesting real replacements for third-party dependency claims  
+- [x] **[UX-1198]** Mechanistic repair guidance prompt suggesting real replacements for third-party dependency claims  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1199]** Mechanistic repair guidance prompt suggesting real replacements for historical commit attribution quotes  
+- [x] **[UX-1199]** Mechanistic repair guidance prompt suggesting real replacements for historical commit attribution quotes  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1200]** Mechanistic repair guidance prompt suggesting real replacements for database column and index citations  
+- [x] **[UX-1200]** Mechanistic repair guidance prompt suggesting real replacements for database column and index citations  
   *Subsystem*: `kaioken/verifycore` | *Tier*: Developer Ergonomics
 
 ---
