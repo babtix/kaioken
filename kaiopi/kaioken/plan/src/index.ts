@@ -98,3 +98,20 @@ export type {
 } from "./types.ts";
 export { expandDirectories, findModule, flatten, moduleScope, validatePlan } from "./validate.ts";
 
+// Step 30 additions (UX-1251 to UX-1300)
+export {
+	checkArchitectureConsistency,
+	computeDomainCoverageIndicator,
+	formatArchitectureConsistencyReport,
+	mergeDomainSiblings,
+	renderDomainCoverageCard,
+	renderDomainModuleTree,
+	splitDomainModule,
+	type ArchitectureConsistencyIssue,
+	type ArchitectureConsistencyReport,
+	type ConsistencyIssueType,
+	type DomainCoverageReport,
+	type DomainMergeOptions,
+	type DomainSplitOptions,
+	type DomainTreeRenderOptions,
+} from "./decomposition.ts";
