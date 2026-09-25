@@ -237,3 +237,125 @@ export interface VerifyConfigValidationResult {
 	errors: string[];
 	config?: VerifyConfigFile;
 }
+
+// ---------------------------------------------------------------------------
+// Step 23: Category 11 Verification Gates, Native Test Runners & Diagnostics
+// ---------------------------------------------------------------------------
+
+export type VerifySuiteType =
+	| "nodejs"
+	| "python"
+	| "go"
+	| "rust"
+	| "deno"
+	| "make"
+	| "snapshots"
+	| "typescript"
+	| "lint"
+	| "e2e";
+
+export interface DemangledFrame {
+	file: string;
+	line: number;
+	col?: number;
+	symbol?: string;
+	isUserCode: boolean;
+	raw: string;
+}
+
+export interface DemangledTrace {
+	suite: VerifySuiteType;
+	originalOutput: string;
+	cleanMessage: string;
+	targetFile?: string;
+	line?: number;
+	col?: number;
+	ruleOrCode?: string;
+	userFrames: DemangledFrame[];
+	filteredFramesCount: number;
+	diffSnippet?: AssertionDiff;
+	artifactPaths?: string[];
+	isAutoFixable?: boolean;
+	summaryLine: string;
+}
+
+export interface DemangleFormatOptions {
+	maxFrames?: number;
+	showDiff?: boolean;
+	colorize?: boolean;
+}
+
+export interface SuiteRepairContext {
+	suite: VerifySuiteType;
+	root: string;
+	command: string;
+	exitCode: number;
+	rawOutput: string;
+	demangled: DemangledTrace;
+	iteration: number;
+	maxIterations: number;
+	previousAttempts?: Array<{
+		iteration: number;
+		summary: string;
+		changedFiles?: string[];
+	}>;
+}
+
+export interface SuiteRepairPlan {
+	suite: VerifySuiteType;
+	systemPrompt: string;
+	userPrompt: string;
+	suiteSpecificGuidelines: string[];
+	canProceed: boolean;
+	iteration: number;
+	maxIterations: number;
+	diagnosticSummary: string;
+	recommendedActions: string[];
+}
+
+export interface BenchmarkRecord {
+	timestamp: number;
+	commitHash?: string;
+	durationMs: number;
+	testCount?: number;
+	passed: boolean;
+}
+
+export interface SuiteBenchmarkHistory {
+	suite: VerifySuiteType;
+	baselineDurationMs: number;
+	records: BenchmarkRecord[];
+	thresholdPercent: number;
+	thresholdMinMs: number;
+}
+
+export interface BenchmarkRegressionReport {
+	suite: VerifySuiteType;
+	hasRegression: boolean;
+	currentDurationMs: number;
+	baselineDurationMs: number;
+	averageDurationMs: number;
+	p95DurationMs: number;
+	deltaMs: number;
+	deltaPercent: number;
+	status: "improved" | "stable" | "regressed";
+	message: string;
+}
+
+export interface VerifyDurationBenchmarkStore {
+	version: number;
+	suites: Record<VerifySuiteType, SuiteBenchmarkHistory>;
+}
+
+export interface SuiteConfigDefinition {
+	suite: VerifySuiteType;
+	commands: CustomVerifyCommand[];
+	env?: Record<string, string>;
+	timeoutMs?: number;
+	optional?: boolean;
+	suiteOptions?: Record<string, unknown>;
+}
+
+export interface EnhancedVerifyConfig extends VerifyConfigFile {
+	suiteConfigs?: Partial<Record<VerifySuiteType, SuiteConfigDefinition>>;
+}

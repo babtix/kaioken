@@ -6,3 +6,7 @@ export * from "./flaky.ts";
 export * from "./repair.ts";
 export * from "./config.ts";
 export * from "./gate.ts";
+export * from "./demangler.ts";
+export * from "./suite_repair.ts";
+export * from "./benchmark.ts";
+export * from "./editor.ts";
