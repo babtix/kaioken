@@ -230,3 +230,170 @@ export function applyPathBoost(
 		reason,
 	};
 }
+
+/**
+ * 10 Core Document and Knowledge Archetypes for Domain-Specific Search (UX-0741 to UX-0800).
+ */
+export type DomainArchetype =
+	| "api"
+	| "config"
+	| "error"
+	| "db"
+	| "util"
+	| "test"
+	| "wiki"
+	| "card"
+	| "skill"
+	| "commit";
+
+export interface DomainBoostProfile {
+	readonly domain: DomainArchetype;
+	readonly label: string;
+	readonly description: string;
+	readonly preferredPathPatterns: string[];
+	readonly preferredMultiplier: number;
+	readonly nonPreferredMultiplier: number;
+}
+
+export const DOMAIN_BOOST_PROFILES: Record<DomainArchetype, DomainBoostProfile> = {
+	api: {
+		domain: "api",
+		label: "Exported API Endpoints (UX-0741)",
+		description: "Exported API endpoint declarations, route definitions, and request controllers",
+		preferredPathPatterns: ["routes/", "api/", "controllers/", "endpoints/", "handlers/", "router/"],
+		preferredMultiplier: 1.45,
+		nonPreferredMultiplier: 0.95,
+	},
+	config: {
+		domain: "config",
+		label: "Configuration & Environment (UX-0742)",
+		description: "Configuration options, environment variables, feature flags, and settings schemas",
+		preferredPathPatterns: ["config/", "settings/", "options/", "env", "flags/", ".config"],
+		preferredMultiplier: 1.4,
+		nonPreferredMultiplier: 0.95,
+	},
+	error: {
+		domain: "error",
+		label: "Error Codes & Exceptions (UX-0743)",
+		description: "Error codes, exception class definitions, failure diagnostics, and status codes",
+		preferredPathPatterns: ["errors/", "exceptions/", "diagnostics/", "faults/", "codes/"],
+		preferredMultiplier: 1.4,
+		nonPreferredMultiplier: 0.95,
+	},
+	db: {
+		domain: "db",
+		label: "Database Schema & Migrations (UX-0744)",
+		description: "Database schema tables, models, entities, and migration scripts",
+		preferredPathPatterns: ["db/", "schema/", "migrations/", "models/", "entities/", "tables/"],
+		preferredMultiplier: 1.4,
+		nonPreferredMultiplier: 0.95,
+	},
+	util: {
+		domain: "util",
+		label: "Utility Functions & Helpers (UX-0745)",
+		description: "Utility functions, helper algorithms, math routines, and shared transformers",
+		preferredPathPatterns: ["utils/", "helpers/", "tools/", "algorithms/", "lib/utils", "common/"],
+		preferredMultiplier: 1.35,
+		nonPreferredMultiplier: 0.95,
+	},
+	test: {
+		domain: "test",
+		label: "Test Suites & Assertions (UX-0746)",
+		description: "Test suite descriptions, test fixtures, mocks, and assertion blocks",
+		preferredPathPatterns: ["test/", "tests/", "spec/", "__tests__/", "fixtures/", "suites/"],
+		preferredMultiplier: 1.5,
+		nonPreferredMultiplier: 0.85,
+	},
+	wiki: {
+		domain: "wiki",
+		label: "Documentation Wiki & Headings (UX-0747)",
+		description: "Documentation wiki chapters, architecture overviews, guides, and headings",
+		preferredPathPatterns: ["docs/", "wiki/", "chapters/", "guides/", "manual/", "architecture/"],
+		preferredMultiplier: 1.4,
+		nonPreferredMultiplier: 0.95,
+	},
+	card: {
+		domain: "card",
+		label: "Knowledge Cards & Facts (UX-0748)",
+		description: "Knowledge card summaries, atomic fact cards, and cited sources",
+		preferredPathPatterns: ["cards/", "knowledge/", "facts/", "notes/", "cards.ts"],
+		preferredMultiplier: 1.45,
+		nonPreferredMultiplier: 0.95,
+	},
+	skill: {
+		domain: "skill",
+		label: "Agent Skills & Procedures (UX-0749)",
+		description: "Agent procedure instructions, skill definitions, parameters, and actions",
+		preferredPathPatterns: ["skills/", "procedures/", "agents/", "tasks/", "skillgen/"],
+		preferredMultiplier: 1.45,
+		nonPreferredMultiplier: 0.95,
+	},
+	commit: {
+		domain: "commit",
+		label: "Git Commits & Metadata (UX-0750)",
+		description: "Git commit messages, author metadata, changelog entries, and release history",
+		preferredPathPatterns: [".git/", "commits/", "history/", "changelog", "releases/"],
+		preferredMultiplier: 1.5,
+		nonPreferredMultiplier: 0.9,
+	},
+};
+
+/**
+ * Domain-specific directory and path booster for the 10 core archetypes (UX-0741 to UX-0750).
+ */
+export function applyDomainPathBoost(
+	docPath: string,
+	baseScore: number,
+	domain: DomainArchetype,
+	config: PathBoostConfig = {},
+): PathBoostResult {
+	if (baseScore <= 0) {
+		return {
+			originalScore: baseScore,
+			boostedScore: baseScore,
+			multiplier: 1.0,
+			reason: "Zero base score",
+		};
+	}
+
+	const baseBoostResult = applyPathBoost(docPath, baseScore, config);
+	const profile = DOMAIN_BOOST_PROFILES[domain];
+	if (!profile) {
+		return baseBoostResult;
+	}
+
+	const normPath = docPath.replace(/\\/g, "/").toLowerCase();
+	let domainMultiplier = 1.0;
+	let domainReason = "";
+
+	const matchesPreferred = profile.preferredPathPatterns.some((pattern) =>
+		normPath.includes(pattern.toLowerCase()),
+	);
+
+	if (matchesPreferred) {
+		domainMultiplier = profile.preferredMultiplier;
+		domainReason = `Matches ${profile.label} domain pattern (×${domainMultiplier.toFixed(2)})`;
+	} else {
+		domainMultiplier = profile.nonPreferredMultiplier;
+		domainReason = `Outside ${profile.domain} preferred paths (×${domainMultiplier.toFixed(2)})`;
+	}
+
+	const totalMultiplier = baseBoostResult.multiplier * domainMultiplier;
+	const boostedScore = Math.max(0, baseScore * totalMultiplier);
+
+	return {
+		originalScore: baseScore,
+		boostedScore,
+		multiplier: totalMultiplier,
+		reason: `${baseBoostResult.reason} | ${domainReason}`,
+	};
+}
+
+/**
+ * Human-readable description of domain archetype path priorities.
+ */
+export function getArchetypeBoostDescription(domain: DomainArchetype): string {
+	const profile = DOMAIN_BOOST_PROFILES[domain];
+	if (!profile) return "General code and document search";
+	return `${profile.label}: ${profile.description} (Preferred: ${profile.preferredPathPatterns.join(", ")})`;
+}

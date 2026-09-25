@@ -103,9 +103,9 @@ export function classifyChunkCategory(doc: Doc, chunk: Chunk): PreviewCategory {
 	const headingLower = chunk.heading.toLowerCase();
 	const textLower = chunk.text.toLowerCase();
 
-	if (doc.kind === "wiki") return "wiki";
-	if (doc.kind === "card") return "card";
-	if (doc.kind === "skill") return "skill";
+	if (doc.kind === "wiki" || pathLower.includes("wiki") || pathLower.includes("docs/")) return "wiki";
+	if (doc.kind === "card" || pathLower.includes("card") || pathLower.includes("knowledge/")) return "card";
+	if (doc.kind === "skill" || pathLower.includes("skill") || pathLower.includes("skills/")) return "skill";
 
 	if (
 		pathLower.includes("commit") ||

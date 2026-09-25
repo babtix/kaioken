@@ -10,9 +10,9 @@
 
 - **Total Roadmap Specifications**: 2,000 Features (`#UX-0001` – `#UX-2000`)
 - **Phase 1 Built (Steps 1–20)**: 955 Features (47.75% Complete)
-- **Phase 2 Built (Steps 21–26)**: 325 Features (16.25% Complete)
-- **Total Built (Steps 1–26)**: **1,280 Features** (64.00% Complete)
-- **Phase 2 Remaining (Steps 27–40)**: **720 Features** (36.00% To Build)
+- **Phase 2 Built (Steps 21–27)**: 385 Features (19.25% Complete)
+- **Total Built (Steps 1–27)**: **1,340 Features** (67.00% Complete)
+- **Phase 2 Remaining (Steps 28–40)**: **660 Features** (33.00% To Build)
 
 | Step | Category Name | Package / Subsystem | Remaining Features | Unbuilt ID Ranges |
 | :--: | :--- | :--- | :--: | :--- |
@@ -22,7 +22,7 @@
 | **Step 24** | **Cat 10**: Impact Analysis & Blast Radius Prediction | `kaioken/impact` | **0** (Complete: 50/50) | None (`UX-0951–UX-1000` Built) |
 | **Step 25** | **Cat 07**: AST Symbol Indexing & Code Oracle | `kaioken/index` | **0** (Complete: 60/60) | None (`UX-0641–UX-0700` Built) |
 | **Step 26** | **Cat 19**: GitOps, Worktree Delegation & Safe Merges | `kaioken/gitops` | **0** (Complete: 50/50) | None (`UX-1851–UX-1900` Built) |
-| **Step 27** | **Cat 08**: Search, Lexical Indexing & BM25 Retrieval | `kaioken/search` | **60** | `UX-0741–UX-0800` |
+| **Step 27** | **Cat 08**: Search, Lexical Indexing & BM25 Retrieval | `kaioken/search` | **0** (Complete: 60/60) | None (`UX-0741–UX-0800` Built) |
 | **Step 28** | **Cat 06**: Repo Scan, File Discovery & Risk Shield | `kaioken/scan` | **60** | `UX-0541–UX-0600` |
 | **Step 29** | **Cat 05**: Spend Transparency, Token Budgeting & Cost Control | `kaioken/modelport` | **50** | `UX-0451–UX-0500` |
 | **Step 30** | **Cat 13**: Module Planning & Architecture Decomposition | `kaioken/plan` | **50** | `UX-1251–UX-1300` |
@@ -36,7 +36,7 @@
 | **Step 38** | **Cat 01**: Terminal UI (TUI) & Visual Aesthetics | `.pi/extensions/kaioken/ui` | **50** | `UX-0051–UX-0100` |
 | **Step 39** | **Cat 03**: HUD, Status Bar & Dynamic Widgets | `.pi/extensions/kaioken/ui/header.ts` | **50** | `UX-0251–UX-0300` |
 | **Step 40** | **Cat 04**: Keyboard Navigation, Shortcuts & Command Palette | `packages/tui` | **50** | `UX-0351–UX-0400` |
-| **TOTAL** | **All 20 Architectural Categories** | | **720** | |
+| **TOTAL** | **All 20 Architectural Categories** | | **660** | |
 
 ---
 
@@ -727,127 +727,127 @@
 ---
 
 ### Step 27: Category 08 — Search, Lexical Indexing & BM25 Retrieval
-*Rank: #7 Instant Code Discovery | Package: `kaioken/search` | Remaining: 60 Features | Ranges: `UX-0741–UX-0800`*
+*Rank: #7 Instant Code Discovery | Package: `kaioken/search` | Status: Complete (60/60 Built) | Ranges: `UX-0741–UX-0800`*
 
-- [ ] **[UX-0741]** File-path and directory boosting prioritizing core source files in exported API endpoint declarations  
+- [x] **[UX-0741]** File-path and directory boosting prioritizing core source files in exported API endpoint declarations  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0742]** File-path and directory boosting prioritizing core source files in configuration options and environment variables  
+- [x] **[UX-0742]** File-path and directory boosting prioritizing core source files in configuration options and environment variables  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0743]** File-path and directory boosting prioritizing core source files in error codes and exception class definitions  
+- [x] **[UX-0743]** File-path and directory boosting prioritizing core source files in error codes and exception class definitions  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0744]** File-path and directory boosting prioritizing core source files in database schema tables and migration scripts  
+- [x] **[UX-0744]** File-path and directory boosting prioritizing core source files in database schema tables and migration scripts  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0745]** File-path and directory boosting prioritizing core source files in utility functions and helper algorithms  
+- [x] **[UX-0745]** File-path and directory boosting prioritizing core source files in utility functions and helper algorithms  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0746]** File-path and directory boosting prioritizing core source files in test suite descriptions and assertion blocks  
+- [x] **[UX-0746]** File-path and directory boosting prioritizing core source files in test suite descriptions and assertion blocks  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0747]** File-path and directory boosting prioritizing core source files in documentation wiki chapters and headings  
+- [x] **[UX-0747]** File-path and directory boosting prioritizing core source files in documentation wiki chapters and headings  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0748]** File-path and directory boosting prioritizing core source files in knowledge card summaries and cited sources  
+- [x] **[UX-0748]** File-path and directory boosting prioritizing core source files in knowledge card summaries and cited sources  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0749]** File-path and directory boosting prioritizing core source files in agent procedure instructions and parameters  
+- [x] **[UX-0749]** File-path and directory boosting prioritizing core source files in agent procedure instructions and parameters  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0750]** File-path and directory boosting prioritizing core source files in git commit messages and author metadata  
+- [x] **[UX-0750]** File-path and directory boosting prioritizing core source files in git commit messages and author metadata  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0751]** Interactive snippet highlighter with matched term color accents for exported API endpoint declarations  
+- [x] **[UX-0751]** Interactive snippet highlighter with matched term color accents for exported API endpoint declarations  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0752]** Interactive snippet highlighter with matched term color accents for configuration options and environment variables  
+- [x] **[UX-0752]** Interactive snippet highlighter with matched term color accents for configuration options and environment variables  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0753]** Interactive snippet highlighter with matched term color accents for error codes and exception class definitions  
+- [x] **[UX-0753]** Interactive snippet highlighter with matched term color accents for error codes and exception class definitions  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0754]** Interactive snippet highlighter with matched term color accents for database schema tables and migration scripts  
+- [x] **[UX-0754]** Interactive snippet highlighter with matched term color accents for database schema tables and migration scripts  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0755]** Interactive snippet highlighter with matched term color accents for utility functions and helper algorithms  
+- [x] **[UX-0755]** Interactive snippet highlighter with matched term color accents for utility functions and helper algorithms  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0756]** Interactive snippet highlighter with matched term color accents for test suite descriptions and assertion blocks  
+- [x] **[UX-0756]** Interactive snippet highlighter with matched term color accents for test suite descriptions and assertion blocks  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0757]** Interactive snippet highlighter with matched term color accents for documentation wiki chapters and headings  
+- [x] **[UX-0757]** Interactive snippet highlighter with matched term color accents for documentation wiki chapters and headings  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0758]** Interactive snippet highlighter with matched term color accents for knowledge card summaries and cited sources  
+- [x] **[UX-0758]** Interactive snippet highlighter with matched term color accents for knowledge card summaries and cited sources  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0759]** Interactive snippet highlighter with matched term color accents for agent procedure instructions and parameters  
+- [x] **[UX-0759]** Interactive snippet highlighter with matched term color accents for agent procedure instructions and parameters  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0760]** Interactive snippet highlighter with matched term color accents for git commit messages and author metadata  
+- [x] **[UX-0760]** Interactive snippet highlighter with matched term color accents for git commit messages and author metadata  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0761]** Query syntax parser supporting boolean AND/OR/NOT filters for exported API endpoint declarations  
+- [x] **[UX-0761]** Query syntax parser supporting boolean AND/OR/NOT filters for exported API endpoint declarations  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0762]** Query syntax parser supporting boolean AND/OR/NOT filters for configuration options and environment variables  
+- [x] **[UX-0762]** Query syntax parser supporting boolean AND/OR/NOT filters for configuration options and environment variables  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0763]** Query syntax parser supporting boolean AND/OR/NOT filters for error codes and exception class definitions  
+- [x] **[UX-0763]** Query syntax parser supporting boolean AND/OR/NOT filters for error codes and exception class definitions  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0764]** Query syntax parser supporting boolean AND/OR/NOT filters for database schema tables and migration scripts  
+- [x] **[UX-0764]** Query syntax parser supporting boolean AND/OR/NOT filters for database schema tables and migration scripts  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0765]** Query syntax parser supporting boolean AND/OR/NOT filters for utility functions and helper algorithms  
+- [x] **[UX-0765]** Query syntax parser supporting boolean AND/OR/NOT filters for utility functions and helper algorithms  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0766]** Query syntax parser supporting boolean AND/OR/NOT filters for test suite descriptions and assertion blocks  
+- [x] **[UX-0766]** Query syntax parser supporting boolean AND/OR/NOT filters for test suite descriptions and assertion blocks  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0767]** Query syntax parser supporting boolean AND/OR/NOT filters for documentation wiki chapters and headings  
+- [x] **[UX-0767]** Query syntax parser supporting boolean AND/OR/NOT filters for documentation wiki chapters and headings  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0768]** Query syntax parser supporting boolean AND/OR/NOT filters for knowledge card summaries and cited sources  
+- [x] **[UX-0768]** Query syntax parser supporting boolean AND/OR/NOT filters for knowledge card summaries and cited sources  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0769]** Query syntax parser supporting boolean AND/OR/NOT filters for agent procedure instructions and parameters  
+- [x] **[UX-0769]** Query syntax parser supporting boolean AND/OR/NOT filters for agent procedure instructions and parameters  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0770]** Query syntax parser supporting boolean AND/OR/NOT filters for git commit messages and author metadata  
+- [x] **[UX-0770]** Query syntax parser supporting boolean AND/OR/NOT filters for git commit messages and author metadata  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0771]** Search history dropdown remembering frequently investigated exported API endpoint declarations  
+- [x] **[UX-0771]** Search history dropdown remembering frequently investigated exported API endpoint declarations  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0772]** Search history dropdown remembering frequently investigated configuration options and environment variables  
+- [x] **[UX-0772]** Search history dropdown remembering frequently investigated configuration options and environment variables  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0773]** Search history dropdown remembering frequently investigated error codes and exception class definitions  
+- [x] **[UX-0773]** Search history dropdown remembering frequently investigated error codes and exception class definitions  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0774]** Search history dropdown remembering frequently investigated database schema tables and migration scripts  
+- [x] **[UX-0774]** Search history dropdown remembering frequently investigated database schema tables and migration scripts  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0775]** Search history dropdown remembering frequently investigated utility functions and helper algorithms  
+- [x] **[UX-0775]** Search history dropdown remembering frequently investigated utility functions and helper algorithms  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0776]** Search history dropdown remembering frequently investigated test suite descriptions and assertion blocks  
+- [x] **[UX-0776]** Search history dropdown remembering frequently investigated test suite descriptions and assertion blocks  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0777]** Search history dropdown remembering frequently investigated documentation wiki chapters and headings  
+- [x] **[UX-0777]** Search history dropdown remembering frequently investigated documentation wiki chapters and headings  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0778]** Search history dropdown remembering frequently investigated knowledge card summaries and cited sources  
+- [x] **[UX-0778]** Search history dropdown remembering frequently investigated knowledge card summaries and cited sources  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0779]** Search history dropdown remembering frequently investigated agent procedure instructions and parameters  
+- [x] **[UX-0779]** Search history dropdown remembering frequently investigated agent procedure instructions and parameters  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0780]** Search history dropdown remembering frequently investigated git commit messages and author metadata  
+- [x] **[UX-0780]** Search history dropdown remembering frequently investigated git commit messages and author metadata  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0781]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for exported API endpoint declarations  
+- [x] **[UX-0781]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for exported API endpoint declarations  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0782]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for configuration options and environment variables  
+- [x] **[UX-0782]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for configuration options and environment variables  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0783]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for error codes and exception class definitions  
+- [x] **[UX-0783]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for error codes and exception class definitions  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0784]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for database schema tables and migration scripts  
+- [x] **[UX-0784]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for database schema tables and migration scripts  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0785]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for utility functions and helper algorithms  
+- [x] **[UX-0785]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for utility functions and helper algorithms  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0786]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for test suite descriptions and assertion blocks  
+- [x] **[UX-0786]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for test suite descriptions and assertion blocks  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0787]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for documentation wiki chapters and headings  
+- [x] **[UX-0787]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for documentation wiki chapters and headings  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0788]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for knowledge card summaries and cited sources  
+- [x] **[UX-0788]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for knowledge card summaries and cited sources  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0789]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for agent procedure instructions and parameters  
+- [x] **[UX-0789]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for agent procedure instructions and parameters  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0790]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for git commit messages and author metadata  
+- [x] **[UX-0790]** Reciprocal Rank Fusion (RRF) score visualizer explaining ranks for git commit messages and author metadata  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0791]** Zero-disk-read cached search session for repeated queries against exported API endpoint declarations  
+- [x] **[UX-0791]** Zero-disk-read cached search session for repeated queries against exported API endpoint declarations  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0792]** Zero-disk-read cached search session for repeated queries against configuration options and environment variables  
+- [x] **[UX-0792]** Zero-disk-read cached search session for repeated queries against configuration options and environment variables  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0793]** Zero-disk-read cached search session for repeated queries against error codes and exception class definitions  
+- [x] **[UX-0793]** Zero-disk-read cached search session for repeated queries against error codes and exception class definitions  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0794]** Zero-disk-read cached search session for repeated queries against database schema tables and migration scripts  
+- [x] **[UX-0794]** Zero-disk-read cached search session for repeated queries against database schema tables and migration scripts  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0795]** Zero-disk-read cached search session for repeated queries against utility functions and helper algorithms  
+- [x] **[UX-0795]** Zero-disk-read cached search session for repeated queries against utility functions and helper algorithms  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
-- [ ] **[UX-0796]** Zero-disk-read cached search session for repeated queries against test suite descriptions and assertion blocks  
+- [x] **[UX-0796]** Zero-disk-read cached search session for repeated queries against test suite descriptions and assertion blocks  
   *Subsystem*: `kaioken/search` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-0797]** Zero-disk-read cached search session for repeated queries against documentation wiki chapters and headings  
+- [x] **[UX-0797]** Zero-disk-read cached search session for repeated queries against documentation wiki chapters and headings  
   *Subsystem*: `kaioken/search` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-0798]** Zero-disk-read cached search session for repeated queries against knowledge card summaries and cited sources  
+- [x] **[UX-0798]** Zero-disk-read cached search session for repeated queries against knowledge card summaries and cited sources  
   *Subsystem*: `kaioken/search` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-0799]** Zero-disk-read cached search session for repeated queries against agent procedure instructions and parameters  
+- [x] **[UX-0799]** Zero-disk-read cached search session for repeated queries against agent procedure instructions and parameters  
   *Subsystem*: `kaioken/search` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-0800]** Zero-disk-read cached search session for repeated queries against git commit messages and author metadata  
+- [x] **[UX-0800]** Zero-disk-read cached search session for repeated queries against git commit messages and author metadata  
   *Subsystem*: `kaioken/search` | *Tier*: Developer Ergonomics
 
 ---

@@ -251,3 +251,66 @@ export function visualizeRrfScores(explanations: readonly ScoreExplanation[]): s
 	lines.push("└────┴─────────────────────────────┴───────────┴──────────┴──────────┴──────────┘");
 	return lines.join("\n");
 }
+
+export const ARCHETYPE_RRF_TITLES: Record<string, string> = {
+	api: "Exported API Endpoint Declarations (UX-0781)",
+	config: "Configuration Options & Environment Variables (UX-0782)",
+	error: "Error Codes & Exception Class Definitions (UX-0783)",
+	db: "Database Schema Tables & Migration Scripts (UX-0784)",
+	util: "Utility Functions & Helper Algorithms (UX-0785)",
+	test: "Test Suite Descriptions & Assertion Blocks (UX-0786)",
+	wiki: "Documentation Wiki Chapters & Headings (UX-0787)",
+	card: "Knowledge Card Summaries & Cited Sources (UX-0788)",
+	skill: "Agent Procedure Instructions & Parameters (UX-0789)",
+	commit: "Git Commit Messages & Author Metadata (UX-0790)",
+};
+
+/**
+ * Returns human-readable feature title for archetype RRF visualizer.
+ */
+export function getArchetypeRrfExplanationTitle(domain: string): string {
+	return ARCHETYPE_RRF_TITLES[domain.toLowerCase()] || `General Document Entity (${domain})`;
+}
+
+/**
+ * Renders an archetype-tailored visual card explaining RRF rankings (UX-0781 to UX-0790).
+ */
+export function renderArchetypeRrfVisualizer(exp: ScoreExplanation, domain: string): string {
+	const title = getArchetypeRrfExplanationTitle(domain);
+	const border = "─".repeat(68);
+	const lines: string[] = [
+		`┌${border}┐`,
+		`│ 📊  RRF RANK VISUALIZER: ${title.padEnd(43)} │`,
+		`├${border}┤`,
+		`│ Target Path  : ${exp.docPath.slice(-50).padEnd(52)} │`,
+		`│ Heading / Loc: ${(exp.heading || `Line ${exp.line}`).slice(0, 50).padEnd(52)} │`,
+		`│ Final Score  : ${exp.finalScore.toFixed(5).padEnd(52)} │`,
+		`├${border}┤`,
+		`│ Channel Contributions & Fusion Formula:                             │`,
+		`│   BM25 Lexical Rank  : ${exp.lexicalRank !== undefined ? `#${exp.lexicalRank + 1}`.padEnd(44) : "unranked".padEnd(44)} │`,
+		`│   Semantic Vector Rank: ${exp.semanticRank !== undefined ? `#${exp.semanticRank + 1}`.padEnd(43) : "unranked".padEnd(43)} │`,
+		`│   Path Multiplier    : ${`×${exp.pathBoost.multiplier.toFixed(2)} (${exp.pathBoost.reason})`.slice(0, 44).padEnd(44)} │`,
+	];
+
+	if (exp.rrf.isFused) {
+		lines.push(`├${border}┤`, `│ RRF Reciprocal Calculations (k = ${RRF_K}):                             │`);
+		for (const c of exp.rrf.contributions) {
+			lines.push(`│   • [${c.channel.toUpperCase()}] Rank #${c.rank}: ${c.formula.padEnd(42)} │`);
+		}
+		lines.push(`│   => Total Fused Score: ${exp.rrf.fusedScore.toFixed(5).padEnd(43)} │`);
+	}
+
+	lines.push(`├${border}┤`, `│ Feature Weight Proportions:                                         │`);
+	lines.push(`│   BM25 Lexical: ${renderBar(exp.featureWeights.bm25Percent).padEnd(51)} │`);
+	if (exp.phraseQuoteBonus.bonus > 0) {
+		lines.push(`│   Phrase Bonus: ${renderBar(exp.featureWeights.quotePercent).padEnd(51)} │`);
+	}
+	lines.push(`│   Path Weight : ${renderBar(exp.featureWeights.boostPercent).padEnd(51)} │`);
+	if (exp.semantic) {
+		lines.push(`│   Vector Cosine: ${renderBar(exp.featureWeights.semanticPercent).padEnd(50)} │`);
+	}
+
+	lines.push(`└${border}┘`);
+	return lines.join("\n");
+}
+
