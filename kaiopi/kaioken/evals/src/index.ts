@@ -31,3 +31,20 @@ export {
 	writeScorecard,
 } from "./scorecard.ts";
 export type { EvalScorecard, ScorecardDiff } from "./scorecard.ts";
+
+// Step 34 additions (UX-1951 to UX-2000)
+export {
+	ALL_CI_OUTPUT_TARGETS,
+	ALL_MULTI_LANGUAGE_TARGETS,
+	formatStreamingNdjsonRecord,
+	isCIOutputTarget,
+	isMultiLanguageTarget,
+	parseStreamingNdjson,
+	runAdversarialRejectionBenchmark,
+	validateMultiLanguageGrounding,
+	type AdversarialRejectionResult,
+	type CIOutputTarget,
+	type MultiLanguageGroundingResult,
+	type MultiLanguageTarget,
+} from "./ci_suite.ts";
+

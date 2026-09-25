@@ -27,3 +27,34 @@ export {
 	type ProcedureStep,
 	type StepSession,
 } from "./debug.ts";
+
+// Step 33 additions (UX-1751 to UX-1800)
+export {
+	ALL_PROCEDURE_KINDS,
+	compileSkillDocumentation,
+	formatCommandVerificationReport,
+	formatNamespaceCollisionWarning,
+	generateParameterPromptForm,
+	isProcedureKind,
+	matchSkillTriggers,
+	PROCEDURE_METADATA,
+	rankSuggestedSkills,
+	renderParameterFormUI,
+	renderSkillDocumentationMarkdown,
+	resolveSkillNameCollisions,
+	testVerificationCommand,
+	type CollisionResolutionResult,
+	type CollisionWarning,
+	type CommandTestResult,
+	type ParameterForm,
+	type ParameterFormField,
+	type ProcedureKind,
+	type ProcedureMeta,
+	type ProcedureParameter,
+	type SkillCandidate,
+	type SkillDocumentationResult,
+	type SkillSuggestionItem,
+	type SkillSuggestionResult,
+	type SkillTriggerContext,
+} from "./procedure_catalog.ts";
+

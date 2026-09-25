@@ -10,9 +10,9 @@
 
 - **Total Roadmap Specifications**: 2,000 Features (`#UX-0001` – `#UX-2000`)
 - **Phase 1 Built (Steps 1–20)**: 955 Features (47.75% Complete)
-- **Phase 2 Built (Steps 21–32)**: 645 Features (32.25% Complete)
-- **Total Built (Steps 1–32)**: **1,600 Features** (80.00% Complete)
-- **Phase 2 Remaining (Steps 33–40)**: **400 Features** (20.00% To Build)
+- **Phase 2 Built (Steps 21–34)**: 745 Features (37.25% Complete)
+- **Total Built (Steps 1–34)**: **1,700 Features** (85.00% Complete)
+- **Phase 2 Remaining (Steps 35–40)**: **300 Features** (15.00% To Build)
 
 | Step | Category Name | Package / Subsystem | Remaining Features | Unbuilt ID Ranges |
 | :--: | :--- | :--- | :--: | :--- |
@@ -28,15 +28,15 @@
 | **Step 30** | **Cat 13**: Module Planning & Architecture Decomposition | `kaioken/plan` | **0** (Complete: 50/50) | None (`UX-1251–UX-1300` Built) |
 | **Step 31** | **Cat 14**: Knowledge Cards & Atomic Fact Base | `kaioken/plan/src/cards.ts` | **0** (Complete: 50/50) | None (`UX-1351–UX-1400` Built) |
 | **Step 32** | **Cat 15**: Wiki Cascade, Chapter Generation & Documentation Web | `kaioken/wiki` | **0** (Complete: 50/50) | None (`UX-1451–UX-1500` Built) |
-| **Step 33** | **Cat 18**: Agent Skills, Autonomous Procedures & SkillGen | `kaioken/skills / skillgen` | **50** | `UX-1751–UX-1800` |
-| **Step 34** | **Cat 20**: Root CLI Parity, CI Automation & Evals Suite | `kaioken/bin.ts / evals` | **50** | `UX-1951–UX-2000` |
+| **Step 33** | **Cat 18**: Agent Skills, Autonomous Procedures & SkillGen | `kaioken/skills / skillgen` | **0** (Complete: 50/50) | None (`UX-1751–UX-1800` Built) |
+| **Step 34** | **Cat 20**: Root CLI Parity, CI Automation & Evals Suite | `kaioken/bin.ts / evals` | **0** (Complete: 50/50) | None (`UX-1951–UX-2000` Built) |
 | **Step 35** | **Cat 17**: Grounded Web Research & Intelligence Gatherer | `kaioken/research` | **50** | `UX-1651–UX-1700` |
 | **Step 36** | **Cat 16**: Serve Preview, Web UI & Interactive Knowledge Graph | `kaioken/serve` | **50** | `UX-1551–UX-1600` |
 | **Step 37** | **Cat 02**: Chat Transcript & Interactive Output Stream | `.pi/extensions/kaioken/commands` | **50** | `UX-0151–UX-0200` |
 | **Step 38** | **Cat 01**: Terminal UI (TUI) & Visual Aesthetics | `.pi/extensions/kaioken/ui` | **50** | `UX-0051–UX-0100` |
 | **Step 39** | **Cat 03**: HUD, Status Bar & Dynamic Widgets | `.pi/extensions/kaioken/ui/header.ts` | **50** | `UX-0251–UX-0300` |
 | **Step 40** | **Cat 04**: Keyboard Navigation, Shortcuts & Command Palette | `packages/tui` | **50** | `UX-0351–UX-0400` |
-| **TOTAL** | **All 20 Architectural Categories** | | **400** | |
+| **TOTAL** | **All 20 Architectural Categories** | | **300** | |
 
 ---
 
@@ -1403,213 +1403,213 @@
 ---
 
 ### Step 33: Category 18 — Agent Skills, Autonomous Procedures & SkillGen
-*Rank: #13 Agent Autonomy Procedures | Package: `kaioken/skills / skillgen` | Remaining: 50 Features | Ranges: `UX-1751–UX-1800`*
+*Rank: #13 Agent Autonomy Procedures | Package: `kaioken/skills / skillgen` | Status: Complete (50/50 Built) | Ranges: `UX-1751–UX-1800`*
 
-- [ ] **[UX-1751]** Duplicate skill name collision resolver with visual namespace warnings for database migration execution procedure  
+- [x] **[UX-1751]** Duplicate skill name collision resolver with visual namespace warnings for database migration execution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1752]** Duplicate skill name collision resolver with visual namespace warnings for code lint and formatting repair procedure  
+- [x] **[UX-1752]** Duplicate skill name collision resolver with visual namespace warnings for code lint and formatting repair procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1753]** Duplicate skill name collision resolver with visual namespace warnings for production deployment release checklist  
+- [x] **[UX-1753]** Duplicate skill name collision resolver with visual namespace warnings for production deployment release checklist  
   *Subsystem*: `kaioken/skills` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1754]** Duplicate skill name collision resolver with visual namespace warnings for local development environment setup procedure  
+- [x] **[UX-1754]** Duplicate skill name collision resolver with visual namespace warnings for local development environment setup procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1755]** Duplicate skill name collision resolver with visual namespace warnings for integration test execution and triage procedure  
+- [x] **[UX-1755]** Duplicate skill name collision resolver with visual namespace warnings for integration test execution and triage procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1756]** Duplicate skill name collision resolver with visual namespace warnings for dependency security audit and patch procedure  
+- [x] **[UX-1756]** Duplicate skill name collision resolver with visual namespace warnings for dependency security audit and patch procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1757]** Duplicate skill name collision resolver with visual namespace warnings for git branch rebase and conflict resolution procedure  
+- [x] **[UX-1757]** Duplicate skill name collision resolver with visual namespace warnings for git branch rebase and conflict resolution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1758]** Duplicate skill name collision resolver with visual namespace warnings for API documentation generation recipe  
+- [x] **[UX-1758]** Duplicate skill name collision resolver with visual namespace warnings for API documentation generation recipe  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1759]** Duplicate skill name collision resolver with visual namespace warnings for performance profiling and flamegraph recipe  
+- [x] **[UX-1759]** Duplicate skill name collision resolver with visual namespace warnings for performance profiling and flamegraph recipe  
   *Subsystem*: `kaioken/skills` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1760]** Duplicate skill name collision resolver with visual namespace warnings for incident response rollback runbook  
+- [x] **[UX-1760]** Duplicate skill name collision resolver with visual namespace warnings for incident response rollback runbook  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1761]** Verification command tester confirming executable recipes in database migration execution procedure  
+- [x] **[UX-1761]** Verification command tester confirming executable recipes in database migration execution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1762]** Verification command tester confirming executable recipes in code lint and formatting repair procedure  
+- [x] **[UX-1762]** Verification command tester confirming executable recipes in code lint and formatting repair procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1763]** Verification command tester confirming executable recipes in production deployment release checklist  
+- [x] **[UX-1763]** Verification command tester confirming executable recipes in production deployment release checklist  
   *Subsystem*: `kaioken/skills` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1764]** Verification command tester confirming executable recipes in local development environment setup procedure  
+- [x] **[UX-1764]** Verification command tester confirming executable recipes in local development environment setup procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1765]** Verification command tester confirming executable recipes in integration test execution and triage procedure  
+- [x] **[UX-1765]** Verification command tester confirming executable recipes in integration test execution and triage procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1766]** Verification command tester confirming executable recipes in dependency security audit and patch procedure  
+- [x] **[UX-1766]** Verification command tester confirming executable recipes in dependency security audit and patch procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1767]** Verification command tester confirming executable recipes in git branch rebase and conflict resolution procedure  
+- [x] **[UX-1767]** Verification command tester confirming executable recipes in git branch rebase and conflict resolution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1768]** Verification command tester confirming executable recipes in API documentation generation recipe  
+- [x] **[UX-1768]** Verification command tester confirming executable recipes in API documentation generation recipe  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1769]** Verification command tester confirming executable recipes in performance profiling and flamegraph recipe  
+- [x] **[UX-1769]** Verification command tester confirming executable recipes in performance profiling and flamegraph recipe  
   *Subsystem*: `kaioken/skills` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1770]** Verification command tester confirming executable recipes in incident response rollback runbook  
+- [x] **[UX-1770]** Verification command tester confirming executable recipes in incident response rollback runbook  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1771]** Interactive parameter prompt form generator rendering UI for database migration execution procedure  
+- [x] **[UX-1771]** Interactive parameter prompt form generator rendering UI for database migration execution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1772]** Interactive parameter prompt form generator rendering UI for code lint and formatting repair procedure  
+- [x] **[UX-1772]** Interactive parameter prompt form generator rendering UI for code lint and formatting repair procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1773]** Interactive parameter prompt form generator rendering UI for production deployment release checklist  
+- [x] **[UX-1773]** Interactive parameter prompt form generator rendering UI for production deployment release checklist  
   *Subsystem*: `kaioken/skills` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1774]** Interactive parameter prompt form generator rendering UI for local development environment setup procedure  
+- [x] **[UX-1774]** Interactive parameter prompt form generator rendering UI for local development environment setup procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1775]** Interactive parameter prompt form generator rendering UI for integration test execution and triage procedure  
+- [x] **[UX-1775]** Interactive parameter prompt form generator rendering UI for integration test execution and triage procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1776]** Interactive parameter prompt form generator rendering UI for dependency security audit and patch procedure  
+- [x] **[UX-1776]** Interactive parameter prompt form generator rendering UI for dependency security audit and patch procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1777]** Interactive parameter prompt form generator rendering UI for git branch rebase and conflict resolution procedure  
+- [x] **[UX-1777]** Interactive parameter prompt form generator rendering UI for git branch rebase and conflict resolution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1778]** Interactive parameter prompt form generator rendering UI for API documentation generation recipe  
+- [x] **[UX-1778]** Interactive parameter prompt form generator rendering UI for API documentation generation recipe  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1779]** Interactive parameter prompt form generator rendering UI for performance profiling and flamegraph recipe  
+- [x] **[UX-1779]** Interactive parameter prompt form generator rendering UI for performance profiling and flamegraph recipe  
   *Subsystem*: `kaioken/skills` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1780]** Interactive parameter prompt form generator rendering UI for incident response rollback runbook  
+- [x] **[UX-1780]** Interactive parameter prompt form generator rendering UI for incident response rollback runbook  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1781]** Skill documentation generator compiling markdown index of database migration execution procedure  
+- [x] **[UX-1781]** Skill documentation generator compiling markdown index of database migration execution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1782]** Skill documentation generator compiling markdown index of code lint and formatting repair procedure  
+- [x] **[UX-1782]** Skill documentation generator compiling markdown index of code lint and formatting repair procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1783]** Skill documentation generator compiling markdown index of production deployment release checklist  
+- [x] **[UX-1783]** Skill documentation generator compiling markdown index of production deployment release checklist  
   *Subsystem*: `kaioken/skills` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1784]** Skill documentation generator compiling markdown index of local development environment setup procedure  
+- [x] **[UX-1784]** Skill documentation generator compiling markdown index of local development environment setup procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1785]** Skill documentation generator compiling markdown index of integration test execution and triage procedure  
+- [x] **[UX-1785]** Skill documentation generator compiling markdown index of integration test execution and triage procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1786]** Skill documentation generator compiling markdown index of dependency security audit and patch procedure  
+- [x] **[UX-1786]** Skill documentation generator compiling markdown index of dependency security audit and patch procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1787]** Skill documentation generator compiling markdown index of git branch rebase and conflict resolution procedure  
+- [x] **[UX-1787]** Skill documentation generator compiling markdown index of git branch rebase and conflict resolution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1788]** Skill documentation generator compiling markdown index of API documentation generation recipe  
+- [x] **[UX-1788]** Skill documentation generator compiling markdown index of API documentation generation recipe  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1789]** Skill documentation generator compiling markdown index of performance profiling and flamegraph recipe  
+- [x] **[UX-1789]** Skill documentation generator compiling markdown index of performance profiling and flamegraph recipe  
   *Subsystem*: `kaioken/skills` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1790]** Skill documentation generator compiling markdown index of incident response rollback runbook  
+- [x] **[UX-1790]** Skill documentation generator compiling markdown index of incident response rollback runbook  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1791]** Trigger condition matcher suggesting relevant skills for database migration execution procedure  
+- [x] **[UX-1791]** Trigger condition matcher suggesting relevant skills for database migration execution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1792]** Trigger condition matcher suggesting relevant skills for code lint and formatting repair procedure  
+- [x] **[UX-1792]** Trigger condition matcher suggesting relevant skills for code lint and formatting repair procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1793]** Trigger condition matcher suggesting relevant skills for production deployment release checklist  
+- [x] **[UX-1793]** Trigger condition matcher suggesting relevant skills for production deployment release checklist  
   *Subsystem*: `kaioken/skills` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1794]** Trigger condition matcher suggesting relevant skills for local development environment setup procedure  
+- [x] **[UX-1794]** Trigger condition matcher suggesting relevant skills for local development environment setup procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1795]** Trigger condition matcher suggesting relevant skills for integration test execution and triage procedure  
+- [x] **[UX-1795]** Trigger condition matcher suggesting relevant skills for integration test execution and triage procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1796]** Trigger condition matcher suggesting relevant skills for dependency security audit and patch procedure  
+- [x] **[UX-1796]** Trigger condition matcher suggesting relevant skills for dependency security audit and patch procedure  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1797]** Trigger condition matcher suggesting relevant skills for git branch rebase and conflict resolution procedure  
+- [x] **[UX-1797]** Trigger condition matcher suggesting relevant skills for git branch rebase and conflict resolution procedure  
   *Subsystem*: `kaioken/skills` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1798]** Trigger condition matcher suggesting relevant skills for API documentation generation recipe  
+- [x] **[UX-1798]** Trigger condition matcher suggesting relevant skills for API documentation generation recipe  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1799]** Trigger condition matcher suggesting relevant skills for performance profiling and flamegraph recipe  
+- [x] **[UX-1799]** Trigger condition matcher suggesting relevant skills for performance profiling and flamegraph recipe  
   *Subsystem*: `kaioken/skills` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1800]** Trigger condition matcher suggesting relevant skills for incident response rollback runbook  
+- [x] **[UX-1800]** Trigger condition matcher suggesting relevant skills for incident response rollback runbook  
   *Subsystem*: `kaioken/skillgen` | *Tier*: Developer Ergonomics
 
 ---
 
 ### Step 34: Category 20 — Root CLI Parity, CI Automation & Evals Suite
-*Rank: #14 Headless Toolchain & CI | Package: `kaioken/bin.ts / evals` | Remaining: 50 Features | Ranges: `UX-1951–UX-2000`*
+*Rank: #14 Headless Toolchain & CI | Package: `kaioken/bin.ts / evals` | Status: Complete (50/50 Built) | Ranges: `UX-1951–UX-2000`*
 
-- [ ] **[UX-1951]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken research web intelligence digest  
+- [x] **[UX-1951]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken research web intelligence digest  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1952]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken skills procedure catalog  
+- [x] **[UX-1952]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken skills procedure catalog  
   *Subsystem*: `kaioken/evals` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1953]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken skillgen task synthesizer  
+- [x] **[UX-1953]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken skillgen task synthesizer  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1954]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken graph dependency export  
+- [x] **[UX-1954]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken graph dependency export  
   *Subsystem*: `kaioken/evals` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1955]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken gitops worktree manager  
+- [x] **[UX-1955]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken gitops worktree manager  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1956]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken evals 10-probe test gate  
+- [x] **[UX-1956]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume kaioken evals 10-probe test gate  
   *Subsystem*: `kaioken/evals` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1957]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume Python AST grounding probes  
+- [x] **[UX-1957]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume Python AST grounding probes  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1958]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume Go language syntax tree probes  
+- [x] **[UX-1958]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume Go language syntax tree probes  
   *Subsystem*: `kaioken/evals` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1959]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume Rust trait and macro probes  
+- [x] **[UX-1959]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume Rust trait and macro probes  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1960]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume TypeScript interface inheritance probes  
+- [x] **[UX-1960]** Streaming NDJSON output flag (--json) enabling CI pipelines to consume TypeScript interface inheritance probes  
   *Subsystem*: `kaioken/evals` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1961]** Multi-language test fixture validating AST grounding across kaioken scan CLI invocation  
+- [x] **[UX-1961]** Multi-language test fixture validating AST grounding across kaioken scan CLI invocation  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1962]** Multi-language test fixture validating AST grounding across kaioken symbols oracle lookup  
+- [x] **[UX-1962]** Multi-language test fixture validating AST grounding across kaioken symbols oracle lookup  
   *Subsystem*: `kaioken/evals` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1963]** Multi-language test fixture validating AST grounding across kaioken status staleness report  
+- [x] **[UX-1963]** Multi-language test fixture validating AST grounding across kaioken status staleness report  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1964]** Multi-language test fixture validating AST grounding across kaioken search BM25 retrieval  
+- [x] **[UX-1964]** Multi-language test fixture validating AST grounding across kaioken search BM25 retrieval  
   *Subsystem*: `kaioken/evals` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1965]** Multi-language test fixture validating AST grounding across kaioken impact blast radius predictor  
+- [x] **[UX-1965]** Multi-language test fixture validating AST grounding across kaioken impact blast radius predictor  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1966]** Multi-language test fixture validating AST grounding across kaioken verify native test gate  
+- [x] **[UX-1966]** Multi-language test fixture validating AST grounding across kaioken verify native test gate  
   *Subsystem*: `kaioken/evals` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1967]** Multi-language test fixture validating AST grounding across kaioken plan module decomposition  
+- [x] **[UX-1967]** Multi-language test fixture validating AST grounding across kaioken plan module decomposition  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1968]** Multi-language test fixture validating AST grounding across kaioken cards knowledge fact inspector  
+- [x] **[UX-1968]** Multi-language test fixture validating AST grounding across kaioken cards knowledge fact inspector  
   *Subsystem*: `kaioken/evals` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1969]** Multi-language test fixture validating AST grounding across kaioken wiki chapter synthesis  
+- [x] **[UX-1969]** Multi-language test fixture validating AST grounding across kaioken wiki chapter synthesis  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1970]** Multi-language test fixture validating AST grounding across kaioken serve documentation server  
+- [x] **[UX-1970]** Multi-language test fixture validating AST grounding across kaioken serve documentation server  
   *Subsystem*: `kaioken/evals` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1971]** Multi-language test fixture validating AST grounding across kaioken research web intelligence digest  
+- [x] **[UX-1971]** Multi-language test fixture validating AST grounding across kaioken research web intelligence digest  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1972]** Multi-language test fixture validating AST grounding across kaioken skills procedure catalog  
+- [x] **[UX-1972]** Multi-language test fixture validating AST grounding across kaioken skills procedure catalog  
   *Subsystem*: `kaioken/evals` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1973]** Multi-language test fixture validating AST grounding across kaioken skillgen task synthesizer  
+- [x] **[UX-1973]** Multi-language test fixture validating AST grounding across kaioken skillgen task synthesizer  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1974]** Multi-language test fixture validating AST grounding across kaioken graph dependency export  
+- [x] **[UX-1974]** Multi-language test fixture validating AST grounding across kaioken graph dependency export  
   *Subsystem*: `kaioken/evals` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1975]** Multi-language test fixture validating AST grounding across kaioken gitops worktree manager  
+- [x] **[UX-1975]** Multi-language test fixture validating AST grounding across kaioken gitops worktree manager  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1976]** Multi-language test fixture validating AST grounding across kaioken evals 10-probe test gate  
+- [x] **[UX-1976]** Multi-language test fixture validating AST grounding across kaioken evals 10-probe test gate  
   *Subsystem*: `kaioken/evals` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1977]** Multi-language test fixture validating AST grounding across Python AST grounding probes  
+- [x] **[UX-1977]** Multi-language test fixture validating AST grounding across Python AST grounding probes  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1978]** Multi-language test fixture validating AST grounding across Go language syntax tree probes  
+- [x] **[UX-1978]** Multi-language test fixture validating AST grounding across Go language syntax tree probes  
   *Subsystem*: `kaioken/evals` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1979]** Multi-language test fixture validating AST grounding across Rust trait and macro probes  
+- [x] **[UX-1979]** Multi-language test fixture validating AST grounding across Rust trait and macro probes  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1980]** Multi-language test fixture validating AST grounding across TypeScript interface inheritance probes  
+- [x] **[UX-1980]** Multi-language test fixture validating AST grounding across TypeScript interface inheritance probes  
   *Subsystem*: `kaioken/evals` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1981]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken scan CLI invocation  
+- [x] **[UX-1981]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken scan CLI invocation  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1982]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken symbols oracle lookup  
+- [x] **[UX-1982]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken symbols oracle lookup  
   *Subsystem*: `kaioken/evals` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1983]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken status staleness report  
+- [x] **[UX-1983]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken status staleness report  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1984]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken search BM25 retrieval  
+- [x] **[UX-1984]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken search BM25 retrieval  
   *Subsystem*: `kaioken/evals` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1985]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken impact blast radius predictor  
+- [x] **[UX-1985]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken impact blast radius predictor  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1986]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken verify native test gate  
+- [x] **[UX-1986]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken verify native test gate  
   *Subsystem*: `kaioken/evals` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1987]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken plan module decomposition  
+- [x] **[UX-1987]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken plan module decomposition  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1988]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken cards knowledge fact inspector  
+- [x] **[UX-1988]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken cards knowledge fact inspector  
   *Subsystem*: `kaioken/evals` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1989]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken wiki chapter synthesis  
+- [x] **[UX-1989]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken wiki chapter synthesis  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1990]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken serve documentation server  
+- [x] **[UX-1990]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken serve documentation server  
   *Subsystem*: `kaioken/evals` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1991]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken research web intelligence digest  
+- [x] **[UX-1991]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken research web intelligence digest  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1992]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken skills procedure catalog  
+- [x] **[UX-1992]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken skills procedure catalog  
   *Subsystem*: `kaioken/evals` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1993]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken skillgen task synthesizer  
+- [x] **[UX-1993]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken skillgen task synthesizer  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1994]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken graph dependency export  
+- [x] **[UX-1994]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken graph dependency export  
   *Subsystem*: `kaioken/evals` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1995]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken gitops worktree manager  
+- [x] **[UX-1995]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken gitops worktree manager  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1996]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken evals 10-probe test gate  
+- [x] **[UX-1996]** Adversarial probe benchmark testing non-existent symbol rejection on kaioken evals 10-probe test gate  
   *Subsystem*: `kaioken/evals` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1997]** Adversarial probe benchmark testing non-existent symbol rejection on Python AST grounding probes  
+- [x] **[UX-1997]** Adversarial probe benchmark testing non-existent symbol rejection on Python AST grounding probes  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1998]** Adversarial probe benchmark testing non-existent symbol rejection on Go language syntax tree probes  
+- [x] **[UX-1998]** Adversarial probe benchmark testing non-existent symbol rejection on Go language syntax tree probes  
   *Subsystem*: `kaioken/evals` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1999]** Adversarial probe benchmark testing non-existent symbol rejection on Rust trait and macro probes  
+- [x] **[UX-1999]** Adversarial probe benchmark testing non-existent symbol rejection on Rust trait and macro probes  
   *Subsystem*: `kaioken/bin.ts` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-2000]** Adversarial probe benchmark testing non-existent symbol rejection on TypeScript interface inheritance probes  
+- [x] **[UX-2000]** Adversarial probe benchmark testing non-existent symbol rejection on TypeScript interface inheritance probes  
   *Subsystem*: `kaioken/evals` | *Tier*: Developer Ergonomics
 
 ---
