@@ -254,3 +254,160 @@ export interface StalenessReport {
 	ok: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Step 22: Orphaned Documentation Detector Types (UX-0851 - UX-0860)
+// ---------------------------------------------------------------------------
+
+export type OrphanRecommendation = "archive" | "repoint" | "delete";
+
+export interface OrphanItem {
+	document: string;
+	category: DocCategory;
+	missingSources: string[];
+	missingSymbols?: string[];
+	recommendation: OrphanRecommendation;
+	explanation: string;
+}
+
+export interface OrphanReport {
+	orphans: OrphanItem[];
+	byCategory: Record<DocCategory, OrphanItem[]>;
+	totalOrphans: number;
+	criticalCount: number;
+	summary: string;
+}
+
+export interface OrphanDetectionOptions {
+	knownRenames?: ReadonlyMap<string, string>;
+	customClassifier?: (doc: string) => DocCategory;
+}
+
+// ---------------------------------------------------------------------------
+// Step 22: Historical Staleness Graph Types (UX-0861 - UX-0870)
+// ---------------------------------------------------------------------------
+
+export interface StalenessSnapshot {
+	timestamp: string;
+	label?: string;
+	documents: readonly Provenance[];
+	currentHashes: ReadonlyMap<string, string>;
+}
+
+export interface StalenessDataPoint {
+	timestamp: string;
+	label?: string;
+	overallFreshness: number; // 0..100
+	categoryFreshness: Record<DocCategory, number>; // 0..100 per category
+	totalDocuments: number;
+	staleDocuments: number;
+	orphanedDocuments: number;
+}
+
+export interface CategoryDecayMetric {
+	category: DocCategory;
+	initialFreshness: number;
+	latestFreshness: number;
+	netDecay: number; // positive = decay (loss of freshness), negative = improvement
+	decayVelocity: number; // net decay per snapshot
+	trend: "improving" | "stable" | "decaying";
+}
+
+export interface HistoricalStalenessGraph {
+	points: StalenessDataPoint[];
+	categoryDecay: Record<DocCategory, CategoryDecayMetric>;
+	overallDecayVelocity: number;
+	renderAsciiSparkline(category?: DocCategory): string;
+	renderMermaid(): string;
+	renderMarkdownSummary(): string;
+}
+
+// ---------------------------------------------------------------------------
+// Step 22: Configurable Tolerance Threshold Types (UX-0871 - UX-0880)
+// ---------------------------------------------------------------------------
+
+export interface CategoryToleranceConfig {
+	ignoreComments?: boolean;
+	ignoreWhitespace?: boolean;
+	ignoreDocstrings?: boolean;
+	maxAllowedDiffPercentage?: number;
+}
+
+export interface ToleranceConfig {
+	default: CategoryToleranceConfig;
+	byCategory?: Partial<Record<DocCategory, CategoryToleranceConfig>>;
+}
+
+export interface ToleranceEvaluation {
+	isTolerated: boolean;
+	category: DocCategory;
+	reason: string;
+	detectedDriftKind: DriftKind;
+	effectiveDiffPercentage: number;
+}
+
+// ---------------------------------------------------------------------------
+// Step 22: Drift Compliance Report Types (UX-0881 - UX-0890)
+// ---------------------------------------------------------------------------
+
+export interface CategoryCompliance {
+	category: DocCategory;
+	totalDocuments: number;
+	freshDocuments: number;
+	staleDocuments: number;
+	orphanedDocuments: number;
+	freshnessPercentage: number;
+	targetPercentage: number;
+	compliant: boolean;
+	status: "PASS" | "WARN" | "FAIL";
+}
+
+export interface RemediationPriorityItem {
+	document: string;
+	category: DocCategory;
+	priority: "P0" | "P1" | "P2" | "P3";
+	action: string;
+	staleSources: string[];
+}
+
+export interface DriftComplianceReport {
+	timestamp: string;
+	overallFreshness: number;
+	targetFreshness: number;
+	compliant: boolean;
+	categories: Record<DocCategory, CategoryCompliance>;
+	remediationPriorities: RemediationPriorityItem[];
+	markdown: string;
+}
+
+export interface DriftComplianceOptions {
+	targetFreshness?: number; // default: 80%
+	categoryTargets?: Partial<Record<DocCategory, number>>;
+	title?: string;
+	generatedBy?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Step 22: Instant Zero-Token Staleness Check Types (UX-0891 - UX-0900)
+// ---------------------------------------------------------------------------
+
+export interface InstantCategoryHealth {
+	category: DocCategory;
+	total: number;
+	fresh: number;
+	stale: number;
+	orphaned: number;
+	freshnessPercentage: number;
+	healthy: boolean;
+}
+
+export interface InstantStalenessResult {
+	executionDurationMs: number;
+	ok: boolean;
+	overallFreshnessPercentage: number;
+	totalDocuments: number;
+	categories: Record<DocCategory, InstantCategoryHealth>;
+	staleDocuments: string[];
+	orphanedDocuments: string[];
+}
+
+
