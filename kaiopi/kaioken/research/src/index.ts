@@ -46,3 +46,26 @@ export type {
 	ResearchVerification,
 	SourceExcerpt,
 } from "./types.ts";
+export {
+	ALL_RESEARCH_TOPIC_KINDS,
+	RESEARCH_TOPIC_METADATA,
+	buildSourceInspectionModal,
+	checkRobotsTxtAllowed,
+	compileResearchBriefingDocument,
+	executeTopicSearchWithFallback,
+	handleTopicRateLimitAndRobots,
+	parseRetryAfterHeader,
+	renderResearchBriefingMarkdown,
+	renderSourceInspectionModalHtml,
+	scaleTopicResearchDepth,
+} from "./intelligence_gatherer.ts";
+export type {
+	ProviderFallbackResult,
+	RateLimitStatus,
+	ResearchBriefingDocument,
+	ResearchTopicKind,
+	ResearchTopicMetadata,
+	SearchProvider,
+	SourceInspectionModalData,
+	TopicResearchDepth,
+} from "./intelligence_gatherer.ts";

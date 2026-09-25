@@ -10,9 +10,9 @@
 
 - **Total Roadmap Specifications**: 2,000 Features (`#UX-0001` – `#UX-2000`)
 - **Phase 1 Built (Steps 1–20)**: 955 Features (47.75% Complete)
-- **Phase 2 Built (Steps 21–34)**: 745 Features (37.25% Complete)
-- **Total Built (Steps 1–34)**: **1,700 Features** (85.00% Complete)
-- **Phase 2 Remaining (Steps 35–40)**: **300 Features** (15.00% To Build)
+- **Phase 2 Built (Steps 21–36)**: 845 Features (42.25% Complete)
+- **Total Built (Steps 1–36)**: **1,800 Features** (90.00% Complete)
+- **Phase 2 Remaining (Steps 37–40)**: **200 Features** (10.00% To Build)
 
 | Step | Category Name | Package / Subsystem | Remaining Features | Unbuilt ID Ranges |
 | :--: | :--- | :--- | :--: | :--- |
@@ -30,13 +30,13 @@
 | **Step 32** | **Cat 15**: Wiki Cascade, Chapter Generation & Documentation Web | `kaioken/wiki` | **0** (Complete: 50/50) | None (`UX-1451–UX-1500` Built) |
 | **Step 33** | **Cat 18**: Agent Skills, Autonomous Procedures & SkillGen | `kaioken/skills / skillgen` | **0** (Complete: 50/50) | None (`UX-1751–UX-1800` Built) |
 | **Step 34** | **Cat 20**: Root CLI Parity, CI Automation & Evals Suite | `kaioken/bin.ts / evals` | **0** (Complete: 50/50) | None (`UX-1951–UX-2000` Built) |
-| **Step 35** | **Cat 17**: Grounded Web Research & Intelligence Gatherer | `kaioken/research` | **50** | `UX-1651–UX-1700` |
-| **Step 36** | **Cat 16**: Serve Preview, Web UI & Interactive Knowledge Graph | `kaioken/serve` | **50** | `UX-1551–UX-1600` |
+| **Step 35** | **Cat 17**: Grounded Web Research & Intelligence Gatherer | `kaioken/research` | **0** (Complete: 50/50) | None (`UX-1651–UX-1700` Built) |
+| **Step 36** | **Cat 16**: Serve Preview, Web UI & Interactive Knowledge Graph | `kaioken/serve` | **0** (Complete: 50/50) | None (`UX-1551–UX-1600` Built) |
 | **Step 37** | **Cat 02**: Chat Transcript & Interactive Output Stream | `.pi/extensions/kaioken/commands` | **50** | `UX-0151–UX-0200` |
 | **Step 38** | **Cat 01**: Terminal UI (TUI) & Visual Aesthetics | `.pi/extensions/kaioken/ui` | **50** | `UX-0051–UX-0100` |
 | **Step 39** | **Cat 03**: HUD, Status Bar & Dynamic Widgets | `.pi/extensions/kaioken/ui/header.ts` | **50** | `UX-0251–UX-0300` |
 | **Step 40** | **Cat 04**: Keyboard Navigation, Shortcuts & Command Palette | `packages/tui` | **50** | `UX-0351–UX-0400` |
-| **TOTAL** | **All 20 Architectural Categories** | | **300** | |
+| **TOTAL** | **All 20 Architectural Categories** | | **200** | |
 
 ---
 
@@ -1615,213 +1615,213 @@
 ---
 
 ### Step 35: Category 17 — Grounded Web Research & Intelligence Gatherer
-*Rank: #15 External Context & Verification | Package: `kaioken/research` | Remaining: 50 Features | Ranges: `UX-1651–UX-1700`*
+*Rank: #15 External Context & Verification | Package: `kaioken/research` | Status: Complete (50/50 Built) | Ranges: `UX-1651–UX-1700`*
 
-- [ ] **[UX-1651]** Interactive source inspection modal showing raw extracted text of emerging open-source library alternatives  
+- [x] **[UX-1651]** Interactive source inspection modal showing raw extracted text of emerging open-source library alternatives  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1652]** Interactive source inspection modal showing raw extracted text of security vulnerability CVE advisories  
+- [x] **[UX-1652]** Interactive source inspection modal showing raw extracted text of security vulnerability CVE advisories  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1653]** Interactive source inspection modal showing raw extracted text of cloud architecture best practice whitepapers  
+- [x] **[UX-1653]** Interactive source inspection modal showing raw extracted text of cloud architecture best practice whitepapers  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1654]** Interactive source inspection modal showing raw extracted text of API breaking change migration guides  
+- [x] **[UX-1654]** Interactive source inspection modal showing raw extracted text of API breaking change migration guides  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1655]** Interactive source inspection modal showing raw extracted text of performance tuning benchmarks across runtimes  
+- [x] **[UX-1655]** Interactive source inspection modal showing raw extracted text of performance tuning benchmarks across runtimes  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1656]** Interactive source inspection modal showing raw extracted text of database indexing and query optimization tips  
+- [x] **[UX-1656]** Interactive source inspection modal showing raw extracted text of database indexing and query optimization tips  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1657]** Interactive source inspection modal showing raw extracted text of regulatory compliance standards (SOC2, GDPR)  
+- [x] **[UX-1657]** Interactive source inspection modal showing raw extracted text of regulatory compliance standards (SOC2, GDPR)  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1658]** Interactive source inspection modal showing raw extracted text of compiler and runtime release notes  
+- [x] **[UX-1658]** Interactive source inspection modal showing raw extracted text of compiler and runtime release notes  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1659]** Interactive source inspection modal showing raw extracted text of distributed systems consensus protocols  
+- [x] **[UX-1659]** Interactive source inspection modal showing raw extracted text of distributed systems consensus protocols  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1660]** Interactive source inspection modal showing raw extracted text of modern frontend rendering architecture patterns  
+- [x] **[UX-1660]** Interactive source inspection modal showing raw extracted text of modern frontend rendering architecture patterns  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1661]** Configurable depth dial (×1 to ×10) scaling source breadth for emerging open-source library alternatives  
+- [x] **[UX-1661]** Configurable depth dial (×1 to ×10) scaling source breadth for emerging open-source library alternatives  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1662]** Configurable depth dial (×1 to ×10) scaling source breadth for security vulnerability CVE advisories  
+- [x] **[UX-1662]** Configurable depth dial (×1 to ×10) scaling source breadth for security vulnerability CVE advisories  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1663]** Configurable depth dial (×1 to ×10) scaling source breadth for cloud architecture best practice whitepapers  
+- [x] **[UX-1663]** Configurable depth dial (×1 to ×10) scaling source breadth for cloud architecture best practice whitepapers  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1664]** Configurable depth dial (×1 to ×10) scaling source breadth for API breaking change migration guides  
+- [x] **[UX-1664]** Configurable depth dial (×1 to ×10) scaling source breadth for API breaking change migration guides  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1665]** Configurable depth dial (×1 to ×10) scaling source breadth for performance tuning benchmarks across runtimes  
+- [x] **[UX-1665]** Configurable depth dial (×1 to ×10) scaling source breadth for performance tuning benchmarks across runtimes  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1666]** Configurable depth dial (×1 to ×10) scaling source breadth for database indexing and query optimization tips  
+- [x] **[UX-1666]** Configurable depth dial (×1 to ×10) scaling source breadth for database indexing and query optimization tips  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1667]** Configurable depth dial (×1 to ×10) scaling source breadth for regulatory compliance standards (SOC2, GDPR)  
+- [x] **[UX-1667]** Configurable depth dial (×1 to ×10) scaling source breadth for regulatory compliance standards (SOC2, GDPR)  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1668]** Configurable depth dial (×1 to ×10) scaling source breadth for compiler and runtime release notes  
+- [x] **[UX-1668]** Configurable depth dial (×1 to ×10) scaling source breadth for compiler and runtime release notes  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1669]** Configurable depth dial (×1 to ×10) scaling source breadth for distributed systems consensus protocols  
+- [x] **[UX-1669]** Configurable depth dial (×1 to ×10) scaling source breadth for distributed systems consensus protocols  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1670]** Configurable depth dial (×1 to ×10) scaling source breadth for modern frontend rendering architecture patterns  
+- [x] **[UX-1670]** Configurable depth dial (×1 to ×10) scaling source breadth for modern frontend rendering architecture patterns  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1671]** Search engine provider fallback switcher retrieving queries for emerging open-source library alternatives  
+- [x] **[UX-1671]** Search engine provider fallback switcher retrieving queries for emerging open-source library alternatives  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1672]** Search engine provider fallback switcher retrieving queries for security vulnerability CVE advisories  
+- [x] **[UX-1672]** Search engine provider fallback switcher retrieving queries for security vulnerability CVE advisories  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1673]** Search engine provider fallback switcher retrieving queries for cloud architecture best practice whitepapers  
+- [x] **[UX-1673]** Search engine provider fallback switcher retrieving queries for cloud architecture best practice whitepapers  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1674]** Search engine provider fallback switcher retrieving queries for API breaking change migration guides  
+- [x] **[UX-1674]** Search engine provider fallback switcher retrieving queries for API breaking change migration guides  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1675]** Search engine provider fallback switcher retrieving queries for performance tuning benchmarks across runtimes  
+- [x] **[UX-1675]** Search engine provider fallback switcher retrieving queries for performance tuning benchmarks across runtimes  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1676]** Search engine provider fallback switcher retrieving queries for database indexing and query optimization tips  
+- [x] **[UX-1676]** Search engine provider fallback switcher retrieving queries for database indexing and query optimization tips  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1677]** Search engine provider fallback switcher retrieving queries for regulatory compliance standards (SOC2, GDPR)  
+- [x] **[UX-1677]** Search engine provider fallback switcher retrieving queries for regulatory compliance standards (SOC2, GDPR)  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1678]** Search engine provider fallback switcher retrieving queries for compiler and runtime release notes  
+- [x] **[UX-1678]** Search engine provider fallback switcher retrieving queries for compiler and runtime release notes  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1679]** Search engine provider fallback switcher retrieving queries for distributed systems consensus protocols  
+- [x] **[UX-1679]** Search engine provider fallback switcher retrieving queries for distributed systems consensus protocols  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1680]** Search engine provider fallback switcher retrieving queries for modern frontend rendering architecture patterns  
+- [x] **[UX-1680]** Search engine provider fallback switcher retrieving queries for modern frontend rendering architecture patterns  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1681]** Rate-limit backoff handler respecting Robots.txt and 429s for emerging open-source library alternatives  
+- [x] **[UX-1681]** Rate-limit backoff handler respecting Robots.txt and 429s for emerging open-source library alternatives  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1682]** Rate-limit backoff handler respecting Robots.txt and 429s for security vulnerability CVE advisories  
+- [x] **[UX-1682]** Rate-limit backoff handler respecting Robots.txt and 429s for security vulnerability CVE advisories  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1683]** Rate-limit backoff handler respecting Robots.txt and 429s for cloud architecture best practice whitepapers  
+- [x] **[UX-1683]** Rate-limit backoff handler respecting Robots.txt and 429s for cloud architecture best practice whitepapers  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1684]** Rate-limit backoff handler respecting Robots.txt and 429s for API breaking change migration guides  
+- [x] **[UX-1684]** Rate-limit backoff handler respecting Robots.txt and 429s for API breaking change migration guides  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1685]** Rate-limit backoff handler respecting Robots.txt and 429s for performance tuning benchmarks across runtimes  
+- [x] **[UX-1685]** Rate-limit backoff handler respecting Robots.txt and 429s for performance tuning benchmarks across runtimes  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1686]** Rate-limit backoff handler respecting Robots.txt and 429s for database indexing and query optimization tips  
+- [x] **[UX-1686]** Rate-limit backoff handler respecting Robots.txt and 429s for database indexing and query optimization tips  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1687]** Rate-limit backoff handler respecting Robots.txt and 429s for regulatory compliance standards (SOC2, GDPR)  
+- [x] **[UX-1687]** Rate-limit backoff handler respecting Robots.txt and 429s for regulatory compliance standards (SOC2, GDPR)  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1688]** Rate-limit backoff handler respecting Robots.txt and 429s for compiler and runtime release notes  
+- [x] **[UX-1688]** Rate-limit backoff handler respecting Robots.txt and 429s for compiler and runtime release notes  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1689]** Rate-limit backoff handler respecting Robots.txt and 429s for distributed systems consensus protocols  
+- [x] **[UX-1689]** Rate-limit backoff handler respecting Robots.txt and 429s for distributed systems consensus protocols  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1690]** Rate-limit backoff handler respecting Robots.txt and 429s for modern frontend rendering architecture patterns  
+- [x] **[UX-1690]** Rate-limit backoff handler respecting Robots.txt and 429s for modern frontend rendering architecture patterns  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1691]** Exportable research briefing document compiling discoveries on emerging open-source library alternatives  
+- [x] **[UX-1691]** Exportable research briefing document compiling discoveries on emerging open-source library alternatives  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1692]** Exportable research briefing document compiling discoveries on security vulnerability CVE advisories  
+- [x] **[UX-1692]** Exportable research briefing document compiling discoveries on security vulnerability CVE advisories  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1693]** Exportable research briefing document compiling discoveries on cloud architecture best practice whitepapers  
+- [x] **[UX-1693]** Exportable research briefing document compiling discoveries on cloud architecture best practice whitepapers  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1694]** Exportable research briefing document compiling discoveries on API breaking change migration guides  
+- [x] **[UX-1694]** Exportable research briefing document compiling discoveries on API breaking change migration guides  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1695]** Exportable research briefing document compiling discoveries on performance tuning benchmarks across runtimes  
+- [x] **[UX-1695]** Exportable research briefing document compiling discoveries on performance tuning benchmarks across runtimes  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1696]** Exportable research briefing document compiling discoveries on database indexing and query optimization tips  
+- [x] **[UX-1696]** Exportable research briefing document compiling discoveries on database indexing and query optimization tips  
   *Subsystem*: `kaioken/research` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1697]** Exportable research briefing document compiling discoveries on regulatory compliance standards (SOC2, GDPR)  
+- [x] **[UX-1697]** Exportable research briefing document compiling discoveries on regulatory compliance standards (SOC2, GDPR)  
   *Subsystem*: `kaioken/research` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1698]** Exportable research briefing document compiling discoveries on compiler and runtime release notes  
+- [x] **[UX-1698]** Exportable research briefing document compiling discoveries on compiler and runtime release notes  
   *Subsystem*: `kaioken/research` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1699]** Exportable research briefing document compiling discoveries on distributed systems consensus protocols  
+- [x] **[UX-1699]** Exportable research briefing document compiling discoveries on distributed systems consensus protocols  
   *Subsystem*: `kaioken/research` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1700]** Exportable research briefing document compiling discoveries on modern frontend rendering architecture patterns  
+- [x] **[UX-1700]** Exportable research briefing document compiling discoveries on modern frontend rendering architecture patterns  
   *Subsystem*: `kaioken/research` | *Tier*: Developer Ergonomics
 
 ---
 
 ### Step 36: Category 16 — Serve Preview, Web UI & Interactive Knowledge Graph
-*Rank: #16 Web Visualization | Package: `kaioken/serve` | Remaining: 50 Features | Ranges: `UX-1551–UX-1600`*
+*Rank: #16 Web Visualization | Package: `kaioken/serve` | Status: Complete (50/50 Built) | Ranges: `UX-1551–UX-1600`*
 
-- [ ] **[UX-1551]** Dark and light theme toggle with persistent localStorage preference for wiki chapter reading view  
+- [x] **[UX-1551]** Dark and light theme toggle with persistent localStorage preference for wiki chapter reading view  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1552]** Dark and light theme toggle with persistent localStorage preference for knowledge card fact browser  
+- [x] **[UX-1552]** Dark and light theme toggle with persistent localStorage preference for knowledge card fact browser  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1553]** Dark and light theme toggle with persistent localStorage preference for interactive dependency graph canvas  
+- [x] **[UX-1553]** Dark and light theme toggle with persistent localStorage preference for interactive dependency graph canvas  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1554]** Dark and light theme toggle with persistent localStorage preference for repository file tree explorer  
+- [x] **[UX-1554]** Dark and light theme toggle with persistent localStorage preference for repository file tree explorer  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1555]** Dark and light theme toggle with persistent localStorage preference for live drift and staleness report dashboard  
+- [x] **[UX-1555]** Dark and light theme toggle with persistent localStorage preference for live drift and staleness report dashboard  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1556]** Dark and light theme toggle with persistent localStorage preference for search results preview drawer  
+- [x] **[UX-1556]** Dark and light theme toggle with persistent localStorage preference for search results preview drawer  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1557]** Dark and light theme toggle with persistent localStorage preference for symbol declaration inspector pane  
+- [x] **[UX-1557]** Dark and light theme toggle with persistent localStorage preference for symbol declaration inspector pane  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1558]** Dark and light theme toggle with persistent localStorage preference for code impact blast radius simulator  
+- [x] **[UX-1558]** Dark and light theme toggle with persistent localStorage preference for code impact blast radius simulator  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1559]** Dark and light theme toggle with persistent localStorage preference for agent skill procedure catalog  
+- [x] **[UX-1559]** Dark and light theme toggle with persistent localStorage preference for agent skill procedure catalog  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1560]** Dark and light theme toggle with persistent localStorage preference for verification gate test history viewer  
+- [x] **[UX-1560]** Dark and light theme toggle with persistent localStorage preference for verification gate test history viewer  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1561]** Print-optimized CSS stylesheet generating clean PDF documentation for wiki chapter reading view  
+- [x] **[UX-1561]** Print-optimized CSS stylesheet generating clean PDF documentation for wiki chapter reading view  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1562]** Print-optimized CSS stylesheet generating clean PDF documentation for knowledge card fact browser  
+- [x] **[UX-1562]** Print-optimized CSS stylesheet generating clean PDF documentation for knowledge card fact browser  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1563]** Print-optimized CSS stylesheet generating clean PDF documentation for interactive dependency graph canvas  
+- [x] **[UX-1563]** Print-optimized CSS stylesheet generating clean PDF documentation for interactive dependency graph canvas  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1564]** Print-optimized CSS stylesheet generating clean PDF documentation for repository file tree explorer  
+- [x] **[UX-1564]** Print-optimized CSS stylesheet generating clean PDF documentation for repository file tree explorer  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1565]** Print-optimized CSS stylesheet generating clean PDF documentation for live drift and staleness report dashboard  
+- [x] **[UX-1565]** Print-optimized CSS stylesheet generating clean PDF documentation for live drift and staleness report dashboard  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1566]** Print-optimized CSS stylesheet generating clean PDF documentation for search results preview drawer  
+- [x] **[UX-1566]** Print-optimized CSS stylesheet generating clean PDF documentation for search results preview drawer  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1567]** Print-optimized CSS stylesheet generating clean PDF documentation for symbol declaration inspector pane  
+- [x] **[UX-1567]** Print-optimized CSS stylesheet generating clean PDF documentation for symbol declaration inspector pane  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1568]** Print-optimized CSS stylesheet generating clean PDF documentation for code impact blast radius simulator  
+- [x] **[UX-1568]** Print-optimized CSS stylesheet generating clean PDF documentation for code impact blast radius simulator  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1569]** Print-optimized CSS stylesheet generating clean PDF documentation for agent skill procedure catalog  
+- [x] **[UX-1569]** Print-optimized CSS stylesheet generating clean PDF documentation for agent skill procedure catalog  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1570]** Print-optimized CSS stylesheet generating clean PDF documentation for verification gate test history viewer  
+- [x] **[UX-1570]** Print-optimized CSS stylesheet generating clean PDF documentation for verification gate test history viewer  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1571]** Mobile-responsive layout with collapsible sidebar drawer for wiki chapter reading view  
+- [x] **[UX-1571]** Mobile-responsive layout with collapsible sidebar drawer for wiki chapter reading view  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1572]** Mobile-responsive layout with collapsible sidebar drawer for knowledge card fact browser  
+- [x] **[UX-1572]** Mobile-responsive layout with collapsible sidebar drawer for knowledge card fact browser  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1573]** Mobile-responsive layout with collapsible sidebar drawer for interactive dependency graph canvas  
+- [x] **[UX-1573]** Mobile-responsive layout with collapsible sidebar drawer for interactive dependency graph canvas  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1574]** Mobile-responsive layout with collapsible sidebar drawer for repository file tree explorer  
+- [x] **[UX-1574]** Mobile-responsive layout with collapsible sidebar drawer for repository file tree explorer  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1575]** Mobile-responsive layout with collapsible sidebar drawer for live drift and staleness report dashboard  
+- [x] **[UX-1575]** Mobile-responsive layout with collapsible sidebar drawer for live drift and staleness report dashboard  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1576]** Mobile-responsive layout with collapsible sidebar drawer for search results preview drawer  
+- [x] **[UX-1576]** Mobile-responsive layout with collapsible sidebar drawer for search results preview drawer  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1577]** Mobile-responsive layout with collapsible sidebar drawer for symbol declaration inspector pane  
+- [x] **[UX-1577]** Mobile-responsive layout with collapsible sidebar drawer for symbol declaration inspector pane  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1578]** Mobile-responsive layout with collapsible sidebar drawer for code impact blast radius simulator  
+- [x] **[UX-1578]** Mobile-responsive layout with collapsible sidebar drawer for code impact blast radius simulator  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1579]** Mobile-responsive layout with collapsible sidebar drawer for agent skill procedure catalog  
+- [x] **[UX-1579]** Mobile-responsive layout with collapsible sidebar drawer for agent skill procedure catalog  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1580]** Mobile-responsive layout with collapsible sidebar drawer for verification gate test history viewer  
+- [x] **[UX-1580]** Mobile-responsive layout with collapsible sidebar drawer for verification gate test history viewer  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1581]** Strict Content Security Policy (CSP) headers protecting preview of wiki chapter reading view  
+- [x] **[UX-1581]** Strict Content Security Policy (CSP) headers protecting preview of wiki chapter reading view  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1582]** Strict Content Security Policy (CSP) headers protecting preview of knowledge card fact browser  
+- [x] **[UX-1582]** Strict Content Security Policy (CSP) headers protecting preview of knowledge card fact browser  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1583]** Strict Content Security Policy (CSP) headers protecting preview of interactive dependency graph canvas  
+- [x] **[UX-1583]** Strict Content Security Policy (CSP) headers protecting preview of interactive dependency graph canvas  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1584]** Strict Content Security Policy (CSP) headers protecting preview of repository file tree explorer  
+- [x] **[UX-1584]** Strict Content Security Policy (CSP) headers protecting preview of repository file tree explorer  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1585]** Strict Content Security Policy (CSP) headers protecting preview of live drift and staleness report dashboard  
+- [x] **[UX-1585]** Strict Content Security Policy (CSP) headers protecting preview of live drift and staleness report dashboard  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1586]** Strict Content Security Policy (CSP) headers protecting preview of search results preview drawer  
+- [x] **[UX-1586]** Strict Content Security Policy (CSP) headers protecting preview of search results preview drawer  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1587]** Strict Content Security Policy (CSP) headers protecting preview of symbol declaration inspector pane  
+- [x] **[UX-1587]** Strict Content Security Policy (CSP) headers protecting preview of symbol declaration inspector pane  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1588]** Strict Content Security Policy (CSP) headers protecting preview of code impact blast radius simulator  
+- [x] **[UX-1588]** Strict Content Security Policy (CSP) headers protecting preview of code impact blast radius simulator  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1589]** Strict Content Security Policy (CSP) headers protecting preview of agent skill procedure catalog  
+- [x] **[UX-1589]** Strict Content Security Policy (CSP) headers protecting preview of agent skill procedure catalog  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1590]** Strict Content Security Policy (CSP) headers protecting preview of verification gate test history viewer  
+- [x] **[UX-1590]** Strict Content Security Policy (CSP) headers protecting preview of verification gate test history viewer  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1591]** Offline standalone export bundler generating zero-dependency HTML for wiki chapter reading view  
+- [x] **[UX-1591]** Offline standalone export bundler generating zero-dependency HTML for wiki chapter reading view  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1592]** Offline standalone export bundler generating zero-dependency HTML for knowledge card fact browser  
+- [x] **[UX-1592]** Offline standalone export bundler generating zero-dependency HTML for knowledge card fact browser  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1593]** Offline standalone export bundler generating zero-dependency HTML for interactive dependency graph canvas  
+- [x] **[UX-1593]** Offline standalone export bundler generating zero-dependency HTML for interactive dependency graph canvas  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1594]** Offline standalone export bundler generating zero-dependency HTML for repository file tree explorer  
+- [x] **[UX-1594]** Offline standalone export bundler generating zero-dependency HTML for repository file tree explorer  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1595]** Offline standalone export bundler generating zero-dependency HTML for live drift and staleness report dashboard  
+- [x] **[UX-1595]** Offline standalone export bundler generating zero-dependency HTML for live drift and staleness report dashboard  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
-- [ ] **[UX-1596]** Offline standalone export bundler generating zero-dependency HTML for search results preview drawer  
+- [x] **[UX-1596]** Offline standalone export bundler generating zero-dependency HTML for search results preview drawer  
   *Subsystem*: `kaioken/serve` | *Tier*: Visual Polish & Aesthetics
-- [ ] **[UX-1597]** Offline standalone export bundler generating zero-dependency HTML for symbol declaration inspector pane  
+- [x] **[UX-1597]** Offline standalone export bundler generating zero-dependency HTML for symbol declaration inspector pane  
   *Subsystem*: `kaioken/serve` | *Tier*: Real-Time Terminal Streaming
-- [ ] **[UX-1598]** Offline standalone export bundler generating zero-dependency HTML for code impact blast radius simulator  
+- [x] **[UX-1598]** Offline standalone export bundler generating zero-dependency HTML for code impact blast radius simulator  
   *Subsystem*: `kaioken/serve` | *Tier*: Performance & Low-Latency
-- [ ] **[UX-1599]** Offline standalone export bundler generating zero-dependency HTML for agent skill procedure catalog  
+- [x] **[UX-1599]** Offline standalone export bundler generating zero-dependency HTML for agent skill procedure catalog  
   *Subsystem*: `kaioken/serve` | *Tier*: Resilience & Fail-Soft Recovery
-- [ ] **[UX-1600]** Offline standalone export bundler generating zero-dependency HTML for verification gate test history viewer  
+- [x] **[UX-1600]** Offline standalone export bundler generating zero-dependency HTML for verification gate test history viewer  
   *Subsystem*: `kaioken/serve` | *Tier*: Developer Ergonomics
 
 ---
