@@ -1,8 +1,8 @@
 # KAIOKEN Design System v2: Specification & Architecture System
 **Version:** 2.0.0  
-**Architecture:** React 19 · Tailwind CSS v4 · TypeScript · Base UI · Tauri v2 Desktop Engine · CodeMirror 6 · xterm.js · WebGL (OGL)  
+**Architecture:** React 19 · Tailwind CSS v4 · TypeScript · Base UI · Electron Desktop Engine · CodeMirror 6 · xterm.js · WebGL (OGL)  
 **Authors:** Principal Design Systems Engineer, Staff Product Designer & Frontend Architecture Team  
-**Scope:** Terminal CLI (Go / Lipgloss ANSI) · Desktop GUI (Tauri v2 / React 19) · Web Application (`/website`) · Mobile Web (`src/mobile`)
+**Scope:** Terminal CLI (Go / Lipgloss ANSI) · Desktop GUI (Electron / React 19) · Web Application (`/website`) · Mobile Web (`src/mobile`)
 
 ---
 
@@ -15,7 +15,7 @@
    - [2.4 Elevation, Radii, Borders, Shadows & HUD Overlays](#24-elevation-radii-borders-shadows--hud-overlays)
    - [2.5 Motion, Timing & Keyframe Orchestration](#25-motion-timing--keyframe-orchestration)
 3. [Layout, Grid & Multi-Surface Responsive System](#3-layout-grid--multi-surface-responsive-system)
-   - [3.1 Desktop Shell Architecture (Tauri v2)](#31-desktop-shell-architecture-tauri-v2)
+   - [3.1 Desktop Shell Architecture (Electron / Kaioken 2)](#31-desktop-shell-architecture-electron--kaioken-2)
    - [3.2 Web & Documentation Responsive Layouts](#32-web--documentation-responsive-layouts)
    - [3.3 Mobile Web Ergonomics & Touch Geometry](#33-mobile-web-ergonomics--touch-geometry)
    - [3.4 Shader & Ambient Backdrop Management](#34-shader--ambient-backdrop-management)
@@ -54,14 +54,14 @@
 
 ## 1. Executive Summary & Core Design Principles
 
-The **Kaioken Design System (v2)** is an enterprise-grade design and engineering architecture engineered to bridge high-velocity terminal workflows (TUI), native graphical desktop applications (GUI via Tauri v2), responsive marketing web applications, and mobile touch surfaces.
+The **Kaioken Design System (v2)** is an enterprise-grade design and engineering architecture engineered to bridge high-velocity terminal workflows (TUI), native graphical desktop applications (GUI via Electron), responsive marketing web applications, and mobile touch surfaces.
 
 Rooted in Go TUI Lipgloss ANSI color palettes, cyberpunk CRT instrumentation, and Dragon Ball power-amplification metaphors, Kaioken treats information density, radical transparency of AI compute costs, and keyboard velocity as foundational product requirements.
 
 ```
                          ▄ ▄▄ ▄ KAIOKEN MULTI-SURFACE ARCHITECTURE ▄ ▄▄ ▄
   ┌───────────────────────┐    ┌────────────────────────┐    ┌────────────────────────┐
-  │   CLI / ANSI TUI      │    │  Desktop App (Tauri)   │    │   Responsive Web       │
+  │   CLI / ANSI TUI      │    │  Desktop App (Electron)│    │   Responsive Web       │
   │  16-Color Lipgloss    │◄──►│  Custom HUD Chrome     │◄──►│  WebGL Shader & Glass  │
   │  Keyboard-First Loop  │    │  Side-by-Side Diffs    │    │  Docs & Showcase       │
   └───────────────────────┘    └────────────────────────┘    └────────────────────────┘
@@ -78,7 +78,7 @@ Rooted in Go TUI Lipgloss ANSI color palettes, cyberpunk CRT instrumentation, an
 
 1. **Terminal Parity & Shared ANSI DNA**
    - Color values in the graphical web and desktop apps are not arbitrary modern approximations; they map 1:1 to the 16-color ANSI terminal palette (`cli/internal/tui/palette.go`).
-   - A developer switching from the terminal CLI to the Tauri desktop app experiences zero cognitive disconnect.
+   - A developer switching from the terminal CLI to the Electron desktop app experiences zero cognitive disconnect.
 
 2. **Functional HUD Aesthetics (State Over Decoration)**
    - Visual flourishes—such as CRT scanlines (`.crt-scanlines`), bracketed corners (`.hud-corners`), glowing borders (`.panel-glow`), energy pulse dots (`LiveDot`), and aura sweeps (`GlowButton`)—are strictly reserved for **state indication** (in-flight run, armed approval, dangerous power level, active selection).
@@ -377,7 +377,7 @@ All animations strictly adhere to `@media (prefers-reduced-motion: reduce)`.
 
 ## 3. Layout, Grid & Multi-Surface Responsive System
 
-### 3.1 Desktop Shell Architecture (Tauri v2)
+### 3.1 Desktop Shell Architecture (Electron / Kaioken 2)
 
 The desktop application (`DesktopApp.tsx` / `AppWindow.tsx`) implements a fixed multi-pane layout:
 
@@ -395,7 +395,7 @@ The desktop application (`DesktopApp.tsx` / `AppWindow.tsx`) implements a fixed 
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Titlebar (`h-11` / 44px):** Configured with `decorations: false` in Tauri. Renders native drag region, workspace indicator, git branch badge, search shortcut (`Ctrl+K`), model pill, and window controls.
+- **Titlebar (`h-11` / 44px):** Configured with frameless window in Electron. Renders native drag region, workspace indicator, git branch badge, search shortcut (`Ctrl+K`), model pill, and window controls.
 - **NavRail (`w-[68px]` / 68px):** Houses 12 surface navigation buttons with glowing left indicator bracket, active route badge, and keyboard accelerators (`Ctrl+1` through `Ctrl+9`).
 - **File Explorer Sidebar (`w-[130px]`):** Tree view with directory expansion chevrons, file icons, and line counts.
 - **Status Bar (`h-6` / 24px):** Persistent telemetry: daemon connection indicator (`● connected`), active run count (`1 run`), session token accumulator (`Σ tokens`), and terminal drawer toggle.

@@ -1,7 +1,7 @@
 {
   "name": "kaioken-studio",
   "version": "0.1.0",
-  "description": "Kaioken Desktop Studio",
+  "description": "Kaioken 2 Desktop Studio (Electron)",
   "main": "./out/main/index.js",
   "author": "Kaioken Team",
   "scripts": {

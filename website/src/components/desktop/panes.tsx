@@ -174,7 +174,7 @@ export function ResearchPane({ active }: PaneProps) {
     <>
       <Aside label="history">
         <AsideRow active sub="just now">SSE vs websockets for…</AsideRow>
-        <AsideRow sub="1 h ago">tauri v2 sidecar signing</AsideRow>
+        <AsideRow sub="1 h ago">electron ipc bridge signing</AsideRow>
         <AsideRow sub="yesterday">go 1.24 range-over-func</AsideRow>
       </Aside>
       <Body>

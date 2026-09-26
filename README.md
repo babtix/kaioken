@@ -62,7 +62,7 @@ Kaioken replaces ungrounded LLM generation with AST verification, cryptographic 
 │   ├── packages/               # Upstream Pi Agent Harness
 │   └── docs/                   # Architectural blueprints & roadmap
 │
-├── desktop/                    # Kaioken Studio Desktop App (Electron + Vite + React 19)
+├── desktop/                    # Kaioken 2 Desktop Studio (Electron + Vite + React 19) [WIP / Under Construction]
 ├── website/                    # Modern Showcase Web Portal (React 19 + Vite)
 ├── registry-web/               # Extension Registry Portal (React 19 + Vite)
 ├── web-news/                   # Release Notes & Publishing Feed
@@ -185,7 +185,7 @@ Unified experience across 5 dedicated surfaces governed by [DESIGN.md](DESIGN.md
 
 1. **Terminal TUI (`kaiopi/.pi/extensions/kaioken/ui`)**: Full-screen CRT HUD, 24-bit TrueColor headers, and telemetry sparklines.
 2. **Local Preview Server (`kaiopi/kaioken/serve`)**: Zero-dependency offline server (`127.0.0.1:4173`) with SSE live-reload and interactive graph visualization.
-3. **Kaioken Studio (`desktop/`)**: Native desktop IDE built with Electron, Vite, React 19, and Tailwind CSS.
+3. **Kaioken 2 Desktop Studio (`desktop/`)**: Next-generation native desktop IDE rebuilt on **Electron**, **electron-vite**, **TypeScript**, and **React 19** *(under active construction / work in progress)*. Features multi-process architecture, context-isolated IPC, and full-featured desktop developer tooling.
 4. **Showcase Web Portal (`website/`)**: Modern web portal built with React 19, Vite, and Base UI.
 5. **Community Registry (`registry-web/`)**: Hub for browsing, searching, and submitting extensions.
 

@@ -1,5 +1,5 @@
 import React from 'react'
-import { ShieldCheck, FolderGit2, Cpu } from 'lucide-react'
+import { ShieldCheck, FolderGit2, Cpu, Construction } from 'lucide-react'
 import logo from '../assets/logo.png'
 
 export const StudioHeader: React.FC = () => {
@@ -28,7 +28,7 @@ export const StudioHeader: React.FC = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <h1 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.02em', color: '#ffffff' }}>
-                Kaioken Desktop Studio
+                Kaioken 2 Desktop Studio
               </h1>
               <span
                 style={{
@@ -41,16 +41,34 @@ export const StudioHeader: React.FC = () => {
                   color: '#00f2fe'
                 }}
               >
-                VITE + ELECTRON
+                ELECTRON · KAIOKEN 2.0
               </span>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Fresh native developer workbench for Kaioken engine, diff streaming, and RAG pipelines.
+              Fresh native developer workbench for Kaioken 2 engine, diff streaming, and RAG pipelines.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '11px',
+              fontWeight: '600',
+              color: '#f59e0b',
+              background: 'rgba(245, 158, 11, 0.1)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid rgba(245, 158, 11, 0.3)'
+            }}
+          >
+            <Construction size={14} color="#f59e0b" />
+            <span>UNDER CONSTRUCTION</span>
+          </div>
+
           <div className="status-indicator" style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
             <span className="pulse-dot" />
             <span>STUDIO RUNNING</span>

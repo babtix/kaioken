@@ -203,7 +203,7 @@ export default function DesktopBgPreview() {
                 className="inline-flex items-center gap-2 rounded-sm border border-kai-orange/30 bg-kai-orange/10 px-2.5 py-1 font-mono text-[11px] text-kai-amber transition-colors hover:border-kai-orange/60 hover:bg-kai-orange/15"
               >
                 <span className="size-1.5 rounded-full bg-kai-green shadow-[0_0_6px_-1px_var(--kai-green)]" />
-                Tauri v2 · same binary, same .kaioken/
+                Electron · Kaioken 2 · same binary, same .kaioken/
               </a>
             </div>
 

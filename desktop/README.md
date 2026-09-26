@@ -1,6 +1,10 @@
-# Kaioken Desktop Studio
+# Kaioken 2 Desktop Studio
 
-Fresh, modern **Electron** desktop studio foundation for Kaioken, engineered from zero with **Electron 44**, **TypeScript**, **electron-vite 5**, and **React 19**.
+> 🚧 **STATUS: UNDER ACTIVE CONSTRUCTION / WORK IN PROGRESS**
+>
+> The desktop application has officially transitioned to **Electron** with the new **Kaioken 2** architecture. The earlier experimental Tauri prototype has been deprecated and replaced with a high-performance, context-isolated Electron multi-process runtime powered by **Electron 44**, **electron-vite 5**, **TypeScript**, and **React 19**.
+>
+> Core developer studio surfaces, diff inspectors, and AST pipeline monitors are currently being assembled from the ground up.
 
 ---
 

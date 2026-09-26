@@ -2,9 +2,8 @@
  * Kaioken Desktop — content for /desktop and /docs/desktop.
  *
  * Every claim here is read off the app itself rather than imagined:
- * surfaces from desktop/src/components/layout/NavRail.tsx, shortcuts from
- * desktop/src/lib/shortcuts.ts, window and bundle facts from
- * desktop/src-tauri/tauri.conf.json, architecture from desktop/docs/01..05.
+ * surfaces from desktop/src/renderer/src/components, shortcuts,
+ * window facts from electron main config, architecture from desktop/README.md.
  */
 
 export const DESKTOP_REPO_PATH = "https://github.com/babtix/kaioken/tree/master/desktop"
@@ -37,7 +36,7 @@ export const DESKTOP_ART = `██████╗  ███████╗ █�
 /* ── the window itself ──────────────────────────────────────────────────── */
 
 export const WINDOW = {
-  /** tauri.conf.json → app.windows[0] */
+  /** electron main window configuration */
   width: 1440,
   height: 900,
   minWidth: 960,
@@ -245,13 +244,13 @@ export const LAYERS: Layer[] = [
     parts: ["React 19", "Vite 6", "Tailwind 4", "zustand", "CodeMirror 6", "xterm.js"],
   },
   {
-    id: "rust",
-    title: "Tauri v2 shell",
-    subtitle: "thin on purpose",
+    id: "electron",
+    title: "Electron runtime shell",
+    subtitle: "context-isolated & multi-process",
     detail:
-      "Rust does four things: spawn the sidecar, supervise it, kill it on exit, and hand the front-end a port and a token. No engine logic lives here, so nothing about the product depends on rebuilding Rust.",
+      "Electron supervises the engine daemon, orchestrates native OS windows, and provides isolated context bridges for secure IPC. No engine logic is locked inside the desktop wrapper, ensuring zero drift between CLI and desktop.",
     tone: "orange",
-    parts: ["spawn", "supervise", "PTY", "no business logic"],
+    parts: ["Electron 44", "main process", "preload bridge", "isolated IPC"],
   },
   {
     id: "daemon",
@@ -427,38 +426,39 @@ export const PLATFORMS: Platform[] = [
   {
     id: "windows",
     label: "Windows",
-    artifacts: "NSIS installer (.exe)",
-    note: "WebView2 ships with Windows 11; the installer bootstraps it on older builds.",
+    artifacts: "NSIS installer (.exe) & Portable",
+    note: "High-performance Chromium rendering with native Windows frameless styling and DWM effects.",
   },
   {
     id: "macos",
     label: "macOS",
-    artifacts: "Coming soon",
-    note: "Disk image (.dmg) · Uses the system WebKit.",
+    artifacts: "DMG (.dmg) & Universal Binary",
+    note: "Native macOS menu bar integration, dark mode, and Apple Silicon + Intel packaging.",
   },
   {
     id: "linux",
     label: "Linux",
-    artifacts: "Coming soon",
-    note: "Debian package + AppImage · Requires webkit2gtk.",
+    artifacts: "AppImage & Debian (.deb)",
+    note: "Zero-dependency portable AppImage or native system packages.",
   },
 ]
 
-/** Honest status of distribution — the tagged release pipeline ships the CLI. */
+/** Honest status of distribution — desktop studio is currently under construction. */
 export const DISTRIBUTION_NOTE =
-  "Tagged releases currently publish the CLI binary. The desktop bundles are built and tested by CI on every push, and building them yourself is three commands — signed installers are the next step, not a rewrite."
+  "Kaioken 2 Desktop Studio is actively under construction and undergoing rapid feature development. The application has transitioned to Electron for enhanced stability and multi-process architecture. Developer builds run directly via npm run dev inside desktop/."
 
-export const BUILD_STEPS = `# prerequisites: Go >= 1.24, Node >= 20, Rust (rustup.rs)
-# Windows additionally needs the Visual Studio C++ build tools
+export const BUILD_STEPS = `# prerequisites: Node >= 20, npm / pnpm
+# Pure Node/TypeScript toolchain (no Rust or C++ compiler required)
 
 git clone https://github.com/babtix/kaioken
 cd kaioken/desktop
 
 npm install
-npm run tauri dev      # builds the Go sidecar, then opens the app
+npm run dev            # launches Electron in development with instant HMR
 
-# or produce an installer for your platform
-npm run dist`
+# package production installers for your platform
+npm run build
+npx electron-builder`
 
 export const CURL_PROOF = `# the app is only a client — the daemon answers plain HTTP
 kaioken daemon --port 54312

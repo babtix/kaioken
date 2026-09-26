@@ -113,8 +113,8 @@ export const ROADMAP_CATEGORIES: RoadmapCategory[] = [
         body: "Split-pane chat + file viewer served by an extended serve.go with WebSocket agent streaming.",
       },
       {
-        title: "Desktop app (Tauri)",
-        body: "Native window wrapping the web UI with filesystem access, system tray, and global hotkey.",
+        title: "Desktop app (Electron · Kaioken 2)",
+        body: "Native desktop studio rebuilt on Electron + Vite + React 19 with isolated IPC, filesystem access, system tray, and deep engine integration (Under Active Construction).",
       },
       {
         title: "Interactive diff viewer",
